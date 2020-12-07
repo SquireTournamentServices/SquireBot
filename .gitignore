@@ -4,4 +4,6 @@ __pycache__
 __pycache__/*.pyc
 .vscode/*
 .env
+references/
+references/*
 
