@@ -5,8 +5,10 @@ import random
 from discord.ext import commands
 from dotenv import load_dotenv
 
+from tournament.match import match
 from tournament.deck import deck
 from tournament.player import player
+from tournament.tournament import tournament
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
