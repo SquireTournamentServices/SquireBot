@@ -1,48 +1,40 @@
 import hashlib
 import string
 
+from .tournamentUtils import *
 
-
-conv_dict = {
-    int(c, 32): c for c in (string.digits + string.ascii_lowercase)[:32]
-}  # convert from integer to base32hex symbols
-
-def number_to_base(n, b):
-    """Converts a number in base 10 to base b"""
-    if n == 0:
-        return [0]
-    digits = []
-    while n:
-        digits.append(int(n % b))
-        n //= b
-    return digits[::-1]
 
 
 class deck:
-    def __init__( self, a_decklist = "" ):
+    def __init__( self, a_decklist: str = "" ):
         self.cards = self.parseAnnotatedTriceDecklist( a_decklist )
         self.ownerName = ""
         self.deckHash  = ""
         self.updateDeckHash()
         
-    def saveDeck( a_filename = "" ):
+    def saveDeck( a_filename: str = "" ) -> None:
         if a_filename == "":
             a_filename = ownerName + "-deck"
         deckfile = open( a_filename, "w" )
         deckfile.write( "\n".join( self.cards ) )
         deckfile.close()
     
-    def loadDeck( a_filename ):
+    def loadDeck( a_filename: str ) -> None:
         deckfile = open( a_filename, "r" )
         self.cards = deckfile.read().strip().split("\n")
         self.updateDeckHash()
     
     # Converts a semicolon-delineated deck string into a hash.
-    def updateDeckHash( self ):
+    def updateDeckHash( self ) -> None:
         l_cards = []
         for card in self.cards:
-            number = int( card.split(" ", 1)[0].strip() )
-            name   = card.split(" ", 1)[1].strip().lower()
+            card   = card.split(" ", 1)
+            if len( card ) == 1:
+                number = 1
+                name   = card[0].strip().lower()
+            else:
+                number = int( card[0].strip() )
+                name   = card[1].strip().lower()
             for i in range(number):
                 l_cards.append( name )
 
@@ -60,7 +52,7 @@ class deck:
         processed_hash = number_to_base(hashed_deck, 32)
         self.deckHash = "".join([conv_dict[i] for i in processed_hash])
 
-    def parseAnnotatedTriceDecklist( self, a_decklist ):
+    def parseAnnotatedTriceDecklist( self, a_decklist: str ):
         return [ line for line in a_decklist.strip().split("\n") if line.strip() != "" and line[0:2] != "//" ]
         
     
