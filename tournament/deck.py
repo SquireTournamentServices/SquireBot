@@ -28,7 +28,11 @@ class deck:
     def updateDeckHash( self ) -> None:
         l_cards = []
         for card in self.cards:
-            card   = card.split(" ", 1)
+            try:
+                int( card[0] )
+                card   = card.split(" ", 1)
+            except:
+                card = [ card ]
             if len( card ) == 1:
                 number = 1
                 name   = card[0].strip().lower()
