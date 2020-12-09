@@ -1,9 +1,9 @@
-
+from typing import List
 
 
 
 class match:
-    def __init__( self, a_players: list[str] ):
+    def __init__( self, a_players: List[str] ):
         self.activePlayers  = a_players
         self.droppedPlayers = []
         

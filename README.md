@@ -1,3 +1,8 @@
+Things that the a server needs to do in order for the bot to work:
+	- 1) There needs to be a role named "tournament admin" (case insesitive).
+
+
+
 Things that ought to be done:
 	- 1) The match object should contain minimal data, icluding only a player's name (not the entire player object).
 	- 2) Each player should have a copy of their matches.

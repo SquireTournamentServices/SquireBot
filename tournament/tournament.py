@@ -1,10 +1,10 @@
+from typing import List
 
 
-
-from tournamentUtils import *
-from match import match
-from player import player
-from deck import deck
+from .tournamentUtils import *
+from .match import match
+from .player import player
+from .deck import deck
 
 
 class tournament:
@@ -91,12 +91,12 @@ class tournament:
         
         self.playerQueue.append(a_player)
         if len(self.playerQueue) >= self.playersPerMatch:
-            self.addMatch( self.playerQueue[0:self.playersPerMatch + 1]
+            self.addMatch( self.playerQueue[0:self.playersPerMatch + 1] )
         for i in range(self.playersPerMatch):
             del( self.playerQueue[0] )
 
     
-    def addMatch( self, a_players: list[str] ) -> None:
+    def addMatch( self, a_players: List[str] ) -> None:
         for player in a_players:
             self.openMatches[player] = match( a_players )
         
