@@ -1,3 +1,4 @@
+# Stuff to ignore
 *.swp
 ./*.pyc
 __pycache__
@@ -6,4 +7,8 @@ __pycache__/*.pyc
 .env
 references/
 references/*
+closedTournaments/*
+openTournaments/*
+
+
 
