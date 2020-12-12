@@ -7,8 +7,6 @@ __pycache__/*.pyc
 .env
 references/
 references/*
-closedTournaments/*
-openTournaments/*
 
 
 
