@@ -12,11 +12,11 @@ class player:
             self.displayName  = a_playerName
         else:
             self.displayName  = a_displayName
-        self.decks        = [ ]
+        self.decks        = { }
         self.matchResults = [ ]
     
-    def addDeck( self, a_decklist: str = "" ) -> None:
-        self.decks.append( deck( a_decklist ) )
+    def addDeck( self, a_commander: str = "", a_decklist: str = "" ) -> None:
+        self.decks[a_commander] = deck( a_decklist )
         
     def addMatchResult( self, a_result: str ) -> None:
         self.matchResults.append( a_result )

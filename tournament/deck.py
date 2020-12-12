@@ -6,10 +6,11 @@ from .tournamentUtils import *
 
 
 class deck:
-    def __init__( self, a_decklist: str = "" ):
-        self.cards = self.parseAnnotatedTriceDecklist( a_decklist )
+    def __init__( self, a_decklist: str = "", a_commander: str = "" ):
         self.ownerName = ""
         self.deckHash  = ""
+        self.commander = ""
+        self.cards = self.parseAnnotatedTriceDecklist( a_decklist )
         self.updateDeckHash()
         
     def saveDeck( a_filename: str = "" ) -> None:
@@ -27,20 +28,28 @@ class deck:
     # Converts a semicolon-delineated deck string into a hash.
     def updateDeckHash( self ) -> None:
         l_cards = []
+        l_sideboard = []
         for card in self.cards:
-            try:
-                int( card[0] )
-                card   = card.split(" ", 1)
-            except:
-                card = [ card ]
-            if len( card ) == 1:
-                number = 1
-                name   = card[0].strip().lower()
+            if not "SB:" in card:
+                try:
+                    int( card[0] )
+                    card   = card.split(" ", 1)
+                except:
+                    card = [ card ]
+                if len( card ) == 1:
+                    number = 1
+                    name   = card[0].strip().lower()
+                else:
+                    number = int( card[0].strip() )
+                    name   = card[1].strip().lower()
+                for i in range(number):
+                    l_cards.append( name )
             else:
-                number = int( card[0].strip() )
-                name   = card[1].strip().lower()
-            for i in range(number):
-                l_cards.append( name )
+                card = card.split(" ", 2)
+                number = int( card[1].strip() )
+                name   = card[0] + card[2].strip().lower()
+                for i in range(number):
+                    l_cards.append( name )
 
         l_cards.sort()
         newHash = hashlib.sha1()
