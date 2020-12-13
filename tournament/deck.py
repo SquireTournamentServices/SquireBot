@@ -1,39 +1,45 @@
 import hashlib
 import string
+import xml.etree.ElementTree as ET
+
+
+from typing import List
+
 
 from .tournamentUtils import *
 
 
-
 class deck:
-    def __init__( self, a_decklist: str = "", a_commander: str = "" ):
-        self.ownerName = ""
+    def __init__( self, a_commander: str = "", a_decklist: str = "" ):
         self.deckHash  = ""
-        self.commander = ""
-        self.cards = self.parseAnnotatedTriceDecklist( a_decklist )
+        self.commander = a_commander
+        if a_decklist == "":
+            self.cards = [ ]
+        else:
+            self.cards = self.parseAnnotatedTriceDecklist( a_decklist ) if "// " in a_decklist else self.parseNonAnnotatedTriceDecklist( a_decklist )
         self.updateDeckHash()
-        
-    def saveDeck( a_filename: str = "" ) -> None:
-        if a_filename == "":
-            a_filename = ownerName + "-deck"
-        deckfile = open( a_filename, "w" )
-        deckfile.write( "\n".join( self.cards ) )
-        deckfile.close()
     
-    def loadDeck( a_filename: str ) -> None:
-        deckfile = open( a_filename, "r" )
-        self.cards = deckfile.read().strip().split("\n")
+    def exportXMLString( self, a_indent: str = "" ) -> str:
+        lineStart = f'\n{a_indent}\t'
+        digest = f'{a_indent}<deck commander="{self.commander}">' 
+        for card in self.cards:
+            digest += f'{lineStart}<card name="{card}"/>'
+        digest += f'\n{a_indent}</deck>\n'
+        return digest
+    
+    def importFromETree( self, a_tree: ET ) -> None:
+        for card in a_tree.iter( "card" ):
+            self.cards.append( card.attrib['name'] )
         self.updateDeckHash()
     
     # Converts a semicolon-delineated deck string into a hash.
     def updateDeckHash( self ) -> None:
         l_cards = []
-        l_sideboard = []
         for card in self.cards:
             if not "SB:" in card:
                 try:
                     int( card[0] )
-                    card   = card.split(" ", 1)
+                    card = card.split(" ", 1)
                 except:
                     card = [ card ]
                 if len( card ) == 1:
@@ -65,7 +71,17 @@ class deck:
         processed_hash = number_to_base(hashed_deck, 32)
         self.deckHash = "".join([conv_dict[i] for i in processed_hash])
 
-    def parseAnnotatedTriceDecklist( self, a_decklist: str ):
+    def parseNonAnnotatedTriceDecklist( self, a_decklist: str) -> List[str]:
+        digest = []
+        prefix = ""
+        for line in a_decklist.strip().split("\n"):
+            line = line.strip()
+            if line == "":
+                prefix = "SB:"
+            digest.append(prefix + line)
+        return digest
+
+    def parseAnnotatedTriceDecklist( self, a_decklist: str ) -> List[str]:
         return [ line for line in a_decklist.strip().split("\n") if line.strip() != "" and line[0:2] != "//" ]
         
     

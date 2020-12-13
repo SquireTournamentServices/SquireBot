@@ -216,7 +216,7 @@ async def addPlayer( ctx, arg = "" ):
         return
         
 
-    tourn.addPlayer( ctx.message.author.name, ctx.message.author.display_name )
+    tourn.addPlayer( ctx.message.author )
     await ctx.send( ctx.message.author.mention + ', you have been added to the tournament named "' + arg + '" in this guild (server)!' )
 
 
@@ -290,6 +290,7 @@ async def submitDecklist( ctx, arg1, arg2 = "", arg3 = "" ):
     await ctx.send( ctx.message.author.mention + ', your decklist has been submitted. Your deck hash is "' + str(tourn.activePlayers[ctx.message.author.name].decks[arg2].deckHash) + '". If this doesn\'t match your deck hash in Cocktrice, please contact tournament admin.' )
     if not isPrivateMessage( ctx.message ):
         await ctx.send( ctx.message.author.mention + ", for future reference, you can submit your decklist via private message so that you don't have to publicly post your decklist." )
+    tourn.activePlayers[ctx.message.author.name].saveXML( "tester.xml" )
 
 @bot.command(name='remove-deck')
 async def submitDecklist( ctx, arg1 = "", arg2 = "" ):

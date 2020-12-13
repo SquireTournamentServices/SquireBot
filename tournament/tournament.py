@@ -58,22 +58,16 @@ class tournament:
         self.tournCancel = True
         return "This tournament has been canceled."
     
-    def addPlayer( self, a_playerName: str = "", a_displayName: str = "" ) -> str:
+    def addPlayer( self, a_discordUser ) -> str:
         if self.tournCancel:
             return "Sorry but this tournament has been cancelled. If you believe this to be incorrect, please contact the tournament officials."
         if self.tournEnded:
             return "Sorry, but this tournament has already ended. If you believe this to be incorrect, please contact the tournament officials."
         if self.regOpen:
-            self.activePlayers[a_playerName] = player( a_playerName, a_displayName )
+            self.activePlayers[a_discordUser.name] = player( a_discordUser )
             return ""
         else:
             return "Sorry, registeration for this tournament isn't open currently."
-    
-    def getPlayer( self, a_playerName: str ) -> player:
-        if a_playerName in self.activePlayers:
-            return self.activePlayers[a_playerName]
-        else:
-            return player()
     
     # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing
     # This is a prime canidate for adjustments when players how copies of match results.

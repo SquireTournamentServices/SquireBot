@@ -16,4 +16,13 @@ def number_to_base(n: int, b: int) -> int:
     return digits[::-1]
 
 
+class UID:
+    currentID = [0]
+        
+    def getNewID( self ):
+        ret = self.currentID[0]
+        self.currentID[0] += 1
+        return ret
+
+
 
