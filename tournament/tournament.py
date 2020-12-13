@@ -1,3 +1,6 @@
+import os
+
+
 from typing import List
 
 
@@ -27,6 +30,48 @@ class tournament:
         self.openMatches   = {}
         self.uncertMatches = {}
         self.closedMatches = []
+    
+    def saveTournament( self, a_dirName: str ) -> None:
+        savePlayers( a_dirName )
+        saveMatches( a_dirName )
+        saveOverview( f'{a_dirName}/overview.xml' )
+    
+    def saveOverview( self, a_filename )
+        digest  = "<?xml version='1.0'?>\n"
+        digest += '<tournament>\n'
+        digest += f'\t<name>"{self.tournName}"</name>\n'
+        digest += f'\t<hostGuild>"{self.hostGuild}"</hostGuild>\n'
+        digest += f'\t<format>"{self.format}"</format>\n'
+        digest += f'\t<regOpen>"{self.regOpen}"</regOpen>\n'
+        digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
+        digest += f'\t<queue size={self.playersPerMatch}>\n'
+        for player in self.playerQueue:
+            digest += f'<player name="{player}"/>'
+        
+        with open( a_filename, 'w' ) as xmlFile:
+            xmlFile.write( digest )
+    
+    def savePlayers( self, a_direName: str ) -> None:
+        if not (os.path.isdir( f'{a_dirName}/players/' ) and os.path.exists( f'{a_dirName}/players/' ));
+           os.mkdir( f'{a_dirName}/players/' ) 
+
+        for player in self.activePlayers:
+            player.saveXML( f'{a_dirName}/players/{player.playerName}.xml' )
+        for player in self.droppedPlayers:
+            player.saveXML( f'{a_dirName}/players/{player.playerName}.xml' )
+        
+
+    def saveMatches( self, a_direName: str ) -> None:
+        if not (os.path.isdir( f'{a_dirName}/matches/' ) and os.path.exists( f'{a_dirName}/matches/' ));
+           os.mkdir( f'{a_dirName}/matches/' ) 
+
+        for i in range(len(self.openMatches)):
+            match.saveXML( f'{a_dirName}/matches/openMatch-{i}.xml' )
+        for i in range(len(self.uncertMatches)):
+            match.saveXML( f'{a_dirName}/matches/uncertMatch-{i}.xml' )
+        for i in range(len(self.closedMatches)):
+            match.saveXML( f'{a_dirName}/matches/closedMatch-{i}.xml' )
+        
     
 
     def setRegStatus( self, a_status: bool ) -> str:
