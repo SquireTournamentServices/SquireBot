@@ -16,7 +16,7 @@ class deck:
         if a_decklist == "":
             self.cards = [ ]
         else:
-            self.cards = self.parseAnnotatedTriceDecklist( a_decklist ) if "// " in a_decklist else self.parseNonAnnotatedTriceDecklist( a_decklist )
+            self.cards = self.parseAnnotatedTriceDecklist( a_decklist ) if "\n//" in a_decklist else self.parseNonAnnotatedTriceDecklist( a_decklist )
         self.updateDeckHash()
     
     def exportXMLString( self, a_indent: str = "" ) -> str:
@@ -77,8 +77,10 @@ class deck:
         for line in a_decklist.strip().split("\n"):
             line = line.strip()
             if line == "":
-                prefix = "SB:"
-            digest.append(prefix + line)
+                prefix = "SB: "
+            else:
+                digest.append(prefix + line)
+        print( digest )
         return digest
 
     def parseAnnotatedTriceDecklist( self, a_decklist: str ) -> List[str]:

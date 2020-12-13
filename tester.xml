@@ -28,6 +28,7 @@
 		<card name="1 Cursed Totem"/>
 		<card name="1 Helm of Awakening"/>
 		<card name="1 Semblance Anvil"/>
+		<card name="1 Elsha of the Infinite"/>
 		<card name="1 Etherium Sculptor"/>
 		<card name="1 Copy Artifact"/>
 		<card name="1 Jeskai Ascendancy"/>
@@ -101,6 +102,5 @@
 		<card name="1 Wheel of Fortune"/>
 		<card name="1 Gitaxian Probe"/>
 		<card name="1 Mana Severance"/>
-		<card name="SB: 1 Elsha of the Infinite"/>
 	</deck>
 </player>
