@@ -1,5 +1,5 @@
 import os
-
+import xml.etree.ElementTree as ET
 
 from typing import List
 
@@ -11,12 +11,12 @@ from .deck import deck
 
 
 class tournament:
-    def __init__( self, a_tournName: str, a_hostGuild: str, a_format: str = "EDH" ):
+    def __init__( self, a_tournName: str, a_hostGuildName: str, a_format: str = "EDH" ):
         self.tournName = a_tournName
-        self.hostGuild = a_hostGuild
+        self.hostGuildName = a_hostGuildName
         self.format    = a_format
         
-        self.regOpen = True
+        self.regOpen      = True
         self.tournStarted = False
         self.tournEnded   = False
         self.tournCancel  = False
@@ -27,52 +27,117 @@ class tournament:
         self.activePlayers  = {}
         self.droppedPlayers = {}
         
+        self.uniqueMatches = []
         self.openMatches   = {}
         self.uncertMatches = {}
         self.closedMatches = []
     
     def saveTournament( self, a_dirName: str ) -> None:
-        savePlayers( a_dirName )
-        saveMatches( a_dirName )
-        saveOverview( f'{a_dirName}/overview.xml' )
+        self.saveMatches( a_dirName )
+        self.savePlayers( a_dirName )
+        self.saveOverview( f'{a_dirName}/overview.xml' )
     
-    def saveOverview( self, a_filename )
+    def saveOverview( self, a_filename ):
         digest  = "<?xml version='1.0'?>\n"
         digest += '<tournament>\n'
-        digest += f'\t<name>"{self.tournName}"</name>\n'
-        digest += f'\t<hostGuild>"{self.hostGuild}"</hostGuild>\n'
-        digest += f'\t<format>"{self.format}"</format>\n'
-        digest += f'\t<regOpen>"{self.regOpen}"</regOpen>\n'
+        digest += f'\t<name>{self.tournName}</name>\n'
+        digest += f'\t<hostGuildName>{self.hostGuildName}</hostGuildName>\n'
+        digest += f'\t<format>{self.format}</format>\n'
+        digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
         digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
-        digest += f'\t<queue size={self.playersPerMatch}>\n'
+        digest += f'\t<queue size="{self.playersPerMatch}">\n'
         for player in self.playerQueue:
-            digest += f'<player name="{player}"/>'
+            digest += f'\t\t<player name="{player}"/>\n'
+        digest += f'\t</queue>\n'
+        digest += '</tournament>'
         
         with open( a_filename, 'w' ) as xmlFile:
             xmlFile.write( digest )
     
-    def savePlayers( self, a_direName: str ) -> None:
-        if not (os.path.isdir( f'{a_dirName}/players/' ) and os.path.exists( f'{a_dirName}/players/' ));
+    def savePlayers( self, a_dirName: str ) -> None:
+        if not (os.path.isdir( f'{a_dirName}/players/' ) and os.path.exists( f'{a_dirName}/players/' )):
            os.mkdir( f'{a_dirName}/players/' ) 
 
         for player in self.activePlayers:
-            player.saveXML( f'{a_dirName}/players/{player.playerName}.xml' )
+            self.activePlayers[player].saveXML( f'{a_dirName}/players/{self.activePlayers[player].playerName}.xml' )
         for player in self.droppedPlayers:
-            player.saveXML( f'{a_dirName}/players/{player.playerName}.xml' )
+            self.activePlayers[player].saveXML( f'{a_dirName}/players/{self.activePlayers[player].playerName}.xml' )
         
 
-    def saveMatches( self, a_direName: str ) -> None:
-        if not (os.path.isdir( f'{a_dirName}/matches/' ) and os.path.exists( f'{a_dirName}/matches/' ));
+    def saveMatches( self, a_dirName: str ) -> None:
+        if not (os.path.isdir( f'{a_dirName}/matches/' ) and os.path.exists( f'{a_dirName}/matches/' )):
            os.mkdir( f'{a_dirName}/matches/' ) 
 
         for i in range(len(self.openMatches)):
-            match.saveXML( f'{a_dirName}/matches/openMatch-{i}.xml' )
+            self.openMatchesmatch.saveXML( f'{a_dirName}/matches/openMatch-{i}.xml' )
         for i in range(len(self.uncertMatches)):
             match.saveXML( f'{a_dirName}/matches/uncertMatch-{i}.xml' )
         for i in range(len(self.closedMatches)):
             match.saveXML( f'{a_dirName}/matches/closedMatch-{i}.xml' )
         
+    def loadTournament( self, a_dirName: str ) -> None:
+        self.loadOverview( f'{a_dirName}/overview.xml' )
+        self.loadPlayers( f'{a_dirName}/players/' )
+        self.loadMatches( f'{a_dirName}/matches/' )
     
+    def loadOverview( self, a_filename: str ) -> None:
+        xmlTree = ET.parse( a_filename )
+        tournRoot = xmlTree.getroot() 
+        self.tournName = tournRoot.find( 'name' ).text
+        self.hostGuildName = tournRoot.find( 'hostGuildName' ).text
+        self.format    = tournRoot.find( 'format' ).text
+
+        self.regOpen      = str_to_bool( tournRoot.find( 'regOpen' ).text )
+        self.tournStarted = str_to_bool( tournRoot.find( 'status' ).attrib['started'] )
+        self.tournEnded   = str_to_bool( tournRoot.find( 'status' ).attrib['ended'] )
+        self.tournCancel  = str_to_bool( tournRoot.find( 'status' ).attrib['canceled'] )
+
+        self.playersPerMatch = int( tournRoot.find( 'queue' ).attrib['size'] )
+        for player in tournRoot.find( 'queue' ).findall( 'player' ):
+            self.playerQueue.append( player.attrib['name'] )
+    
+    def loadPlayers( self, a_dirName: str ) -> None:
+        playerFiles = [ f'{a_dirName}/{f}' for f in os.listdir(a_dirName) if os.path.isfile( f'{a_dirName}/{f}' ) ]
+        for playerFile in playerFiles:
+            newPlayer = player( "" )
+            newPlayer.loadXML( playerFile )
+            if newPlayer.status == "active":
+                self.activePlayers[newPlayer.playerName]  = newPlayer
+            else:
+                self.droppedPlayers[newPlayer.playerName] = newPlayer
+    
+    def loadMatches( self, a_dirName: str ) -> None:
+        matchFiles = [ f'{a_dirName}/{f}' for f in os.listdir(a_dirName) if os.path.isfile( f'{a_dirName}/{f}' ) ]
+        emptyMatch = match( [] )
+        for matchFile in matchFiles:
+            newMatch = match( [] )
+            newMatch.loadXML( matchFile )
+            for aPlayer in newMatch.activePlayers:
+                if aPlayer in self.activePlayers:
+                    self.activePlayers[aPlayer].matches.append( emptyMatch )
+                    self.activePlayers[aPlayer].matches[-1] = newMatch
+                elif aPlayer in self.droppedPlayers:
+                    self.droppedPlayers[aPlayer].matches.append( emptyMatch )
+                    self.droppedPlayers[aPlayer].matches[-1] = newMatch
+            for dPlayer in newMatch.droppedPlayers:
+                if dPlayer in self.activePlayers:
+                    self.activePlayers[dPlayer].matches.append( emptyMatch )
+                    self.activePlayers[dPlayer].matches[-1] = newMatch
+                elif dPlayer in self.droppedPlayers:
+                    self.droppedPlayers[dPlayer].matches.append( emptyMatch )
+                    self.droppedPlayers[dPlayer].matches[-1] = newMatch
+            self.uniqueMatches.append( emptyMatch )
+            self.uniqueMatches[-1] = newMatch
+            if status == "open":
+                for aPlayer in newMatch.activePlayers:
+                    self.openMatches[aPlayer] = newMatch
+            elif status == "uncertified":
+                for aPlayer in newMatch.activePlayers:
+                    self.uncertMatches[aPlayer] = newMatch
+            elif status == "closed":
+                self.closedMatches.append( emptyMatch )
+                self.closedMatches[-1] = newMatch
+        
 
     def setRegStatus( self, a_status: bool ) -> str:
         if not ( self.tournEnded or self.tournCancel ):
@@ -136,9 +201,14 @@ class tournament:
 
     
     def addMatch( self, a_players: List[str] ) -> None:
+        emptyMatch = match( [] )
+        newMatch   = match( a_players )
+        self.uniqueMatches.append( emptyMatch )
+        self.uniqueMatches[-1] = newMatch
         for player in a_players:
-            self.openMatches[player] = match( a_players )
-        
+            self.activePlayers[player].matches.append( emptyMatch )
+            self.activePlayers[player].matches[-1] = newMatch
+            self.openMatches[player] = newMatch 
     
     def playerMatchDrop( self, a_player: str ) -> None:
         if a_player in self.openMatches:

@@ -16,13 +16,11 @@ def number_to_base(n: int, b: int) -> int:
     return digits[::-1]
 
 
-class UID:
-    currentID = [0]
-        
-    def getNewID( self ):
-        ret = self.currentID[0]
-        self.currentID[0] += 1
-        return ret
 
+def str_to_bool( s: str ) -> bool:
+    s = s.lower()
+    if s == "t" or s == "true":
+        return True
+    return False
 
 

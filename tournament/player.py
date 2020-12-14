@@ -19,8 +19,9 @@ class player:
             a_filename = self.discordUser.name + '.xml'
         digest  = "<?xml version='1.0'?>\n"
         digest += '<player>\n'
-        digest += f'\t<name>"{self.discordUser.name}"</name>\n'
-        digest += f'\t<status>"{self.status}"</status>\n'
+        #digest += f'\t<name>"{self.discordUser.name}"</name>\n'
+        digest += f'\t<name>{self.playerName}</name>\n'
+        digest += f'\t<status>{self.status}</status>\n'
         for commander in self.decks:
             digest += self.decks[commander].exportXMLString( '\t' )
         digest += '</player>'
@@ -30,7 +31,7 @@ class player:
     def loadXML( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
         self.playerName = xmlTree.getroot().find( 'name' ).text
-        self.status = xmlTree.getroot.find( "status" ).text
+        self.status = xmlTree.getroot().find( "status" ).text
         for deckTag in xmlTree.getroot().findall('deck'):
             print( deckTag.attrib )
             print( deckTag.attrib['commander'] )
