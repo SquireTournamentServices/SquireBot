@@ -9,7 +9,37 @@ from .match import match
 from .player import player
 from .deck import deck
 
+"""
+    This is a tournament class. The bulk of data management for a tournament is handled by this class.
+    It also holds certain metadata about the tournament, such as the tournament's name and host guild's name.
 
+    These are the current functionalities that this class has (those they might not have an explicit method):
+        - Tracks players, matches, and the status of the tournament (state of registeration, whether or not the tournament has started, etc.)
+        - Matches can be added
+        - The results for a match can be recorded and verified
+
+    Things that will be added in the future:
+        - 
+    
+    The class has the following member variables:
+        - tournName: The name of the tournament
+        - hostGuildName: The name of the server that is hosting the tournament
+        - format: The format of the tournament
+        - regOpen: Whether or not registeration is open
+        - tournStarted: Whether or not the tournament has started
+        - tournEnded: Whether or not the tournament has ended
+        - tournCancel: Whether or not the tournament has been canceled
+        - playersPerMatch: The number of players that will be paired per match
+        - playerQueue: A list of player names (strings) representing the players that are waiting to be paired for a match
+        - activePlayers: A dict that index-s player objects that haven't dropped with their names (for ease of referencing)
+        - droppedPlayers: A dict that index-s player objects that have dropped with their names (for ease of referencing)
+        - uniqueMatches: A list of all match objects in the tournament, regardless of status
+        - openMatches: A dict that index-s open matches with player names, there will be a copy of that match for each
+                           active player in the match
+        - uncertMatches: A dict that index-s uncertified matches with player names, there will be a copy of that match
+                           for each player in the match that hasn't confirmed the result
+        - closedMatches: A list of matches that have been certified.
+"""
 class tournament:
     def __init__( self, a_tournName: str, a_hostGuildName: str, a_format: str = "EDH" ):
         self.tournName = a_tournName
@@ -33,6 +63,8 @@ class tournament:
         self.closedMatches = []
     
     def saveTournament( self, a_dirName: str ) -> None:
+        if not (os.path.isdir( f'{a_dirName}' ) and os.path.exists( f'{a_dirName}' )):
+           os.mkdir( f'{a_dirName}' ) 
         self.saveMatches( a_dirName )
         self.savePlayers( a_dirName )
         self.saveOverview( f'{a_dirName}/overview.xml' )
@@ -174,7 +206,8 @@ class tournament:
         if self.tournEnded:
             return "Sorry, but this tournament has already ended. If you believe this to be incorrect, please contact the tournament officials."
         if self.regOpen:
-            self.activePlayers[a_discordUser.name] = player( a_discordUser )
+            self.activePlayers[a_discordUser.name] = player( a_discordUser.name )
+            self.activePlayers[a_discordUser.name].addDiscordUser( a_discordUser )
             return ""
         else:
             return "Sorry, registeration for this tournament isn't open currently."
@@ -189,9 +222,9 @@ class tournament:
         if not a_player in self.activePlayers:
             return "It appears that you are not registered for this tournament. If you think this is an error, please contact tournament officials."
         if a_player in self.openMatches:
-            return "It appears you are already in a match. Please either finish your match or drop from it before starting a new one. If you think this is an error, please contact tournament officials."
+            return "It appears that you are already in a match. Please either finish your match or drop from it before starting a new one. If you think this is an error, please contact tournament officials."
         if a_player in self.uncertMatches:
-            return "It would appear that you have an uncertified match. Please certify the result before starting a new match."
+            return "It appears that you have an uncertified match. Please certify the result before starting a new match."
         
         self.playerQueue.append(a_player)
         if len(self.playerQueue) >= self.playersPerMatch:
@@ -211,13 +244,15 @@ class tournament:
             self.openMatches[player] = newMatch 
     
     def playerMatchDrop( self, a_player: str ) -> None:
+        if not a_player in self.activePlayers:
+            return
         if a_player in self.openMatches:
             self.openMatches[a_player].playerDrop( a_player )
-            self.activePlayers[a_player].addMatchResult( "loss" )
-            if len( self.openMatches[a_player].activePlayers) == 1:
-                l_match = self.openMatches[a_player]
-                self.closedMatches.append( l_match )
-                del( self.openMatches[l_match.activePlayers[0]] )
+            if len( self.openMatches[a_player].activePlayers ) == 1:
+                emptyMatch = match( [] )
+                self.closedMatches.append( emptyMatch )
+                self.closedMatches[-1] = self.openMatches[a_player]
+                del( self.openMatches[self.closedMatches[-1].activePlayers[0]] )
             del( self.openMatches[a_player] )
     
     def playerTournDrop( self, a_player: str ) -> None:
@@ -226,36 +261,28 @@ class tournament:
             self.droppedPlayers[a_player] = self.activePlayers[a_player]
             del( self.activePlayers[a_player] )
     
-    def playerVerifyResult( self, a_player: str ) -> None:
+    def playerCertifyResult( self, a_player: str ) -> None:
         if a_player in self.uncertMatches:
-            l_match = self.uncertMatches[a_player]
+            self.uncertMatches.confirmResult( a_player )
+            if self.uncertMatches.status == "certified":
+                self.closedMatches.append( match( [] ) )
+                self.closedMatches[-1] = self.uncertMatches[a_player]
             del( self.uncertMatches[a_player] )
-            matchClosed = True
-            for player in l_match.activePlayers:
-                matchClosed &= not player in self.uncertMatches
-            if matchClosed:
-                self.closedMatches.append( l_match )
-                
     
     def recordMatchWin( self, a_winner: str ) -> None:
-        l_match = self.openMatches[a_winner]
-        l_match.recordWinner( a_winner )
-        for player in l_match.activePlayers:
-            if player == a_winner:
-                self.activePlayers[player].addMatchResult( "win" )
-            else:
-                self.activePlayers[player].addMatchResult( "loss" )
-                self.uncertMatches[player] = l_match
-            del( self.openMatches[player] )
+        self.openMatches[a_winner].recordWinner( a_winner )
+        for player in self.openMatches[a_winner].activePlayers:
+            if not player == a_winner:
+                self.uncertMatches[player] = self.openMatches[a_winner]
+        del( self.openMatches[a_winner] )
     
     def recordMatchDraw( self, a_player: str ) -> None:
-        l_match = self.openMatches[ a_player ]
-        l_match.recordWinner( "" )
-        for player in l_match.activePlayers:
-            self.activePlayers[player].addMatchResult( "draw" )
+        self.openMatches[a_player].recordWinner( "" )
+        for player in self.openMatches[a_player].activePlayers:
             if player != a_player:
-                self.uncertMatches[player] = l_match
-            del( self.openMatches[player] )
+                self.uncertMatches[player] = self.openMatches[a_player]
+        del( self.openMatches[a_player] )
+        self.playerCertifyResult( a_player )
 
 
 

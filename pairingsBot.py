@@ -1,5 +1,6 @@
 # bot.py
 import os
+import shutil
 import random
 
 from discord.ext import commands
@@ -9,13 +10,8 @@ from tournament.match import match
 from tournament.deck import deck
 from tournament.player import player
 from tournament.tournament import tournament
+from tournament.tournamentUtils import *
 
-
-def stringToBool( s: str ) -> bool:
-    s = s.lower()
-    if s == "t" or s == "true":
-        return True
-    return False
 
 def isPrivateMessage( a_message ) -> bool:
     return str(a_message.channel.type) == 'private'
@@ -36,21 +32,21 @@ def getTournamentAdminMention( a_guild ) -> str:
 def futureGuildTournaments( a_guildName ):
     tourns = {}
     for tourn in futureTournaments:
-        if futureTournaments[tourn].hostGuild == a_guildName:
+        if futureTournaments[tourn].hostGuildName == a_guildName:
             tourns[tourn] = futureTournaments[tourn]
     return tourns
 
 def isOpenGuildTournament( a_guildName ) -> bool:
     for tourn in openTournaments:
-        if openTournaments[tourn].hostGuild == a_guildName:
+        if openTournaments[tourn].hostGuildName == a_guildName:
             return True
     return False
 
 def isCorrectGuild( a_tournName, a_guildName ) -> bool:
     if a_tournName in futureTournaments:
-        return a_guildName == futureTournaments[a_tournName].hostGuild
+        return a_guildName == futureTournaments[a_tournName].hostGuildName
     if a_tournName in openTournaments:
-        return a_guildName == openTournaments[a_tournName].hostGuild
+        return a_guildName == openTournaments[a_tournName].hostGuildName
     return False
         
     
@@ -64,6 +60,24 @@ bot = commands.Bot(command_prefix='!')
 futureTournaments = {}
 openTournaments = {}
 closedTournaments = []
+
+
+savedTournaments = [ f'openTournaments/{d}' for d in os.listdir( "openTournaments" ) if os.path.isdir( f'openTournaments/{d}' ) ]
+
+for tourn in savedTournaments:
+    newTourn = tournament( "", "" )
+    newTourn.loadTournament( tourn )
+    if newTourn.tournName != "":
+        if newTourn.tournStarted:
+            openTournaments[newTourn.tournName] = newTourn
+        else:
+            futureTournaments[newTourn.tournName] = newTourn
+
+newLine = "\n\t- "
+print( f'These are the saved tournaments:{newLine}{newLine.join(savedTournaments)}' )
+print( f'These are the loaded future tournaments:{newLine}{newLine.join(futureTournaments)}' )
+print( f'These are the loaded open tournaments:{newLine}{newLine.join(openTournaments)}' )
+
 
 @bot.event
 async def on_ready():
@@ -88,7 +102,8 @@ async def createTournament( ctx, arg = "" ):
     if (arg in futureTournaments) or (arg in openTournaments):
         await ctx.send( ctx.message.author.mention + ', it would appear that there is already a tournement named "' + arg + '" either on this server or another. Please pick a different name.' )
     
-    futureTournaments[arg] = tournament( arg.strip(), ctx.message.guild.name )
+    futureTournaments[arg] = tournament( arg, ctx.message.guild.name )
+    futureTournaments[arg].saveTournament( f'openTournaments/{arg}' )
     await ctx.send( adminMention + ', a new tournament called "' + arg.strip() + '" has been created by ' + ctx.message.author.mention )
 
 
@@ -124,11 +139,13 @@ async def startTournament( ctx, arg1 = "", arg2 = "" ):
         await ctx.send( ctx.message.author.mention + ', there is no tournament called "' + tourn + '" for this guild (server).' )
         return
         
-    if tourn in futureTournaments:
-        futureTournaments[tourn].setRegStatus( stringToBool(status) )
-    if tourn in openTournaments:
-        openTournaments[tourn].setRegStatus( stringToBool(status) )
-    await ctx.send( adminMention + ', registeration for the "' + tourn + '" tournament has been ' + ("opened" if stringToBool(status) else "closed") + " by " + ctx.message.author.mention ) 
+    if arg1 in futureTournaments:
+        futureTournaments[arg1].setRegStatus( str_to_bool(status) )
+        futureTournaments[arg1].saveOverview( f'openTournaments/{tourn}/overview.xml' )
+    if arg1 in openTournaments:
+        openTournaments[arg1].setRegStatus( str_to_bool(status) )
+        openTournaments[arg1].saveOverview( f'openTournaments/{tourn}/overview.xml' )
+    await ctx.send( adminMention + ', registeration for the "' + arg1 + '" tournament has been ' + ("opened" if str_to_bool(status) else "closed") + " by " + ctx.message.author.mention ) 
 
 
 @bot.command(name='start-tournament')
@@ -155,6 +172,7 @@ async def startTournament( ctx, arg = "" ):
             openTournaments[arg] = futureTournaments[arg]
             del( futureTournaments[arg] )
             openTournaments[arg].startTourn()
+            openTournaments[arg].saveOverview( f'openTournaments/{arg}/overview.xml' )
             await ctx.send( adminMention + ', the "' + arg + '" has been started by ' + ctx.message.author.mention )
             return
     await ctx.send( ctx.message.author.mention + ', there is no tournament called "' + arg + '" for this guild (server).' )
@@ -176,6 +194,11 @@ async def endTournament( ctx, arg = "" ):
         return
 
     if isOpenGuildTournament( ctx.message.guild.name ):
+        openTournaments[arg].endTourn( )
+        openTournaments[arg].saveTournament( f'closedTournaments/{arg}' )
+        if os.path.isdir( f'openTournaments/{arg}' ): 
+            shutil.rmtree( f'openTournaments/{arg}' )
+        del( openTournaments[arg] )
         await ctx.send( adminMention + ', the "' + arg +'" tournament has been closed by ' + ctx.message.author.mention + "." )
         return
     
@@ -184,6 +207,39 @@ async def endTournament( ctx, arg = "" ):
         return
 
     await ctx.send( ctx.message.author.mention + ', there is no tournament called "' + arg + '" for this guild (server).' )
+    
+
+@bot.command(name='cancel-tournament')
+async def endTournament( ctx, arg = "" ):
+    arg = arg.strip()
+    if isPrivateMessage( ctx.message ):
+        await ctx.send( "You can't end a tournament via private message since each tournament needs to be associated with a guild (server)." )
+        return
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not isTournamentAdmin( ctx.message.author ):
+        await ctx.send( ctx.message.author.mention + ", you don't have permissions to start a tournament in this server. Please don't do this again or " + adminMention + " may intervene." )
+        return
+
+    if arg == "":
+        await ctx.send( ctx.message.author.mention + ', you need to specify what tournament you want to cancel.' )
+        return
+
+    tourn = ""
+    if arg in futureTournaments:
+        tourn = futureTournaments[arg]
+    if arg in openTournaments:
+        tourn = openTournaments[arg]
+
+    tourn.cancelTourn( )
+    tourn.saveTournament( f'closedTournaments/{arg}' )
+    if os.path.isdir( f'openTournaments/{arg}' ): 
+        shutil.rmtree( f'openTournaments/{arg}' )
+    if arg in futureTournaments:
+        del( futureTournaments[arg] )
+    if arg in openTournaments:
+        del( openTournaments[arg] )
+    await ctx.send( adminMention + ', the "' + arg +'" tournament has been cancelled by ' + ctx.message.author.mention + "." )
+    
 
 
 @bot.command(name='register')
@@ -215,8 +271,13 @@ async def addPlayer( ctx, arg = "" ):
         await ctx.send( ctx.message.author.mention + ', registeration for the tournament named "' + arg + '" appears to be closed. If you think this is an error, please contact tournament staff.' )
         return
         
+    if ctx.message.author.name in tourn.activePlayers:
+        await ctx.send( ctx.message.author.mention + ', it appears that you have already registered for the tournament named "' + arg + '". Best of luck and long my you reign!!' )
+        return
 
     tourn.addPlayer( ctx.message.author )
+    tourn.activePlayers[ctx.message.author.name].addDiscordUser( ctx.message.author )
+    tourn.activePlayers[ctx.message.author.name].saveXML( f'openTournaments/{tourn.tournName}/players/{ctx.message.author.name}.xml' )
     await ctx.send( ctx.message.author.mention + ', you have been added to the tournament named "' + arg + '" in this guild (server)!' )
 
 
@@ -224,7 +285,7 @@ async def addPlayer( ctx, arg = "" ):
 async def submitDecklist( ctx, arg = "" ):
     arg = arg.strip()
     if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't join a tournament via private message since each tournament needs to be associated with a guild (server)." )
+        await ctx.send( "You can't list the decks you've submitted for a tournament via private message since each tournament needs to be associated with a guild (server)." )
         return
 
     if arg == "":
@@ -290,7 +351,7 @@ async def submitDecklist( ctx, arg1, arg2 = "", arg3 = "" ):
     await ctx.send( ctx.message.author.mention + ', your decklist has been submitted. Your deck hash is "' + str(tourn.activePlayers[ctx.message.author.name].decks[arg2].deckHash) + '". If this doesn\'t match your deck hash in Cocktrice, please contact tournament admin.' )
     if not isPrivateMessage( ctx.message ):
         await ctx.send( ctx.message.author.mention + ", for future reference, you can submit your decklist via private message so that you don't have to publicly post your decklist." )
-    tourn.activePlayers[ctx.message.author.name].saveXML( "tester.xml" )
+    tourn.activePlayers[ctx.message.author.name].saveXML( f'openTournaments/{tourn.tournName}/players/{ctx.message.author.name}.xml' )
 
 @bot.command(name='remove-deck')
 async def submitDecklist( ctx, arg1 = "", arg2 = "" ):
@@ -330,6 +391,7 @@ async def submitDecklist( ctx, arg1 = "", arg2 = "" ):
         return
     
     del( tourn.activePlayers[ctx.message.author.name].decks[deckName] )
+    tourn.activePlayers[ctx.message.author.name].saveXML( f'openTournaments/{tourn.tournName}/players/{ctx.message.author.name}.xml' )
     await ctx.send( ctx.message.author.mention + ', your decklist whose name or deck hash was "' + arg2 + '" has been deleted.' )
 
 bot.run(TOKEN)

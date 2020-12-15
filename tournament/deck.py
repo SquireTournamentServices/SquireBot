@@ -9,19 +9,39 @@ from typing import List
 from .tournamentUtils import *
 
 
+"""
+    This class manages a deck.
+    It currently has the following functionalities.
+        - Parses both annotated and nonannotated Cocktrice decklists (not .cod files, though)
+        - Stores and updates a decklist and deckhash
+        - Creates a string that can be added to an xml file, but can not create its own xml file
+        - Imports a deck from an ElementTree created from its xml string output
+    There are no current plans to add additional functionalities.
+    
+    The class has the following member variables:
+        - deckHash: an int that holds the deck's Cocktrice deckhash
+        - ident: an identifier given on creation (usually the commander)
+        - decklist: the string given on construction
+        - cards: a list of strings for card names with the prefix "SB:" if a card is in the sideboard
+"""
+
 class deck:
-    def __init__( self, a_commander: str = "", a_decklist: str = "" ):
-        self.deckHash  = ""
-        self.commander = a_commander
-        if a_decklist == "":
+    # Class constructor
+    def __init__( self, a_ident: str = "", a_decklist: str = "" ):
+        self.deckHash  = 0
+        self.ident = a_ident
+        self.decklist = a_decklist
+        if self.decklist == "":
             self.cards = [ ]
         else:
-            self.cards = self.parseAnnotatedTriceDecklist( a_decklist ) if "\n//" in a_decklist else self.parseNonAnnotatedTriceDecklist( a_decklist )
+            self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else self.parseNonAnnotatedTriceDecklist( )
         self.updateDeckHash()
     
+    # Functions for exporting a decklist to a xml without creating an xml file.
+    # Since decks are contained in the player object, exporting an xml string is more helpful
     def exportXMLString( self, a_indent: str = "" ) -> str:
         lineStart = f'\n{a_indent}\t'
-        digest = f'{a_indent}<deck commander="{self.commander}">' 
+        digest = f'{a_indent}<deck ident="{self.ident}">' 
         for card in self.cards:
             digest += f'{lineStart}<card name="{card}"/>'
         digest += f'\n{a_indent}</deck>\n'
@@ -33,6 +53,16 @@ class deck:
         self.updateDeckHash()
     
     # Converts a semicolon-delineated deck string into a hash.
+    # This deck-hasher is built to spoof how Cockatrice creates a deckhash.
+    # A large portion of the logic in the first for loop is there to track what
+    # cards are sideboard card since Cockatrice handles the naming of those differently.
+    # When creating the modified list of cards, there are three cases:
+    #   - The card is a sideboard card, in which case that card will look like "SB:" + card_name.lower() for each copy needed
+    #       - Ex: "SB: 2 Izzet Charm" -> [ "SB:izzet charm", "SB:izzet charm" ]
+    #   - The card doesn't have a number associated with it, in which case we process a single copy
+    #       - Ex: "Izzet Charm" -> [ "izzet charm" ]
+    #   - The card has a number associated with it, so we store that many copies
+    #       - Ex: "1 Izzet Charm" -> [ "izzet charm" ]
     def updateDeckHash( self ) -> None:
         l_cards = []
         for card in self.cards:
@@ -71,10 +101,13 @@ class deck:
         processed_hash = number_to_base(hashed_deck, 32)
         self.deckHash = "".join([conv_dict[i] for i in processed_hash])
 
-    def parseNonAnnotatedTriceDecklist( self, a_decklist: str) -> List[str]:
+    # Parses a nonannotated decklist from Cockatrice into a list of cards. 
+    # A nonannotated, Cockatrice decklist has a double space between the main and side boards.
+    # In order to compute the correct hash, all sideboard cards need the "SB: " prefix, which this adds.
+    def parseNonAnnotatedTriceDecklist( self ) -> List[str]:
         digest = []
         prefix = ""
-        for line in a_decklist.strip().split("\n"):
+        for line in self.decklist.strip().split("\n"):
             line = line.strip()
             if line == "":
                 prefix = "SB: "
@@ -83,8 +116,11 @@ class deck:
         print( digest )
         return digest
 
-    def parseAnnotatedTriceDecklist( self, a_decklist: str ) -> List[str]:
-        return [ line for line in a_decklist.strip().split("\n") if line.strip() != "" and line[0:2] != "//" ]
+    # Parses an annotated decklist from Cockatrice into a list of cards. 
+    # Unlike the nonannotated decklist, all sideboard cards have to correct prefix.
+    # As such, we can grab all the line that aren't whitespace nor start with "//"
+    def parseAnnotatedTriceDecklist( self ) -> List[str]:
+        return [ line for line in self.decklist.strip().split("\n") if line.strip() != "" and line[0:2] != "//" ]
         
     
 
