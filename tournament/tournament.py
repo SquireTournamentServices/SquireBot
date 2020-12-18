@@ -62,6 +62,12 @@ class tournament:
         self.uncertMatches = {}
         self.closedMatches = []
     
+    def isPlanned( self ) -> bool:
+        return not ( self.tournStarted or self.tournEnded or self.tournCancel )
+    
+    def isActive( self ) -> bool:
+        return self.tournStarted and not ( self.tournEnded or self.tournCancel )
+    
     def saveTournament( self, a_dirName: str ) -> None:
         if not (os.path.isdir( f'{a_dirName}' ) and os.path.exists( f'{a_dirName}' )):
            os.mkdir( f'{a_dirName}' ) 
@@ -100,12 +106,8 @@ class tournament:
         if not (os.path.isdir( f'{a_dirName}/matches/' ) and os.path.exists( f'{a_dirName}/matches/' )):
            os.mkdir( f'{a_dirName}/matches/' ) 
 
-        for i in range(len(self.openMatches)):
-            self.openMatchesmatch.saveXML( f'{a_dirName}/matches/openMatch-{i}.xml' )
-        for i in range(len(self.uncertMatches)):
-            match.saveXML( f'{a_dirName}/matches/uncertMatch-{i}.xml' )
-        for i in range(len(self.closedMatches)):
-            match.saveXML( f'{a_dirName}/matches/closedMatch-{i}.xml' )
+        for i in range(len(self.uniqueMatches)):
+            self.uniqueMatches[i].saveXML( f'{a_dirName}/matches/openMatch-{i}.xml' )
         
     def loadTournament( self, a_dirName: str ) -> None:
         self.loadOverview( f'{a_dirName}/overview.xml' )
@@ -160,13 +162,13 @@ class tournament:
                     self.droppedPlayers[dPlayer].matches[-1] = newMatch
             self.uniqueMatches.append( emptyMatch )
             self.uniqueMatches[-1] = newMatch
-            if status == "open":
+            if self.uniqueMatches[-1].status == "open":
                 for aPlayer in newMatch.activePlayers:
                     self.openMatches[aPlayer] = newMatch
-            elif status == "uncertified":
+            elif self.uniqueMatches[-1].status == "uncertified":
                 for aPlayer in newMatch.activePlayers:
                     self.uncertMatches[aPlayer] = newMatch
-            elif status == "closed":
+            elif self.uniqueMatches[-1].status == "closed":
                 self.closedMatches.append( emptyMatch )
                 self.closedMatches[-1] = newMatch
         
@@ -227,10 +229,11 @@ class tournament:
             return "It appears that you have an uncertified match. Please certify the result before starting a new match."
         
         self.playerQueue.append(a_player)
+        print( f'Added {a_player} to the queue' )
         if len(self.playerQueue) >= self.playersPerMatch:
             self.addMatch( self.playerQueue[0:self.playersPerMatch + 1] )
-        for i in range(self.playersPerMatch):
-            del( self.playerQueue[0] )
+            for i in range(self.playersPerMatch):
+                del( self.playerQueue[0] )
 
     
     def addMatch( self, a_players: List[str] ) -> None:
