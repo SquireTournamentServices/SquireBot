@@ -1,6 +1,9 @@
 import os
 
 
+import discord.member
+import discord.guild
+from discord import Activity, ActivityType
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -41,11 +44,25 @@ def hasStartedTournament( a_guildName ) -> bool:
             return True
     return False
 
+def findGuildMember( a_guild: discord.Guild, a_memberName: str ):
+    for member in a_guild.members:
+        if member.display_name == a_memberName:
+            return member
+    return ""
+    
+
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 bot = commands.Bot(command_prefix='!')
+
+# When ready, the bot needs to looks at each pre-loaded tournament and add a discord user to each player.
+@bot.event
+async def on_ready():
+    print(f'{bot.user.name} has connected to Discord!')
+    print( bot.guilds )
+
 
 currentTournaments = {}
 closedTournaments = []

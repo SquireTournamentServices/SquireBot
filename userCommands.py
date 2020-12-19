@@ -32,58 +32,58 @@ async def listTournaments( ctx ):
     await ctx.send( f'{ctx.message.author.mention}, the following tournaments for this guild (server) are planned but have not been started:{newLine}{newLine.join(plannedTourns)}' )
 
 @bot.command(name='register')
-async def registerPlayer( ctx, arg = "" ):
-    arg = arg.strip()
+async def registerPlayer( ctx, tourn = "" ):
+    tourn = tourn.strip()
     if isPrivateMessage( ctx.message ):
         await ctx.send( "You can't join a tournament via private message since each tournament needs to be associated with a guild (server)." )
         return
 
-    if arg == "":
+    if tourn == "":
         if len( futureGuildTournaments( ctx.message.guild.name ) ) != 1:
             await ctx.send( f'{ctx.message.author.mention}, there are more than one planned tournaments for this server. Please specify what tournament you want to register for.' )
             return
         else:
-            arg = [ name for name in futureGuildTournaments( ctx.message.guild.name ) ][0]
-    if not arg in currentTournaments or currentTournaments[arg].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{arg}" in this guild (server).' )
+            tourn = [ name for name in futureGuildTournaments( ctx.message.guild.name ) ][0]
+    if not tourn in currentTournaments or currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
         return
-    if not currentTournaments[arg].regOpen:
-        await ctx.send( f'{ctx.message.author.mention}, registration for the tournament named "{arg}" appears to be closed. Please contact tournament staff if you think this is an error.' )
+    if not currentTournaments[tourn].regOpen:
+        await ctx.send( f'{ctx.message.author.mention}, registration for the tournament named "{tourn}" appears to be closed. Please contact tournament staff if you think this is an error.' )
         return
-    if ctx.message.author.name in currentTournaments[arg].activePlayers:
-        await ctx.send( f'{ctx.message.author.mention}, it appears that you are already registered for the tournament named "{arg}". Best of luck and long my you reign!!' )
+    if ctx.message.author.name in currentTournaments[tourn].activePlayers:
+        await ctx.send( f'{ctx.message.author.mention}, it appears that you are already registered for the tournament named "{tourn}". Best of luck and long my you reign!!' )
         return
 
-    currentTournaments[arg].addPlayer( ctx.message.author )
-    currentTournaments[arg].activePlayers[ctx.message.author.name].addDiscordUser( ctx.message.author )
-    currentTournaments[arg].activePlayers[ctx.message.author.name].saveXML( f'currentTournaments/{currentTournaments[arg].tournName}/players/{ctx.message.author.name}.xml' )
-    await ctx.send( f'{ctx.message.author.mention}, you have been added to the tournament named "{arg}" in this guild (server)!' )
+    currentTournaments[tourn].addPlayer( ctx.message.author )
+    currentTournaments[tourn].activePlayers[ctx.message.author.name].addDiscordUser( ctx.message.author )
+    currentTournaments[tourn].activePlayers[ctx.message.author.name].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{ctx.message.author.name}.xml' )
+    await ctx.send( f'{ctx.message.author.mention}, you have been added to the tournament named "{tourn}" in this guild (server)!' )
 
 
 @bot.command(name='list-decks')
-async def listDecklists( ctx, arg = "" ):
-    arg = arg.strip()
+async def listDecklists( ctx, tourn = "" ):
+    tourn = tourn.strip()
     if isPrivateMessage( ctx.message ):
         await ctx.send( "You can't list the decks you've submitted for a tournament via private message since each tournament needs to be associated with a guild (server)." )
         return
 
-    if arg == "":
+    if tourn == "":
         if len( futureGuildTournaments( ctx.message.guild.name ) ) != 1:
             await ctx.send( f'{ctx.message.author.mention}, there are more than one planned tournaments for this server. Please specify a tournament to list your decks.' )
             return
         else:
-            arg = [ name for name in futureGuildTournaments( ctx.message.guild.name ) ][0]
-    if not arg in currentTournaments or currentTournaments[arg].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{arg}" in this guild (server).' )
+            tourn = [ name for name in futureGuildTournaments( ctx.message.guild.name ) ][0]
+    if not tourn in currentTournaments or currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
         return
-    if not ctx.message.author.name in currentTournaments[arg].activePlayers:
+    if not ctx.message.author.name in currentTournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, you need to register before you can submit a decklist. Please you the register command to do so.' )
         return
-    if len( currentTournaments[arg].activePlayers[ctx.message.author.name].decks ) == 0:
-        await ctx.send( f'{ctx.message.author.mention}, you have not registered any decks for the tournament called "{arg}".' )
+    if len( currentTournaments[tourn].activePlayers[ctx.message.author.name].decks ) == 0:
+        await ctx.send( f'{ctx.message.author.mention}, you have not registered any decks for the tournament called "{tourn}".' )
         return
     
-    decks  = currentTournaments[arg].activePlayers[ctx.message.author.name].decks
+    decks  = currentTournaments[tourn].activePlayers[ctx.message.author.name].decks
     digest = [ deck + ":  " + str(decks[deck].deckHash) for deck in decks ]
     
     newLine = "\n\t- "
@@ -91,74 +91,89 @@ async def listDecklists( ctx, arg = "" ):
 
 
 @bot.command(name='add-deck')
-async def submitDecklist( ctx, arg1 = "", arg2 = "", arg3 = "" ):
-    arg1 = arg1.strip()
-    arg2 = arg2.strip()
-    arg3 = arg3.strip()
-    if arg1 == "" or arg2 == "" or arg3 == "":
+async def submitDecklist( ctx, tourn = "", ident = "", decklist = "" ):
+    tourn = tourn.strip()
+    ident = ident.strip()
+    decklist = decklist.strip()
+    if tourn == "" or ident == "" or decklist == "":
         await ctx.send( f'{ctx.message.author.mention}, it appears that you did not provide enough information. You need to specify a tournament name, a deckname, and then a decklist.' )
         return
 
-    if len(arg2) > len(arg3):
-        tmp = arg2
-        arg2 = arg3
-        arg3 = tmp
+    if len(ident) > len(decklist):
+        tmp = ident
+        ident = decklist
+        decklist = tmp
     
-    if not arg1 in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{arg1}" in this guild (server).' )
+    if not tourn in currentTournaments:
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
         return
-    if not ctx.message.author.name in currentTournaments[arg1].activePlayers:
+    if not ctx.message.author.name in currentTournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, you need to register before you can submit a decklist. Please you the register command to do so.' )
         return
-    if not currentTournaments[arg1].regOpen:
+    if not currentTournaments[tourn].regOpen:
         await ctx.send( f'{ctx.message.author.mention}, it appears that registration for this tournament is already closed. If you think this an error, talk to a tournament admin.' )
         return
     
-    currentTournaments[arg1].activePlayers[ctx.message.author.name].addDeck( arg2, arg3 )
-    currentTournaments[arg1].activePlayers[ctx.message.author.name].saveXML( f'currentTournaments/{currentTournaments[arg1].tournName}/players/{ctx.message.author.name}.xml' )
-    deckHash = str(currentTournaments[arg1].activePlayers[ctx.message.author.name].decks[arg2].deckHash)
+    currentTournaments[tourn].activePlayers[ctx.message.author.name].addDeck( ident, decklist )
+    currentTournaments[tourn].activePlayers[ctx.message.author.name].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{ctx.message.author.name}.xml' )
+    deckHash = str(currentTournaments[tourn].activePlayers[ctx.message.author.name].decks[ident].deckHash)
     await ctx.send( f'{ctx.message.author.mention}, your decklist has been submitted. Your deck hash is "{deckHash}". Please make sure this matches your deck hash in Cocktrice.' )
     if not isPrivateMessage( ctx.message ):
         await ctx.send( f'{ctx.message.author.mention}, for future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
 
 @bot.command(name='remove-deck')
-async def removeDecklist( ctx, arg1 = "", arg2 = "" ):
-    arg1 = arg1.strip()
-    arg2 = arg2.strip()
+async def removeDecklist( ctx, tourn = "", ident = "" ):
+    tourn = tourn.strip()
+    ident = ident.strip()
     if isPrivateMessage( ctx.message ):
         await ctx.send( "You can't join a tournament via private message since each tournament needs to be associated with a guild (server)." )
         return
 
-    if arg1 == "":
+    if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, you did not provided enough information. Please provide either your deckname or deck hash to remove your deck.' )
         return
-    if arg2 == "":
+    if ident == "":
         if len( futureGuildTournaments( ctx.message.guild.name ) ) != 1:
             await ctx.send( f'{ctx.message.author.mention}, there are more than one planned tournaments for this server. Please specify a tournament to remove your deck.' )
             return
         else:
-            arg2 = arg1
-            arg1 = [ name for name in futureGuildTournaments( ctx.message.guild.name ) ][0]
-    if not arg1 in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, the tournament "{arg1}" does not exist. Double-check the name. If you still are having issues, contact a tournament admin.' )
+            ident = tourn
+            tourn = [ name for name in futureGuildTournaments( ctx.message.guild.name ) ][0]
+    if not tourn in currentTournaments:
+        await ctx.send( f'{ctx.message.author.mention}, the tournament "{tourn}" does not exist. Double-check the name. If you still are having issues, contact a tournament admin.' )
         return
-    if not ctx.message.author.name in currentTournaments[arg1].activePlayers:
+    if not ctx.message.author.name in currentTournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, you need to register before managing your decklists. Please you the register command to do so.' )
         return
     
     deckName = ""
-    print( [ currentTournaments[arg1].activePlayers[ctx.message.author.name].decks[deck].deckHash for deck in currentTournaments[arg1].activePlayers[ctx.message.author.name].decks ] )
-    if arg2 in currentTournaments[arg1].activePlayers[ctx.message.author.name].decks:
-        deckName = arg2
+    print( [ currentTournaments[tourn].activePlayers[ctx.message.author.name].decks[deck].deckHash for deck in currentTournaments[tourn].activePlayers[ctx.message.author.name].decks ] )
+    if ident in currentTournaments[tourn].activePlayers[ctx.message.author.name].decks:
+        deckName = ident
     # Is the second argument in the player's deckhashes? Yes, then deckName will equal the name of the deck that corresponds to that hash.
-    for deck in currentTournaments[arg1].activePlayers[ctx.message.author.name].decks:
-        if arg2 == currentTournaments[arg1].activePlayers[ctx.message.author.name].decks[deck].deckHash:
+    for deck in currentTournaments[tourn].activePlayers[ctx.message.author.name].decks:
+        if ident == currentTournaments[tourn].activePlayers[ctx.message.author.name].decks[deck].deckHash:
             deckName = deck 
     if deckName == "":
-        await ctx.send( f'{ctx.message.author.mention}, it appears that you do not have a deck whose name nor hash is "{arg2}" registered for the tournament "{arg1}".' )
+        await ctx.send( f'{ctx.message.author.mention}, it appears that you do not have a deck whose name nor hash is "{ident}" registered for the tournament "{arg1}".' )
         return
     
     del( currentTournaments[arg1].activePlayers[ctx.message.author.name].decks[deckName] )
     currentTournaments[arg1].activePlayers[ctx.message.author.name].saveXML( f'currentTournaments/{currentTournaments[arg1].tournName}/players/{ctx.message.author.name}.xml' )
-    await ctx.send( ctx.message.author.mention + ', your decklist whose name or deck hash was "' + arg2 + '" has been deleted.' )
+    await ctx.send( f'{ctx.message.author.mention}, your decklist whose name or deck hash was "{ident}" has been deleted.' )
+    
+"""
+Future commands:
+
+@bot.command(name='queue')
+async def queuePlayer( ctx, tourn = "" ):
+
+@bot.command(name='trice-name')
+async def addTriceName( ctx, name = "" ):
+
+"""
+
+
+
+
 
