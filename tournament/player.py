@@ -34,10 +34,20 @@ class player:
     def __init__( self, a_playerName: str = "" ):
         self.discordUser = ""
         self.playerName  = a_playerName
+        self.triceName   = ""
         self.status  = "active"
         self.decks   = { }
         self.matches = [ ]
     
+    def __str__( self ):
+        digest  = f'Player name: {self.playerName}\n'
+        digest += f'Cockatrice name: {self.triceName}\n'
+        digest += f'Status: {self.status}\n'
+        newLine = "\n\t- "
+        digest += f'Decks:{newLine}{newLine.join( [ self.decks[ident] for ident in self.decks ] )}'
+        digest += f'Matches:{newLine}{newLine.join( self.matches )}'
+        return digest
+        
     # Adds a copy of a discord user object
     def addDiscordUser( self, a_discordUser ) -> None:
         self.discordUser = a_discordUser
@@ -54,7 +64,7 @@ class player:
             a_filename = self.discordUser.name + '.xml'
         digest  = "<?xml version='1.0'?>\n"
         digest += '<player>\n'
-        digest += f'\t<name>{self.playerName}</name>\n'
+        digest += f'\t<name trice="{self.triceName}">{self.playerName}</name>\n'
         if self.discordUser != "":
             digest += f'\t<name>{self.discordUser.name}</name>\n'
         digest += f'\t<status>{self.status}</status>\n'
@@ -68,6 +78,9 @@ class player:
     def loadXML( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
         self.playerName = xmlTree.getroot().find( 'name' ).text
+        self.triceName  = ""
+        if "trice" in xmlTree.getroot().find( 'name' ).attrib:
+            self.triceName = xmlTree.getroot().find( 'name' ).attrib['trice']
         self.status = xmlTree.getroot().find( "status" ).text
         for deckTag in xmlTree.getroot().findall('deck'):
             print( deckTag.attrib )

@@ -66,4 +66,5 @@ async def on_ready():
 
 currentTournaments = {}
 closedTournaments = []
+playersToBeDropped = []
 

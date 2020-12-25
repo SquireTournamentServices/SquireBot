@@ -51,6 +51,8 @@ class tournament:
         self.tournEnded   = False
         self.tournCancel  = False
         
+        self.deckCount = 2
+        
         self.playersPerMatch = 2
         self.playerQueue = []
 
@@ -61,6 +63,7 @@ class tournament:
         self.openMatches   = {}
         self.uncertMatches = {}
         self.closedMatches = []
+    
     
     def isPlanned( self ) -> bool:
         return not ( self.tournStarted or self.tournEnded or self.tournCancel )
@@ -83,6 +86,7 @@ class tournament:
         digest += f'\t<format>{self.format}</format>\n'
         digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
         digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
+        digest += f'\t<deckCount>{self.deckCount}</deckCount>'
         digest += f'\t<queue size="{self.playersPerMatch}">\n'
         for player in self.playerQueue:
             digest += f'\t\t<player name="{player}"/>\n'
@@ -117,14 +121,17 @@ class tournament:
     def loadOverview( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
         tournRoot = xmlTree.getroot() 
-        self.tournName = tournRoot.find( 'name' ).text
+
+        self.tournName     = tournRoot.find( 'name' ).text
         self.hostGuildName = tournRoot.find( 'hostGuildName' ).text
-        self.format    = tournRoot.find( 'format' ).text
+        self.format        = tournRoot.find( 'format' ).text
 
         self.regOpen      = str_to_bool( tournRoot.find( 'regOpen' ).text )
         self.tournStarted = str_to_bool( tournRoot.find( 'status' ).attrib['started'] )
         self.tournEnded   = str_to_bool( tournRoot.find( 'status' ).attrib['ended'] )
         self.tournCancel  = str_to_bool( tournRoot.find( 'status' ).attrib['canceled'] )
+        
+        self.deckCount = int( tournRoot.find( 'deckCount' ) )
 
         self.playersPerMatch = int( tournRoot.find( 'queue' ).attrib['size'] )
         for player in tournRoot.find( 'queue' ).findall( 'player' ):
@@ -258,11 +265,18 @@ class tournament:
                 del( self.openMatches[self.closedMatches[-1].activePlayers[0]] )
             del( self.openMatches[a_player] )
     
-    def playerTournDrop( self, a_player: str ) -> None:
-        self.playerMatchDrop( a_player )
+    def dropPlayer( self, a_player: str ) -> None:
         if a_player in self.activePlayers:
+            self.playerMatchDrop( a_player )
             self.droppedPlayers[a_player] = self.activePlayers[a_player]
             del( self.activePlayers[a_player] )
+    
+    def pruneDecks( self ) -> None:
+        for plyr in self.activePlayers:
+            deckIdents = [ ident for ident self.activePlayers[plyr].decks ]
+            while len( self.activePlayers[plyr].decks ) > self.deckCount:
+                del( self.activePlayers[plyr].decks[deckIdents] )
+                del( deckIdents[0] )
     
     def playerCertifyResult( self, a_player: str ) -> None:
         if a_player in self.uncertMatches:
