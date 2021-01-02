@@ -26,24 +26,27 @@ from typing import List
 
 class match:
     # The class constructor
-    def __init__( self, a_players: List[str], a_num: int = 0 ):
+    def __init__( self, a_players: List[str] ):
         self.activePlayers  = a_players
         self.droppedPlayers = [ ]
         self.confirmedPlayers = [ ]
-        self.matchMention = ""
-        self.matchNumber  = a_num
         self.status = "open"
         self.winner = ""
     
     def __str__( self ):
-        return f'Match number {self.matchNum} is {self.status}{". The winner is " + self.winner if self.status == "certified" else ""}. '
+        digest  = ""
+        digest += f'Active players: {", ".join(self.activePlayers)}\n'
+        digest += f'Dropped players: {", ".join(self.droppedPlayers)}\n'
+        digest += f'ConfirmedPlayers: {", ".join(self.confirmedPlayers)}\n'
+        digest += f'Match status: {self.status}\n'
+        digest += f'Match winner: {self.winner}'
+        return digest
     
     # Saves the match to an xml file at the given location.
     def saveXML( self, a_filename: str ) -> None:
         digest  = "<?xml version='1.0'?>\n"
-        digest += '<match number="{self.matchNumber}">\n'
+        digest += '<match>\n'
         digest += f'\t<status>{self.status}</status>\n'
-        digest += f'\t<mention>"{self.matchMention}</mention>\n'
         digest += f'\t<winner name="{self.winner}"/>\n'
         digest += '\t<activePlayers>\n'
         for player in self.activePlayers:
@@ -65,9 +68,7 @@ class match:
     def loadXML( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
         matchRoot = xmlTree.getroot()
-        self.matchNumber = int( matchRoot.attrib["number"] )
         self.status = matchRoot.find( "status" ).text
-        self.matchMention = matchRoot.find( 'mention' ).text
         self.winner = matchRoot.find( "winner" ).attrib["name"]
         for player in matchRoot.find("activePlayers"):
             print( player.attrib )
@@ -76,9 +77,6 @@ class match:
             self.droppedPlayers.append( player.attrib["name"] )
         for player in matchRoot.find("confirmedPlayers"):
             self.confirmedPlayers.append( player.attrib["name"] )
-    
-    def addMatchMention( self, a_mention: str ) -> None:
-        self.matchMention = a_mention
     
     # Drops a player, which entains removing them from the active players
     # list and adding them to the dropped players list.
@@ -92,12 +90,12 @@ class match:
     # Confirms the result for one player.
     # If all players have confirmed the result, the status of the match is status to "certified"
     def confirmResult( self, a_player: str ) -> None:
-        if not self.status == "uncertified":
+        if self.status != "uncertified":
             return
         if not a_player in self.confirmedPlayers:
             self.confirmedPlayers.append( a_player )
         if len(self.confirmedPlayers) == len(self.activePlayers):
-            self.status == "certified"
+            self.status = "certified"
     
     # Records the winner of a match and adds them to the confirmed players list.
     # An empty string is interpretted as a draw, in which case, no one is added to the confirmed players list.
@@ -107,7 +105,7 @@ class match:
             self.winner = "This match was a draw."
         else:
             self.winner = a_winner
-            self.confirmedPlayers = [ winner ]
+            self.confirmedPlayers = [ a_winner ]
         self.status = "uncertified"
 
 
