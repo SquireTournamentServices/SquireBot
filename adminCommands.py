@@ -6,11 +6,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from baseBot import *
-from tournament.match import match
-from tournament.deck import deck
-from tournament.player import player
-from tournament.tournament import tournament
-from tournament.tournamentUtils import *
+from tournament import * 
 
 
 @bot.command(name='create-tournament')
@@ -199,35 +195,6 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
     currentTournaments[tourn].activePlayers[user.name].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{user.name}.xml' )
     await ctx.send( f'{ctx.message.author.mention}, you have added {user.mention} to the tournament named "{tourn}" in this guild (server)!' )
 
-@bot.command(name='admin-list-players')
-async def adminListPlayers( ctx, tourn = "" ):
-    tourn = tourn.strip()
-    if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't list the players in a tournament via private message since each tournament needs to be associated with a guild (server)." )
-        return
-
-    adminMention = getTournamentAdminMention( ctx.message.guild )
-    if not isTournamentAdmin( ctx.message.author ):
-        await ctx.send( f'{ctx.message.author.mention}, you do not have permissions to register other players on server. Please do not do this again or {adminMention} may intervene.' )
-        return
-    if tourn == "":
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and player in order to add someone to a tournament.' )
-        return
-    if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
-        return
-    if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this guild (server), so it can not be changed from here.' )
-        return
-    if currentTournaments[tourn].tournEnded or currentTournaments[tourn].tournCancel:
-        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
-        return
-    if len( currentTournaments[tourn].activePlayers ) == 0:
-        await ctx.send( f'{ctx.message.author.mention}, there are no registered players for the tournament called "{tourn}".' )
-        return
-    
-    newLine= "\n\t- "
-    await ctx.send( f'{ctx.message.author.mention}, the following are all the registered, active players for "{tourn}":{newLine}{newLine.join(currentTournaments[tourn].activePlayers)}' )
 
 
 @bot.command(name='admin-add-deck')
@@ -368,7 +335,7 @@ async def adminPruneDecks( ctx, tourn = "" ):
         return
     
     for plyr in currentTournament[tourn].activePlayers:
-        deckIdents = [ ident for ident currentTournament[tourn].activePlayers[plyr].decks ]
+        deckIdents = [ ident for ident in currentTournament[tourn].activePlayers[plyr].decks ]
         while len( currentTournament[tourn].activePlayers[plyr].decks ) > currentTournament[tourn].deckCount:
             await ctx.send( f'{ctx.message.author.mention}, the decklist with identifier "{deckIdents[0]}" that you removed from the player "{plyr}".' )
             await currentTournaments[tourn].activePlayers[plyr].discordUser.create_dm().send( f'A decklist has been removed for the tournament called "{tourn}" on the server "{ctx.guild.name}" during pruning. The identifier of the deck "{ident}".' )

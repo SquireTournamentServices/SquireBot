@@ -3,11 +3,10 @@ import xml.etree.ElementTree as ET
 
 from typing import List
 
-
-from tournamentUtils import *
-from match import match
-from player import player
-from deck import deck
+from .tournamentUtils import *
+from .match import match
+from .player import player
+from .deck import deck
 
 """
     This is a tournament class. The bulk of data management for a tournament is handled by this class.

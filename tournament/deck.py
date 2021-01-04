@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from typing import List
 
 
-from tournamentUtils import *
+from .tournamentUtils import *
 
 
 """

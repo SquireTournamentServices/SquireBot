@@ -8,11 +8,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 
-from tournament.match import match
-from tournament.deck import deck
-from tournament.player import player
-from tournament.tournament import tournament
-from tournament.tournamentUtils import *
+from tournament import *
 
 
 def isPrivateMessage( a_message ) -> bool:

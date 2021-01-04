@@ -1,8 +1,8 @@
 import xml.etree.ElementTree as ET
 
-from tournamentUtils import *
-from deck import deck
-from match import match
+from .tournamentUtils import *
+from .deck import deck
+from .match import match
 
 
 """
