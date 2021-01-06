@@ -1,5 +1,6 @@
 import os
 import xml.etree.ElementTree as ET
+import discord
 
 from typing import List
 
@@ -45,6 +46,9 @@ class tournament:
         self.hostGuildName = a_hostGuildName
         self.format    = a_format
         
+        self.guild   = ""
+        self.guildID = ""
+        
         self.regOpen      = True
         self.tournStarted = False
         self.tournEnded   = False
@@ -52,6 +56,8 @@ class tournament:
         
         self.playersPerMatch = 2
         self.playerQueue = []
+        
+        self.deckCount = 1
 
         self.activePlayers  = {}
         self.droppedPlayers = {}
@@ -67,6 +73,23 @@ class tournament:
     def isActive( self ) -> bool:
         return self.tournStarted and not ( self.tournEnded or self.tournCancel )
     
+    def addDiscordGuild( self, a_guild ) -> None:
+        self.guild = a_guild
+        self.hostGuildName = a_guild.name
+        self.guildID = self.guild.id
+    
+    # The name of players ought to be their Discord discriminator
+    async def assignGuild( self, a_guild ) -> None:
+        print( f'The guild "{a_guild}" is being assigned to {self.tournName}.' )
+        members = [ member async for member in a_guild.fetch_members( ) ]
+        print( f'There are {len(members)} in this guild.' )
+        self.addDiscordGuild( a_guild )
+        await discord.utils.get( self.guild.channels, name="general" ).send( "This message is sent from the library" )
+        for member in members:
+            ident = f'{member.name}#{member.discriminator}' 
+            if ident in self.activePlayers:
+                await self.activePlayers[ident].addDiscordUser( member )
+    
     def saveTournament( self, a_dirName: str ) -> None:
         if not (os.path.isdir( f'{a_dirName}' ) and os.path.exists( f'{a_dirName}' )):
            os.mkdir( f'{a_dirName}' ) 
@@ -78,10 +101,11 @@ class tournament:
         digest  = "<?xml version='1.0'?>\n"
         digest += '<tournament>\n'
         digest += f'\t<name>{self.tournName}</name>\n'
-        digest += f'\t<hostGuildName>{self.hostGuildName}</hostGuildName>\n'
+        digest += f'\t<guild id="{self.guildID}">{self.hostGuildName}</guild>\n'
         digest += f'\t<format>{self.format}</format>\n'
         digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
         digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
+        digest += f'\t<deckCount>{self.deckCount}</deckCount>\n'
         digest += f'\t<queue size="{self.playersPerMatch}">\n'
         for player in self.playerQueue:
             digest += f'\t\t<player name="{player}"/>\n'
@@ -117,8 +141,12 @@ class tournament:
         xmlTree = ET.parse( a_filename )
         tournRoot = xmlTree.getroot() 
         self.tournName = tournRoot.find( 'name' ).text
-        self.hostGuildName = tournRoot.find( 'hostGuildName' ).text
+        self.guild   = tournRoot.find( 'guild' ).text
+        self.guildID = tournRoot.find( 'guild' ).attrib['id']
+        if self.guildID != "":
+            self.guildID = int( self.guildID )
         self.format    = tournRoot.find( 'format' ).text
+        self.deckCount = int( tournRoot.find( 'deckCount' ).text.strip() )
 
         self.regOpen      = str_to_bool( tournRoot.find( 'regOpen' ).text )
         self.tournStarted = str_to_bool( tournRoot.find( 'status' ).attrib['started'] )
@@ -194,14 +222,14 @@ class tournament:
         self.tournCancel = True
         return "This tournament has been canceled."
     
-    def addPlayer( self, a_discordUser ) -> str:
+    async def addPlayer( self, a_discordUser ) -> str:
         if self.tournCancel:
             return "Sorry but this tournament has been cancelled. If you believe this to be incorrect, please contact the tournament officials."
         if self.tournEnded:
             return "Sorry, but this tournament has already ended. If you believe this to be incorrect, please contact the tournament officials."
         if self.regOpen:
-            self.activePlayers[a_discordUser.name] = player( a_discordUser.name )
-            self.activePlayers[a_discordUser.name].addDiscordUser( a_discordUser )
+            self.activePlayers[getUserIdent(a_discordUser)] = player( getUserIdent(a_discordUser) )
+            await self.activePlayers[getUserIdent(a_discordUser)].addDiscordUser( a_discordUser )
             return ""
         else:
             return "Sorry, registeration for this tournament isn't open currently."

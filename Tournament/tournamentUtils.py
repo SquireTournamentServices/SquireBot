@@ -1,4 +1,5 @@
 import string
+import discord
 
 
 conv_dict = {
@@ -24,3 +25,5 @@ def str_to_bool( s: str ) -> bool:
     return False
 
 
+def getUserIdent( a_user: discord.Member ) -> str:
+    return f'{a_user.name.replace("/", "_")}#{a_user.discriminator}'

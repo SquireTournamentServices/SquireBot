@@ -6,7 +6,7 @@ import random
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from tournament import *
+from Tournament import *
 
 from baseBot import *
 from adminCommands import *

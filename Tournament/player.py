@@ -33,14 +33,16 @@ class player:
     # The class constructor
     def __init__( self, a_playerName: str = "" ):
         self.discordUser = ""
+        self.discordName = ""
         self.playerName  = a_playerName
         self.status  = "active"
         self.decks   = { }
         self.matches = [ ]
     
     # Adds a copy of a discord user object
-    def addDiscordUser( self, a_discordUser ) -> None:
+    async def addDiscordUser( self, a_discordUser ) -> None:
         self.discordUser = a_discordUser
+        await self.discordUser.send( content="You have been added to a player object." )
     
     # Updates the status of the player
     def updateStatus( self, a_status: str ) -> None:
@@ -51,12 +53,12 @@ class player:
     # The tournament object loads match objects and then associates each player with their match(es)
     def saveXML( self, a_filename: str = "" ) -> None:
         if a_filename == "":
-            a_filename = self.discordUser.name + '.xml'
+            a_filename = self.discordUser.display_name + '.xml'
         digest  = "<?xml version='1.0'?>\n"
         digest += '<player>\n'
         digest += f'\t<name>{self.playerName}</name>\n'
         if self.discordUser != "":
-            digest += f'\t<name>{self.discordUser.name}</name>\n'
+            digest += f'\t<discordName>{self.discordUser.display_name}</discordName>\n'
         digest += f'\t<status>{self.status}</status>\n'
         for ident in self.decks:
             digest += self.decks[ident].exportXMLString( '\t' )
@@ -68,6 +70,7 @@ class player:
     def loadXML( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
         self.playerName = xmlTree.getroot().find( 'name' ).text
+        self.discordName = xmlTree.getroot().find( 'discordName' ).text
         self.status = xmlTree.getroot().find( "status" ).text
         for deckTag in xmlTree.getroot().findall('deck'):
             print( deckTag.attrib )
