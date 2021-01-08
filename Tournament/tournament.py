@@ -54,7 +54,7 @@ class tournament:
         self.tournEnded   = False
         self.tournCancel  = False
         
-        self.playersPerMatch = 2
+        self.playersPerMatch = 1
         self.playerQueue = []
         
         self.deckCount = 1
@@ -77,6 +77,7 @@ class tournament:
         self.guild = a_guild
         self.hostGuildName = a_guild.name
         self.guildID = self.guild.id
+        self.matchChannel = discord.utils.get( a_guild.channels, name="match-pairings" )
     
     # The name of players ought to be their Discord name + discriminator
     def assignGuild( self, a_guild ) -> None:
@@ -220,21 +221,21 @@ class tournament:
         self.tournCancel = True
         return "This tournament has been canceled."
     
-    async def addPlayer( self, a_discordUser ) -> str:
+    def addPlayer( self, a_discordUser ) -> str:
         if self.tournCancel:
             return "Sorry but this tournament has been cancelled. If you believe this to be incorrect, please contact the tournament officials."
         if self.tournEnded:
             return "Sorry, but this tournament has already ended. If you believe this to be incorrect, please contact the tournament officials."
         if self.regOpen:
             self.activePlayers[getUserIdent(a_discordUser)] = player( getUserIdent(a_discordUser) )
-            await self.activePlayers[getUserIdent(a_discordUser)].addDiscordUser( a_discordUser )
+            self.activePlayers[getUserIdent(a_discordUser)].addDiscordUser( a_discordUser )
             return ""
         else:
             return "Sorry, registeration for this tournament isn't open currently."
     
     # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing
     # This is a prime canidate for adjustments when players how copies of match results.
-    def addPlayerToQueue( self, a_player: str ) -> None:
+    async def addPlayerToQueue( self, a_player: str ) -> None:
         if a_player in self.playerQueue:
             return "You are already in the matchmaking queue."
         if a_player in self.droppedPlayers:
@@ -249,17 +250,27 @@ class tournament:
         self.playerQueue.append(a_player)
         print( f'Added {a_player} to the queue' )
         if len(self.playerQueue) >= self.playersPerMatch:
-            self.addMatch( self.playerQueue[0:self.playersPerMatch + 1] )
+            await self.addMatch( self.playerQueue[0:self.playersPerMatch + 1] )
             for i in range(self.playersPerMatch):
                 del( self.playerQueue[0] )
     
-    def addMatch( self, a_players: List[str] ) -> None:
+    async def addMatch( self, a_players: List[str] ) -> None:
         newMatch = match( a_players )
         self.uniqueMatches.append( newMatch )
         newMatch.matchNumber = len(self.uniqueMatches)
+        matchRole = await self.guild.create_role( name=f'Match {newMatch.matchNumber}' )
+        overwrites = { self.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                       getAdminRole(self.guild): discord.PermissionOverwrite(read_messages=True),
+                       matchRole: discord.PermissionOverwrite(read_messages=True) }
+        await self.guild.create_voice_channel( name=f'Match {newMatch.matchNumber}', overwrites=overwrites, category=discord.utils.get( self.guild.categories, name="Matches" ) ) 
+        newMatch.matchMention = matchRole.mention
+        message  = f'{matchRole.mention}, you have been paired from your match. There is a voice channel for you that you may join. Below in information about your opponents.\n'
         for player in a_players:
             self.activePlayers[player].matches.append( newMatch )
             self.openMatches[player] = newMatch 
+            await self.activePlayers[player].discordUser.add_roles( matchRole )
+            message += f'{self.activePlayers[player].pairingString()}\n' 
+        await self.matchChannel.send( message )
     
     def playerMatchDrop( self, a_player: str ) -> None:
         if not a_player in self.activePlayers:

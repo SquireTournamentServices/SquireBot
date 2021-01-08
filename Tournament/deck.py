@@ -37,6 +37,9 @@ class deck:
             self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else self.parseNonAnnotatedTriceDecklist( )
         self.updateDeckHash()
     
+    def __str__( self ):
+        return f'{self.ident}: {self.deckHash}'
+    
     # Functions for exporting a decklist to a xml without creating an xml file.
     # Since decks are contained in the player object, exporting an xml string is more helpful
     def exportXMLString( self, a_indent: str = "" ) -> str:

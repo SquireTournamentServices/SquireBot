@@ -31,11 +31,12 @@ class match:
         self.droppedPlayers = [ ]
         self.confirmedPlayers = [ ]
         self.matchNumber = -1
+        self.matchMention = ""
         self.status = "open"
         self.winner = ""
     
     def __str__( self ):
-        digest  = ""
+        digest  = "Match #{self.matchNumber}\n"
         digest += f'Active players: {", ".join(self.activePlayers)}\n'
         digest += f'Dropped players: {", ".join(self.droppedPlayers)}\n'
         digest += f'ConfirmedPlayers: {", ".join(self.confirmedPlayers)}\n'

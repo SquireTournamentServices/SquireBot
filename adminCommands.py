@@ -386,7 +386,7 @@ async def adminListPlayers( ctx, tourn = "", num = "" ):
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
         return
     
-    if len( currentTournaments.activePlayers ) == 0:
+    if len( currentTournaments[tourn].activePlayers ) == 0:
         await ctx.send( f'{ctx.message.author.mention}, there are no players registered for the tournament {tourn}.' )
         return
     if num == "n" or num == "num" or num == "number":
@@ -394,7 +394,8 @@ async def adminListPlayers( ctx, tourn = "", num = "" ):
         return
     else:
         newLine = "\n\t- "
-        await ctx.send( f'{ctx.message.author.mention}, the following are all players registered for {tourn}:{newLine}{newLine.join(currentTournaments[tourn].activePlayers)}' )
+        playerNames = [ currentTournaments[tourn].activePlayers[plyr].discordUser.display_name for plyr in currentTournaments[tourn].activePlayers ]
+        await ctx.send( f'{ctx.message.author.mention}, the following are all players registered for {tourn}:{newLine}{newLine.join(playerNames)}' )
     
 
 @bot.command(name='admin-player-profile')
@@ -432,22 +433,18 @@ async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
     
     await ctx.send( f'{ctx.message.author.mention}, the following is the profile for the player "{plyr}":\n{currentTournaments[tourn].activePlayers[getUserIdent(member)]}' )
 
-
-
 """
-Future commands:
-
 @bot.command(name='admin-drop-match')
 async def adminDropMatch( ctx, tourn = "", match = "", plyr = "" ):
 
 @bot.command(name='admin-match-result')
-async def adminMatchResult( ctx, tourn = "", plyr = "", result = "" ):
+async def adminMatchResult( ctx, tourn = "", match = "", plyr = "", result = "" ):
 
 @bot.command(name='admin-confirm-result')
-async def adminConfirmResult( ctx, tourn = "", plyr = "" ):
+async def adminConfirmResult( ctx, tourn = "", match = "", plyr = "" ):
 
 @bot.command(name='admin-drop-tournament')
 async def adminDropPlayer( ctx, tourn = "", plyr = "" ):
-
 """
+
 

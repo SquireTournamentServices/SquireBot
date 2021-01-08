@@ -27,7 +27,7 @@ async def listTournaments( ctx ):
 
 @bot.command(name='register')
 async def registerPlayer( ctx, tourn = "" ):
-    print( [ member.name for member in ctx.guild.members ] )
+    print( discord.utils.get( ctx.guild.categories, name="Matches" ) )
     tourn = tourn.strip()
     if isPrivateMessage( ctx.message ):
         await ctx.send( "You can't join a tournament via private message since each tournament needs to be associated with a guild (server)." )
@@ -72,7 +72,7 @@ async def addTriceName( ctx, tourn = "", name = "" ):
         return
     if name == "":
         name = tourn
-        tourn == ""
+        tourn = ""
     if tourn == "":
         if len( futureGuildTournaments( ctx.message.guild.name ) ) != 1:
             await ctx.send( f'{ctx.message.author.mention}, there are more than one planned tournaments for this server. Please specify what tournament you want to register for.' )
@@ -240,15 +240,19 @@ async def queuePlayer( ctx, tourn = "" ):
     if not tourn in currentTournaments or currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
         await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
         return
-    if not ctx.message.author.display_name in currentTournaments[tourn].activePlayers:
+
+    userIdent = getUserIdent( ctx.message.author )
+    if not userIdent in currentTournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, you need to register before you can drop from a tournament... but maybe you should try playing first.' )
         return
-    playerMatch = currentTournaments[tourn].activePlayers[ctx.message.author.display_name].matches[-1]
-    if playerMatch.status != "certified" and ctx.message.author.display_name in playerMatch.activePlayers:
-        await ctx.send( f'{ctx.message.author.mention}, you are currently in a match that is not confirmed. Please finish your match or make sure the result is confirmed before starting a new match.' )
-        return
+
+    if len( currentTournaments[tourn].activePlayers[userIdent].matches ) != 0:
+        playerMatch = currentTournaments[tourn].activePlayers[userIdent].matches[-1]
+        if playerMatch.status != "certified" and userIdent in playerMatch.activePlayers:
+            await ctx.send( f'{ctx.message.author.mention}, you are currently in a match that is not confirmed. Please finish your match or make sure the result is confirmed before starting a new match.' )
+            return
     
-    currentTournaments[tourn].addPlayerToQueue( getUserIdent(ctx.message.author) )
+    await currentTournaments[tourn].addPlayerToQueue( userIdent )
     currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' ) 
     await ctx.send( f'{ctx.message.author.mention}, you have been added to the match queue.' )
 
@@ -299,7 +303,7 @@ async def matchResult( ctx, tourn = "", result = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you have provided an incorrect result. The options for "win", "loss", and "draw". Please re-enter the correct result.' )
         return
     
-    playerMatch.saveXML( f'currentTournaments/{tourn}/matches/{match_{playerMatch.matchNumber}.xml' )
+    playerMatch.saveXML( f'currentTournaments/{tourn}/matches/match_{playerMatch.matchNumber}.xml' )
 
 
 @bot.command(name='confirm-result')

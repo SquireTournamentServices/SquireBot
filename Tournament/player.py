@@ -35,9 +35,30 @@ class player:
         self.discordUser = ""
         self.discordName = ""
         self.playerName  = a_playerName
+        self.triceName   = ""
         self.status  = "active"
         self.decks   = { }
         self.matches = [ ]
+    
+    def __str__( self ):
+        newLine = "\n\t- "
+        digest  = f'Player Name: {self.playerName}\n'
+        digest += f'Disord Nickname: {self.discordUser.display_name}\n'
+        digest += f'Cockatrice Username: {self.triceName}\n'
+        digest += f'Status: {self.status}\n'
+        digest += f'Decks:{newLine}{newLine.join( [ self.decks[deck] for deck in self.decks ] )}\n'
+        digest += f'Matches:{newLine}{newLine.join( self.matches )}'
+        return digest
+    
+    def pairingString( self ):
+        digest  = f'Player Name: {self.discordUser.mention}\n'
+        if self.triceName != "":
+            digest += f'Cockatrice Username: {self.triceName}\n'
+        counter = 0
+        for deck in self.decks:
+            counter += 1
+            digest += f'Deck {counter}: {self.decks[deck].deckHash}'
+        return digest
     
     # Adds a copy of a discord user object
     def addDiscordUser( self, a_discordUser ) -> None:

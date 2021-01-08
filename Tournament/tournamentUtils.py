@@ -16,8 +16,6 @@ def number_to_base(n: int, b: int) -> int:
         n //= b
     return digits[::-1]
 
-
-
 def str_to_bool( s: str ) -> bool:
     s = s.lower()
     if s == "t" or s == "true":
@@ -27,3 +25,13 @@ def str_to_bool( s: str ) -> bool:
 
 def getUserIdent( a_user: discord.Member ) -> str:
     return f'{a_user.name.replace("/", "_")}#{a_user.discriminator}'
+
+def getAdminRole( a_guild: discord.Guild ):
+    ret = ""
+    for role in a_guild.roles:
+        if str(role).lower() == "tournament admin":
+            ret = role
+            break
+    return ret
+
+

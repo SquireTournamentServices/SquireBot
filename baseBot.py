@@ -20,10 +20,11 @@ def isTournamentAdmin( a_author ) -> bool:
     return retValue
 
 def getTournamentAdminMention( a_guild ) -> str:
-    adminMention = "tournament admin"
+    adminMention = ""
     for role in a_guild.roles:
         if str(role).lower() == "tournament admin":
             adminMention = role.mention
+            break
     return adminMention
 
 def futureGuildTournaments( a_guildName ):
