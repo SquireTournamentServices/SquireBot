@@ -78,17 +78,15 @@ class tournament:
         self.hostGuildName = a_guild.name
         self.guildID = self.guild.id
     
-    # The name of players ought to be their Discord discriminator
-    async def assignGuild( self, a_guild ) -> None:
+    # The name of players ought to be their Discord name + discriminator
+    def assignGuild( self, a_guild ) -> None:
         print( f'The guild "{a_guild}" is being assigned to {self.tournName}.' )
-        members = [ member async for member in a_guild.fetch_members( ) ]
-        print( f'There are {len(members)} in this guild.' )
+        print( f'There are {len(a_guild.members)} members in this guild.' )
         self.addDiscordGuild( a_guild )
-        await discord.utils.get( self.guild.channels, name="general" ).send( "This message is sent from the library" )
-        for member in members:
+        for member in a_guild.members:
             ident = f'{member.name}#{member.discriminator}' 
             if ident in self.activePlayers:
-                await self.activePlayers[ident].addDiscordUser( member )
+                self.activePlayers[ident].addDiscordUser( member )
     
     def saveTournament( self, a_dirName: str ) -> None:
         if not (os.path.isdir( f'{a_dirName}' ) and os.path.exists( f'{a_dirName}' )):
@@ -256,8 +254,9 @@ class tournament:
                 del( self.playerQueue[0] )
     
     def addMatch( self, a_players: List[str] ) -> None:
-        newMatch   = match( a_players )
+        newMatch = match( a_players )
         self.uniqueMatches.append( newMatch )
+        newMatch.matchNumber = len(self.uniqueMatches)
         for player in a_players:
             self.activePlayers[player].matches.append( newMatch )
             self.openMatches[player] = newMatch 

@@ -30,6 +30,7 @@ class match:
         self.activePlayers  = a_players
         self.droppedPlayers = [ ]
         self.confirmedPlayers = [ ]
+        self.matchNumber = -1
         self.status = "open"
         self.winner = ""
     
@@ -46,6 +47,7 @@ class match:
     def saveXML( self, a_filename: str ) -> None:
         digest  = "<?xml version='1.0'?>\n"
         digest += '<match>\n'
+        digest += f'\t<number>{self.matchNumber}</number>\n'
         digest += f'\t<status>{self.status}</status>\n'
         digest += f'\t<winner name="{self.winner}"/>\n'
         digest += '\t<activePlayers>\n'
@@ -68,6 +70,7 @@ class match:
     def loadXML( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
         matchRoot = xmlTree.getroot()
+        self.matchNumber = int( matchRoot.find( "number" ).text )
         self.status = matchRoot.find( "status" ).text
         self.winner = matchRoot.find( "winner" ).attrib["name"]
         for player in matchRoot.find("activePlayers"):

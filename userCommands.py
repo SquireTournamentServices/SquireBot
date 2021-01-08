@@ -17,9 +17,7 @@ async def listTournaments( ctx ):
         await ctx.send( "A list of tournaments can't be created via private message since each tournament is associated with a guild (server)." )
         return
     
-    plannedTourns = futureGuildTournaments( ctx.message.guild.name )
-
-    if len( plannedTourns ) == 0:
+    if len( futureGuildTournaments( ctx.message.guild.name ) ) == 0:
         await ctx.send( f'{ctx.message.author.mention}, there are no tournaments currently planned for this guild (server).' )
         return
     
@@ -55,9 +53,9 @@ async def registerPlayer( ctx, tourn = "" ):
         return
 
     await ctx.message.author.add_roles( findGuildRole( ctx.guild, f'{tourn} Player' ) )
-    await currentTournaments[tourn].addPlayer( ctx.message.author )
-    await currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].addDiscordUser( ctx.message.author )
-    currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{getUserIdent(ctx.message.author)}.xml' )
+    currentTournaments[tourn].addPlayer( ctx.message.author )
+    currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].addDiscordUser( ctx.message.author )
+    currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].saveXML( f'currentTournaments/{tourn}/players/{getUserIdent(ctx.message.author)}.xml' )
     await ctx.send( f'{ctx.message.author.mention}, you have been added to the tournament named "{tourn}" in this guild (server)!' )
 
 
@@ -84,12 +82,12 @@ async def addTriceName( ctx, tourn = "", name = "" ):
     if not tourn in currentTournaments or currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
         await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
         return
-    if not ctx.message.author.display_name in currentTournaments[tourn].activePlayers:
+    if not getUserIdent(ctx.message.author) in currentTournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, it appears that you are not registered for the tournament named "{tourn}". Please register before adding a Cockatrice username.' )
         return
     
     currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].triceName = name
-    currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{getUserIdent(ctx.message.author)}.xml' )
+    currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].saveXML( f'currentTournaments/{tourn}/players/{getUserIdent(ctx.message.author)}.xml' )
     await ctx.send( f'{ctx.message.author.mention}, "{name}" was added as your Cocktrice username.' )
 
 
@@ -110,7 +108,7 @@ async def submitDecklist( ctx, tourn = "", ident = "", decklist = "" ):
     if not tourn in currentTournaments:
         await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
         return
-    if not ctx.message.author.display_name in currentTournaments[tourn].activePlayers:
+    if not getUserIdent(ctx.message.author) in currentTournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, you need to register before you can submit a decklist. Please you the register command to do so.' )
         return
     if not currentTournaments[tourn].regOpen:
@@ -118,9 +116,8 @@ async def submitDecklist( ctx, tourn = "", ident = "", decklist = "" ):
         return
     
     currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].addDeck( ident, decklist )
-    currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{getUserIdent(ctx.message.author)}.xml' )
+    currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].saveXML( f'currentTournaments/{tourn}/players/{getUserIdent(ctx.message.author)}.xml' )
     deckHash = str(currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].decks[ident].deckHash)
-    currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{getUserIdent(ctx.message.author)}.xml' )
     await ctx.send( f'{ctx.message.author.mention}, your decklist has been submitted. Your deck hash is "{deckHash}". Please make sure this matches your deck hash in Cocktrice.' )
     if not isPrivateMessage( ctx.message ):
         await ctx.send( f'{ctx.message.author.mention}, for future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
@@ -152,7 +149,6 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
         return
     
     deckName = ""
-    print( [ currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].decks[deck].deckHash for deck in currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].decks ] )
     if ident in currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].decks:
         deckName = ident
     # Is the second argument in the player's deckhashes? Yes, then deckName will equal the name of the deck that corresponds to that hash.
@@ -164,7 +160,7 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
         return
     
     del( currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].decks[deckName] )
-    currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{getUserIdent(ctx.message.author)}.xml' )
+    currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].saveXML( f'currentTournaments/{tourn}/players/{getUserIdent(ctx.message.author)}.xml' )
     await ctx.send( f'{ctx.message.author.mention}, your decklist whose name or deck hash was "{ident}" has been deleted.' )
 
 
@@ -184,15 +180,14 @@ async def listDecklists( ctx, tourn = "" ):
     if not tourn in currentTournaments or currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
         await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
         return
-    if not ctx.message.author.display_name in currentTournaments[tourn].activePlayers:
+    if not getUserIdent(ctx.message.author) in currentTournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, you need to register before you can submit a decklist. Please you the register command to do so.' )
         return
-    if len( currentTournaments[tourn].activePlayers[ctx.message.author.display_name].decks ) == 0:
+    if len( currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].decks ) == 0:
         await ctx.send( f'{ctx.message.author.mention}, you have not registered any decks for the tournament called "{tourn}".' )
         return
     
-    decks  = currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].decks
-    digest = [ deck + ":  " + str(decks[deck].deckHash) for deck in decks ]
+    digest = [ f'{deck}:\t{decks[deck].deckHash}' for deck in currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].decks ]
     
     newLine = "\n\t- "
     await ctx.send( f'{ctx.message.author.mention}, here are the decks that you currently have registered:{newLine}{newLine.join( digest )}' )
@@ -225,7 +220,7 @@ async def dropTournament( ctx, tourn = "" ):
         return
     
     currentTournaments[tourn].dropPlayer( name )
-    currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{getUserIdent(ctx.message.author)}.xml' )
+    currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].saveXML( f'currentTournaments/{tourn}/players/{getUserIdent(ctx.message.author)}.xml' )
     await ctx.send( f'{ctx.message.author.mention}, you have been dropped from the tournament "{tourn}".' )
 
 
@@ -254,7 +249,7 @@ async def queuePlayer( ctx, tourn = "" ):
         return
     
     currentTournaments[tourn].addPlayerToQueue( getUserIdent(ctx.message.author) )
-    currentTournaments[tourn].saveOverview( f'currentTournaments/{currentTournaments[tourn].tournName}/overview.xml' ) 
+    currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' ) 
     await ctx.send( f'{ctx.message.author.mention}, you have been added to the match queue.' )
 
 
@@ -302,6 +297,9 @@ async def matchResult( ctx, tourn = "", result = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you have been dropped from your match. You will not be able to start a new match until this match finishes, but you will not need to confirm the result.' )
     else:
         await ctx.send( f'{ctx.message.author.mention}, you have provided an incorrect result. The options for "win", "loss", and "draw". Please re-enter the correct result.' )
+        return
+    
+    playerMatch.saveXML( f'currentTournaments/{tourn}/matches/{match_{playerMatch.matchNumber}.xml' )
 
 
 @bot.command(name='confirm-result')
@@ -336,6 +334,8 @@ async def confirmMatchResult( ctx, tourn = "" ):
         return
     
     currentTournaments[tourn].playerCertifyResult( getUserIdent(ctx.message.author) )
+    playerMatch.saveXML( f'currentTournaments/{tourn}/matches/match_{playerMatch.matchNumber}.xml' )
+    await ctx.send( f'{ctx.message.author.mention}, your confirmation of your match has been recorded.' )
     
 
     

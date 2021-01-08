@@ -46,32 +46,24 @@ def findGuildRole( a_guild: discord.Guild, a_roleName: str ):
     return ""
     
 
-async def findGuildMember( a_guild: discord.Guild, a_memberName: str ):
+def findGuildMember( a_guild: discord.Guild, a_memberName: str ):
     print( f'Looking for {a_memberName}.' )
-    async for member in a_guild.fetch_members( ):
+    for member in a_guild.members:
         print( f'Found {member}, whose display name is {member.display_name} and whose mention is {member.mention}.' )
         if member.display_name == a_memberName:
             return member
         if member.mention == a_memberName:
             return member
-        if member.name == a_memberName:
-            return member
-        if member.discriminator == a_memberName:
-            return member
     return ""
     
 def findPlayer( a_guild: discord.Guild, a_tourn: str, a_memberName: str ):
-    role = findGuildRole( a_guild, f'{tourn} Player' )
+    role = findGuildRole( a_guild, f'{a_tourn} Player' )
     if role == "":
         return ""
-    for member in lyrRole.members:
+    for member in role.members:
         if member.display_name == a_memberName:
             return member
         if member.mention == a_memberName:
-            return member
-        if member.name == a_memberName:
-            return member
-        if member.discriminator == a_memberName:
             return member
     return ""
 
@@ -79,7 +71,8 @@ def findPlayer( a_guild: discord.Guild, a_tourn: str, a_memberName: str ):
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
-bot = commands.Bot(command_prefix='!')
+intents = discord.Intents.all()
+bot = commands.Bot(command_prefix='!', intents=intents)
 
 currentTournaments = {}
 closedTournaments = []
@@ -90,17 +83,11 @@ playersToBeDropped = []
 async def on_ready():
     await bot.wait_until_ready( )
     print(f'{bot.user.name} has connected to Discord!')
-    guild = bot.guilds[-1]
-    print( guild )
-    members = [ member.display_name async for member in guild.fetch_members( ) ]
-    print( members )
-    print( len(guild.members) )
     for tourn in currentTournaments:
         print( f'{tourn} has a guild ID of "{currentTournaments[tourn].guildID}".' )
         guild = bot.get_guild( currentTournaments[tourn].guildID )
-        await discord.utils.get( guild.channels, name="general" ).send( "This message is sent from the on_ready method" )
         if type( guild ) != None:
-            await currentTournaments[tourn].assignGuild( guild )
+            currentTournaments[tourn].assignGuild( guild )
 
 
 

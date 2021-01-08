@@ -40,9 +40,8 @@ class player:
         self.matches = [ ]
     
     # Adds a copy of a discord user object
-    async def addDiscordUser( self, a_discordUser ) -> None:
+    def addDiscordUser( self, a_discordUser ) -> None:
         self.discordUser = a_discordUser
-        await self.discordUser.send( content="You have been added to a player object." )
     
     # Updates the status of the player
     def updateStatus( self, a_status: str ) -> None:

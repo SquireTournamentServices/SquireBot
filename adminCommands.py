@@ -205,7 +205,9 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
     plyr  =  plyr.strip()
     ident = ident.strip()
     decklist = decklist.strip()
-
+    
+    print( f'There are {len(ctx.guild.roles[0].members)} in the role "{ctx.guild.roles[0].name}".' )
+    
     if isPrivateMessage( ctx.message ):
         await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a guild (server)." )
         return
@@ -226,15 +228,20 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
     if currentTournaments[tourn].tournEnded or currentTournaments[tourn].tournCancel:
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
         return
-    if not plyr in currentTournaments[tourn].activePlayers:
-        await ctx.send( f'{ctx.message.author.mention}, there is not an active player called "{plyr}" for the tournament called "{tourn}".' )
+    
+    member = findPlayer( ctx.guild, tourn, plyr )
+    if member == "":
+        await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
+        return
+    if not getUserIdent(member) in currentTournaments[tourn].activePlayers:
+        await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
-    currentTournaments[tourn].activePlayers[plyr].addDeck( ident, decklist )
-    currentTournaments[tourn].activePlayers[plyr].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{plyr.replace("/", "_")}.xml' )
-    deckHash = str(currentTournaments[tourn].activePlayers[plyr].decks[ident].deckHash)
+    currentTournaments[tourn].activePlayers[getUserIdent(member)].addDeck( ident, decklist )
+    currentTournaments[tourn].activePlayers[getUserIdent(member)].saveXML( f'currentTournaments/{tourn}/players/{getUserIdent(member)}.xml' )
+    deckHash = str(currentTournaments[tourn].activePlayers[getUserIdent(member)].decks[ident].deckHash)
     await ctx.send( f'{ctx.message.author.mention}, decklist that you added for {plyr} has been submitted. The deck hash is "{deckHash}".' )
-    await currentTournaments[tourn].activePlayers[plyr].discordUser.create_dm().send( f'A decklist has been submitted for the tournament called "{tourn}" on the server "{ctx.guild.name}". The identifier for the deck is "{ident}" and the deck hash is "{deckHash}". If this deck hash is incorrect or you are not expecting this, please contact tournament admin.' )
+    await member.create_dm().send( f'A decklist has been submitted for the tournament called "{tourn}" on the server "{ctx.guild.name}". The identifier for the deck is "{ident}" and the deck hash is "{deckHash}". If this deck hash is incorrect or you are not expecting this, please contact tournament admin.' )
 
 
 @bot.command(name='admin-remove-deck')
@@ -263,24 +270,30 @@ async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
     if currentTournaments[tourn].tournEnded or currentTournaments[tourn].tournCancel:
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
         return
-    if not plyr in currentTournaments[tourn].activePlayers:
-        await ctx.send( f'{ctx.message.author.mention}, there is not an active player called "{plyr}" for the tournament called "{tourn}".' )
+    
+    member = findPlayer( ctx.guild, tourn, plyr )
+    if member == "":
+        await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
+        return
+    if not getUserIdent(member) in currentTournaments[tourn].activePlayers:
+        await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
     deckName = ""
-    if ident in currentTournaments[tourn].activePlayers[plyr].decks:
+    if ident in currentTournaments[tourn].activePlayers[getUserIdent(member)].decks:
         deckName = ident
     # Is the second argument in the player's deckhashes? Yes, then deckName will equal the name of the deck that corresponds to that hash.
-    for deck in currentTournaments[tourn].activePlayers[ctx.message.author.display_name].decks:
-        if ident == currentTournaments[tourn].activePlayers[ctx.message.author.display_name].decks[deck].deckHash:
+    for deck in currentTournaments[tourn].activePlayers[getUserIdent(member)].decks:
+        if ident == currentTournaments[tourn].activePlayers[getUserIdent(member)].decks[deck].deckHash:
             deckName = deck 
     if deckName == "":
         await ctx.send( f'{ctx.message.author.mention}, it appears that {plyr} does not have a deck whose name nor hash is "{ident}" registered for the tournament "{tourn}".' )
         return
 
-    currentTournaments[tourn].activePlayers[plyr].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{plyr.replace("/","_")}.xml' )
+    del( currentTournaments[tourn].activePlayers[getUserIdent(member)].decks[deckName] )
+    currentTournaments[tourn].activePlayers[getUserIdent(member)].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{getUserIdent(member)}.xml' )
     await ctx.send( f'{ctx.message.author.mention}, decklist that you removed from {plyr} has been processed.' )
-    await currentTournaments[tourn].activePlayers[plyr].discordUser.create_dm().send( f'A decklist has been removed for the tournament called "{tourn}" on the server "{ctx.guild.name}". The identifier or deck hash was "{ident}".' )
+    await member.create_dm().send( f'A decklist has been removed for the tournament called "{tourn}" on the server "{ctx.guild.name}". The identifier or deck hash was "{ident}".' )
 
 
 @bot.command(name='set-deck-count')
@@ -341,11 +354,11 @@ async def adminPruneDecks( ctx, tourn = "" ):
     for plyr in currentTournaments[tourn].activePlayers:
         deckIdents = [ ident for ident in currentTournaments[tourn].activePlayers[plyr].decks ]
         while len( currentTournaments[tourn].activePlayers[plyr].decks ) > currentTournaments[tourn].deckCount:
-            await ctx.send( f'{ctx.message.author.mention}, the decklist with identifier "{deckIdents[0]}" that you removed from the player "{plyr}".' )
-            await currentTournaments[tourn].activePlayers[plyr].discordUser.create_dm().send( f'A decklist has been removed for the tournament called "{tourn}" on the server "{ctx.guild.name}" during pruning. The identifier of the deck "{ident}".' )
             del( currentTournaments[tourn].activePlayers[plyr].decks[deckIdents[0]] )
             del( deckIdents[0] )
-    currentTournaments[tourn].saveTournament( f'closedTournaments/{tourn}' )
+            await ctx.send( f'{adminMention}, the decklist with identifier "{deckIdents[0]}" that you removed from the player "{plyr}".' )
+            await currentTournaments[tourn].activePlayers[plyr].discordUser.create_dm().send( f'A decklist has been removed for the tournament called "{tourn}" on the server "{ctx.guild.name}" during pruning. The identifier of the deck "{ident}".' )
+        currentTournaments[tourn].activePlayers[plyr].saveXML( f'currentTournaments/{tourn}/players/{plyr}.xml' )
 
 
 @bot.command(name='admin-list-players')
@@ -377,11 +390,11 @@ async def adminListPlayers( ctx, tourn = "", num = "" ):
         await ctx.send( f'{ctx.message.author.mention}, there are no players registered for the tournament {tourn}.' )
         return
     if num == "n" or num == "num" or num == "number":
-        await ctx.send( f'{ctx.message.author.mention}, there are {len(currentTournaments.activePlayers)} active players in {tourn}.' )
+        await ctx.send( f'{ctx.message.author.mention}, there are {len(currentTournaments[tourn].activePlayers)} active players in {tourn}.' )
         return
     else:
         newLine = "\n\t- "
-        await ctx.send( f'{ctx.message.author.mention}, the following are all players registered for {tourn}:{newLine}{newLine.join(currentTournaments.activePlayers)}' )
+        await ctx.send( f'{ctx.message.author.mention}, the following are all players registered for {tourn}:{newLine}{newLine.join(currentTournaments[tourn].activePlayers)}' )
     
 
 @bot.command(name='admin-player-profile')
@@ -408,11 +421,16 @@ async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
     if currentTournaments[tourn].tournEnded or currentTournaments[tourn].tournCancel:
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
         return
-    if not plyr in currentTournaments[tourn].activePlayers:
-        await ctx.send( f'{ctx.message.author.mention}, there is not an active player called "{plyr}" for the tournament called "{tourn}".' )
+    
+    member = findPlayer( ctx.guild, tourn, plyr )
+    if member == "":
+        await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
+        return
+    if not getUserIdent(member) in currentTournaments[tourn].activePlayers:
+        await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
-    await ctx.send( f'{ctx.message.author.mention}, the following is the profile for the player "{plyr}":\n{currentTournaments[tourn].activePlayers[plyr]}' )
+    await ctx.send( f'{ctx.message.author.mention}, the following is the profile for the player "{plyr}":\n{currentTournaments[tourn].activePlayers[getUserIdent(member)]}' )
 
 
 
