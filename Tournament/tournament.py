@@ -33,12 +33,7 @@ from .deck import deck
         - playerQueue: A list of player names (strings) representing the players that are waiting to be paired for a match
         - activePlayers: A dict that index-s player objects that haven't dropped with their names (for ease of referencing)
         - droppedPlayers: A dict that index-s player objects that have dropped with their names (for ease of referencing)
-        - uniqueMatches: A list of all match objects in the tournament, regardless of status
-        - openMatches: A dict that index-s open matches with player names, there will be a copy of that match for each
-                           active player in the match
-        - uncertMatches: A dict that index-s uncertified matches with player names, there will be a copy of that match
-                           for each player in the match that hasn't confirmed the result
-        - closedMatches: A list of matches that have been certified.
+        - matches: A list of all match objects in the tournament, regardless of status
 """
 class tournament:
     def __init__( self, a_tournName: str, a_hostGuildName: str, a_format: str = "EDH" ):
@@ -48,13 +43,16 @@ class tournament:
         
         self.guild   = ""
         self.guildID = ""
+        self.role    = ""
+        self.roleID  = ""
+        self.pairingsChannel = ""
         
         self.regOpen      = True
         self.tournStarted = False
         self.tournEnded   = False
         self.tournCancel  = False
         
-        self.playersPerMatch = 1
+        self.playersPerMatch = 2
         self.playerQueue = []
         
         self.deckCount = 1
@@ -62,10 +60,7 @@ class tournament:
         self.activePlayers  = {}
         self.droppedPlayers = {}
         
-        self.uniqueMatches = []
-        self.openMatches   = {}
-        self.uncertMatches = {}
-        self.closedMatches = []
+        self.matches = []
     
     def isPlanned( self ) -> bool:
         return not ( self.tournStarted or self.tournEnded or self.tournCancel )
@@ -77,7 +72,11 @@ class tournament:
         self.guild = a_guild
         self.hostGuildName = a_guild.name
         self.guildID = self.guild.id
-        self.matchChannel = discord.utils.get( a_guild.channels, name="match-pairings" )
+        if self.roleID != "":
+            self.role = a_guild.get_role( self.roleID )
+        else:
+            self.role = discord.utils.get( a_guild.roles, name=f'{self.tournName} Player' )
+        self.pairingsChannel = discord.utils.get( a_guild.channels, name="match-pairings" )
     
     # The name of players ought to be their Discord name + discriminator
     def assignGuild( self, a_guild ) -> None:
@@ -88,7 +87,123 @@ class tournament:
             ident = f'{member.name}#{member.discriminator}' 
             if ident in self.activePlayers:
                 self.activePlayers[ident].addDiscordUser( member )
+        for match in self.matches:
+            if match.roleID != "":
+                match.addMatchRole( a_guild.get_role( match.roleID ) )
+            if match.VC_ID != "":
+                match.addMatchVC( a_guild.get_channel( match.VC_ID ) )
+
+    def setRegStatus( self, a_status: bool ) -> str:
+        if not ( self.tournEnded or self.tournCancel ):
+            self.regOpen = a_status
+            return ""
+        elif self.tournEnded:
+            return "This tournament has already ended. As such, registeration can't be opened."
+        elif self.tournCancel:
+            return "This tournament has been cancelled. As such, registeration can't be opened."
     
+    def startTourn( self ) -> str:
+        if not (self.tournStarted or self.tournEnded or self.tournCancel):
+            self.tournStarted = True
+            self.regOpen = False
+            return ""
+        elif self.tournEnded:
+            return "This tournament has already ended. As such, it can't be started."
+        elif self.tournCancel:
+            return "This tournament has been cancelled. As such, it can't be started."
+    
+    async def purgeTourn( self ) -> None:
+        for match in self.matches:
+            await match.VC.delete( )
+            await match.role.delete( )
+        await self.role.delete( )
+    
+    async def endTourn( self ) -> str:
+        await self.purgeTourn( )
+        if not self.tournStarted:
+            return "The tournament has not started. As such, it can't be ended; however, it can be cancelled. Please use the cancel command if that's what you intended to do."
+        else:
+            self.tournEnded = False
+    
+    async def cancelTourn( self ) -> str:
+        await self.purgeTourn( )
+        self.tournCancel = True
+        return "This tournament has been canceled."
+    
+    def addPlayer( self, a_discordUser ) -> str:
+        if self.tournCancel:
+            return "Sorry but this tournament has been cancelled. If you believe this to be incorrect, please contact the tournament officials."
+        if self.tournEnded:
+            return "Sorry, but this tournament has already ended. If you believe this to be incorrect, please contact the tournament officials."
+        if self.regOpen:
+            self.activePlayers[getUserIdent(a_discordUser)] = player( getUserIdent(a_discordUser) )
+            self.activePlayers[getUserIdent(a_discordUser)].addDiscordUser( a_discordUser )
+            return ""
+        else:
+            return "Sorry, registeration for this tournament isn't open currently."
+    
+    # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing
+    # This is a prime canidate for adjustments when players how copies of match results.
+    async def addPlayerToQueue( self, a_player: str ) -> None:
+        if a_player in self.playerQueue:
+            return "You are already in the matchmaking queue."
+        if a_player in self.droppedPlayers:
+            return "It appears that you have been dropped from the tournament. If you think this is an error, please contact tournament officials."
+        if not a_player in self.activePlayers:
+            return "It appears that you are not registered for this tournament. If you think this is an error, please contact tournament officials."
+        if self.activePlayers[a_player].hasOpenMatch( ):
+            return "It appears that you are already in a match that hasn't been certified. Please either finish your match or drop from it before starting a new one. If you think this is an error, please contact tournament officials."
+        
+        self.playerQueue.append(a_player)
+        print( f'Added {a_player} to the queue' )
+        if len(self.playerQueue) >= self.playersPerMatch:
+            await self.addMatch( self.playerQueue[0:self.playersPerMatch + 1] )
+            for i in range(self.playersPerMatch):
+                del( self.playerQueue[0] )
+    
+    async def addMatch( self, a_players: List[str] ) -> None:
+        newMatch = match( a_players )
+        self.matches.append( newMatch )
+        newMatch.matchNumber = len(self.matches)
+        matchRole = await self.guild.create_role( name=f'Match {newMatch.matchNumber}' )
+        overwrites = { self.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                       getAdminRole(self.guild): discord.PermissionOverwrite(read_messages=True),
+                       matchRole: discord.PermissionOverwrite(read_messages=True) }
+        newMatch.VC = await self.guild.create_voice_channel( name=f'Match {newMatch.matchNumber}', overwrites=overwrites, category=discord.utils.get( self.guild.categories, name="Matches" ) ) 
+        newMatch.role = matchRole
+        message  = f'{matchRole.mention}, you have been paired from your match. There is a voice channel for you that you may join. Below in information about your opponents.\n'
+        for player in a_players:
+            self.activePlayers[player].matches.append( newMatch )
+            await self.activePlayers[player].discordUser.add_roles( matchRole )
+            message += f'{self.activePlayers[player].pairingString()}\n' 
+        await self.pairingsChannel.send( message )
+    
+    async def playerMatchDrop( self, a_player: str ) -> None:
+        if not a_player in self.activePlayers:
+            return
+        await self.activePlayers[a_player].drop( )
+    
+    async def dropPlayer( self, a_player: str ) -> None:
+        await self.playerMatchDrop( a_player )
+        if a_player in self.activePlayers:
+            self.droppedPlayers[a_player] = self.activePlayers[a_player]
+            del( self.activePlayers[a_player] )
+    
+    async def playerCertifyResult( self, a_player: str ) -> None:
+        if not a_player in self.activePlayers:
+            return
+        await self.activePlayers[a_player].certifyResult( )
+    
+    async def recordMatchWin( self, a_winner: str ) -> None:
+        if not a_player in self.activePlayers:
+            return
+        await self.activePlayers[a_player].recordWin( )
+    
+    async def recordMatchDraw( self, a_player: str ) -> None:
+        if not a_player in self.activePlayers:
+            return
+        await self.activePlayers[a_player].recordDraw( )
+
     def saveTournament( self, a_dirName: str ) -> None:
         if not (os.path.isdir( f'{a_dirName}' ) and os.path.exists( f'{a_dirName}' )):
            os.mkdir( f'{a_dirName}' ) 
@@ -100,7 +215,10 @@ class tournament:
         digest  = "<?xml version='1.0'?>\n"
         digest += '<tournament>\n'
         digest += f'\t<name>{self.tournName}</name>\n'
-        digest += f'\t<guild id="{self.guildID}">{self.hostGuildName}</guild>\n'
+        if self.guild != "":
+            digest += f'\t<guild id="{self.guildID}">{self.hostGuildName}</guild>\n'
+        if self.role != "":
+            digest += f'\t<role id="{self.role.id}"/>\n'
         digest += f'\t<format>{self.format}</format>\n'
         digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
         digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
@@ -128,8 +246,8 @@ class tournament:
         if not (os.path.isdir( f'{a_dirName}/matches/' ) and os.path.exists( f'{a_dirName}/matches/' )):
            os.mkdir( f'{a_dirName}/matches/' ) 
 
-        for i in range(len(self.uniqueMatches)):
-            self.uniqueMatches[i].saveXML( f'{a_dirName}/matches/openMatch-{i}.xml' )
+        for match in self.matches:
+            match.saveXML( f'{a_dirName}/matches/match_{match.matchNumber}.xml' )
         
     def loadTournament( self, a_dirName: str ) -> None:
         self.loadOverview( f'{a_dirName}/overview.xml' )
@@ -140,12 +258,10 @@ class tournament:
         xmlTree = ET.parse( a_filename )
         tournRoot = xmlTree.getroot() 
         self.tournName = tournRoot.find( 'name' ).text
-        self.guild   = tournRoot.find( 'guild' ).text
-        self.guildID = tournRoot.find( 'guild' ).attrib['id']
-        if self.guildID != "":
-            self.guildID = int( self.guildID )
+        self.guildID   = int( tournRoot.find( 'guild' ).attrib["id"] )
+        self.roleID    = int( tournRoot.find( 'role' ).attrib["id"] )
         self.format    = tournRoot.find( 'format' ).text
-        self.deckCount = int( tournRoot.find( 'deckCount' ).text.strip() )
+        self.deckCount = int( tournRoot.find( 'deckCount' ).text )
 
         self.regOpen      = str_to_bool( tournRoot.find( 'regOpen' ).text )
         self.tournStarted = str_to_bool( tournRoot.find( 'status' ).attrib['started'] )
@@ -171,6 +287,7 @@ class tournament:
         for matchFile in matchFiles:
             newMatch = match( [] )
             newMatch.loadXML( matchFile )
+            self.matches.append( newMatch )
             for aPlayer in newMatch.activePlayers:
                 if aPlayer in self.activePlayers:
                     self.activePlayers[aPlayer].matches.append( newMatch )
@@ -181,133 +298,5 @@ class tournament:
                     self.activePlayers[dPlayer].matches.append( newMatch )
                 elif dPlayer in self.droppedPlayers:
                     self.droppedPlayers[dPlayer].matches.append( newMatch )
-            self.uniqueMatches.append( newMatch )
-            if self.uniqueMatches[-1].status == "open":
-                for aPlayer in newMatch.activePlayers:
-                    self.openMatches[aPlayer] = newMatch
-            elif self.uniqueMatches[-1].status == "uncertified":
-                for aPlayer in newMatch.activePlayers:
-                    self.uncertMatches[aPlayer] = newMatch
-            elif self.uniqueMatches[-1].status == "closed":
-                self.closedMatches.append( newMatch )
-        
-
-    def setRegStatus( self, a_status: bool ) -> str:
-        if not ( self.tournEnded or self.tournCancel ):
-            self.regOpen = a_status
-            return ""
-        elif self.tournEnded:
-            return "This tournament has already ended. As such, registeration can't be opened."
-        elif self.tournCancel:
-            return "This tournament has been cancelled. As such, registeration can't be opened."
-    
-    def startTourn( self ) -> str:
-        if not (self.tournStarted or self.tournEnded or self.tournCancel):
-            self.tournStarted = True
-            self.regOpen = False
-            return ""
-        elif self.tournEnded:
-            return "This tournament has already ended. As such, it can't be started."
-        elif self.tournCancel:
-            return "This tournament has been cancelled. As such, it can't be started."
-    
-    def endTourn( self ) -> str:
-        if not self.tournStarted:
-            return "The tournament has not started. As such, it can't be ended; however, it can be cancelled. Please use the cancel command if that's what you intended to do."
-        else:
-            self.tournEnded = False
-    
-    def cancelTourn( self ) -> str:
-        self.tournCancel = True
-        return "This tournament has been canceled."
-    
-    def addPlayer( self, a_discordUser ) -> str:
-        if self.tournCancel:
-            return "Sorry but this tournament has been cancelled. If you believe this to be incorrect, please contact the tournament officials."
-        if self.tournEnded:
-            return "Sorry, but this tournament has already ended. If you believe this to be incorrect, please contact the tournament officials."
-        if self.regOpen:
-            self.activePlayers[getUserIdent(a_discordUser)] = player( getUserIdent(a_discordUser) )
-            self.activePlayers[getUserIdent(a_discordUser)].addDiscordUser( a_discordUser )
-            return ""
-        else:
-            return "Sorry, registeration for this tournament isn't open currently."
-    
-    # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing
-    # This is a prime canidate for adjustments when players how copies of match results.
-    async def addPlayerToQueue( self, a_player: str ) -> None:
-        if a_player in self.playerQueue:
-            return "You are already in the matchmaking queue."
-        if a_player in self.droppedPlayers:
-            return "It appears that you have been dropped from the tournament. If you think this is an error, please contact tournament officials."
-        if not a_player in self.activePlayers:
-            return "It appears that you are not registered for this tournament. If you think this is an error, please contact tournament officials."
-        if a_player in self.openMatches:
-            return "It appears that you are already in a match. Please either finish your match or drop from it before starting a new one. If you think this is an error, please contact tournament officials."
-        if a_player in self.uncertMatches:
-            return "It appears that you have an uncertified match. Please certify the result before starting a new match."
-        
-        self.playerQueue.append(a_player)
-        print( f'Added {a_player} to the queue' )
-        if len(self.playerQueue) >= self.playersPerMatch:
-            await self.addMatch( self.playerQueue[0:self.playersPerMatch + 1] )
-            for i in range(self.playersPerMatch):
-                del( self.playerQueue[0] )
-    
-    async def addMatch( self, a_players: List[str] ) -> None:
-        newMatch = match( a_players )
-        self.uniqueMatches.append( newMatch )
-        newMatch.matchNumber = len(self.uniqueMatches)
-        matchRole = await self.guild.create_role( name=f'Match {newMatch.matchNumber}' )
-        overwrites = { self.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                       getAdminRole(self.guild): discord.PermissionOverwrite(read_messages=True),
-                       matchRole: discord.PermissionOverwrite(read_messages=True) }
-        await self.guild.create_voice_channel( name=f'Match {newMatch.matchNumber}', overwrites=overwrites, category=discord.utils.get( self.guild.categories, name="Matches" ) ) 
-        newMatch.matchMention = matchRole.mention
-        message  = f'{matchRole.mention}, you have been paired from your match. There is a voice channel for you that you may join. Below in information about your opponents.\n'
-        for player in a_players:
-            self.activePlayers[player].matches.append( newMatch )
-            self.openMatches[player] = newMatch 
-            await self.activePlayers[player].discordUser.add_roles( matchRole )
-            message += f'{self.activePlayers[player].pairingString()}\n' 
-        await self.matchChannel.send( message )
-    
-    def playerMatchDrop( self, a_player: str ) -> None:
-        if not a_player in self.activePlayers:
-            return
-        if a_player in self.openMatches:
-            self.openMatches[a_player].dropPlayer( a_player )
-            if len( self.openMatches[a_player].activePlayers ) == 1:
-                self.closedMatches.append( self.openMatches[a_player] )
-            del( self.openMatches[a_player] )
-    
-    def playerTournDrop( self, a_player: str ) -> None:
-        self.playerMatchDrop( a_player )
-        if a_player in self.activePlayers:
-            self.droppedPlayers[a_player] = self.activePlayers[a_player]
-            del( self.activePlayers[a_player] )
-    
-    def playerCertifyResult( self, a_player: str ) -> None:
-        if a_player in self.uncertMatches:
-            self.uncertMatches[a_player].confirmResult( a_player )
-            if self.uncertMatches[a_player].status == "certified":
-                self.closedMatches.append( self.uncertMatches[a_player] )
-            del( self.uncertMatches[a_player] )
-    
-    def recordMatchWin( self, a_winner: str ) -> None:
-        self.openMatches[a_winner].recordWinner( a_winner )
-        for player in self.openMatches[a_winner].activePlayers:
-            if not player == a_winner:
-                self.uncertMatches[player] = self.openMatches[a_winner]
-        del( self.openMatches[a_winner] )
-    
-    def recordMatchDraw( self, a_player: str ) -> None:
-        self.openMatches[a_player].recordWinner( "" )
-        for player in self.openMatches[a_player].activePlayers:
-            if player != a_player:
-                self.uncertMatches[player] = self.openMatches[a_player]
-        del( self.openMatches[a_player] )
-        self.playerCertifyResult( a_player )
-
 
 

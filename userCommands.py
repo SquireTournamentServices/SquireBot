@@ -219,7 +219,7 @@ async def dropTournament( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you are listed to be dropped from the tournament. Dropping from a tournament can not be reversed. If you are sure you want to drop, re-enter this command.' )
         return
     
-    currentTournaments[tourn].dropPlayer( name )
+    await currentTournaments[tourn].dropPlayer( name )
     currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].saveXML( f'currentTournaments/{tourn}/players/{getUserIdent(ctx.message.author)}.xml' )
     await ctx.send( f'{ctx.message.author.mention}, you have been dropped from the tournament "{tourn}".' )
 
@@ -232,13 +232,19 @@ async def queuePlayer( ctx, tourn = "" ):
         return
     
     if tourn == "":
-        if len( futureGuildTournaments( ctx.message.guild.name ) ) != 1:
-            await ctx.send( f'{ctx.message.author.mention}, there are more than one planned tournaments for this server. Please specify a tournament to list your decks.' )
+        if len( activeGuildTournaments( ctx.message.guild.name ) ) > 1:
+            await ctx.send( f'{ctx.message.author.mention}, there are more than one planned tournaments for this server. Please specify a tournament in order to join the queue.' )
+            return
+        elif len( activeGuildTournaments( ctx.message.guild.name ) ) < 1:
+            await ctx.send( f'{ctx.message.author.mention}, there are no tournaments planned for this server. Check with tournament admin if you think this is an error.' )
             return
         else:
-            tourn = [ name for name in futureGuildTournaments( ctx.message.guild.name ) ][0]
+            tourn = [ name for name in activeGuildTournaments( ctx.message.guild.name ) ][0]
     if not tourn in currentTournaments or currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
         await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
+        return
+    if not currentTournaments[tourn].isActive():
+        await ctx.send( f'{ctx.message.author.mention}, the tournament "{tourn}" has not started yet. Please wait until the admin start the tournament.' )
         return
 
     userIdent = getUserIdent( ctx.message.author )
@@ -246,14 +252,13 @@ async def queuePlayer( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you need to register before you can drop from a tournament... but maybe you should try playing first.' )
         return
 
-    if len( currentTournaments[tourn].activePlayers[userIdent].matches ) != 0:
-        playerMatch = currentTournaments[tourn].activePlayers[userIdent].matches[-1]
-        if playerMatch.status != "certified" and userIdent in playerMatch.activePlayers:
-            await ctx.send( f'{ctx.message.author.mention}, you are currently in a match that is not confirmed. Please finish your match or make sure the result is confirmed before starting a new match.' )
-            return
+    if currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].hasOpenMatch( ):
+        await ctx.send( f'{ctx.message.author.mention}, you are currently in a match that is not confirmed. Please finish your match or make sure the result is confirmed before starting a new match.' )
+        return
     
     await currentTournaments[tourn].addPlayerToQueue( userIdent )
     currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' ) 
+    currentTournaments[tourn].saveMatches( f'currentTournaments/{tourn}/' ) 
     await ctx.send( f'{ctx.message.author.mention}, you have been added to the match queue.' )
 
 
@@ -269,12 +274,15 @@ async def matchResult( ctx, tourn = "", result = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you need to specify the result of the match.' )
         return
     if result == "":
-        if len( futureGuildTournaments( ctx.message.guild.name ) ) != 1:
-            await ctx.send( f'{ctx.message.author.mention}, there are more than one planned tournaments for this server. Please specify a tournament to list your decks.' )
+        if len( activeGuildTournaments( ctx.message.guild.name ) ) > 1:
+            await ctx.send( f'{ctx.message.author.mention}, there are more than one planned tournaments for this server. Please specify a tournament in order to join the queue.' )
+            return
+        elif len( activeGuildTournaments( ctx.message.guild.name ) ) < 1:
+            await ctx.send( f'{ctx.message.author.mention}, there are no tournaments planned for this server. Check with tournament admin if you think this is an error.' )
             return
         else:
             result = tourn
-            tourn = [ name for name in futureGuildTournaments( ctx.message.guild.name ) ][0]
+            tourn = [ name for name in activeGuildTournaments( ctx.message.guild.name ) ][0]
     if not tourn in currentTournaments or currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
         await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
         return
@@ -282,28 +290,26 @@ async def matchResult( ctx, tourn = "", result = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you need to register before you can drop from a tournament... but maybe you should try playing first.' )
         return
 
-    playerMatch = currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].matches[-1]
-    if not getUserIdent(ctx.message.author) in playerMatch.activePlayers:
+    if currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].hasOpenMatch( ):
         await ctx.send( f'{ctx.message.author.mention}, you are not an active player in your latest match, so there is nothing to report.' )
         return
-    if playerMatch.status == "certified":
-        await ctx.send( f'{ctx.message.author.mention}, your latest match has already been certified. There is no need to report anything.' )
-        return
-        
+    
+    playerMatchIndex = currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].findOpenMatchIndex( )
     if result == "w" or result == "win" or result == "winner":
-        currentTournaments[tourn].recordMatchWin( getUserIdent(ctx.message.author) )
-        await ctx.send( f'{currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].matches[-1].matchMention}, {ctx.message.author.mention} has been record as the winner of your match. Please confirm the result.' )
+        await currentTournaments[tourn].recordMatchWin( getUserIdent(ctx.message.author) )
+        await ctx.send( f'{currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].matches[playerMatchIndex].matchRole.mention}, {ctx.message.author.mention} has been record as the winner of your match. Please confirm the result.' )
     elif result == "d" or result == "draw":
-        currentTournament[tourn].recordMatchDraw( getUserIdent(ctx.message.author) )
-        await ctx.send( f'{currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].matches[-1].matchMention}, the result of your match was recorded as a draw by {ctx.message.author.mention}. Please confirm the result.' )
+        await currentTournaments[tourn].recordMatchDraw( getUserIdent(ctx.message.author) )
+        await ctx.send( f'{currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].matches[playerMatchIndex].matchRole.mention}, the result of your match was recorded as a draw by {ctx.message.author.mention}. Please confirm the result.' )
     elif result == "l" or result == "loss" or result == "loser":
-        currentTournament[tourn].playerMatchDrop( getUserIdent(ctx.message.author) )
+        await currentTournaments[tourn].playerMatchDrop( getUserIdent(ctx.message.author) )
         await ctx.send( f'{ctx.message.author.mention}, you have been dropped from your match. You will not be able to start a new match until this match finishes, but you will not need to confirm the result.' )
     else:
-        await ctx.send( f'{ctx.message.author.mention}, you have provided an incorrect result. The options for "win", "loss", and "draw". Please re-enter the correct result.' )
+        await ctx.send( f'{ctx.message.author.mention}, you have provided an incorrect result. The options are "win", "loss", and "draw". Please re-enter the correct result.' )
         return
     
-    playerMatch.saveXML( f'currentTournaments/{tourn}/matches/match_{playerMatch.matchNumber}.xml' )
+    openMatchNumber = currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].findOpenMatchNumber( )
+    playerMatch.saveXML( f'currentTournaments/{tourn}/matches/match_{openMatchNumber}.xml' )
 
 
 @bot.command(name='confirm-result')
@@ -314,14 +320,14 @@ async def confirmMatchResult( ctx, tourn = "" ):
         return
     
     if tourn == "":
-        await ctx.send( f'{ctx.message.author.mention}, you need to specify the result of the match.' )
-        return
-    if result == "":
-        if len( futureGuildTournaments( ctx.message.guild.name ) ) != 1:
-            await ctx.send( f'{ctx.message.author.mention}, there are more than one planned tournaments for this server. Please specify a tournament to list your decks.' )
+        if len( activeGuildTournaments( ctx.message.guild.name ) ) > 1:
+            await ctx.send( f'{ctx.message.author.mention}, there are more than one planned tournaments for this server. Please specify a tournament in order to join the queue.' )
+            return
+        elif len( activeGuildTournaments( ctx.message.guild.name ) ) < 1:
+            await ctx.send( f'{ctx.message.author.mention}, there are no tournaments planned for this server. Check with tournament admin if you think this is an error.' )
             return
         else:
-            tourn = [ name for name in futureGuildTournaments( ctx.message.guild.name ) ][0]
+            tourn = [ name for name in activeGuildTournaments( ctx.message.guild.name ) ][0]
     if not tourn in currentTournaments or currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
         await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
         return
@@ -329,16 +335,13 @@ async def confirmMatchResult( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you are not registered for this tournament.' )
         return
 
-    playerMatch = currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].matches[-1]
-    if not getUserIdent(ctx.message.author) in playerMatch.activePlayers:
-        await ctx.send( f'{ctx.message.author.mention}, you are not an active player in your latest match, so there is nothing to report.' )
-        return
-    if playerMatch.status == "certified":
-        await ctx.send( f'{ctx.message.author.mention}, your latest match has already been certified. There is no need to report anything.' )
+    if currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].hasOpenMatch( ):
+        await ctx.send( f'{ctx.message.author.mention}, you are not an active player in your latest match, so there is nothing to confirm.' )
         return
     
-    currentTournaments[tourn].playerCertifyResult( getUserIdent(ctx.message.author) )
-    playerMatch.saveXML( f'currentTournaments/{tourn}/matches/match_{playerMatch.matchNumber}.xml' )
+    openMatchNumber = currentTournaments[tourn].activePlayers[getUserIdent(ctx.message.author)].findOpenMatchNumber( )
+    await currentTournaments[tourn].playerCertifyResult( getUserIdent(ctx.message.author) )
+    playerMatch.saveXML( f'currentTournaments/{tourn}/matches/match_{openMatchNumber}.xml' )
     await ctx.send( f'{ctx.message.author.mention}, your confirmation of your match has been recorded.' )
     
 

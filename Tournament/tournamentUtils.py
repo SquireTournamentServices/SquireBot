@@ -24,7 +24,8 @@ def str_to_bool( s: str ) -> bool:
 
 
 def getUserIdent( a_user: discord.Member ) -> str:
-    return f'{a_user.name.replace("/", "_")}#{a_user.discriminator}'
+    l_name = a_user.name.replace("/", "_").replace("\"", "_").replace("\'", "_")
+    return f'{l_name}#{a_user.discriminator}'
 
 def getAdminRole( a_guild: discord.Guild ):
     ret = ""

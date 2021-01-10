@@ -68,6 +68,59 @@ class player:
     def updateStatus( self, a_status: str ) -> None:
         self.status = a_status
     
+    def findOpenMatchIndex( self ) -> int:
+        if not self.hasOpenMatch( ):
+            return 1
+        digest = -1
+        while self.matches[digest].status == "certified":
+            digest -= 1
+        return digest
+    
+    def findOpenMatchNumber( self ) -> int:
+        if not self.hasOpenMatch( ):
+            return -1
+        index = self.findOpenMatchIndex( )
+        return self.matches[index].matchNumber
+    
+    def hasOpenMatch( self ) -> None:
+        digest = False
+        for match in self.matches:
+            digest |= not match.isCertified( )
+        return digest
+    
+    async def drop( self ) -> None:
+        status = "dropped"
+        for match in self.matches:
+            if match.status != "certified":
+                await match.dropPlayer( self.playerName )
+    
+    async def certifyResult( self ) -> None:
+        index = self.findOpenMatchIndex( )
+        if index == 1:
+            return
+        await self.matches[index].confirmResult( self.playerName )
+    
+    async def recordWin( self ) -> None:
+        index = self.findOpenMatchIndex( )
+        if index == 1:
+            return
+        await self.matches[index].recordWinner( self.playerName )
+    
+    async def recordDraw( self ) -> None:
+        index = self.findOpenMatchIndex( )
+        if index == 1:
+            return
+        await self.matches[index].recordWinner( "" )
+        await self.matches[index].confirmResult( self.playerName )
+            
+    # Addes a deck to the list of decks
+    def addDeck( self, a_ident: str = "", a_decklist: str = "" ) -> None:
+        self.decks[a_ident] = deck( a_ident, a_decklist )
+    
+    # Tallies the number of matches that the player is in, has won, and have been certified.
+    def getMatchPoints( self ) -> int:
+        return len( [ 1 for match in self.matches if match.status == 'certified' and match.winner == self.playerName ] )
+    
     # Saves the overview of the player and their deck(s)
     # Matches aren't saved with the player. They are save seperately.
     # The tournament object loads match objects and then associates each player with their match(es)
@@ -98,12 +151,4 @@ class player:
             self.decks[deckTag.attrib['ident']] = deck()
             self.decks[deckTag.attrib['ident']].importFromETree( deckTag )
     
-    # Addes a deck to the list of decks
-    def addDeck( self, a_ident: str = "", a_decklist: str = "" ) -> None:
-        self.decks[a_ident] = deck( a_ident, a_decklist )
-    
-    # Tallies the number of matches that the player is in, has won, and have been certified.
-    def getMatchPoints( self ) -> int:
-        return len( [ 1 for match in self.matches if match.status == 'certified' and match.winner == self.playerName ] )
-
 

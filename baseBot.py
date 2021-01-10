@@ -34,6 +34,14 @@ def futureGuildTournaments( a_guildName ):
             tourns[tourn] = currentTournaments[tourn]
     return tourns
 
+def activeGuildTournaments( a_guildName ):
+    tourns = {}
+    for tourn in currentTournaments:
+        if currentTournaments[tourn].isActive() and currentTournaments[tourn].hostGuildName == a_guildName:
+            tourns[tourn] = currentTournaments[tourn]
+    return tourns
+    
+
 def hasStartedTournament( a_guildName ) -> bool:
     for tourn in currentTournaments:
         if currentTournaments[tourn].tournStarted and currentTournaments[tourn].hostGuildName == a_guildName:
@@ -91,6 +99,9 @@ async def on_ready():
             currentTournaments[tourn].assignGuild( guild )
 
 
+@bot.command(name='test')
+async def adminPlayerProfile( ctx ):
+    await ctx.send( f'There are {len(currentTournaments)} planned.' )
 
 
 

@@ -28,7 +28,7 @@ async def createTournament( ctx, tourn = "" ):
     
     await ctx.message.guild.create_role( name=f'{tourn} Player' )
     currentTournaments[tourn] = tournament( tourn, ctx.message.guild.name )
-    currentTournaments[tourn].addDiscordGuild( ctx.message.guild )
+    await currentTournaments[tourn].addDiscordGuild( ctx.message.guild )
     currentTournaments[tourn].saveTournament( f'currentTournaments/{tourn}' )
     await ctx.send( f'{adminMention}, a new tournament called "{tourn}" has been created by {ctx.message.author.mention}.' )
     
@@ -119,7 +119,7 @@ async def endTournament( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this guild (server), so it can not be changed from here.' )
         return
 
-    currentTournaments[tourn].endTourn( )
+    await currentTournaments[tourn].endTourn( )
     currentTournaments[tourn].saveTournament( f'closedTournaments/{tourn}' )
     if os.path.isdir( f'currentTournaments/{tourn}' ): 
         shutil.rmtree( f'currentTournaments/{tourn}' )
@@ -153,7 +153,7 @@ async def cancelTournament( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this guild (server), so it can not be changed from here.' )
         return
     
-    currentTournaments[tourn].cancelTourn( )
+    await currentTournaments[tourn].cancelTourn( )
     currentTournaments[tourn].saveTournament( f'closedTournaments/{tourn}' )
     if os.path.isdir( f'currentTournaments/{tourn}' ): 
         shutil.rmtree( f'currentTournaments/{tourn}' )
