@@ -13,7 +13,7 @@ from Tournament import *
 async def createTournament( ctx, tourn = "" ):
     tourn = tourn.strip()
     if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't create a tournament via private message since each tournament needs to be associated with a guild (server)." )
+        await ctx.send( "You can't create a tournament via private message since each tournament needs to be associated with a server." )
         return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
@@ -28,7 +28,7 @@ async def createTournament( ctx, tourn = "" ):
     
     await ctx.message.guild.create_role( name=f'{tourn} Player' )
     currentTournaments[tourn] = tournament( tourn, ctx.message.guild.name )
-    await currentTournaments[tourn].addDiscordGuild( ctx.message.guild )
+    currentTournaments[tourn].addDiscordGuild( ctx.message.guild )
     currentTournaments[tourn].saveTournament( f'currentTournaments/{tourn}' )
     await ctx.send( f'{adminMention}, a new tournament called "{tourn}" has been created by {ctx.message.author.mention}.' )
     
@@ -39,7 +39,7 @@ async def updateReg( ctx, tourn = "", status = "" ):
     status = status.strip()
     
     if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't adjust tournament settings via private message since each tournament needs to be associated with a guild (server)." )
+        await ctx.send( "You can't adjust tournament settings via private message since each tournament needs to be associated with a server." )
         return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
@@ -64,7 +64,7 @@ async def updateReg( ctx, tourn = "", status = "" ):
 async def startTournament( ctx, tourn = "" ):
     tourn = tourn.strip()
     if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't start a tournament via private message since each tournament needs to be associated with a guild (server)." )
+        await ctx.send( "You can't start a tournament via private message since each tournament needs to be associated with a server." )
         return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
@@ -81,7 +81,7 @@ async def startTournament( ctx, tourn = "" ):
         await ctx.send( ctx.message.author.mention + f', the tournament called "{tourn1}" is not a currently available tournament.' )
         return
     if not ctx.message.guild.name == currentTournaments[tourn].hostGuildName:
-        await ctx.send( f'{ctx.message.author.mention}, there is no tournament called "{tourn}" for this guild (server).' )
+        await ctx.send( f'{ctx.message.author.mention}, there is no tournament called "{tourn}" for this server.' )
         return
     if currentTournaments[tourn].tournStarted:
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" already has been started.' )
@@ -96,7 +96,7 @@ async def startTournament( ctx, tourn = "" ):
 async def endTournament( ctx, tourn = "" ):
     tourn = tourn.strip()
     if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't end a tournament via private message since each tournament needs to be associated with a guild (server)." )
+        await ctx.send( "You can't end a tournament via private message since each tournament needs to be associated with a server." )
         return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
@@ -107,7 +107,7 @@ async def endTournament( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you need to specify what tournament you want to end.' )
         return
     if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is no tournament called "{tourn}" for this guild (server).' )
+        await ctx.send( f'{ctx.message.author.mention}, there is no tournament called "{tourn}" for this server.' )
         return
     if not currentTournaments[tourn].tournStarted:
         await ctx.send( f'{ctx.message.author.mention}, the no tournament called "{tourn}" that has not been started, so it can not end yet. If you want to cancel the tournament, use the cancel-tournament command.' )
@@ -116,7 +116,7 @@ async def endTournament( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has been cancelled. Check with {adminMention} if you think this is an error.' )
         return
     if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this guild (server), so it can not be changed from here.' )
+        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this server, so it can not be changed from here.' )
         return
 
     await currentTournaments[tourn].endTourn( )
@@ -133,7 +133,7 @@ async def endTournament( ctx, tourn = "" ):
 async def cancelTournament( ctx, tourn = "" ):
     tourn = tourn.strip()
     if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't cancel a tournament via private message since each tournament needs to be associated with a guild (server)." )
+        await ctx.send( "You can't cancel a tournament via private message since each tournament needs to be associated with a server." )
         return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
@@ -144,13 +144,13 @@ async def cancelTournament( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you need to specify what tournament you want to cancel.' )
         return
     if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
         return
     if currentTournaments[tourn].tournCancel:
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has been cancelled. Check with {adminMention} if you think this is an error.' )
         return
     if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this guild (server), so it can not be changed from here.' )
+        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this server, so it can not be changed from here.' )
         return
     
     await currentTournaments[tourn].cancelTourn( )
@@ -167,7 +167,7 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
     tourn = tourn.strip()
     plyr  = plyr.strip()
     if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't register a player via private message since each tournament needs to be associated with a guild (server)." )
+        await ctx.send( "You can't register a player via private message since each tournament needs to be associated with a server." )
         return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
@@ -178,10 +178,10 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and player in order to add someone to a tournament.' )
         return
     if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
         return
     if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this guild (server), so it can not be changed from here.' )
+        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this server, so it can not be changed from here.' )
         return
     if currentTournaments[tourn].tournEnded or currentTournaments[tourn].tournCancel:
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
@@ -196,7 +196,7 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
     await currentTournaments[tourn].addPlayer( user )
     currentTournaments[tourn].activePlayers[getUserIdent(user)].addDiscordUser( user )
     currentTournaments[tourn].activePlayers[getUserIdent(user)].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{getUserIdent(user)}.xml' )
-    await ctx.send( f'{ctx.message.author.mention}, you have added {user.mention} to the tournament named "{tourn}" in this guild (server)!' )
+    await ctx.send( f'{ctx.message.author.mention}, you have added {user.mention} to the tournament named "{tourn}" in this server!' )
 
 
 @bot.command(name='admin-add-deck')
@@ -209,7 +209,7 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
     print( f'There are {len(ctx.guild.roles[0].members)} in the role "{ctx.guild.roles[0].name}".' )
     
     if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a guild (server)." )
+        await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a server." )
         return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
@@ -220,10 +220,10 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, a player, a deck identifier, and a decklist in order to add a deck for someone.' )
         return
     if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
         return
     if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this guild (server), so it can not be changed from here.' )
+        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this server, so it can not be changed from here.' )
         return
     if currentTournaments[tourn].tournEnded or currentTournaments[tourn].tournCancel:
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
@@ -251,7 +251,7 @@ async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
     ident = ident.strip()
 
     if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a guild (server)." )
+        await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a server." )
         return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
@@ -262,10 +262,10 @@ async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, a player, a deck identifier, and a decklist in order to add a deck for someone.' )
         return
     if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
         return
     if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this guild (server), so it can not be changed from here.' )
+        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this server, so it can not be changed from here.' )
         return
     if currentTournaments[tourn].tournEnded or currentTournaments[tourn].tournCancel:
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
@@ -301,7 +301,7 @@ async def setDeckCount( ctx, tourn = "", count = "" ):
     tourn = tourn.strip()
     count = count.strip()
     if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a guild (server)." )
+        await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a server." )
         return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
@@ -313,10 +313,10 @@ async def setDeckCount( ctx, tourn = "", count = "" ):
         return
     count = int( count )
     if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
         return
     if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this guild (server), so it can not be changed from here.' )
+        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this server, so it can not be changed from here.' )
         return
     if currentTournaments[tourn].tournEnded or currentTournaments[tourn].tournCancel:
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
@@ -331,7 +331,7 @@ async def setDeckCount( ctx, tourn = "", count = "" ):
 async def adminPruneDecks( ctx, tourn = "" ):
     tourn = tourn.strip()
     if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a guild (server)." )
+        await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a server." )
         return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
@@ -342,10 +342,10 @@ async def adminPruneDecks( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a max number of decks.' )
         return
     if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
         return
     if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this guild (server), so it can not be changed from here.' )
+        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this server, so it can not be changed from here.' )
         return
     if currentTournaments[tourn].tournEnded or currentTournaments[tourn].tournCancel:
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
@@ -366,7 +366,7 @@ async def adminListPlayers( ctx, tourn = "", num = "" ):
     tourn = tourn.strip()
     num   = num.strip().lower()
     if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a guild (server)." )
+        await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a server." )
         return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
@@ -377,10 +377,10 @@ async def adminListPlayers( ctx, tourn = "", num = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament in order to list the players.' )
         return
     if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
         return
     if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this guild (server), so it can not be changed from here.' )
+        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this server, so it can not be changed from here.' )
         return
     if currentTournaments[tourn].tournEnded or currentTournaments[tourn].tournCancel:
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
@@ -403,7 +403,7 @@ async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
     tourn = tourn.strip()
     plyr  = plyr.strip()
     if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a guild (server)." )
+        await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a server." )
         return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
@@ -414,10 +414,10 @@ async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament in order to list the players.' )
         return
     if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this guild (server).' )
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
         return
     if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this guild (server), so it can not be changed from here.' )
+        await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" does not belong to this server, so it can not be changed from here.' )
         return
     if currentTournaments[tourn].tournEnded or currentTournaments[tourn].tournCancel:
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )

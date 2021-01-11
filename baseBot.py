@@ -27,33 +27,18 @@ def getTournamentAdminMention( a_guild ) -> str:
             break
     return adminMention
 
-def futureGuildTournaments( a_guildName ):
+def currentGuildTournaments( a_guildName: str ):
     tourns = {}
     for tourn in currentTournaments:
-        if currentTournaments[tourn].isPlanned() and currentTournaments[tourn].hostGuildName == a_guildName:
+        if not currentTournaments[tourn].isDead() and currentTournaments[tourn].hostGuildName == a_guildName:
             tourns[tourn] = currentTournaments[tourn]
     return tourns
-
-def activeGuildTournaments( a_guildName ):
-    tourns = {}
-    for tourn in currentTournaments:
-        if currentTournaments[tourn].isActive() and currentTournaments[tourn].hostGuildName == a_guildName:
-            tourns[tourn] = currentTournaments[tourn]
-    return tourns
-    
 
 def hasStartedTournament( a_guildName ) -> bool:
     for tourn in currentTournaments:
         if currentTournaments[tourn].tournStarted and currentTournaments[tourn].hostGuildName == a_guildName:
             return True
     return False
-
-def findGuildRole( a_guild: discord.Guild, a_roleName: str ):
-    for role in a_guild.roles:
-        if role.name == a_roleName:
-           return role
-    return ""
-    
 
 def findGuildMember( a_guild: discord.Guild, a_memberName: str ):
     print( f'Looking for {a_memberName}.' )
@@ -101,7 +86,7 @@ async def on_ready():
 
 @bot.command(name='test')
 async def adminPlayerProfile( ctx ):
-    await ctx.send( f'There are {len(currentTournaments)} planned.' )
+    await ctx.send( f'The type of this channel is {type(ctx.channel)}. Is it the same as "discord.TextChannel"? {type(ctx.channel) == discord.TextChannel}' )
 
 
 

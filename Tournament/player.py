@@ -33,7 +33,7 @@ class player:
     # The class constructor
     def __init__( self, a_playerName: str = "" ):
         self.discordUser = ""
-        self.discordName = ""
+        self.discordID   = ""
         self.playerName  = a_playerName
         self.triceName   = ""
         self.status  = "active"
@@ -46,7 +46,7 @@ class player:
         digest += f'Disord Nickname: {self.discordUser.display_name}\n'
         digest += f'Cockatrice Username: {self.triceName}\n'
         digest += f'Status: {self.status}\n'
-        digest += f'Decks:{newLine}{newLine.join( [ self.decks[deck] for deck in self.decks ] )}\n'
+        digest += f'Decks:{newLine}{newLine.join( [ str(self.decks[ident]) for ident in self.decks ] )}\n'
         digest += f'Matches:{newLine}{newLine.join( self.matches )}'
         return digest
     
@@ -68,50 +68,62 @@ class player:
     def updateStatus( self, a_status: str ) -> None:
         self.status = a_status
     
-    def findOpenMatchIndex( self ) -> int:
-        if not self.hasOpenMatch( ):
-            return 1
-        digest = -1
-        while self.matches[digest].status == "certified":
-            digest -= 1
-        return digest
-    
-    def findOpenMatchNumber( self ) -> int:
-        if not self.hasOpenMatch( ):
-            return -1
-        index = self.findOpenMatchIndex( )
-        return self.matches[index].matchNumber
-    
-    def hasOpenMatch( self ) -> None:
+    def hasOpenMatch( self ) -> bool:
         digest = False
         for match in self.matches:
             digest |= not match.isCertified( )
         return digest
     
+    # Find the index of the not certified match closest to the end of the match array
+    # Returns 1 if no open matches exist; otherwise, returns a negative index
+    def findOpenMatchIndex( self ) -> int:
+        if not self.hasOpenMatch( ):
+            print( f'No open matches found. Returning one.' )
+            return 1
+        digest = -1
+        while self.matches[digest].status == "certified":
+            digest -= 1
+        print( f'An open match was found. Returning {digest}.' )
+        return digest
+
+    def findOpenMatch( self ) -> match:
+        index = self.findOpenMatchIndex( )
+        if index == 1:
+            print( f'The reported index was one. Returning an empty match.' )
+            return match( [] )
+        print( f'The reported index was not one. Returning an the correct match.' )
+        return self.matches[index]
+    
+    def findOpenMatchNumber( self ) -> int:
+        index = self.findOpenMatchIndex( )
+        if index == 1:
+            return -1
+        return self.matches[index].matchNumber
+    
     async def drop( self ) -> None:
-        status = "dropped"
+        self.status = "dropped"
         for match in self.matches:
             if match.status != "certified":
                 await match.dropPlayer( self.playerName )
     
-    async def certifyResult( self ) -> None:
+    async def certifyResult( self ) -> str:
         index = self.findOpenMatchIndex( )
         if index == 1:
-            return
-        await self.matches[index].confirmResult( self.playerName )
+            return ""
+        return await self.matches[index].confirmResult( self.playerName )
     
-    async def recordWin( self ) -> None:
+    async def recordWin( self ) -> str:
         index = self.findOpenMatchIndex( )
         if index == 1:
-            return
-        await self.matches[index].recordWinner( self.playerName )
+            return ""
+        return await self.matches[index].recordWinner( self.playerName )
     
-    async def recordDraw( self ) -> None:
+    async def recordDraw( self ) -> str:
         index = self.findOpenMatchIndex( )
         if index == 1:
-            return
+            return ""
         await self.matches[index].recordWinner( "" )
-        await self.matches[index].confirmResult( self.playerName )
+        return await self.matches[index].confirmResult( self.playerName )
             
     # Addes a deck to the list of decks
     def addDeck( self, a_ident: str = "", a_decklist: str = "" ) -> None:
@@ -130,8 +142,7 @@ class player:
         digest  = "<?xml version='1.0'?>\n"
         digest += '<player>\n'
         digest += f'\t<name>{self.playerName}</name>\n'
-        if self.discordUser != "":
-            digest += f'\t<discordName>{self.discordUser.display_name}</discordName>\n'
+        digest += f'\t<discord id="{self.discordUser.id if type(self.discordUser) == discord.Member else str()}"/>\n'
         digest += f'\t<status>{self.status}</status>\n'
         for ident in self.decks:
             digest += self.decks[ident].exportXMLString( '\t' )
@@ -143,7 +154,9 @@ class player:
     def loadXML( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
         self.playerName = xmlTree.getroot().find( 'name' ).text
-        self.discordName = xmlTree.getroot().find( 'discordName' ).text
+        self.discordID  = xmlTree.getroot().find( 'discord' ).attrib['id']
+        if self.discordID != "":
+            self.discordID = int( self.discordID )
         self.status = xmlTree.getroot().find( "status" ).text
         for deckTag in xmlTree.getroot().findall('deck'):
             print( deckTag.attrib )

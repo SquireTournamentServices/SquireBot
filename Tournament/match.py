@@ -40,7 +40,7 @@ class match:
         self.winner = ""
     
     def __str__( self ):
-        digest  = "Match #{self.matchNumber}\n"
+        digest  = f'Match #{self.matchNumber}\n'
         digest += f'Active players: {", ".join(self.activePlayers)}\n'
         digest += f'Dropped players: {", ".join(self.droppedPlayers)}\n'
         digest += f'ConfirmedPlayers: {", ".join(self.confirmedPlayers)}\n'
@@ -49,10 +49,12 @@ class match:
         return digest
     
     def isCertified( self ):
-        return self.status != "certified"
+        return self.status == "certified"
     
     def addMatchRole( self, a_role: discord.Role ) -> None:
+        print( f'Adding the match role.' )
         self.role = a_role
+        print( f'Added the match role: {self.role}' )
     
     def addMatchVC( self, a_VC: discord.VoiceChannel ) -> None:
         self.VC = a_VC
@@ -62,8 +64,9 @@ class match:
         digest |= len(self.confirmedPlayers) == len(self.activePlayers)
         digest &= not self.isCertified( )
         if digest:
-            self.status == "certified"
-            await self.VC.delete()
+            self.status = "certified"
+            if type( self.VC ) == discord.VoiceChannel:
+                await self.VC.delete()
         return digest
 
     # Drops a player, which entains removing them from the active players
@@ -74,7 +77,7 @@ class match:
                 self.droppedPlayers.append( a_player )
                 del( self.activePlayers[i] )
                 break
-        if await confirmMatch( ):
+        if await self.confirmMatch( ):
             self.winner = self.activePlayers[0]
             self.confirmedPlayers.append( self.winner )
     
@@ -85,7 +88,10 @@ class match:
             return
         if not a_player in self.confirmedPlayers:
             self.confirmedPlayers.append( a_player )
-        await confirmMatch( )
+        if await self.confirmMatch( ):
+            return f'{self.role.mention}, your match has been certified. You can join the matchmaking queue again.'
+        else:
+            return ""
     
     # Records the winner of a match and adds them to the confirmed players list.
     # An empty string is interpretted as a draw, in which case, no one is added to the confirmed players list.
@@ -96,13 +102,17 @@ class match:
         else:
             self.winner = a_winner
             self.confirmedPlayers = [ a_winner ]
-        if not await self.confirmMatch( ):
+        if await self.confirmMatch( ):
+            return f'{self.role.mention}, your match has been certified. You can join the matchmaking queue again.'
+        else:
             self.status = "uncertified"
+            return ""
+            
 
     # Saves the match to an xml file at the given location.
     def saveXML( self, a_filename: str ) -> None:
         digest  = "<?xml version='1.0'?>\n"
-        digest += f'<match roleID="{self.role.id}" VC_ID="{self.VC.id}">\n'
+        digest += f'<match roleID="{self.role.id if type(self.role) == discord.Role else str()}" VC_ID="{self.VC.id if type(self.role) == discord.VoiceChannel else str()}">\n'
         digest += f'\t<number>{self.matchNumber}</number>\n'
         digest += f'\t<status>{self.status}</status>\n'
         digest += f'\t<winner name="{self.winner}"/>\n'
@@ -126,8 +136,12 @@ class match:
     def loadXML( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
         matchRoot = xmlTree.getroot()
-        self.roleID = int( matchRoot.attrib["roleID"] )
-        self.VC_ID = int( matchRoot.attrib["VC_ID"] )
+        self.roleID = matchRoot.attrib["roleID"]
+        if self.roleID != "":
+            self.roleID = int( self.roleID )
+        self.VC_ID = matchRoot.attrib["VC_ID"]
+        if self.VC_ID != "":
+            self.VC_ID = int( self.VC_ID )
         self.matchNumber = int( matchRoot.find( "number" ).text )
         self.status = matchRoot.find( "status" ).text
         self.winner = matchRoot.find( "winner" ).attrib["name"]

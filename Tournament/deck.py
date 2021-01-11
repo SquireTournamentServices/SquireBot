@@ -51,6 +51,7 @@ class deck:
         return digest
     
     def importFromETree( self, a_tree: ET ) -> None:
+        self.ident = a_tree.attrib["ident"]
         for card in a_tree.iter( "card" ):
             self.cards.append( card.attrib['name'] )
         self.updateDeckHash()

@@ -68,6 +68,9 @@ class tournament:
     def isActive( self ) -> bool:
         return self.tournStarted and not ( self.tournEnded or self.tournCancel )
     
+    def isDead( self ) -> bool:
+        return self.tournEnded or self.tournCancel
+    
     def addDiscordGuild( self, a_guild ) -> None:
         self.guild = a_guild
         self.hostGuildName = a_guild.name
@@ -83,10 +86,10 @@ class tournament:
         print( f'The guild "{a_guild}" is being assigned to {self.tournName}.' )
         print( f'There are {len(a_guild.members)} members in this guild.' )
         self.addDiscordGuild( a_guild )
-        for member in a_guild.members:
-            ident = f'{member.name}#{member.discriminator}' 
-            if ident in self.activePlayers:
-                self.activePlayers[ident].addDiscordUser( member )
+        for player in self.activePlayers:
+            ID = self.activePlayers[player].discordID
+            if ID != "":
+                self.activePlayers[player].addDiscordUser( self.guild.get_member( ID ) )
         for match in self.matches:
             if match.roleID != "":
                 match.addMatchRole( a_guild.get_role( match.roleID ) )
@@ -114,9 +117,12 @@ class tournament:
     
     async def purgeTourn( self ) -> None:
         for match in self.matches:
-            await match.VC.delete( )
-            await match.role.delete( )
-        await self.role.delete( )
+            if type( match.VC ) == discord.VoiceChannel:
+                await match.VC.delete( )
+            if type( match.role ) == discord.Role:
+                await match.role.delete( )
+        if type( self.role ) == discord.Role:
+            await self.role.delete( )
     
     async def endTourn( self ) -> str:
         await self.purgeTourn( )
@@ -186,23 +192,31 @@ class tournament:
     async def dropPlayer( self, a_player: str ) -> None:
         await self.playerMatchDrop( a_player )
         if a_player in self.activePlayers:
+            await self.activePlayers[a_player].drop( )
             self.droppedPlayers[a_player] = self.activePlayers[a_player]
             del( self.activePlayers[a_player] )
+            print( self.droppedPlayers[a_player] )
     
     async def playerCertifyResult( self, a_player: str ) -> None:
         if not a_player in self.activePlayers:
             return
-        await self.activePlayers[a_player].certifyResult( )
+        message = await self.activePlayers[a_player].certifyResult( )
+        if message != "":
+            await self.pairingsChannel.send( message )
     
     async def recordMatchWin( self, a_winner: str ) -> None:
-        if not a_player in self.activePlayers:
+        if not a_winner in self.activePlayers:
             return
-        await self.activePlayers[a_player].recordWin( )
+        message = await self.activePlayers[a_winner].recordWin( )
+        if message != "":
+            await self.pairingsChannel.send( message )
     
     async def recordMatchDraw( self, a_player: str ) -> None:
         if not a_player in self.activePlayers:
             return
-        await self.activePlayers[a_player].recordDraw( )
+        message = await self.activePlayers[a_player].recordDraw( )
+        if message != "":
+            await self.pairingsChannel.send( message )
 
     def saveTournament( self, a_dirName: str ) -> None:
         if not (os.path.isdir( f'{a_dirName}' ) and os.path.exists( f'{a_dirName}' )):
@@ -215,10 +229,8 @@ class tournament:
         digest  = "<?xml version='1.0'?>\n"
         digest += '<tournament>\n'
         digest += f'\t<name>{self.tournName}</name>\n'
-        if self.guild != "":
-            digest += f'\t<guild id="{self.guildID}">{self.hostGuildName}</guild>\n'
-        if self.role != "":
-            digest += f'\t<role id="{self.role.id}"/>\n'
+        digest += f'\t<guild id="{self.guild.id if type(self.guild) == discord.Guild else str()}">{self.hostGuildName}</guild>\n'
+        digest += f'\t<role id="{self.role.id if type(self.role) == discord.Role else str()}"/>\n'
         digest += f'\t<format>{self.format}</format>\n'
         digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
         digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
@@ -239,7 +251,7 @@ class tournament:
         for player in self.activePlayers:
             self.activePlayers[player].saveXML( f'{a_dirName}/players/{self.activePlayers[player].playerName}.xml' )
         for player in self.droppedPlayers:
-            self.activePlayers[player].saveXML( f'{a_dirName}/players/{self.activePlayers[player].playerName}.xml' )
+            self.droppedPlayers[player].saveXML( f'{a_dirName}/players/{self.droppedPlayers[player].playerName}.xml' )
         
 
     def saveMatches( self, a_dirName: str ) -> None:
