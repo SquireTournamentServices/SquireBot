@@ -129,7 +129,6 @@ async def endTournament( ctx, tourn = "" ):
     del( currentTournaments[tourn] )
     await ctx.send( f'{adminMention}, {tourn} has been closed by {ctx.message.author.mention}.' )
 
-    
 
 @bot.command(name='cancel-tournament')
 async def cancelTournament( ctx, tourn = "" ):
@@ -189,15 +188,17 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
         await ctx.send( f'{ctx.message.author.mention}, the tournament called "{tourn}" has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
         return
     
-    member = await findGuildMember( ctx.guild, plyr )
+    member = findGuildMember( ctx.guild, plyr )
     if member == "":
         await ctx.send( f'{ctx.message.author.mention}, there is not a member of this server whose name nor mention is "{plyr}".' )
         return
+    userIdent = getUserIdent( member )
 
-    await user.add_roles( findGuildRole( ctx.guild, f'{tourn} Player' ) )
-    await currentTournaments[tourn].addPlayer( member )
-    currentTournaments[tourn].activePlayers[getUserIdent(member)].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{getUserIdent(member)}.xml' )
-    await ctx.send( f'{ctx.message.author.mention}, you have added {member.mention} to the tournament named "{tourn}" in this server!' )
+    await member.add_roles( currentTournaments[tourn].role )
+    currentTournaments[tourn].addPlayer( member )
+    currentTournaments[tourn].activePlayers[userIdent].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{userIdent}.xml' )
+    await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'You have been registered for {tourn} on the server "{ctx.guild.name}".' )
+    await ctx.send( f'{ctx.message.author.mention}, you have added {member.mention} to {tourn}!' )
 
 
 @bot.command(name='admin-add-deck')
@@ -231,10 +232,11 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
         return
     
     member = findPlayer( ctx.guild, tourn, plyr )
-    userIdent = getUserIdent( member )
     if member == "":
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
         return
+    
+    userIdent = getUserIdent( member )
     if not userIdent in currentTournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in {tourn}. Make sure they are registered or that they have not dropped.' )
         return
@@ -243,7 +245,7 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
     currentTournaments[tourn].activePlayers[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
     deckHash = str(currentTournaments[tourn].activePlayers[userIdent].decks[ident].deckHash)
     await ctx.send( f'{ctx.message.author.mention}, decklist that you added for {plyr} has been submitted. The deck hash is "{deckHash}".' )
-    await member.create_dm().send( f'A decklist has been submitted for {tourn} on the server {ctx.guild.name}. The identifier for the deck is "{ident}" and the deck hash is "{deckHash}". If this deck hash is incorrect or you are not expecting this, please contact tournament admin on that server.' )
+    await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( f'A decklist has been submitted for {tourn} on the server {ctx.guild.name} on your behave. The identifier for the deck is "{ident}" and the deck hash is "{deckHash}". If this deck hash is incorrect or you are not expecting this, please contact tournament admin on that server.' )
 
 
 @bot.command(name='admin-remove-deck')
@@ -274,10 +276,11 @@ async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
         return
     
     member = findPlayer( ctx.guild, tourn, plyr )
-    userIdent = getUserIdent( member )
     if member == "":
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
         return
+
+    userIdent = getUserIdent( member )
     if not userIdent in currentTournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
@@ -286,11 +289,12 @@ async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
     if deckName == "":
         await ctx.send( f'{ctx.message.author.mention}, it appears that {plyr} does not have a deck whose name nor hash is "{ident}" registered for {tourn}.' )
         return
+    deckHash = currentTournaments[tourn].activePlayers[userIdent].decks[ident].deckHash
 
     del( currentTournaments[tourn].activePlayers[userIdent].decks[deckName] )
     currentTournaments[tourn].activePlayers[userIdent].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{userIdent}.xml' )
     await ctx.send( f'{ctx.message.author.mention}, decklist that you removed from {plyr} has been processed.' )
-    await member.create_dm().send( f'A decklist has been removed for the tournament called "{tourn}" on the server "{ctx.guild.name}". The identifier or deck hash was "{ident}".' )
+    await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( f'The deck has been removed from {tourn} on the server {ctx.guild.name}. The identifier was "{ident}" and the deck hash was "{deckHash}".' )
 
 
 @bot.command(name='set-deck-count')
