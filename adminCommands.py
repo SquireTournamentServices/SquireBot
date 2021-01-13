@@ -353,9 +353,9 @@ async def adminPruneDecks( ctx, tourn = "" ):
         deckIdents = [ ident for ident in Player.decks ]
         while len( Player.decks ) > currentTournaments[tourn].deckCount:
             del( Player.decks[deckIdents[0]] )
-            del( deckIdents[0] )
             await ctx.send( f'{adminMention}, the deck with identifier "{deckIdents[0]}" belonging to {Player.discordUser.display_name} has been pruned.' )
-            await Player.discordUser.create_dm().send( f'Your deck with identifier "{ident}" has been pruned from {tourn} on the server "{ctx.guild.name}".' )
+            await Player.discordUser.send( content=f'Your deck with identifier "{deckIdents[0]}" has been pruned from {tourn} on the server "{ctx.guild.name}".' )
+            del( deckIdents[0] )
         Player.saveXML( f'currentTournaments/{tourn}/players/{plyr}.xml' )
 
 
@@ -420,11 +420,10 @@ async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
     if currentTournaments[tourn].isDead( ):
         await ctx.send( f'{ctx.message.author.mention}, {tourn} has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
         return
-        return
     
     member = findPlayer( ctx.guild, tourn, plyr )
     if member == "":
-        await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
+        await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role "{tourn} Player". Please verify that they have registered.' )
         return
     if not getUserIdent(member) in currentTournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
@@ -442,8 +441,11 @@ async def adminMatchResult( ctx, tourn = "", match = "", plyr = "", result = "" 
 @bot.command(name='admin-confirm-result')
 async def adminConfirmResult( ctx, tourn = "", match = "", plyr = "" ):
 
-@bot.command(name='admin-drop-tournament')
-async def adminDropPlayer( ctx, tourn = "", plyr = "" ):
+@bot.command(name='tournament-report')
+async def adminDropPlayer( ctx, tourn = "" ):
+
+@bot.command(name='players-per-match')
+async def adminDropPlayer( ctx, tourn = "" ):
 """
 
 

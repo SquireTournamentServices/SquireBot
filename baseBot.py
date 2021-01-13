@@ -41,9 +41,7 @@ def hasStartedTournament( a_guildName ) -> bool:
     return False
 
 def findGuildMember( a_guild: discord.Guild, a_memberName: str ):
-    print( f'Looking for {a_memberName}.' )
     for member in a_guild.members:
-        print( f'Found {member}, whose display name is {member.display_name} and whose mention is {member.mention}.' )
         if member.display_name == a_memberName:
             return member
         if member.mention == a_memberName:
@@ -51,8 +49,8 @@ def findGuildMember( a_guild: discord.Guild, a_memberName: str ):
     return ""
     
 def findPlayer( a_guild: discord.Guild, a_tourn: str, a_memberName: str ):
-    role = findGuildRole( a_guild, f'{a_tourn} Player' )
-    if role == "":
+    role = discord.utils.get( a_guild.roles, name=f'{a_tourn} Player' )
+    if type( role ) != discord.Role:
         return ""
     for member in role.members:
         if member.display_name == a_memberName:

@@ -118,11 +118,20 @@ class tournament:
     async def purgeTourn( self ) -> None:
         for match in self.matches:
             if type( match.VC ) == discord.VoiceChannel:
-                await match.VC.delete( )
+                try:
+                    await match.VC.delete( )
+                except:
+                    pass
             if type( match.role ) == discord.Role:
-                await match.role.delete( )
+                try:
+                    await match.role.delete( )
+                except:
+                    pass
         if type( self.role ) == discord.Role:
-            await self.role.delete( )
+            try:
+                await self.role.delete( )
+            except:
+                pass
     
     async def endTourn( self ) -> str:
         await self.purgeTourn( )
