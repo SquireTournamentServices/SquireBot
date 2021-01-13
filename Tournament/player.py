@@ -129,6 +129,16 @@ class player:
     def addDeck( self, a_ident: str = "", a_decklist: str = "" ) -> None:
         self.decks[a_ident] = deck( a_ident, a_decklist )
     
+    def getDeckIdent( self, a_ident: str = "" ) -> str:
+        if a_ident in self.decks:
+            return a_ident
+        digest = ""
+        for ident in self.decks:
+            if a_ident == self.decks[ident].deckHash:
+                digest = ident
+                break
+        return digest
+    
     # Tallies the number of matches that the player is in, has won, and have been certified.
     def getMatchPoints( self ) -> int:
         return len( [ 1 for match in self.matches if match.status == 'certified' and match.winner == self.playerName ] )
