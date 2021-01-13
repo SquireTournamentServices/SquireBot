@@ -429,15 +429,74 @@ async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
     if member == "":
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role "{tourn} Player". Please verify that they have registered.' )
         return
-    if not getUserIdent(member) in currentTournaments[tourn].activePlayers:
+
+    userIdent = getUserIdent( member )
+    if not userIdent in currentTournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
-    await ctx.send( f'{ctx.message.author.mention}, the following is the profile for the player "{plyr}":\n{currentTournaments[tourn].activePlayers[getUserIdent(member)]}' )
+    await ctx.send( f'{ctx.message.author.mention}, the following is the profile for the player "{plyr}":\n{currentTournaments[tourn].activePlayers[userIdent]}' )
+
+
+@bot.command(name='admin-drop-match')
+async def adminDropMatch( ctx, tourn = "", plyr = "", mtch = "" ):
+    tourn = tourn.strip()
+    plyr  = plyr.strip()
+    mtch  = mtch.strip()
+    
+    if isPrivateMessage( ctx.message ):
+        await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a server." )
+        return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not isTournamentAdmin( ctx.message.author ):
+        await ctx.send( f'{ctx.message.author.mention}, you do not have permissions to remove players from a match. Please do not do this again or {adminMention} may intervene.' )
+        return
+    if tourn == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, match number, and player in order to remove a player from a match.' )
+        return
+    if not tourn in currentTournaments:
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
+        return
+    if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
+        await ctx.send( f'{ctx.message.author.mention}, {tourn} does not belong to this server, so it can not be changed from here.' )
+        return
+    if currentTournaments[tourn].isDead( ):
+        await ctx.send( f'{ctx.message.author.mention}, {tourn} has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
+        return
+    
+    member = findPlayer( ctx.guild, tourn, plyr )
+    if member == "":
+        await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role "{tourn} Player". Please verify that they have registered.' )
+        return
+    
+    userIdent = getUserIdent( member )
+    if not userIdent in currentTournaments[tourn].activePlayers:
+        await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
+        return
+    
+    try:
+        mtch = int( mtch )
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide a match number. Please specify a match number as a number.' )
+        return
+    
+    Match = currentTournaments[tourn].getMatch( mtch )
+    if Match.matchNumber == -1:
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide a valid match number as there are fewer matches than the match number your specified.' )
+        return
+        
+    message = await Match.dropPlayer( userIdent )
+    if message != "":
+        await currentTournaments[tourn].pairingsChannel.send( message )
+        Match.saveXML( f'currentTournaments/{tourn}/matches/match_{mtch}.xml' )
+    await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'You were dropped from Match #{mtch} in {tourn} on the server {ctx.guild.name}. If you believe this was an error, contact tournament admin.' )
+    await ctx.send( f'{adminMention}, {plyr} was dropped from Match #{mtch} by {ctx.message.author.mention}.' )
+
+
+
 
 """
-@bot.command(name='admin-drop-match')
-async def adminDropMatch( ctx, tourn = "", match = "", plyr = "" ):
 
 @bot.command(name='admin-match-result')
 async def adminMatchResult( ctx, tourn = "", match = "", plyr = "", result = "" ):

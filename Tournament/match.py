@@ -71,15 +71,21 @@ class match:
 
     # Drops a player, which entains removing them from the active players
     # list and adding them to the dropped players list.
-    async def dropPlayer( self, a_player: str ) -> None:
+    async def dropPlayer( self, a_player: str ) -> str:
         for i in range(len(self.activePlayers)):
             if a_player == self.activePlayers[i]:
                 self.droppedPlayers.append( a_player )
                 del( self.activePlayers[i] )
                 break
         if await self.confirmMatch( ):
-            self.winner = self.activePlayers[0]
+            if len(self.activePlayers) == 0:
+                self.winner = "This match was a draw."
+            else:
+                self.winner = self.activePlayers[0]
             self.confirmedPlayers.append( self.winner )
+            return f'{self.role.mention}, your match has been certified. You can join the matchmaking queue again.'
+        else:
+            return ""
     
     # Confirms the result for one player.
     # If all players have confirmed the result, the status of the match is status to "certified"

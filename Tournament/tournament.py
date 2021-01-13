@@ -52,7 +52,7 @@ class tournament:
         self.tournEnded   = False
         self.tournCancel  = False
         
-        self.playersPerMatch = 2
+        self.playersPerMatch = 1
         self.playerQueue = []
         
         self.deckCount = 1
@@ -192,6 +192,15 @@ class tournament:
             await self.activePlayers[player].discordUser.add_roles( matchRole )
             message += f'{self.activePlayers[player].pairingString()}\n' 
         await self.pairingsChannel.send( message )
+    
+    def getMatch( self, a_matchNum: int ) -> match:
+        if a_matchNum > len(self.matches) + 1:
+            return match( [] )
+        if self.matches[a_matchNum - 1].matchNumber == a_matchNum:
+            return self.matches[a_matchNum - 1]
+        for mtch in self.matches:
+            if mtch.matchNumber == a_matchNum:
+                return mtch
     
     async def playerMatchDrop( self, a_player: str ) -> None:
         if not a_player in self.activePlayers:
