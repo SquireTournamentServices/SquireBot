@@ -89,9 +89,9 @@ class match:
     
     # Confirms the result for one player.
     # If all players have confirmed the result, the status of the match is status to "certified"
-    async def confirmResult( self, a_player: str ) -> None:
+    async def confirmResult( self, a_player: str ) -> str:
         if self.status != "uncertified":
-            return
+            return ""
         if not a_player in self.confirmedPlayers:
             self.confirmedPlayers.append( a_player )
         if await self.confirmMatch( ):
@@ -102,12 +102,14 @@ class match:
     # Records the winner of a match and adds them to the confirmed players list.
     # An empty string is interpretted as a draw, in which case, no one is added to the confirmed players list.
     # In either case, the status of the match is changed to "uncertified"
-    async def recordWinner( self, a_winner: str ) -> None:
+    async def recordWinner( self, a_winner: str ) -> str:
         if a_winner == "":
             self.winner = "This match was a draw."
+            self.confirmedPlayers = [ ]
         else:
             self.winner = a_winner
             self.confirmedPlayers = [ a_winner ]
+
         if await self.confirmMatch( ):
             return f'{self.role.mention}, your match has been certified. You can join the matchmaking queue again.'
         else:

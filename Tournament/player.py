@@ -74,6 +74,12 @@ class player:
             digest |= not match.isCertified( )
         return digest
     
+    def getMatch( self, a_matchNum: int ) -> match:
+        for mtch in self.matches:
+            if mtch.matchNumber == a_matchNum:
+                return mtch
+        return match( [] )
+    
     # Find the index of the not certified match closest to the end of the match array
     # Returns 1 if no open matches exist; otherwise, returns a negative index
     def findOpenMatchIndex( self ) -> int:

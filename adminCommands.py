@@ -438,11 +438,12 @@ async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
     await ctx.send( f'{ctx.message.author.mention}, the following is the profile for the player "{plyr}":\n{currentTournaments[tourn].activePlayers[userIdent]}' )
 
 
-@bot.command(name='admin-drop-match')
-async def adminDropMatch( ctx, tourn = "", plyr = "", mtch = "" ):
-    tourn = tourn.strip()
-    plyr  = plyr.strip()
-    mtch  = mtch.strip()
+@bot.command(name='admin-match-result')
+async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" ):
+    tourn  = tourn.strip()
+    plyr   = plyr.strip()
+    mtch   = mtch.strip()
+    result = result.strip()
     
     if isPrivateMessage( ctx.message ):
         await ctx.send( "You can't register a deck for a player via private message since each tournament needs to be associated with a server." )
@@ -453,7 +454,7 @@ async def adminDropMatch( ctx, tourn = "", plyr = "", mtch = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you do not have permissions to remove players from a match. Please do not do this again or {adminMention} may intervene.' )
         return
     if tourn == "":
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, match number, and player in order to remove a player from a match.' )
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, match number, player, and result in order to remove a player from a match.' )
         return
     if not tourn in currentTournaments:
         await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
@@ -481,25 +482,51 @@ async def adminDropMatch( ctx, tourn = "", plyr = "", mtch = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you did not provide a match number. Please specify a match number as a number.' )
         return
     
-    Match = currentTournaments[tourn].getMatch( mtch )
-    if Match.matchNumber == -1:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide a valid match number as there are fewer matches than the match number your specified.' )
+    if mtch > len(currentTournaments[tourn].matches):
+        await ctx.send( f'{ctx.message.author.mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
         
-    message = await Match.dropPlayer( userIdent )
-    if message != "":
-        await currentTournaments[tourn].pairingsChannel.send( message )
-        Match.saveXML( f'currentTournaments/{tourn}/matches/match_{mtch}.xml' )
-    await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'You were dropped from Match #{mtch} in {tourn} on the server {ctx.guild.name}. If you believe this was an error, contact tournament admin.' )
-    await ctx.send( f'{adminMention}, {plyr} was dropped from Match #{mtch} by {ctx.message.author.mention}.' )
+    Match = currentTournaments[tourn].activePlayers[userIdent].getMatch( mtch )
+    if Match.matchNumber == -1:
+        await ctx.send( f'{ctx.message.author.mention}, {member.mention} is not a player in Match #{mtch}. Double check the match number.' )
+        return
+        
+    if result == "w" or result == "win" or result == "winner":
+        message = f'{Match.role.mention}, {member.mention} has been recorded as the winner of your match by tournament admin.'
+        if Match.isCertified( ):
+            Match.winner = userIdent
+            await currentTournaments[tourn].pairingsChannel.send( f'{message} There is no need to recertify the result of this match.' )
+        else:
+            msg = await Match.recordWinner( userIdent )
+            if msg == "":
+                await currentTournaments[tourn].pairingsChannel.send( f'{message} Please certify this result.' )
+            else:
+                await currentTournaments[tourn].pairingsChannel.send( msg )
+    elif result == "d" or result == "draw":
+        message = f'{Match.role.mention}, your match has been recorded as a draw by tournament admin.'
+        if Match.isCertified( ):
+            Match.winner = "This match is a draw."
+            await currentTournaments[tourn].pairingsChannel.send( f'{message} There is no need to recertify the result of this match.' )
+        else:
+            msg  = await Match.recordWinner( "" )
+            msg += await Match.confirmResult( userIdent )
+            if msg == "":
+                await currentTournaments[tourn].pairingsChannel.send( f'{message} Please certify this result.' )
+            else:
+                await currentTournaments[tourn].pairingsChannel.send( msg )
+    elif result == "l" or result == "loss" or result == "loser":
+        message = await Match.dropPlayer( userIdent )
+        if message != "":
+            await currentTournaments[tourn].pairingsChannel.send( message )
+        await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'You were dropped from Match #{mtch} in {tourn} on the server {ctx.guild.name}. If you believe this was an error, contact tournament admin.' )
+    else:
+        await ctx.send( f'{ctx.message.author.mention}, you have provided an incorrect result. The options are "win", "loss", and "draw". Please re-enter the correct result.' )
+        return
 
-
+    Match.saveXML( f'currentTournaments/{tourn}/matches/match_{mtch}.xml' )
 
 
 """
-
-@bot.command(name='admin-match-result')
-async def adminMatchResult( ctx, tourn = "", match = "", plyr = "", result = "" ):
 
 @bot.command(name='admin-confirm-result')
 async def adminConfirmResult( ctx, tourn = "", match = "", plyr = "" ):
