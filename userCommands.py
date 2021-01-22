@@ -225,7 +225,7 @@ async def listDecklists( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you have not registered any decks for {tourn}.' )
         return
     
-    digest = [ f'{deck}:\t{decks[deck].deckHash}' for deck in currentTournaments[tourn].activePlayers[userIdent].decks ]
+    digest = [ f'{deck}:\t{currentTournaments[tourn].activePlayers[userIdent].decks[deck].deckHash}' for deck in currentTournaments[tourn].activePlayers[userIdent].decks ]
     
     newLine = "\n\t- "
     await ctx.send( f'{ctx.message.author.mention}, here are the decks that you currently have registered:{newLine}{newLine.join( digest )}' )

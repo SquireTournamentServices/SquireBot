@@ -1,0 +1,16 @@
+<?xml version='1.0'?>
+<match roleID="" VC_ID="">
+	<number>111</number>
+	<status>certified</status>
+	<winner name="Kazu#4570"/>
+	<activePlayers>
+		<player name="Kazu#4570"/>
+		<player name="chabashira#0117"/>
+		<player name="Loche#5423"/>
+		<player name="somm#4710"/>
+	</activePlayers>
+	<droppedPlayers>
+	</droppedPlayers>
+	<confirmedPlayers>
+	</confirmedPlayers>
+</match>

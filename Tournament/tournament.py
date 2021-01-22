@@ -1,8 +1,14 @@
 import os
 import xml.etree.ElementTree as ET
+import random
+import threading
+import time
 import discord
+import asyncio
+from datetime import datetime
 
 from typing import List
+from typing import Tuple
 
 from .tournamentUtils import *
 from .match import match
@@ -30,7 +36,7 @@ from .deck import deck
         - tournEnded: Whether or not the tournament has ended
         - tournCancel: Whether or not the tournament has been canceled
         - playersPerMatch: The number of players that will be paired per match
-        - playerQueue: A list of player names (strings) representing the players that are waiting to be paired for a match
+        - queue: A list of player names (strings) representing the players that are waiting to be paired for a match
         - activePlayers: A dict that index-s player objects that haven't dropped with their names (for ease of referencing)
         - droppedPlayers: A dict that index-s player objects that have dropped with their names (for ease of referencing)
         - matches: A list of all match objects in the tournament, regardless of status
@@ -52,8 +58,15 @@ class tournament:
         self.tournEnded   = False
         self.tournCancel  = False
         
-        self.playersPerMatch = 1
-        self.playerQueue = []
+        self.loop = asyncio.new_event_loop()
+        
+        self.queue             = [ [] ]
+        self.playersPerMatch   = 4
+        self.pairingsThreshold = self.playersPerMatch * 1.5
+        self.pairingWaitTime   = 3
+        self.pairingsThread    = threading.Thread( target=self.run_pairings )
+        self.queueActivity     = [ ]
+        self.highestPriority   = 0
         
         self.deckCount = 1
 
@@ -159,39 +172,172 @@ class tournament:
     
     # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing
     # This is a prime canidate for adjustments when players how copies of match results.
-    async def addPlayerToQueue( self, a_player: str ) -> None:
-        if a_player in self.playerQueue:
-            return "You are already in the matchmaking queue."
-        if a_player in self.droppedPlayers:
-            return "It appears that you have been dropped from the tournament. If you think this is an error, please contact tournament officials."
-        if not a_player in self.activePlayers:
-            return "It appears that you are not registered for this tournament. If you think this is an error, please contact tournament officials."
-        if self.activePlayers[a_player].hasOpenMatch( ):
-            return "It appears that you are already in a match that hasn't been certified. Please either finish your match or drop from it before starting a new one. If you think this is an error, please contact tournament officials."
+    def addPlayerToQueue( self, a_player: str ) -> None:
+        for lvl in self.queue:
+            if a_player in lvl:
+                return "You are already in the matchmaking queue."
+        if a_player not in self.activePlayers:
+            return "You aren't an active player."
         
-        self.playerQueue.append(a_player)
+        self.queue[0].append(self.activePlayers[a_player])
+        self.queueActivity.append( (a_player, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
         print( f'Added {a_player} to the queue' )
-        if len(self.playerQueue) >= self.playersPerMatch:
-            await self.addMatch( self.playerQueue[0:self.playersPerMatch + 1] )
-            for i in range(self.playersPerMatch):
-                del( self.playerQueue[0] )
+        if self.pairingsThread.isAlive( ):
+            return
+
+        if sum( [ len(level) for level in self.queue ] ) > self.pairingsThreshold:
+            print( "Creating task" )
+            self.pairingsThread = threading.Thread( target=self.run_pairings )
+            self.pairingsThread.start( )
     
     async def addMatch( self, a_players: List[str] ) -> None:
+        for plyr in a_players:
+            self.queueActivity.append( (plyr, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
         newMatch = match( a_players )
         self.matches.append( newMatch )
         newMatch.matchNumber = len(self.matches)
-        matchRole = await self.guild.create_role( name=f'Match {newMatch.matchNumber}' )
-        overwrites = { self.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                       getAdminRole(self.guild): discord.PermissionOverwrite(read_messages=True),
-                       matchRole: discord.PermissionOverwrite(read_messages=True) }
-        newMatch.VC = await self.guild.create_voice_channel( name=f'Match {newMatch.matchNumber}', overwrites=overwrites, category=discord.utils.get( self.guild.categories, name="Matches" ) ) 
-        newMatch.role = matchRole
-        message  = f'{matchRole.mention}, you have been paired from your match. There is a voice channel for you that you may join. Below in information about your opponents.\n'
-        for player in a_players:
-            self.activePlayers[player].matches.append( newMatch )
-            await self.activePlayers[player].discordUser.add_roles( matchRole )
-            message += f'{self.activePlayers[player].pairingString()}\n' 
-        await self.pairingsChannel.send( message )
+        if type( self.guild ) == discord.Guild:
+            matchRole = await self.guild.create_role( name=f'Match {newMatch.matchNumber}' )
+            overwrites = { self.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                           getAdminRole(self.guild): discord.PermissionOverwrite(read_messages=True),
+                           matchRole: discord.PermissionOverwrite(read_messages=True) }
+            newMatch.VC = await self.guild.create_voice_channel( name=f'Match {newMatch.matchNumber}', overwrites=overwrites, category=discord.utils.get( self.guild.categories, name="Matches" ) ) 
+            newMatch.role = matchRole
+            message  = f'{matchRole.mention}, you have been paired from your match. There is a voice channel for you that you may join. Below in information about your opponents.\n'
+        
+        for plyr in a_players:
+            self.activePlayers[plyr].matches.append( newMatch )
+            for p in a_players:
+                if p != plyr:
+                    self.activePlayers[plyr].opponents.append( p )
+            if type( self.guild ) == discord.Guild:
+                await self.activePlayers[plyr].discordUser.add_roles( matchRole )
+                message += f'{self.activePlayers[plyr].pairingString()}\n' 
+        
+        if type( self.guild ) == discord.Guild:
+            await self.pairingsChannel.send( message )
+    
+    # Wrapper for self.pairQueue so that it can be ran on a seperate thread
+    def run_pairings( self ):
+        self.loop.run_until_complete( self.pairQueue() )
+
+    # Starting from the given position, searches through the queue to find opponents for the player at the given position.
+    # Returns the positions of the closest players that can form a match.
+    # If a match can't be formed, we return an empty list
+    # This method is intended to only be used in pairQueue method
+    def searchForOpponents( self, lvl: int, i: int ) -> List[Tuple[int,int]]:
+        if lvl > 0:
+            lvl = -1*(lvl+1)
+        
+        plyr   = self.queue[lvl][i]
+        plyrs  = [ self.queue[lvl][i] ]
+        digest = [ (lvl, i) ]
+        
+        # Sweep through the rest of the level we start in
+        for k in range(i+1,len(self.queue[lvl])):
+            if self.queue[lvl][k].areValidOpponents( plyrs ):
+                plyrs.append( self.queue[lvl][k] )
+                # We want to store the shifted inner index since any players in
+                # front of this player will be removed
+                digest.append( (lvl, k - len(digest) ) )
+                if len(digest) == self.playersPerMatch:
+                    # print( f'Match found: {", ".join([ p.name for p in plyrs ])}.' ) 
+                    return digest
+        
+        # Starting from the priority level directly below the given level and
+        # moving towards the lowest priority level, we sweep across each
+        # remaining level looking for a match
+        for l in reversed(range(-1*len(self.queue),lvl)):
+            count = 0
+            for k in range(len(self.queue[l])):
+                if self.queue[l][k].areValidOpponents( plyrs ):
+                    plyrs.append( self.queue[l][k] )
+                    # We want to store the shifted inner index since any players in
+                    # front of this player will be removed
+                    digest.append( (l, k - count ) )
+                    count += 1
+                    if len(digest) == self.playersPerMatch:
+                        # print( f'Match found: {", ".join([ p.name for p in plyrs ])}.' ) 
+                        return digest
+
+        # A full match couldn't be formed. Return an empty list
+        return [ ]
+        
+    
+    async def pairQueue( self ) -> None:
+        print( "Inside the pairings task" )
+        time.sleep( self.pairingWaitTime )
+
+        newQueue = []
+        for _ in range(len(self.queue) + 1):
+            newQueue.append( [] )
+        plyrs = [ ]
+        indices = [ ]
+        matchTasks = [ ]
+
+        print( "Shuffling the queue" )
+        for lvl in self.queue:
+            random.shuffle( lvl )
+        
+        print( "Starting while loops." )
+        for lvl in self.queue:
+            print( [ plyr.name for plyr in lvl ] )
+        lvl = -1
+        while lvl >= -1*len(self.queue):
+            while len(self.queue[lvl]) > 0:
+                print( f'Inside the inner loop. There are {len(self.queue[lvl])} people in this level.' )
+                indices = self.searchForOpponents( lvl, 0 )
+                # If an empty array is returned, no match was found
+                # Add the current player to the end of the new queue
+                # and remove them from the current queue
+                if len(indices) == 0:
+                    print( f'Match not found for {self.queue[lvl][0].name} whose indices where "({lvl}, 0)".' ) 
+                    newQueue[lvl].append(self.queue[lvl][0])
+                    del( self.queue[lvl][0] )
+                else:
+                    plyrs = [ ] 
+                    for index in indices:
+                        plyrs.append( self.queue[index[0]][index[1]].name )
+                        del( self.queue[index[0]][index[1]] )
+                    # print( f'Match found: {", ".join(plyrs)}.' ) 
+                    matchTasks.append( self.addMatch( plyrs ) )
+            lvl -= 1
+
+        print( "Current queue" )
+        for lvl in self.queue:
+            print( [ plyr.name for plyr in lvl ] )
+        print( "Current future queue" )
+        for lvl in newQueue:
+            print( [ plyr.name for plyr in lvl ] )
+        
+        print( "Waiting on any match tasks to finish." )
+        # Waiting for the tasks to be made
+        await asyncio.gather(*matchTasks)
+
+        print( "Trimming future queue" )
+        while len(newQueue) > 0:
+            if len(newQueue[-1]) != 0:
+                break
+            del( newQueue[-1] )
+        
+        if len(newQueue) != 0:
+            newQueue[0] += self.queue[0]
+            self.queue = newQueue
+
+        print( "New Queue" )
+        for lvl in self.queue:
+            print( [ plyr.name for plyr in lvl ] )
+        
+        if len(self.queue) > self.highestPriority:
+            self.highestPriority = len(self.queue)
+            
+        if sum( [ len(level) for level in self.queue ] ) > self.pairingsThreshold:
+            print( "There are still enough players to form a match. Trying again." )
+            self.pairingsThread = threading.Thread( target=self.run_pairings )
+            self.pairingsThread.start( )
+
+        print( "Completed pairings task" )
+
     
     def getMatch( self, a_matchNum: int ) -> match:
         if a_matchNum > len(self.matches) + 1:
@@ -239,9 +385,9 @@ class tournament:
     def saveTournament( self, a_dirName: str ) -> None:
         if not (os.path.isdir( f'{a_dirName}' ) and os.path.exists( f'{a_dirName}' )):
            os.mkdir( f'{a_dirName}' ) 
+        self.saveOverview( f'{a_dirName}/overview.xml' )
         self.saveMatches( a_dirName )
         self.savePlayers( a_dirName )
-        self.saveOverview( f'{a_dirName}/overview.xml' )
     
     def saveOverview( self, a_filename ):
         digest  = "<?xml version='1.0'?>\n"
@@ -254,8 +400,9 @@ class tournament:
         digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
         digest += f'\t<deckCount>{self.deckCount}</deckCount>\n'
         digest += f'\t<queue size="{self.playersPerMatch}">\n'
-        for player in self.playerQueue:
-            digest += f'\t\t<player name="{player}"/>\n'
+        for level in range(len(self.queue)):
+            for plyr in self.queue[level]:
+                digest += f'\t\t<player name="{plyr.name}" priority="{level}"/>\n'
         digest += f'\t</queue>\n'
         digest += '</tournament>'
         
@@ -267,9 +414,9 @@ class tournament:
            os.mkdir( f'{a_dirName}/players/' ) 
 
         for player in self.activePlayers:
-            self.activePlayers[player].saveXML( f'{a_dirName}/players/{self.activePlayers[player].playerName}.xml' )
+            self.activePlayers[player].saveXML( f'{a_dirName}/players/{self.activePlayers[player].name}.xml' )
         for player in self.droppedPlayers:
-            self.droppedPlayers[player].saveXML( f'{a_dirName}/players/{self.droppedPlayers[player].playerName}.xml' )
+            self.droppedPlayers[player].saveXML( f'{a_dirName}/players/{self.droppedPlayers[player].name}.xml' )
         
 
     def saveMatches( self, a_dirName: str ) -> None:
@@ -280,8 +427,8 @@ class tournament:
             match.saveXML( f'{a_dirName}/matches/match_{match.matchNumber}.xml' )
         
     def loadTournament( self, a_dirName: str ) -> None:
-        self.loadOverview( f'{a_dirName}/overview.xml' )
         self.loadPlayers( f'{a_dirName}/players/' )
+        self.loadOverview( f'{a_dirName}/overview.xml' )
         self.loadMatches( f'{a_dirName}/matches/' )
     
     def loadOverview( self, a_filename: str ) -> None:
@@ -299,8 +446,20 @@ class tournament:
         self.tournCancel  = str_to_bool( tournRoot.find( 'status' ).attrib['canceled'] )
 
         self.playersPerMatch = int( tournRoot.find( 'queue' ).attrib['size'] )
-        for player in tournRoot.find( 'queue' ).findall( 'player' ):
-            self.playerQueue.append( player.attrib['name'] )
+        
+        players = tournRoot.find( 'queue' ).findall( 'player' )
+        maxLevel = 1
+        for plyr in players:
+            if int( plyr.attrib['priority'] ) > maxLevel:
+                maxLevel = int( plyr.attib['priority'] )
+        for _ in range(maxLevel):
+            self.queue.append( [] )
+        for plyr in players:
+            self.queue[int(plyr.attrib['priority'])].append( self.activePlayers[ plyr.attrib['name'] ] )
+        if sum( [len(level) for level in self.queue] ) > self.pairingsThreshold & self.pairingsThread.is_alive( ):
+            print( "Enough players found during loading. Creating new pairing task." )
+            self.pairingsThread = threading.Thread( target=self.run_pairings )
+            self.pairingsThread.start( )
     
     def loadPlayers( self, a_dirName: str ) -> None:
         playerFiles = [ f'{a_dirName}/{f}' for f in os.listdir(a_dirName) if os.path.isfile( f'{a_dirName}/{f}' ) ]
@@ -308,9 +467,9 @@ class tournament:
             newPlayer = player( "" )
             newPlayer.loadXML( playerFile )
             if newPlayer.status == "active":
-                self.activePlayers[newPlayer.playerName]  = newPlayer
+                self.activePlayers[newPlayer.name]  = newPlayer
             else:
-                self.droppedPlayers[newPlayer.playerName] = newPlayer
+                self.droppedPlayers[newPlayer.name] = newPlayer
     
     def loadMatches( self, a_dirName: str ) -> None:
         matchFiles = [ f'{a_dirName}/{f}' for f in os.listdir(a_dirName) if os.path.isfile( f'{a_dirName}/{f}' ) ]

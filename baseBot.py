@@ -82,9 +82,21 @@ async def on_ready():
             currentTournaments[tourn].assignGuild( guild )
 
 
-@bot.command(name='test')
+def message_to_xml( msg: discord.Message, indent: str = "" ) -> str:
+    digest  = f'{indent}<message author="{msg.author}" time="{msg.created_at}">\n'
+    digest += f'{indent*2}<text>{msg.content}</text>\n'
+    digest += f'{indent}</message>\n'
+    return digest
+
+@bot.command(name='scrap')
 async def adminPlayerProfile( ctx ):
-    await ctx.send( f'The type of this channel is {type(ctx.channel)}. Is it the same as "discord.TextChannel"? {type(ctx.channel) == discord.TextChannel}' )
+    messages = await ctx.message.channel.history( limit=100000, oldest_first=True ).flatten( )
+    with open( "scrapTest.xml", "w" ) as f:
+        f.write( "<history>\n" )
+        for msg in messages:
+            f.write( message_to_xml( msg, "\t" ) )
+        f.write( "</history>" )
+    print( f'A total of {len(messages)} messages were scrapped.' )
 
 
 
