@@ -1,13 +1,13 @@
 <?xml version='1.0'?>
 <match roleID="" VC_ID="">
 	<number>107</number>
-	<status>open</status>
-	<winner name=""/>
+	<status>certified</status>
+	<winner name="Newbs#9038"/>
 	<activePlayers>
-		<player name="Lykos#1668"/>
-		<player name="Amogyisabogy#3344"/>
-		<player name="Revelmonger#3860"/>
-		<player name="Tsunami#8030"/>
+		<player name="jfire61#3939"/>
+		<player name="80drag#5316"/>
+		<player name="Newbs#9038"/>
+		<player name="shiver#9849"/>
 	</activePlayers>
 	<droppedPlayers>
 	</droppedPlayers>

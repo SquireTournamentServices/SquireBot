@@ -5,6 +5,7 @@ import threading
 import time
 import discord
 import asyncio
+import warnings
 from datetime import datetime
 
 from typing import List
@@ -14,6 +15,7 @@ from .tournamentUtils import *
 from .match import match
 from .player import player
 from .deck import deck
+
 
 """
     This is a tournament class. The bulk of data management for a tournament is handled by this class.
@@ -59,14 +61,15 @@ class tournament:
         self.tournCancel  = False
         
         self.loop = asyncio.new_event_loop()
+        self.fail_count = 0
         
         self.queue             = [ [] ]
         self.playersPerMatch   = 4
-        self.pairingsThreshold = self.playersPerMatch * 1.5
-        self.pairingWaitTime   = 3
-        self.pairingsThread    = threading.Thread( target=self.run_pairings )
+        self.pairingsThreshold = self.playersPerMatch * 2 + 3
+        self.pairingWaitTime   = 15
         self.queueActivity     = [ ]
         self.highestPriority   = 0
+        self.pairingsThread    = threading.Thread( target=self.launch_pairings )
         
         self.deckCount = 1
 
@@ -181,13 +184,11 @@ class tournament:
         
         self.queue[0].append(self.activePlayers[a_player])
         self.queueActivity.append( (a_player, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
+        time.sleep( 10**-6 )
         print( f'Added {a_player} to the queue' )
-        if self.pairingsThread.isAlive( ):
-            return
-
-        if sum( [ len(level) for level in self.queue ] ) > self.pairingsThreshold:
+        if sum( [ len(level) for level in self.queue ] ) > self.pairingsThreshold and not (self.loop.is_running( ) or self.pairingsThread.is_alive()):
             print( "Creating task" )
-            self.pairingsThread = threading.Thread( target=self.run_pairings )
+            self.pairingsThread = threading.Thread( target=self.launch_pairings )
             self.pairingsThread.start( )
     
     async def addMatch( self, a_players: List[str] ) -> None:
@@ -217,10 +218,24 @@ class tournament:
         if type( self.guild ) == discord.Guild:
             await self.pairingsChannel.send( message )
     
+    # A wrapper for run_pairings to prevent "RuntimeError('This event loop is already running')"
+    def launch_pairings( self ):
+        # print( f'Inside launch_pairings. This thread ID is {threading.get_ident()} while the newest Thread ID is {self.pairingsThread.ident}' )
+        while self.loop.is_running():
+            if threading.get_ident() != self.pairingsThread.ident:
+                # print( f'Aborting launch_pairings. This thread ID is {threading.get_ident()} while the newest Thread ID is {self.pairingsThread.ident}' )
+                return
+            pass
+        t = threading.Thread( target=self.run_pairings )
+        t.start( )
+
     # Wrapper for self.pairQueue so that it can be ran on a seperate thread
     def run_pairings( self ):
-        self.loop.run_until_complete( self.pairQueue() )
-
+        try:
+            self.loop.run_until_complete( self.pairQueue( ) )
+        except RuntimeWarning:
+            self.fail_count += 1
+    
     # Starting from the given position, searches through the queue to find opponents for the player at the given position.
     # Returns the positions of the closest players that can form a match.
     # If a match can't be formed, we return an empty list
@@ -265,7 +280,7 @@ class tournament:
         
     
     async def pairQueue( self ) -> None:
-        print( "Inside the pairings task" )
+        # print( "Inside the pairings task" )
         time.sleep( self.pairingWaitTime )
 
         newQueue = []
@@ -275,23 +290,23 @@ class tournament:
         indices = [ ]
         matchTasks = [ ]
 
-        print( "Shuffling the queue" )
+        # print( "Shuffling the queue" )
         for lvl in self.queue:
             random.shuffle( lvl )
+        oldQueue = self.queue
         
-        print( "Starting while loops." )
-        for lvl in self.queue:
-            print( [ plyr.name for plyr in lvl ] )
+        # print( "Starting while loops." )
+        # print( self.queue )
         lvl = -1
         while lvl >= -1*len(self.queue):
             while len(self.queue[lvl]) > 0:
-                print( f'Inside the inner loop. There are {len(self.queue[lvl])} people in this level.' )
+                # print( f'Inside the inner loop. There are {len(self.queue[lvl])} people in this level.' )
                 indices = self.searchForOpponents( lvl, 0 )
                 # If an empty array is returned, no match was found
                 # Add the current player to the end of the new queue
                 # and remove them from the current queue
                 if len(indices) == 0:
-                    print( f'Match not found for {self.queue[lvl][0].name} whose indices where "({lvl}, 0)".' ) 
+                    # print( f'Match not found for {self.queue[lvl][0].name} whose indices where "({lvl}, 0)".' ) 
                     newQueue[lvl].append(self.queue[lvl][0])
                     del( self.queue[lvl][0] )
                 else:
@@ -303,18 +318,18 @@ class tournament:
                     matchTasks.append( self.addMatch( plyrs ) )
             lvl -= 1
 
+        """
         print( "Current queue" )
-        for lvl in self.queue:
-            print( [ plyr.name for plyr in lvl ] )
+        print( self.queue )
         print( "Current future queue" )
-        for lvl in newQueue:
-            print( [ plyr.name for plyr in lvl ] )
+        print( newQueue )
+        """
         
-        print( "Waiting on any match tasks to finish." )
+        # print( "Waiting on any match tasks to finish." )
         # Waiting for the tasks to be made
         await asyncio.gather(*matchTasks)
 
-        print( "Trimming future queue" )
+        # print( "Trimming future queue" )
         while len(newQueue) > 0:
             if len(newQueue[-1]) != 0:
                 break
@@ -324,19 +339,18 @@ class tournament:
             newQueue[0] += self.queue[0]
             self.queue = newQueue
 
-        print( "New Queue" )
-        for lvl in self.queue:
-            print( [ plyr.name for plyr in lvl ] )
+        # print( "New Queue" )
+        # print( self.queue )
         
         if len(self.queue) > self.highestPriority:
             self.highestPriority = len(self.queue)
-            
-        if sum( [ len(level) for level in self.queue ] ) > self.pairingsThreshold:
+        
+        if self.queue != [ [] ] + oldQueue and sum( [ len(level) for level in self.queue ] ) > self.pairingsThreshold and not self.pairingsThread.is_alive( ):
             print( "There are still enough players to form a match. Trying again." )
-            self.pairingsThread = threading.Thread( target=self.run_pairings )
+            self.pairingsThread = threading.Thread( target=self.launch_pairings )
             self.pairingsThread.start( )
 
-        print( "Completed pairings task" )
+        # print( "Completed pairings task" )
 
     
     def getMatch( self, a_matchNum: int ) -> match:
@@ -456,9 +470,9 @@ class tournament:
             self.queue.append( [] )
         for plyr in players:
             self.queue[int(plyr.attrib['priority'])].append( self.activePlayers[ plyr.attrib['name'] ] )
-        if sum( [len(level) for level in self.queue] ) > self.pairingsThreshold & self.pairingsThread.is_alive( ):
+        if sum( [len(level) for level in self.queue] ) > self.playersPerMatch:
             print( "Enough players found during loading. Creating new pairing task." )
-            self.pairingsThread = threading.Thread( target=self.run_pairings )
+            self.pairingsThread = threading.Thread( target=self.launch_pairings )
             self.pairingsThread.start( )
     
     def loadPlayers( self, a_dirName: str ) -> None:

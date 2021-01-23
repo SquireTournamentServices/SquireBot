@@ -2,12 +2,12 @@
 <match roleID="" VC_ID="">
 	<number>43</number>
 	<status>certified</status>
-	<winner name="java#2155"/>
+	<winner name="Precise_Teacup#3434"/>
 	<activePlayers>
+		<player name="Lykos#1668"/>
+		<player name="Chris Boone#5393"/>
+		<player name="Precise_Teacup#3434"/>
 		<player name="Tibalt#5306"/>
-		<player name="CallMeMrMiyagi#5708"/>
-		<player name="java#2155"/>
-		<player name="ChaosSol13#9791"/>
 	</activePlayers>
 	<droppedPlayers>
 	</droppedPlayers>

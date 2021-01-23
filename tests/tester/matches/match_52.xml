@@ -2,12 +2,12 @@
 <match roleID="" VC_ID="">
 	<number>52</number>
 	<status>certified</status>
-	<winner name="Bus#8421"/>
+	<winner name="McNöbody#4237"/>
 	<activePlayers>
-		<player name="Bus#8421"/>
+		<player name="McNöbody#4237"/>
+		<player name="mapleman900#4275"/>
+		<player name="grand#2626"/>
 		<player name="Tsunderella II Dreams Come True#7980"/>
-		<player name="Ryland#8103"/>
-		<player name="MoxProxy#0078"/>
 	</activePlayers>
 	<droppedPlayers>
 	</droppedPlayers>

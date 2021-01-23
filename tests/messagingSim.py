@@ -19,7 +19,7 @@ lfgKey    = "@!766808531109281802"
 
 def splitTime( time: str ) -> float:
     time = [ float(t) for t in time.split(" ")[1].split(":") ]
-    return 24*60*time[0] + 60*time[1] + time[2]
+    return 60*60*time[0] + 60*time[1] + time[2]
 
 def timeDifference( t_1: str, t_2: str ) -> float:
     return abs( splitTime( t_1 ) - splitTime( t_2 ) )
@@ -46,10 +46,12 @@ for plyr in players:
 
 print( f'There are {len(tourn.activePlayers)} players registered.' )
 
-for i in range(len(messages[:-1])):
-    print( f'Next message in {timeDifference( messages[i].attrib["time"], messages[i+1].attrib["time"] )*timeRatio} seconds' )
+timeDiffs = [ ]
 
-#time.sleep( 60 )
+for i in range(len(messages[:-1])):
+    if lfgKey in messages[i].text:
+        timeDiffs.append( timeDifference( messages[i].attrib["time"], messages[i+1].attrib["time"] ) )
+
 
 for i in range(len(messages[:-1])):
     plyr = tourn.activePlayers[messages[i].attrib["author"]]
@@ -60,13 +62,10 @@ for i in range(len(messages[:-1])):
         tourn.addPlayerToQueue( plyr.name )
         print( f'Added player to queue. Current queue size is {sum([len(lvl) for lvl in tourn.queue])}.' )
     t = timeDifference( messages[i].attrib["time"], messages[i+1].attrib["time"] )*timeRatio
-    if t > 1.0:
-        t = 1.0
     print( f'Next message in {t} seconds' )
     time.sleep( t )
 
 
-tourn.pairingsThread.join()
 
 # -------------------------------------------------------
 # The tournament simulation is done. We now have to
@@ -86,11 +85,17 @@ for act in tourn.queueActivity:
         print( format_e( Decimal(times[-1]) ) )
         del( players[act[0]] )
 
+print( f'There were {tourn.fail_count} threading failures.' )
 times.sort()
 print( f'The average wait time is: {statistics.mean( times )} seconds' )
 print( f'The median wait time is: {statistics.median( times )} seconds' )
 print( f'The longest wait time is: {times[-1]} seconds' )
 print( f'The highest priority level is: {tourn.highestPriority}' )
+timeDiffs.sort()
+print( f'The average time between LFG pings is: {statistics.mean( timeDiffs )} seconds' )
+print( f'The median time between LFG pings is: {statistics.median( timeDiffs )} seconds' )
+print( f'The longest time between LFG pings is: {timeDiffs[-1]} seconds' )
+
 
 
 with open( "queueActivity.txt", "w" ) as f:
