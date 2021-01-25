@@ -204,7 +204,7 @@ class tournament:
                            matchRole: discord.PermissionOverwrite(read_messages=True) }
             newMatch.VC = await self.guild.create_voice_channel( name=f'Match {newMatch.matchNumber}', overwrites=overwrites, category=discord.utils.get( self.guild.categories, name="Matches" ) ) 
             newMatch.role = matchRole
-            message  = f'{matchRole.mention}, you have been paired from your match. There is a voice channel for you that you may join. Below in information about your opponents.\n'
+            message  = f'{matchRole.mention}, you have been paired for your match. There is a voice channel for you that you may join. Below in information about your opponents.\n'
         
         for plyr in a_players:
             self.activePlayers[plyr].matches.append( newMatch )

@@ -526,16 +526,83 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
     Match.saveXML( f'currentTournaments/{tourn}/matches/match_{mtch}.xml' )
 
 
-"""
 
+@bot.command(name='admin-create-pairing')
+async def adminCreatePairing( ctx, tourn = "", *plyrs ):
+    tourn  = tourn.strip()
+    plyrs  = [ plyr.strip() for plyr in plyrs ]
+    
+    if isPrivateMessage( ctx.message ):
+        await ctx.send( "You can not create a pairing for players via private message since each tournament needs to be associated with a server." )
+        return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not isTournamentAdmin( ctx.message.author ):
+        await ctx.send( f'{ctx.message.author.mention}, you do not have permissions to remove players from a match. Please do not do this again or {adminMention} may intervene.' )
+        return
+    if tourn == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, match number, player, and result in order to remove a player from a match.' )
+        return
+    if not tourn in currentTournaments:
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
+        return
+    if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
+        await ctx.send( f'{ctx.message.author.mention}, {tourn} does not belong to this server, so it can not be changed from here.' )
+        return
+    if currentTournaments[tourn].isDead( ):
+        await ctx.send( f'{ctx.message.author.mention}, {tourn} has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
+        return
+    if len(plyrs) != currentTournaments[tourn].playersPerMatch:
+        await ctx.send( f'{ctx.message.author.mention}, {tourn} requires {currentTournaments[tourn].playersPerMatch} be in a match, but you specified {len(plyrs)} players.' )
+        return
+        
+    members = [ findPlayer( ctx.guild, tourn, plyr ) for plyr in plyrs ]
+    if "" in members:
+        await ctx.send( f'{ctx.message.author.mention}, at least one of the members that you specified is not a part of the tournament. Verify that they have the "{tourn} Player" role.' )
+        return
+    
+    userIdents = [ getUserIdent( member ) for member in members ]
+    for userIdent in userIdents:
+        if not userIdent in currentTournaments[tourn].activePlayers:
+            await ctx.send( f'{ctx.message.author.mention}, a user by "{member.mention}" was found in the player role, but they are not active in {tourn}. Make sure they are registered or that they have not dropped.' )
+            return
+    
+    for ident in userIdents:
+        found = False
+        for lvl in currentTournaments[tourn].queue:
+            if ident in lvl:
+                found = True
+                del( lvl[lvl.index(ident)] )
+                break
+        if not found:
+            currentTournaments[tourn].queueActivity.append( (ident, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
+    
+    await currentTournaments[tourn].addMatch( userIdents )
+    await ctx.send( f'{ctx.message.author.mention}, the players you specified for the match are now paired. Their match number is #{currentTournaments[tourn].matches[-1].matchNumber}.' )
+    currentTournaments[tourn].matches[-1].saveXML( f'currentTournaments/{tourn}/matches/match_{currentTournaments[tourn].matches[-1].matchNumber}.xml' )
+
+
+
+
+
+"""
+Top Priority:
 @bot.command(name='admin-confirm-result')
 async def adminConfirmResult( ctx, tourn = "", match = "", plyr = "" ):
+
+"""
+
+"""
 
 @bot.command(name='tournament-report')
 async def adminDropPlayer( ctx, tourn = "" ):
 
 @bot.command(name='players-per-match')
 async def adminDropPlayer( ctx, tourn = "" ):
+
+@bot.command(name='admin-tournament-kick')
+async def adminDropPlayer( ctx, tourn = "" ):
+
 """
 
 
