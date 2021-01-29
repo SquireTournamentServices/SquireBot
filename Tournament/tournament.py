@@ -216,19 +216,19 @@ class tournament:
         if mtch.isCertified( ):
             return
         print( "Sending first message" )
-        t = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role}, you have five minutes left in your round.',) )
+        t = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have five minutes left in your round.',) )
         t.start( )
         time.sleep( fiveMin - oneMin )
         if mtch.isCertified( ):
             return
         print( "Sending second message" )
-        t = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role}, you have one minute left in your round.',) )
+        t = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have one minute left in your round.',) )
         t.start( )
         time.sleep( oneMin )
         if mtch.isCertified( ):
             return
         print( "Sending third message" )
-        t = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role}, time is up for this match.',) )
+        t = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, time is up for this match.',) )
         t.start( )
         t.join( )
     
