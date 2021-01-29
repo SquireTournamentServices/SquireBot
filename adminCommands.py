@@ -187,7 +187,7 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
     currentTournaments[tourn].activePlayers[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
     deckHash = str(currentTournaments[tourn].activePlayers[userIdent].decks[ident].deckHash)
     await ctx.send( f'{ctx.message.author.mention}, decklist that you added for {plyr} has been submitted. The deck hash is "{deckHash}".' )
-    await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( f'A decklist has been submitted for {tourn} on the server {ctx.guild.name} on your behave. The identifier for the deck is "{ident}" and the deck hash is "{deckHash}". If this deck hash is incorrect or you are not expecting this, please contact tournament admin on that server.' )
+    await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'A decklist has been submitted for {tourn} on the server {ctx.guild.name} on your behave. The identifier for the deck is "{ident}" and the deck hash is "{deckHash}". If this deck hash is incorrect or you are not expecting this, please contact tournament admin on that server.' )
 
 
 @bot.command(name='admin-remove-deck')
@@ -226,7 +226,7 @@ async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
     del( currentTournaments[tourn].activePlayers[userIdent].decks[deckName] )
     currentTournaments[tourn].activePlayers[userIdent].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{userIdent}.xml' )
     await ctx.send( f'{ctx.message.author.mention}, decklist that you removed from {plyr} has been processed.' )
-    await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( f'The deck has been removed from {tourn} on the server {ctx.guild.name}. The identifier was "{ident}" and the deck hash was "{deckHash}".' )
+    await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'The deck has been removed from {tourn} on the server {ctx.guild.name}. The identifier was "{ident}" and the deck hash was "{deckHash}".' )
 
 
 @bot.command(name='set-deck-count')
@@ -463,7 +463,7 @@ async def adminCreatePairing( ctx, tourn = "", *plyrs ):
 
 
 @bot.command(name='create-pairings-list')
-async def adminConfirmResult( ctx, tourn = "" ):
+async def createPairingsList( ctx, tourn = "" ):
     tourn  = tourn.strip()
     
     if await isPrivateMessage( ctx ): return
@@ -553,7 +553,7 @@ async def adminConfirmResult( ctx, tourn = "" ):
     
 
 @bot.command(name='players-per-match')
-async def adminConfirmResult( ctx, tourn = "", num = "" ):
+async def playersPerMatch( ctx, tourn = "", num = "" ):
     tourn  = tourn.strip()
     num    = num.strip()
     
@@ -579,22 +579,97 @@ async def adminConfirmResult( ctx, tourn = "", num = "" ):
     await ctx.send( f'{adminMention}, the number of players per match for {tourn} was changed to {num} by {ctx.message.author.mention}.' )
     currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
 
+@bot.command(name='set-match-length')
+async def setMatchLength( ctx, tourn = "", num = "" ):
+    tourn  = tourn.strip()
+    num    = num.strip()
+    
+    if await isPrivateMessage( ctx ): return
 
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "" or num == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a length in minutes.' )
+        return
+    try:
+        num = int(num)
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, "{num}" could not be converted to a number. Please make sure you only use digits.' )
+        return
 
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    currentTournaments[tourn].matchLength = num*60
+    currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    await ctx.send( f'{adminMention}, the length of a match for {tourn} was changed to {num} minutes by {ctx.message.author.mention}.' )
+    currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
 
-"""
-Top Priority:
 @bot.command(name='admin-confirm-result')
-async def adminConfirmResult( ctx, tourn = "", match = "", plyr = "" ):
+async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
+    tourn  = tourn.strip()
+    plyr   = plyr.strip()
+    mtch   = mtch.strip()
+    
+    if await isPrivateMessage( ctx ): return
 
-"""
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if not await isTournamentAdmin( ctx.message.author ):
+        await ctx.send( f'{ctx.message.author.mention}, you do not have permissions to remove players from a match. Please do not do this again or {adminMention} may intervene.' )
+        return
+    if tourn == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, match number, player, and result in order to remove a player from a match.' )
+        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    member = findPlayer( ctx.guild, tourn, plyr )
+    if member == "":
+        await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role "{tourn} Player". Please verify that they have registered.' )
+        return
+    
+    userIdent = getUserIdent( member )
+    if not userIdent in currentTournaments[tourn].activePlayers:
+        await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
+        return
+    
+    try:
+        mtch = int( mtch )
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide a match number. Please specify a match number using digits.' )
+        return
+    
+    if mtch > len(currentTournaments[tourn].matches):
+        await ctx.send( f'{ctx.message.author.mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
+        return
+        
+    Match = currentTournaments[tourn].activePlayers[userIdent].getMatch( mtch )
+    if Match.matchNumber == -1:
+        await ctx.send( f'{ctx.message.author.mention}, {member.mention} is not a player in Match #{mtch}. Double check the match number.' )
+        return
+    
+    if Match.isCertified( ):
+        await ctx.send( f'{ctx.message.author.mention}, match #{mtch} is already certified. There is no need confirm the result again.' )
+        return
+    if userIdent in Match.confirmedPlayers:
+        await ctx.send( f'{ctx.message.author.mention}, match #{mtch} is not certified, but {plyr} has already certified the result. There is no need to do this twice.' )
+        return
+    
+    currentTournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'The result of match #{mtch} for {tourn} has been certified by tournament admin on your behave.' )
+    msg = Match.confirmResult( userIdent )
+    if msg != "":
+        await currentTournaments[tourn].pairingsChannel.send( msg )
+    await ctx.send( f'{ctx.message.author.mention}, you have certified the result of match #{mtch} on behave of {plyr}.' )
+        
+
+
 
 """
 
 @bot.command(name='tournament-report')
-async def adminDropPlayer( ctx, tourn = "" ):
-
-@bot.command(name='players-per-match')
 async def adminDropPlayer( ctx, tourn = "" ):
 
 @bot.command(name='admin-tournament-kick')

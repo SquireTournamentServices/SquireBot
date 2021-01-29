@@ -60,7 +60,7 @@ class tournament:
         self.tournEnded   = False
         self.tournCancel  = False
         
-        self.loop = asyncio.new_event_loop()
+        self.loop = asyncio.new_event_loop( )
         self.fail_count = 0
         
         self.queue             = [ [] ]
@@ -68,6 +68,7 @@ class tournament:
         self.pairingsThreshold = self.playersPerMatch * 2 + 3
         self.pairingWaitTime   = 20
         self.queueActivity     = [ ]
+        self.matchLength       = 60*60 # Length of matches in seconds
         self.highestPriority   = 0
         self.pairingsThread    = threading.Thread( target=self.launch_pairings, args=(self.pairingWaitTime,) )
         
@@ -191,6 +192,46 @@ class tournament:
             self.pairingsThread = threading.Thread( target=self.launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )
     
+    async def send_match_warning( self, msg: str ) -> None:
+        print( "Sending message" )
+        await self.pairingsChannel.send( content=msg )
+
+    def launch_match_warning( self, msg: str ) -> None:
+        print( "Launching message." )
+        if self.loop.is_running( ):
+            print( "The loop is already running. Launching coroutine threadsafe." )
+            fut_send = asyncio.run_coroutine_threadsafe( self.send_match_warning(msg), self.loop )
+            fut_send.result( )
+        else:
+            print( "The loop isn't running. Starting loop." )
+            self.loop.run_until_complete( self.send_match_warning(msg) )
+
+    def matchTimer( self, mtch: match ) -> None:
+        print( f'Starting match timer for {self.matchLength} seconds.' )
+        if self.matchLength < 300:
+            return
+        oneMin  = 60
+        fiveMin = 300
+        time.sleep( self.matchLength - fiveMin )
+        if mtch.isCertified( ):
+            return
+        print( "Sending first message" )
+        t = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role}, you have five minutes left in your round.',) )
+        t.start( )
+        time.sleep( fiveMin - oneMin )
+        if mtch.isCertified( ):
+            return
+        print( "Sending second message" )
+        t = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role}, you have one minute left in your round.',) )
+        t.start( )
+        time.sleep( oneMin )
+        if mtch.isCertified( ):
+            return
+        print( "Sending third message" )
+        t = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role}, time is up for this match.',) )
+        t.start( )
+        t.join( )
+    
     async def addMatch( self, a_players: List[str] ) -> None:
         for plyr in a_players:
             self.queueActivity.append( (plyr, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
@@ -204,6 +245,8 @@ class tournament:
                            matchRole: discord.PermissionOverwrite(read_messages=True) }
             newMatch.VC = await self.guild.create_voice_channel( name=f'Match {newMatch.matchNumber}', overwrites=overwrites, category=discord.utils.get( self.guild.categories, name="Matches" ) ) 
             newMatch.role = matchRole
+            newMatch.timer = threading.Thread( target=self.matchTimer, args=(newMatch,) )
+            newMatch.timer.start( )
             message  = f'{matchRole.mention}, you have been paired for your match. There is a voice channel for you that you may join. Below in information about your opponents.\n'
         
         for plyr in a_players:
@@ -218,23 +261,11 @@ class tournament:
         if type( self.guild ) == discord.Guild:
             await self.pairingsChannel.send( message )
     
-    # A wrapper for run_pairings to prevent "RuntimeError('This event loop is already running')"
-    def launch_pairings( self, a_waitTime ):
-        # print( f'Inside launch_pairings. This thread ID is {threading.get_ident()} while the newest Thread ID is {self.pairingsThread.ident}' )
-        while self.loop.is_running():
-            if threading.get_ident() != self.pairingsThread.ident:
-                # print( f'Aborting launch_pairings. This thread ID is {threading.get_ident()} while the newest Thread ID is {self.pairingsThread.ident}' )
-                return
-            pass
-        t = threading.Thread( target=self.run_pairings, args=(a_waitTime,) )
-        t.start( )
-
     # Wrapper for self.pairQueue so that it can be ran on a seperate thread
-    def run_pairings( self, a_waitTime ):
-        try:
-            self.loop.run_until_complete( self.pairQueue( a_waitTime ) )
-        except RuntimeWarning:
-            self.fail_count += 1
+    def launch_pairings( self, a_waitTime ):
+        time.sleep( 10**-3 )
+        fut_pairings = asyncio.run_coroutine_threadsafe( self.pairQueue(a_waitTime) )
+        fut_pairings.result( )
     
     # Starting from the given position, searches through the queue to find opponents for the player at the given position.
     # Returns the positions of the closest players that can form a match.
@@ -466,6 +497,7 @@ class tournament:
         digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
         digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
         digest += f'\t<deckCount>{self.deckCount}</deckCount>\n'
+        digest += f'\t<matchLength>{self.matchLength}</matchLength>\n'
         digest += f'\t<queue size="{self.playersPerMatch}">\n'
         for level in range(len(self.queue)):
             for plyr in self.queue[level]:
@@ -513,6 +545,7 @@ class tournament:
         self.tournCancel  = str_to_bool( tournRoot.find( 'status' ).attrib['canceled'] )
 
         self.playersPerMatch = int( tournRoot.find( 'queue' ).attrib['size'] )
+        self.matchLength     = int( tournRoot.find( 'matchLength' ).text )
         
         players = tournRoot.find( 'queue' ).findall( 'player' )
         maxLevel = 1

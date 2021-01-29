@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 import discord
 
 from typing import List
+import threading
 
 
 """
@@ -38,6 +39,7 @@ class match:
         self.VC_ID = ""
         self.status = "open"
         self.winner = ""
+        self.timer  = ""
     
     def __str__( self ):
         digest  = f'Match #{self.matchNumber}\n'

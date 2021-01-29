@@ -269,7 +269,7 @@ async def queuePlayer( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you are currently in a match that is not confirmed. Please finish your match or make sure the result is confirmed before starting a new match.' )
         return
     
-    await currentTournaments[tourn].addPlayerToQueue( userIdent )
+    currentTournaments[tourn].addPlayerToQueue( userIdent )
     currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' ) 
     currentTournaments[tourn].saveMatches( f'currentTournaments/{tourn}/' ) 
     await ctx.send( f'{ctx.message.author.mention}, you have been added to the match queue.' )

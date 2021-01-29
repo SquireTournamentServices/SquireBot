@@ -82,6 +82,8 @@ def findPlayer( a_guild: discord.Guild, a_tourn: str, a_memberName: str ):
             return member
         if member.mention == a_memberName:
             return member
+        if f'<@!{member.id}>' == a_memberName:
+            return member
     return ""
 
 def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
@@ -118,6 +120,7 @@ async def on_ready():
         guild = bot.get_guild( currentTournaments[tourn].guildID )
         if type( guild ) != None:
             currentTournaments[tourn].assignGuild( guild )
+            currentTournaments[tourn].loop = bot.loop
 
 
 def message_to_xml( msg: discord.Message, indent: str = "" ) -> str:
@@ -126,7 +129,19 @@ def message_to_xml( msg: discord.Message, indent: str = "" ) -> str:
     digest += f'{indent}</message>\n'
     return digest
 
-@bot.command(name='scrap')
+@bot.command(name='test')
+async def test( ctx, *args ):
+    w1 = 7
+    w2 = max( [ len(m.display_name) for m in ctx.message.channel.members ] ) + 2
+    w3 = max( [ len(str(m.id)) for m in ctx.message.channel.members ] ) + 2
+    for member in ctx.message.channel.members:
+        print( f'{str(member.display_name == member.name).ljust(w1)}{member.display_name.ljust(w2)}{str(member.id).ljust(w3)}{member.mention}' )
+    print( args )
+    print( findPlayer( ctx.message.guild, "Izzet", args[0] ) )
+    
+    
+
+@bot.command(name='scrape')
 async def adminPlayerProfile( ctx ):
     messages = await ctx.message.channel.history( limit=100000, oldest_first=True ).flatten( )
     with open( "scrapTest.xml", "w" ) as f:
@@ -135,23 +150,6 @@ async def adminPlayerProfile( ctx ):
             f.write( message_to_xml( msg, "\t" ) )
         f.write( "</history>" )
     print( f'A total of {len(messages)} messages were scrapped.' )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

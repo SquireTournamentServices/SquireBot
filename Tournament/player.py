@@ -107,20 +107,20 @@ class player:
     # Returns 1 if no open matches exist; otherwise, returns a negative index
     def findOpenMatchIndex( self ) -> int:
         if not self.hasOpenMatch( ):
-            print( f'No open matches found. Returning one.' )
+            # print( f'No open matches found. Returning one.' )
             return 1
         digest = -1
         while self.matches[digest].status == "certified":
             digest -= 1
-        print( f'An open match was found. Returning {digest}.' )
+        # print( f'An open match was found. Returning {digest}.' )
         return digest
 
     def findOpenMatch( self ) -> match:
         index = self.findOpenMatchIndex( )
         if index == 1:
-            print( f'The reported index was one. Returning an empty match.' )
+            # print( f'The reported index was one. Returning an empty match.' )
             return match( [] )
-        print( f'The reported index was not one. Returning an the correct match.' )
+        # print( f'The reported index was not one. Returning an the correct match.' )
         return self.matches[index]
     
     def findOpenMatchNumber( self ) -> int:
@@ -212,8 +212,8 @@ class player:
             self.discordID = int( self.discordID )
         self.status = xmlTree.getroot().find( "status" ).text
         for deckTag in xmlTree.getroot().findall('deck'):
-            print( deckTag.attrib )
-            print( deckTag.attrib['ident'] )
+            # print( deckTag.attrib )
+            # print( deckTag.attrib['ident'] )
             self.decks[deckTag.attrib['ident']] = deck()
             self.decks[deckTag.attrib['ident']].importFromETree( deckTag )
     
