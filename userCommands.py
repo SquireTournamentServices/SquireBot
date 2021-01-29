@@ -119,7 +119,7 @@ async def submitDecklist( ctx, tourn = "", ident = "", decklist = "" ):
     currentTournaments[tourn].activePlayers[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
     deckHash = str(currentTournaments[tourn].activePlayers[userIdent].decks[ident].deckHash)
     await ctx.send( f'{ctx.message.author.mention}, your decklist has been submitted. Your deck hash is "{deckHash}". Please make sure this matches your deck hash in Cocktrice.' )
-    if await not isPrivateMessage( ctx.message ):
+    if not await isPrivateMessage( ctx.message ):
         await ctx.send( f'{ctx.message.author.mention}, for future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
 
 
