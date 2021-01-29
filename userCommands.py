@@ -13,9 +13,7 @@ from Tournament import *
 
 @bot.command(name='list-tournaments')
 async def listTournaments( ctx ):
-    if isPrivateMessage( ctx.message ):
-        await ctx.send( "A list of tournaments can't be created via private message since each tournament is associated with a server." )
-        return
+    if await isPrivateMessage( ctx ): return
     
     tourns = currentGuildTournaments( ctx.message.guild.name )
     if len( tourns ) == 0:
@@ -30,9 +28,7 @@ async def listTournaments( ctx ):
 async def registerPlayer( ctx, tourn = "" ):
     print( discord.utils.get( ctx.guild.categories, name="Matches" ) )
     tourn = tourn.strip()
-    if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't join a tournament via private message since each tournament is associated with a server." )
-        return
+    if await isPrivateMessage( ctx ): return
 
     if tourn == "":
         if len( currentGuildTournaments( ctx.message.guild.name ) ) > 1:
@@ -43,12 +39,8 @@ async def registerPlayer( ctx, tourn = "" ):
             return
         else:
             tourn = [ name for name in currentGuildTournaments( ctx.message.guild.name ) ][0]
-    if tourn not in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
-        return
-    if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
-        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
     if not currentTournaments[tourn].regOpen:
         await ctx.send( f'{ctx.message.author.mention}, registration for {tourn} is closed. Please contact tournament staff if you think this is an error.' )
         return
@@ -68,9 +60,7 @@ async def registerPlayer( ctx, tourn = "" ):
 async def addTriceName( ctx, tourn = "", name = "" ):
     tourn = tourn.strip()
     name  = name.strip()
-    if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't join a tournament via private message since each tournament is associated with a server." )
-        return
+    if await isPrivateMessage( ctx ): return
 
     if tourn == "" and name == "":
         await ctx.send( "You did not provide enough information. You need to at least specify your Cockatrice username." )
@@ -88,12 +78,8 @@ async def addTriceName( ctx, tourn = "", name = "" ):
         else:
             tourn = [ name for name in currentGuildTournaments( ctx.message.guild.name ) ][0]
 
-    if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
-    if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
     
     userIdent = getUserIdent( ctx.message.author )
     if not userIdent in currentTournaments[tourn].activePlayers:
@@ -119,9 +105,7 @@ async def submitDecklist( ctx, tourn = "", ident = "", decklist = "" ):
         ident = decklist
         decklist = tmp
 
-    if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
+    if not await checkTournExists( tourn, ctx ): return
 
     userIdent = getUserIdent( ctx.message.author )
     if not userIdent in currentTournaments[tourn].activePlayers:
@@ -135,7 +119,7 @@ async def submitDecklist( ctx, tourn = "", ident = "", decklist = "" ):
     currentTournaments[tourn].activePlayers[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
     deckHash = str(currentTournaments[tourn].activePlayers[userIdent].decks[ident].deckHash)
     await ctx.send( f'{ctx.message.author.mention}, your decklist has been submitted. Your deck hash is "{deckHash}". Please make sure this matches your deck hash in Cocktrice.' )
-    if not isPrivateMessage( ctx.message ):
+    if await not isPrivateMessage( ctx.message ):
         await ctx.send( f'{ctx.message.author.mention}, for future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
 
 
@@ -143,9 +127,7 @@ async def submitDecklist( ctx, tourn = "", ident = "", decklist = "" ):
 async def removeDecklist( ctx, tourn = "", ident = "" ):
     tourn = tourn.strip()
     ident = ident.strip()
-    if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't remove a deck via private message since each tournament is associated with a server." )
-        return
+    if await isPrivateMessage( ctx ): return
 
     if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, you did not provided enough information. Please provide either your deckname or deck hash to remove your deck.' )
@@ -162,12 +144,8 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
             ident = tourn
             tourn = [ name for name in tourns ][0]
 
-    if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
-    if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
     
     userIdent = getUserIdent( ctx.message.author )
     if not userIdent in currentTournaments[tourn].activePlayers:
@@ -194,9 +172,7 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
 @bot.command(name='list-decks')
 async def listDecklists( ctx, tourn = "" ):
     tourn = tourn.strip()
-    if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't list the decks you've submitted for a tournament via private message since each tournament needs to be associated with a server." )
-        return
+    if await isPrivateMessage( ctx ): return
 
     if tourn == "":
         tourns = currentGuildTournaments( ctx.message.guild.name )
@@ -209,12 +185,8 @@ async def listDecklists( ctx, tourn = "" ):
         else:
             tourn = [ name for name in tourns ][0]
 
-    if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
-    if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
     
     userIdent = getUserIdent( ctx.message.author )
     if not userIdent in currentTournaments[tourn].activePlayers:
@@ -234,9 +206,7 @@ async def listDecklists( ctx, tourn = "" ):
 @bot.command(name='drop-tournament')
 async def dropTournament( ctx, tourn = "" ):
     tourn = tourn.strip()
-    if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't list the decks you've submitted for a tournament via private message since each tournament needs to be associated with a server." )
-        return
+    if await isPrivateMessage( ctx ): return
     
     if tourn == "":
         tourns = currentGuildTournaments( ctx.message.guild.name )
@@ -249,12 +219,8 @@ async def dropTournament( ctx, tourn = "" ):
         else:
             tourn = [ name for name in tourns ][0]
     
-    if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
-    if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
 
     userIdent = getUserIdent(ctx.message.author) 
     if not userIdent in currentTournaments[tourn].activePlayers:
@@ -274,9 +240,7 @@ async def dropTournament( ctx, tourn = "" ):
 @bot.command(name='lfg')
 async def queuePlayer( ctx, tourn = "" ):
     tourn = tourn.strip()
-    if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't list the decks you've submitted for a tournament via private message since each tournament needs to be associated with a server." )
-        return
+    if await isPrivateMessage( ctx ): return
     
     if tourn == "":
         tourns = currentGuildTournaments( ctx.message.guild.name )
@@ -289,12 +253,8 @@ async def queuePlayer( ctx, tourn = "" ):
         else:
             tourn = [ name for name in tourns ][0]
 
-    if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
-    if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
 
     if not currentTournaments[tourn].isActive():
         await ctx.send( f'{ctx.message.author.mention}, the tournament "{tourn}" has not started yet. Please wait until the admin starts the tournament.' )
@@ -319,9 +279,7 @@ async def queuePlayer( ctx, tourn = "" ):
 async def matchResult( ctx, tourn = "", result = "" ):
     tourn  = tourn.strip()
     result = result.strip().lower()
-    if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't list the decks you've submitted for a tournament via private message since each tournament needs to be associated with a server." )
-        return
+    if await isPrivateMessage( ctx ): return
     
     if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, you need to specify the result of the match.' )
@@ -339,12 +297,8 @@ async def matchResult( ctx, tourn = "", result = "" ):
             result = tourn
             tourn = [ name for name in tourns ][0]
 
-    if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
-    if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
         
     userIdent = getUserIdent( ctx.message.author )
     if not userIdent in currentTournaments[tourn].activePlayers:
@@ -375,9 +329,7 @@ async def matchResult( ctx, tourn = "", result = "" ):
 @bot.command(name='confirm-result')
 async def confirmMatchResult( ctx, tourn = "" ):
     tourn  = tourn.strip()
-    if isPrivateMessage( ctx.message ):
-        await ctx.send( "You can't list the decks you've submitted for a tournament via private message since each tournament needs to be associated with a server." )
-        return
+    if await isPrivateMessage( ctx ): return
     
     if tourn == "":
         tourns = currentGuildTournaments( ctx.message.guild.name )
@@ -390,12 +342,8 @@ async def confirmMatchResult( ctx, tourn = "" ):
         else:
             tourn = [ name for name in tourns ][0]
 
-    if not tourn in currentTournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
-    if currentTournaments[tourn].hostGuildName != ctx.message.guild.name:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server. Double check the name or contact tournament admin.' )
-        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
 
     userIdent = getUserIdent( ctx.message.author )
     if not userIdent in currentTournaments[tourn].activePlayers:
@@ -416,14 +364,29 @@ async def confirmMatchResult( ctx, tourn = "" ):
     await ctx.send( f'{ctx.message.author.mention}, your confirmation of your match has been recorded.' )
     
 
-    
-"""
-Future commands:
-
 @bot.command(name='standings')
-async def standings( ctx, name = "" ):
+async def standings( ctx, tourn = "" ):
+    tourn  = tourn.strip()
+    if await isPrivateMessage( ctx ): return
+    
+    if tourn == "":
+        tourns = currentGuildTournaments( ctx.message.guild.name )
+        if len( tourns ) > 1:
+            await ctx.send( f'{ctx.message.author.mention}, there are more than one planned tournaments for this server. Please specify what tournament you are playing in.' )
+            return
+        elif len( tourns ) < 1:
+            await ctx.send( f'{ctx.message.author.mention}, there are no planned tournaments for this server. If you think this is an error, contact tournament staff.' )
+            return
+        else:
+            tourn = [ name for name in tourns ][0]
 
-"""
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    
+    await ctx.send( f'{ctx.message.author.mention}, the starting for {tourn} are:' )
+    for msg in splitMessage( currentTournaments[tourn].getStandings() ):
+        await ctx.send( msg )
+
 
 
 

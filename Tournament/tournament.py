@@ -64,12 +64,12 @@ class tournament:
         self.fail_count = 0
         
         self.queue             = [ [] ]
-        self.playersPerMatch   = 4
+        self.playersPerMatch   = 2
         self.pairingsThreshold = self.playersPerMatch * 2 + 3
-        self.pairingWaitTime   = 15
+        self.pairingWaitTime   = 20
         self.queueActivity     = [ ]
         self.highestPriority   = 0
-        self.pairingsThread    = threading.Thread( target=self.launch_pairings )
+        self.pairingsThread    = threading.Thread( target=self.launch_pairings, args=(self.pairingWaitTime,) )
         
         self.deckCount = 1
 
@@ -188,7 +188,7 @@ class tournament:
         print( f'Added {a_player} to the queue' )
         if sum( [ len(level) for level in self.queue ] ) > self.pairingsThreshold and not (self.loop.is_running( ) or self.pairingsThread.is_alive()):
             print( "Creating task" )
-            self.pairingsThread = threading.Thread( target=self.launch_pairings )
+            self.pairingsThread = threading.Thread( target=self.launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )
     
     async def addMatch( self, a_players: List[str] ) -> None:
@@ -219,20 +219,20 @@ class tournament:
             await self.pairingsChannel.send( message )
     
     # A wrapper for run_pairings to prevent "RuntimeError('This event loop is already running')"
-    def launch_pairings( self ):
+    def launch_pairings( self, a_waitTime ):
         # print( f'Inside launch_pairings. This thread ID is {threading.get_ident()} while the newest Thread ID is {self.pairingsThread.ident}' )
         while self.loop.is_running():
             if threading.get_ident() != self.pairingsThread.ident:
                 # print( f'Aborting launch_pairings. This thread ID is {threading.get_ident()} while the newest Thread ID is {self.pairingsThread.ident}' )
                 return
             pass
-        t = threading.Thread( target=self.run_pairings )
+        t = threading.Thread( target=self.run_pairings, args=(a_waitTime,) )
         t.start( )
 
     # Wrapper for self.pairQueue so that it can be ran on a seperate thread
-    def run_pairings( self ):
+    def run_pairings( self, a_waitTime ):
         try:
-            self.loop.run_until_complete( self.pairQueue( ) )
+            self.loop.run_until_complete( self.pairQueue( a_waitTime ) )
         except RuntimeWarning:
             self.fail_count += 1
     
@@ -279,9 +279,9 @@ class tournament:
         return [ ]
         
     
-    async def pairQueue( self ) -> None:
+    async def pairQueue( self, a_waitTime: int ) -> None:
         # print( "Inside the pairings task" )
-        time.sleep( self.pairingWaitTime )
+        time.sleep( a_waitTime )
 
         newQueue = []
         for _ in range(len(self.queue) + 1):
@@ -347,10 +347,63 @@ class tournament:
         
         if self.queue != [ [] ] + oldQueue and sum( [ len(level) for level in self.queue ] ) > self.pairingsThreshold and not self.pairingsThread.is_alive( ):
             print( "There are still enough players to form a match. Trying again." )
-            self.pairingsThread = threading.Thread( target=self.launch_pairings )
+            self.pairingsThread = threading.Thread( target=self.launch_pairings, args=(0,) )
             self.pairingsThread.start( )
 
         # print( "Completed pairings task" )
+    
+    
+    def getStandings( self ) -> str:
+        rough = [ ]
+        for plyr in self.activePlayers.values():
+            # Match Points
+            points = plyr.getMatchPoints()
+            # Match Win Percentage
+            MWP = plyr.getMatchWinPercentage( )
+            # Opponent Match Win Percentage
+            OWP = 0.0
+            if len(plyr.opponents) > 0:
+                OWP = sum([ self.activePlayers[opp].getMatchWinPercentage() if opp in self.activePlayers else self.droppedPlayers[opp].getMatchWinPercentage for opp in plyr.opponents ])/len(plyr.opponents) 
+            rough.append( (points, MWP, OWP, plyr.discordUser.display_name) )
+        rough.sort( key= lambda x: x[0] )
+        bins = [ [] for _ in range(rough[-1][0]+1) ]
+        for stand in rough:
+            bins[stand[0]].append(stand)
+        for BIN in bins:
+            BIN.sort( reverse=True, key= lambda x: x[1] )
+            # Sort by OWP using bubble sort because I'm lazy
+            for i in range(len(BIN)-1):
+                for j in range(len(BIN)-1-i):
+                    if BIN[j][1] != BIN[j+1][1]:
+                        continue
+                    if BIN[j][2] < BIN[j+1][2]:
+                        tmp = BIN[j]
+                        BIN[j] = BIN[j+1]
+                        BIN[j+1] = tmp
+        
+        """
+        points  = [ str(stand[0]) for BIN in bins for stand in BIN ]
+        GWP     = [ str(stand[1]) for BIN in bins for stand in BIN ]
+        OWP     = [ str(stand[2]) for BIN in bins for stand in BIN ]
+        players = [ stand[3] for BIN in bins for stand in BIN ]
+        
+        digest = discord.Embed( title=f'{self.tournName} Standings' )
+        digest.add_field(name="Players", value="\n".join(players), inline=True)
+        digest.add_field(name="Match Points", value="\n".join(points), inline=True)
+        digest.add_field(name="MWP", value="\n".join(GWP), inline=True)
+        digest.add_field(name="OMWP", value="\n".join(OWP), inline=True)
+
+        """
+        col_width = max([ len(plyr[-1]) for row in bins for plyr in row ]) + 2  # padding
+        digest = f'{"Player".ljust(col_width)}{"Match Points".ljust(col_width)}{"Match Win Percentage".ljust(col_width)}{"Opponent MWP".ljust(col_width)}\n'
+        for BIN in reversed(bins):
+            for plyr in BIN:
+                digest += plyr[3].ljust(col_width)
+                digest += f'{str(plyr[0])}'.ljust(col_width)
+                digest += f'{str(plyr[1]*100)}%'.ljust(col_width)
+                digest += f'{str(plyr[2]*100)}%\n'
+        return digest
+            
 
     
     def getMatch( self, a_matchNum: int ) -> match:
@@ -472,7 +525,7 @@ class tournament:
             self.queue[int(plyr.attrib['priority'])].append( self.activePlayers[ plyr.attrib['name'] ] )
         if sum( [len(level) for level in self.queue] ) > self.playersPerMatch:
             print( "Enough players found during loading. Creating new pairing task." )
-            self.pairingsThread = threading.Thread( target=self.launch_pairings )
+            self.pairingsThread = threading.Thread( target=self.launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )
     
     def loadPlayers( self, a_dirName: str ) -> None:
@@ -494,12 +547,20 @@ class tournament:
             for aPlayer in newMatch.activePlayers:
                 if aPlayer in self.activePlayers:
                     self.activePlayers[aPlayer].matches.append( newMatch )
+                    self.activePlayers[aPlayer].opponents += [ plyr for plyr in newMatch.activePlayers if plyr != aPlayer ]
+                    self.activePlayers[aPlayer].opponents += newMatch.droppedPlayers
                 elif aPlayer in self.droppedPlayers:
                     self.droppedPlayers[aPlayer].matches.append( newMatch )
+                    self.droppedPlayers[dPlayer].opponents += newMatch.droppedPlayers
+                    self.droppedPlayers[dPlayer].opponents += [ plyr for plyr in newMatch.droppedPlayers if plyr != dPlayer ]
             for dPlayer in newMatch.droppedPlayers:
                 if dPlayer in self.activePlayers:
                     self.activePlayers[dPlayer].matches.append( newMatch )
+                    self.activePlayers[aPlayer].opponents += [ plyr for plyr in newMatch.activePlayers if plyr != aPlayer ]
+                    self.activePlayers[aPlayer].opponents += newMatch.droppedPlayers
                 elif dPlayer in self.droppedPlayers:
                     self.droppedPlayers[dPlayer].matches.append( newMatch )
+                    self.droppedPlayers[dPlayer].opponents += newMatch.droppedPlayers
+                    self.droppedPlayers[dPlayer].opponents += [ plyr for plyr in newMatch.droppedPlayers if plyr != dPlayer ]
 
 

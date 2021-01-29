@@ -10,14 +10,39 @@ from dotenv import load_dotenv
 from Tournament import *
 
 
-def isPrivateMessage( a_message ) -> bool:
-    return str(a_message.channel.type) == 'private'
-    
-def isTournamentAdmin( a_author ) -> bool:
-    retValue = False
-    for role in a_author.roles:
-        retValue |= str(role).lower() == "tournament admin"
-    return retValue
+async def isPrivateMessage( ctx ) -> bool:
+    digest = (str(ctx.message.channel.type) == 'private')
+    if digest:
+        await ctx.send( f'In general, you are not allowed to send commands via DM. Each tournament is tied to a server. Please send this message from the appropriate server.' )
+    return digest
+
+async def isTournamentAdmin( ctx ) -> bool:
+    digest = False
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    for role in ctx.message.author.roles:
+        digest |= str(role).lower() == "tournament admin"
+    if not digest:
+        await ctx.send( f'{ctx.message.author.mention}, you do not admin permissions for tournaments on this server. Please do not do this again or {adminMention} may intervene.' )
+    return digest
+
+async def checkTournExists( tourn, ctx ):
+    digest = ( tourn in currentTournaments )
+    if not digest:
+        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
+    return digest
+
+async def correctGuild( tourn, ctx ):
+    digest = ( currentTournaments[tourn].hostGuildName == ctx.message.guild.name )
+    if not digest:
+        await ctx.send( f'{ctx.message.author.mention}, {tourn} does not belong to this server. Please send this command from the correct server.' )
+    return digest
+
+async def isTournDead( tourn, ctx ):
+    adminMetnion = getTournamentAdminMention( ctx.message.guild )
+    digest = currentTournaments[tourn].isDead( )
+    if digest:
+        await ctx.send( f'{ctx.message.author.mention}, {tourn} has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
+    return digest
 
 def getTournamentAdminMention( a_guild ) -> str:
     adminMention = ""
@@ -58,6 +83,19 @@ def findPlayer( a_guild: discord.Guild, a_tourn: str, a_memberName: str ):
         if member.mention == a_memberName:
             return member
     return ""
+
+def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
+    if len(msg) <= limit:
+        return [ msg ]
+    msg = msg.split( delim )
+    digest = [ "" ]
+    for submsg in msg:
+        if len(digest[-1]) + len(submsg) <= limit:
+            digest[-1] += submsg
+        else:
+            digest.append( submsg )
+    return digest
+    
 
 
 load_dotenv()

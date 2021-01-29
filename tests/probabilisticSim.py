@@ -24,7 +24,7 @@ timeRatio = 1/600
 lfgKey    = "@!766808531109281802"
 
 # The number of players to simulate
-plyrCount = 120
+plyrCount = 200
 # The length of the pairings (in seconds)
 roundTime = 6*60*60*timeRatio
 
@@ -112,8 +112,7 @@ for act in tourn.queueActivity:
         print( format_e( Decimal(times[-1]) ) )
         del( players[act[0]] )
 
-
-
+print( tourn.getStandings() )
 
 print( f'There were {tourn.fail_count} threading failures.' )
 times.sort()

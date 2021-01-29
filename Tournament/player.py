@@ -53,6 +53,13 @@ class player:
         digest += f'Matches:{newLine}{newLine.join( self.matches )}'
         return digest
     
+    def __eq__( self, other: 'player' ):
+        if type(other) != player:
+            return False
+        digest  = ( self.name == other.name )
+        digest &= ( self.discordID == other.discordID )
+        return digest
+    
     def isValidOpponent( self, a_plyr: 'player' ) -> bool:
         if self.name in a_plyr.opponents:
             return False
@@ -164,19 +171,20 @@ class player:
     # Tallies the number of matches that the player is in, has won, and have been certified.
     def getMatchPoints( self ) -> int:
         digest = 0
-        for match in self.matches:
-            if not match.isCertified( ):
-                continue
-            if match.winner == self.name:
+        certMatches = [ mtch for mtch in self.matches if mtch.isCertified( ) ]
+        for mtch in certMatches:
+            if mtch.winner == self.name:
                 digest += 3
-            elif "is a draw" in match.winner.lower():
+            elif "is a draw" in mtch.winner.lower():
                 digest += 1
         return digest
     
     # Calculates the percentage of game the player has won
     def getMatchWinPercentage( self ) -> float:
-        certMatches = [ match for match in self.matches if match.isCertified( ) ]
-        return len( [ 1 for match in certMatches if match.winner == self.name ] )/len( certMatches )
+        certMatches = [ mtch for mtch in self.matches if mtch.isCertified( ) ]
+        if len( certMatches ) == 0:
+            return 0.0
+        return len( [ 1 for mtch in certMatches if mtch.winner == self.name ] )/len( certMatches )
     
     # Saves the overview of the player and their deck(s)
     # Matches aren't saved with the player. They are save seperately.
