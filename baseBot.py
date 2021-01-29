@@ -10,37 +10,37 @@ from dotenv import load_dotenv
 from Tournament import *
 
 
-async def isPrivateMessage( ctx ) -> bool:
+async def isPrivateMessage( ctx, send: bool = True ) -> bool:
     digest = (str(ctx.message.channel.type) == 'private')
-    if digest:
+    if digest and send:
         await ctx.send( f'In general, you are not allowed to send commands via DM. Each tournament is tied to a server. Please send this message from the appropriate server.' )
     return digest
 
-async def isTournamentAdmin( ctx ) -> bool:
+async def isTournamentAdmin( ctx, send: bool = True ) -> bool:
     digest = False
     adminMention = getTournamentAdminMention( ctx.message.guild )
     for role in ctx.message.author.roles:
         digest |= str(role).lower() == "tournament admin"
-    if not digest:
+    if not digest and send:
         await ctx.send( f'{ctx.message.author.mention}, you do not admin permissions for tournaments on this server. Please do not do this again or {adminMention} may intervene.' )
     return digest
 
-async def checkTournExists( tourn, ctx ):
+async def checkTournExists( tourn, ctx, send: bool = True ):
     digest = ( tourn in currentTournaments )
-    if not digest:
+    if not digest and send:
         await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
     return digest
 
-async def correctGuild( tourn, ctx ):
+async def correctGuild( tourn, ctx, send: bool = True ):
     digest = ( currentTournaments[tourn].hostGuildName == ctx.message.guild.name )
-    if not digest:
+    if not digest and send:
         await ctx.send( f'{ctx.message.author.mention}, {tourn} does not belong to this server. Please send this command from the correct server.' )
     return digest
 
-async def isTournDead( tourn, ctx ):
+async def isTournDead( tourn, ctx, send: bool = True ):
     adminMetnion = getTournamentAdminMention( ctx.message.guild )
     digest = currentTournaments[tourn].isDead( )
-    if digest:
+    if digest and send:
         await ctx.send( f'{ctx.message.author.mention}, {tourn} has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
     return digest
 

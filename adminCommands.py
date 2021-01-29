@@ -458,8 +458,8 @@ async def adminCreatePairing( ctx, tourn = "", *plyrs ):
             currentTournaments[tourn].queueActivity.append( (ident, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
     
     await currentTournaments[tourn].addMatch( userIdents )
-    await ctx.send( f'{ctx.message.author.mention}, the players you specified for the match are now paired. Their match number is #{currentTournaments[tourn].matches[-1].matchNumber}.' )
     currentTournaments[tourn].matches[-1].saveXML( f'currentTournaments/{tourn}/matches/match_{currentTournaments[tourn].matches[-1].matchNumber}.xml' )
+    await ctx.send( f'{ctx.message.author.mention}, the players you specified for the match are now paired. Their match number is #{currentTournaments[tourn].matches[-1].matchNumber}.' )
 
 
 @bot.command(name='create-pairings-list')
@@ -551,6 +551,33 @@ async def adminConfirmResult( ctx, tourn = "" ):
             break
         await ctx.send( msg )
     
+
+@bot.command(name='players-per-match')
+async def adminConfirmResult( ctx, tourn = "", num = "" ):
+    tourn  = tourn.strip()
+    num    = num.strip()
+    
+    if await isPrivateMessage( ctx ): return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "" or num == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a number of players for a match.' )
+        return
+    try:
+        num = int(num)
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, "{num}" could not be converted to a number. Please make sure you only use digits.' )
+        return
+
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    currentTournaments[tourn].playersPerMatch = num
+    currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    await ctx.send( f'{adminMention}, the number of players per match for {tourn} was changed to {num} by {ctx.message.author.mention}.' )
+    currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
 
 
 
