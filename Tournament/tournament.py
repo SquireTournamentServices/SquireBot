@@ -64,7 +64,7 @@ class tournament:
         self.fail_count = 0
         
         self.queue             = [ [] ]
-        self.playersPerMatch   = 2
+        self.playersPerMatch   = 4
         self.pairingsThreshold = self.playersPerMatch * 2 + 3
         self.pairingWaitTime   = 20
         self.queueActivity     = [ ]
@@ -247,7 +247,7 @@ class tournament:
             newMatch.role = matchRole
             newMatch.timer = threading.Thread( target=self.matchTimer, args=(newMatch,) )
             newMatch.timer.start( )
-            message  = f'{matchRole.mention}, you have been paired for your match. There is a voice channel for you that you may join. Below in information about your opponents.\n'
+            message  = f'\n{matchRole.mention}, you have been paired for your match. There is a voice channel for you that you may join. Below in information about your opponents.\n'
         
         for plyr in a_players:
             self.activePlayers[plyr].matches.append( newMatch )
@@ -393,8 +393,10 @@ class tournament:
             MWP = plyr.getMatchWinPercentage( )
             # Opponent Match Win Percentage
             OWP = 0.0
-            if len(plyr.opponents) > 0:
-                OWP = sum([ self.activePlayers[opp].getMatchWinPercentage() if opp in self.activePlayers else self.droppedPlayers[opp].getMatchWinPercentage for opp in plyr.opponents ])/len(plyr.opponents) 
+            oppWins = sum( [ self.activePlayers[opp].getMatchWinPercentage() if opp in self.activePlayers else self.droppedPlayers[opp].getMatchWinPercentage() for opp in plyr.opponents ] )
+            oppGames = sum( [ len(self.activePlayers[opp].matches) if opp in self.activePlayers else len(self.droppedPlayers[opp].matches) for opp in plyr.opponents ] )
+            if oppGames > 0:
+                OWP = oppWins/oppGames
             rough.append( (points, MWP, OWP, plyr.discordUser.display_name) )
         rough.sort( key= lambda x: x[0] )
         bins = [ [] for _ in range(rough[-1][0]+1) ]
@@ -426,7 +428,7 @@ class tournament:
 
         """
         col_width = max([ len(plyr[-1]) for row in bins for plyr in row ]) + 2  # padding
-        digest = f'{"Player".ljust(col_width)}{"Match Points".ljust(col_width)}{"Match Win Percentage".ljust(col_width)}{"Opponent MWP".ljust(col_width)}\n'
+        digest = f'{"Player".ljust(col_width)}{"Match Points".ljust(col_width)}{"Match Win Percentage".ljust(col_width)}Opponent MWP\n'
         for BIN in reversed(bins):
             for plyr in BIN:
                 digest += plyr[3].ljust(col_width)
@@ -584,13 +586,13 @@ class tournament:
                     self.activePlayers[aPlayer].opponents += newMatch.droppedPlayers
                 elif aPlayer in self.droppedPlayers:
                     self.droppedPlayers[aPlayer].matches.append( newMatch )
-                    self.droppedPlayers[dPlayer].opponents += newMatch.droppedPlayers
-                    self.droppedPlayers[dPlayer].opponents += [ plyr for plyr in newMatch.droppedPlayers if plyr != dPlayer ]
+                    self.droppedPlayers[aPlayer].opponents += newMatch.droppedPlayers
+                    self.droppedPlayers[aPlayer].opponents += [ plyr for plyr in newMatch.droppedPlayers if plyr != dPlayer ]
             for dPlayer in newMatch.droppedPlayers:
                 if dPlayer in self.activePlayers:
                     self.activePlayers[dPlayer].matches.append( newMatch )
-                    self.activePlayers[aPlayer].opponents += [ plyr for plyr in newMatch.activePlayers if plyr != aPlayer ]
-                    self.activePlayers[aPlayer].opponents += newMatch.droppedPlayers
+                    self.activePlayers[dPlayer].opponents += [ plyr for plyr in newMatch.activePlayers if plyr != aPlayer ]
+                    self.activePlayers[dPlayer].opponents += newMatch.droppedPlayers
                 elif dPlayer in self.droppedPlayers:
                     self.droppedPlayers[dPlayer].matches.append( newMatch )
                     self.droppedPlayers[dPlayer].opponents += newMatch.droppedPlayers

@@ -46,11 +46,11 @@ class player:
     def __str__( self ):
         newLine = "\n\t- "
         digest  = f'Player Name: {self.name}\n'
-        #digest += f'Disord Nickname: {self.discordUser.display_name}\n'
+        digest += f'Disord Nickname: {self.discordUser.display_name}\n'
         digest += f'Cockatrice Username: {self.triceName}\n'
         digest += f'Status: {self.status}\n'
         digest += f'Decks:{newLine}{newLine.join( [ str(self.decks[ident]) for ident in self.decks ] )}\n'
-        digest += f'Matches:{newLine}{newLine.join( self.matches )}'
+        digest += f'Matches:{newLine}{newLine.join( [ str(mtch) for mtch in self.matches ] )}'
         return digest
     
     def __eq__( self, other: 'player' ):
@@ -80,7 +80,7 @@ class player:
         counter = 0
         for deck in self.decks:
             counter += 1
-            digest += f'Deck {counter}: {self.decks[deck].deckHash}'
+            digest += f'Deck {counter}: {self.decks[deck].deckHash}\n'
         return digest
     
     # Adds a copy of a discord user object
@@ -175,7 +175,7 @@ class player:
         for mtch in certMatches:
             if mtch.winner == self.name:
                 digest += 3
-            elif "is a draw" in mtch.winner.lower():
+            elif "a draw" in mtch.winner.lower():
                 digest += 1
         return digest
     
@@ -185,6 +185,9 @@ class player:
         if len( certMatches ) == 0:
             return 0.0
         return len( [ 1 for mtch in certMatches if mtch.winner == self.name ] )/len( certMatches )
+    
+    def getNumberOfWins( self ) -> int:
+        return sum( [ 1 if mtch.winner == self.name else 0 for mtch in self.matches if mtch.isCertified( ) ] )
     
     # Saves the overview of the player and their deck(s)
     # Matches aren't saved with the player. They are save seperately.

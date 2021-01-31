@@ -84,6 +84,8 @@ def findPlayer( a_guild: discord.Guild, a_tourn: str, a_memberName: str ):
             return member
         if f'<@!{member.id}>' == a_memberName:
             return member
+        if f'<@{member.id}>' == a_memberName:
+            return member
     return ""
 
 def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
@@ -93,7 +95,7 @@ def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
     digest = [ "" ]
     for submsg in msg:
         if len(digest[-1]) + len(submsg) <= limit:
-            digest[-1] += submsg
+            digest[-1] += delim + submsg
         else:
             digest.append( submsg )
     return digest
