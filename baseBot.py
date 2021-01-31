@@ -26,20 +26,20 @@ async def isTournamentAdmin( ctx, send: bool = True ) -> bool:
     return digest
 
 async def checkTournExists( tourn, ctx, send: bool = True ):
-    digest = ( tourn in currentTournaments )
+    digest = ( tourn in tournaments )
     if not digest and send:
         await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
     return digest
 
 async def correctGuild( tourn, ctx, send: bool = True ):
-    digest = ( currentTournaments[tourn].hostGuildName == ctx.message.guild.name )
+    digest = ( tournaments[tourn].hostGuildName == ctx.message.guild.name )
     if not digest and send:
         await ctx.send( f'{ctx.message.author.mention}, {tourn} does not belong to this server. Please send this command from the correct server.' )
     return digest
 
 async def isTournDead( tourn, ctx, send: bool = True ):
     adminMetnion = getTournamentAdminMention( ctx.message.guild )
-    digest = currentTournaments[tourn].isDead( )
+    digest = tournaments[tourn].isDead( )
     if digest and send:
         await ctx.send( f'{ctx.message.author.mention}, {tourn} has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
     return digest
@@ -54,14 +54,14 @@ def getTournamentAdminMention( a_guild ) -> str:
 
 def currentGuildTournaments( a_guildName: str ):
     tourns = {}
-    for tourn in currentTournaments:
-        if not currentTournaments[tourn].isDead() and currentTournaments[tourn].hostGuildName == a_guildName:
-            tourns[tourn] = currentTournaments[tourn]
+    for tourn in tournaments:
+        if not tournaments[tourn].isDead() and tournaments[tourn].hostGuildName == a_guildName:
+            tourns[tourn] = tournaments[tourn]
     return tourns
 
 def hasStartedTournament( a_guildName ) -> bool:
-    for tourn in currentTournaments:
-        if currentTournaments[tourn].tournStarted and currentTournaments[tourn].hostGuildName == a_guildName:
+    for tourn in tournaments:
+        if tournaments[tourn].tournStarted and tournaments[tourn].hostGuildName == a_guildName:
             return True
     return False
 
@@ -108,8 +108,7 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-currentTournaments = {}
-closedTournaments = []
+tournaments = {}
 playersToBeDropped = []
 
 # When ready, the bot needs to looks at each pre-loaded tournament and add a discord user to each player.
@@ -117,12 +116,12 @@ playersToBeDropped = []
 async def on_ready():
     await bot.wait_until_ready( )
     print(f'{bot.user.name} has connected to Discord!')
-    for tourn in currentTournaments:
-        print( f'{tourn} has a guild ID of "{currentTournaments[tourn].guildID}".' )
-        guild = bot.get_guild( currentTournaments[tourn].guildID )
+    for tourn in tournaments:
+        print( f'{tourn} has a guild ID of "{tournaments[tourn].guildID}".' )
+        guild = bot.get_guild( tournaments[tourn].guildID )
         if type( guild ) != None:
-            currentTournaments[tourn].assignGuild( guild )
-            currentTournaments[tourn].loop = bot.loop
+            tournaments[tourn].assignGuild( guild )
+            tournaments[tourn].loop = bot.loop
 
 
 def message_to_xml( msg: discord.Message, indent: str = "" ) -> str:

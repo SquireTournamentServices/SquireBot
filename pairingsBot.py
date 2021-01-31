@@ -20,11 +20,11 @@ for tourn in savedTournaments:
     newTourn = tournament( "", "" )
     newTourn.loadTournament( tourn )
     if newTourn.tournName != "":
-        currentTournaments[newTourn.tournName] = newTourn
+        tournaments[newTourn.tournName] = newTourn
 
 newLine = "\n\t- "
 print( f'These are the saved tournaments:{newLine}{newLine.join(savedTournaments)}' )
-print( f'These are the loaded current tournaments:{newLine}{newLine.join(currentTournaments)}' )
+print( f'These are the loaded current tournaments:{newLine}{newLine.join(tournaments)}' )
 
 
 bot.run(TOKEN)

@@ -21,14 +21,14 @@ async def createTournament( ctx, tourn = "" ):
     if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, you need to specify what you want the tournament to be called.' )
         return
-    if tourn in currentTournaments:
+    if tourn in tournaments:
         await ctx.send( f'{ctx.message.author.mention}, there is already a tournament call {tourn} either on this server or another. Pick a different name.' )
         return
     
     await ctx.message.guild.create_role( name=f'{tourn} Player' )
-    currentTournaments[tourn] = tournament( tourn, ctx.message.guild.name )
-    currentTournaments[tourn].addDiscordGuild( ctx.message.guild )
-    currentTournaments[tourn].saveTournament( f'currentTournaments/{tourn}' )
+    tournaments[tourn] = tournament( tourn, ctx.message.guild.name )
+    tournaments[tourn].addDiscordGuild( ctx.message.guild )
+    tournaments[tourn].saveTournament( f'currentTournaments/{tourn}' )
     await ctx.send( f'{adminMention}, a new tournament called "{tourn}" has been created by {ctx.message.author.mention}.' )
     
 
@@ -50,8 +50,8 @@ async def updateReg( ctx, tourn = "", status = "" ):
     status = "True" if status.lower() == "open" else status
     status = "False" if status.lower() == "closed" else status
 
-    currentTournaments[tourn].setRegStatus( str_to_bool(status) )
-    currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    tournaments[tourn].setRegStatus( str_to_bool(status) )
+    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
     await ctx.send( f'{adminMention}, registeration for the "{tourn}" tournament has been {("opened" if str_to_bool(status) else "closed")} by {ctx.message.author.mention}.' ) 
 
 
@@ -67,12 +67,12 @@ async def startTournament( ctx, tourn = "" ):
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
-    if currentTournaments[tourn].tournStarted:
+    if tournaments[tourn].tournStarted:
         await ctx.send( f'{ctx.message.author.mention}, {tourn} has already been started.' )
         return
 
-    currentTournaments[tourn].startTourn()
-    currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    tournaments[tourn].startTourn()
+    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
     await ctx.send( f'{adminMention}, {tourn} has been started by {ctx.message.author.mention}.' )
     
 
@@ -86,21 +86,20 @@ async def endTournament( ctx, tourn = "" ):
     if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, you need to specify what tournament you want to end.' )
         return
-    if not tourn in currentTournaments:
+    if not tourn in tournaments:
         await ctx.send( f'{ctx.message.author.mention}, there is no tournament called "{tourn}" for this server.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
-    if currentTournaments[tourn].tournCancel:
+    if tournaments[tourn].tournCancel:
         await ctx.send( f'{ctx.message.author.mention}, {tourn} has already been cancelled. Check with {adminMention} if you think this is an error.' )
         return
 
-    await currentTournaments[tourn].endTourn( )
-    currentTournaments[tourn].saveTournament( f'closedTournaments/{tourn}' )
+    await tournaments[tourn].endTourn( )
+    tournaments[tourn].saveTournament( f'closedTournaments/{tourn}' )
     if os.path.isdir( f'currentTournaments/{tourn}' ): 
         shutil.rmtree( f'currentTournaments/{tourn}' )
-    closedTournaments.append( currentTournaments[tourn] )
-    del( currentTournaments[tourn] )
+    del( tournaments[tourn] )
     await ctx.send( f'{adminMention}, {tourn} has been closed by {ctx.message.author.mention}.' )
 
 
@@ -118,12 +117,11 @@ async def cancelTournament( ctx, tourn = "" ):
     if not await correctGuild( tourn, ctx ): return
     if await isTournDead( tourn, ctx ): return
     
-    await currentTournaments[tourn].cancelTourn( )
-    currentTournaments[tourn].saveTournament( f'closedTournaments/{tourn}' )
+    await tournaments[tourn].cancelTourn( )
+    tournaments[tourn].saveTournament( f'closedTournaments/{tourn}' )
     if os.path.isdir( f'currentTournaments/{tourn}' ): 
         shutil.rmtree( f'currentTournaments/{tourn}' )
-    closedTournaments.append( currentTournaments[tourn] )
-    del( currentTournaments[tourn] )
+    del( tournaments[tourn] )
     await ctx.send( f'{adminMention}, {tourn} has been cancelled by {ctx.message.author.mention}.' )
     
     
@@ -148,15 +146,15 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
         return
     userIdent = getUserIdent( member )
     
-    if userIdent in currentTournaments[tourn].activePlayers:
+    if userIdent in tournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, {plyr} is already registered for {tourn}.' )
         return
 
-    await member.add_roles( currentTournaments[tourn].role )
-    currentTournaments[tourn].activePlayers[userIdent] = player( userIdent )
-    currentTournaments[tourn].activePlayers[userIdent].addDiscordUser( member )
-    currentTournaments[tourn].activePlayers[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
-    await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'You have been registered for {tourn} on the server "{ctx.guild.name}".' )
+    await member.add_roles( tournaments[tourn].role )
+    tournaments[tourn].activePlayers[userIdent] = player( userIdent )
+    tournaments[tourn].activePlayers[userIdent].addDiscordUser( member )
+    tournaments[tourn].activePlayers[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
+    await tournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'You have been registered for {tourn} on the server "{ctx.guild.name}".' )
     await ctx.send( f'{ctx.message.author.mention}, you have added {member.mention} to {tourn}!' )
 
 
@@ -184,15 +182,15 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
         return
     
     userIdent = getUserIdent( member )
-    if not userIdent in currentTournaments[tourn].activePlayers:
+    if not userIdent in tournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in {tourn}. Make sure they are registered or that they have not dropped.' )
         return
     
-    currentTournaments[tourn].activePlayers[userIdent].addDeck( ident, decklist )
-    currentTournaments[tourn].activePlayers[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
-    deckHash = str(currentTournaments[tourn].activePlayers[userIdent].decks[ident].deckHash)
+    tournaments[tourn].activePlayers[userIdent].addDeck( ident, decklist )
+    tournaments[tourn].activePlayers[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
+    deckHash = str(tournaments[tourn].activePlayers[userIdent].decks[ident].deckHash)
     await ctx.send( f'{ctx.message.author.mention}, decklist that you added for {plyr} has been submitted. The deck hash is "{deckHash}".' )
-    await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'A decklist has been submitted for {tourn} on the server {ctx.guild.name} on your behave. The identifier for the deck is "{ident}" and the deck hash is "{deckHash}". If this deck hash is incorrect or you are not expecting this, please contact tournament admin on that server.' )
+    await tournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'A decklist has been submitted for {tourn} on the server {ctx.guild.name} on your behave. The identifier for the deck is "{ident}" and the deck hash is "{deckHash}". If this deck hash is incorrect or you are not expecting this, please contact tournament admin on that server.' )
 
 
 @bot.command(name='admin-remove-deck')
@@ -218,20 +216,20 @@ async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
         return
 
     userIdent = getUserIdent( member )
-    if not userIdent in currentTournaments[tourn].activePlayers:
+    if not userIdent in tournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
-    deckName = currentTournaments[tourn].activePlayers[userIdent].getDeckIdent( ident )
+    deckName = tournaments[tourn].activePlayers[userIdent].getDeckIdent( ident )
     if deckName == "":
         await ctx.send( f'{ctx.message.author.mention}, it appears that {plyr} does not have a deck whose name nor hash is "{ident}" registered for {tourn}.' )
         return
-    deckHash = currentTournaments[tourn].activePlayers[userIdent].decks[deckName].deckHash
+    deckHash = tournaments[tourn].activePlayers[userIdent].decks[deckName].deckHash
 
-    del( currentTournaments[tourn].activePlayers[userIdent].decks[deckName] )
-    currentTournaments[tourn].activePlayers[userIdent].saveXML( f'currentTournaments/{currentTournaments[tourn].tournName}/players/{userIdent}.xml' )
+    del( tournaments[tourn].activePlayers[userIdent].decks[deckName] )
+    tournaments[tourn].activePlayers[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
     await ctx.send( f'{ctx.message.author.mention}, decklist that you removed from {plyr} has been processed.' )
-    await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'The deck has been removed from {tourn} on the server {ctx.guild.name}. The identifier was "{ident}" and the deck hash was "{deckHash}".' )
+    await tournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'The deck has been removed from {tourn} on the server {ctx.guild.name}. The identifier was "{ident}" and the deck hash was "{deckHash}".' )
 
 
 @bot.command(name='set-deck-count')
@@ -249,8 +247,8 @@ async def setDeckCount( ctx, tourn = "", count = "" ):
     if not await correctGuild( tourn, ctx ): return
     if await isTournDead( tourn, ctx ): return
     
-    currentTournaments[tourn].deckCount = int( count )
-    currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    tournaments[tourn].deckCount = int( count )
+    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
     await ctx.send( f'{adminMention}, the deck count for tournament called "{tourn}" has been changed to {count} by {ctx.message.author.display_name}.' )
 
 
@@ -269,10 +267,10 @@ async def adminPruneDecks( ctx, tourn = "" ):
     if await isTournDead( tourn, ctx ): return
     
     await ctx.send( f'{adminMention}, the pruning of decks is starting... now!' )
-    for plyr in currentTournaments[tourn].activePlayers:
-        Player = currentTournaments[tourn].activePlayers[plyr]
+    for plyr in tournaments[tourn].activePlayers:
+        Player = tournaments[tourn].activePlayers[plyr]
         deckIdents = [ ident for ident in Player.decks ]
-        while len( Player.decks ) > currentTournaments[tourn].deckCount:
+        while len( Player.decks ) > tournaments[tourn].deckCount:
             del( Player.decks[deckIdents[0]] )
             await ctx.send( f'{adminMention}, the deck with identifier "{deckIdents[0]}" belonging to {Player.discordUser.display_name} has been pruned.' )
             await Player.discordUser.send( content=f'Your deck with identifier "{deckIdents[0]}" has been pruned from {tourn} on the server "{ctx.guild.name}".' )
@@ -295,15 +293,15 @@ async def adminListPlayers( ctx, tourn = "", num = "" ):
     if not await correctGuild( tourn, ctx ): return
     if await isTournDead( tourn, ctx ): return
     
-    if len( currentTournaments[tourn].activePlayers ) == 0:
+    if len( tournaments[tourn].activePlayers ) == 0:
         await ctx.send( f'{ctx.message.author.mention}, there are no players registered for the tournament {tourn}.' )
         return
     if num == "n" or num == "num" or num == "number":
-        await ctx.send( f'{ctx.message.author.mention}, there are {len(currentTournaments[tourn].activePlayers)} active players in {tourn}.' )
+        await ctx.send( f'{ctx.message.author.mention}, there are {len(tournaments[tourn].activePlayers)} active players in {tourn}.' )
         return
     else:
         newLine = "\n\t- "
-        playerNames = [ currentTournaments[tourn].activePlayers[plyr].discordUser.display_name for plyr in currentTournaments[tourn].activePlayers ]
+        playerNames = [ tournaments[tourn].activePlayers[plyr].discordUser.display_name for plyr in tournaments[tourn].activePlayers ]
         await ctx.send( f'{ctx.message.author.mention}, the following are all active players registered for {tourn}:' )
         message = f'{newLine}{newLine.join(playerNames)}'
         for msg in splitMessage( message ):
@@ -331,11 +329,11 @@ async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
         return
 
     userIdent = getUserIdent( member )
-    if not userIdent in currentTournaments[tourn].activePlayers:
+    if not userIdent in tournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
-    await ctx.send( f'{ctx.message.author.mention}, the following is the profile for the player "{plyr}":\n{currentTournaments[tourn].activePlayers[userIdent]}' )
+    await ctx.send( f'{ctx.message.author.mention}, the following is the profile for the player "{plyr}":\n{tournaments[tourn].activePlayers[userIdent]}' )
 
 
 @bot.command(name='admin-match-result')
@@ -365,7 +363,7 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
         return
     
     userIdent = getUserIdent( member )
-    if not userIdent in currentTournaments[tourn].activePlayers:
+    if not userIdent in tournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
@@ -375,11 +373,11 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
         await ctx.send( f'{ctx.message.author.mention}, you did not provide a match number. Please specify a match number as a number.' )
         return
     
-    if mtch > len(currentTournaments[tourn].matches):
+    if mtch > len(tournaments[tourn].matches):
         await ctx.send( f'{ctx.message.author.mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
         
-    Match = currentTournaments[tourn].activePlayers[userIdent].getMatch( mtch )
+    Match = tournaments[tourn].activePlayers[userIdent].getMatch( mtch )
     if Match.matchNumber == -1:
         await ctx.send( f'{ctx.message.author.mention}, {member.mention} is not a player in Match #{mtch}. Double check the match number.' )
         return
@@ -388,30 +386,30 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
         message = f'{Match.role.mention}, {member.mention} has been recorded as the winner of your match by tournament admin.'
         if Match.isCertified( ):
             Match.winner = userIdent
-            await currentTournaments[tourn].pairingsChannel.send( f'{message} There is no need to recertify the result of this match.' )
+            await tournaments[tourn].pairingsChannel.send( f'{message} There is no need to recertify the result of this match.' )
         else:
             msg = await Match.recordWinner( userIdent )
             if msg == "":
-                await currentTournaments[tourn].pairingsChannel.send( f'{message} Please certify this result.' )
+                await tournaments[tourn].pairingsChannel.send( f'{message} Please certify this result.' )
             else:
-                await currentTournaments[tourn].pairingsChannel.send( msg )
+                await tournaments[tourn].pairingsChannel.send( msg )
     elif result == "d" or result == "draw":
         message = f'{Match.role.mention}, your match has been recorded as a draw by tournament admin.'
         if Match.isCertified( ):
             Match.winner = "This match is a draw."
-            await currentTournaments[tourn].pairingsChannel.send( f'{message} There is no need to recertify the result of this match.' )
+            await tournaments[tourn].pairingsChannel.send( f'{message} There is no need to recertify the result of this match.' )
         else:
             msg  = await Match.recordWinner( "" )
             msg += await Match.confirmResult( userIdent )
             if msg == "":
-                await currentTournaments[tourn].pairingsChannel.send( f'{message} Please certify this result.' )
+                await tournaments[tourn].pairingsChannel.send( f'{message} Please certify this result.' )
             else:
-                await currentTournaments[tourn].pairingsChannel.send( msg )
+                await tournaments[tourn].pairingsChannel.send( msg )
     elif result == "l" or result == "loss" or result == "loser":
         message = await Match.dropPlayer( userIdent )
         if message != "":
-            await currentTournaments[tourn].pairingsChannel.send( message )
-        await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'You were dropped from Match #{mtch} in {tourn} on the server {ctx.guild.name}. If you believe this was an error, contact tournament admin.' )
+            await tournaments[tourn].pairingsChannel.send( message )
+        await tournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'You were dropped from Match #{mtch} in {tourn} on the server {ctx.guild.name}. If you believe this was an error, contact tournament admin.' )
     else:
         await ctx.send( f'{ctx.message.author.mention}, you have provided an incorrect result. The options are "win", "loss", and "draw". Please re-enter the correct result.' )
         return
@@ -435,8 +433,8 @@ async def adminCreatePairing( ctx, tourn = "", *plyrs ):
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
     if await isTournDead( tourn, ctx ): return
-    if len(plyrs) != currentTournaments[tourn].playersPerMatch:
-        await ctx.send( f'{ctx.message.author.mention}, {tourn} requires {currentTournaments[tourn].playersPerMatch} be in a match, but you specified {len(plyrs)} players.' )
+    if len(plyrs) != tournaments[tourn].playersPerMatch:
+        await ctx.send( f'{ctx.message.author.mention}, {tourn} requires {tournaments[tourn].playersPerMatch} be in a match, but you specified {len(plyrs)} players.' )
         return
         
     print( plyrs )
@@ -448,23 +446,23 @@ async def adminCreatePairing( ctx, tourn = "", *plyrs ):
     
     userIdents = [ getUserIdent( member ) for member in members ]
     for userIdent in userIdents:
-        if not userIdent in currentTournaments[tourn].activePlayers:
+        if not userIdent in tournaments[tourn].activePlayers:
             await ctx.send( f'{ctx.message.author.mention}, a user by "{member.mention}" was found in the player role, but they are not active in {tourn}. Make sure they are registered or that they have not dropped.' )
             return
     
     for ident in userIdents:
         found = False
-        for lvl in currentTournaments[tourn].queue:
+        for lvl in tournaments[tourn].queue:
             if ident in lvl:
                 found = True
                 del( lvl[lvl.index(ident)] )
                 break
         if not found:
-            currentTournaments[tourn].queueActivity.append( (ident, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
+            tournaments[tourn].queueActivity.append( (ident, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
     
-    await currentTournaments[tourn].addMatch( userIdents )
-    currentTournaments[tourn].matches[-1].saveXML( f'currentTournaments/{tourn}/matches/match_{currentTournaments[tourn].matches[-1].matchNumber}.xml' )
-    await ctx.send( f'{ctx.message.author.mention}, the players you specified for the match are now paired. Their match number is #{currentTournaments[tourn].matches[-1].matchNumber}.' )
+    await tournaments[tourn].addMatch( userIdents )
+    tournaments[tourn].matches[-1].saveXML( f'currentTournaments/{tourn}/matches/match_{tournaments[tourn].matches[-1].matchNumber}.xml' )
+    await ctx.send( f'{ctx.message.author.mention}, the players you specified for the match are now paired. Their match number is #{tournaments[tourn].matches[-1].matchNumber}.' )
 
 
 @bot.command(name='create-pairings-list')
@@ -497,7 +495,7 @@ async def createPairingsList( ctx, tourn = "" ):
                 # We want to store the shifted inner index since any players in
                 # front of this player will be removed
                 digest.append( (lvl, k - len(digest) ) )
-                if len(digest) == currentTournaments[tourn].playersPerMatch:
+                if len(digest) == tournaments[tourn].playersPerMatch:
                     # print( f'Match found: {", ".join([ p.name for p in plyrs ])}.' ) 
                     return digest
         
@@ -513,7 +511,7 @@ async def createPairingsList( ctx, tourn = "" ):
                     # front of this player will be removed
                     digest.append( (l, k - count ) )
                     count += 1
-                    if len(digest) == currentTournaments[tourn].playersPerMatch:
+                    if len(digest) == tournaments[tourn].playersPerMatch:
                         # print( f'Match found: {", ".join([ p.name for p in plyrs ])}.' ) 
                         return digest
 
@@ -521,7 +519,7 @@ async def createPairingsList( ctx, tourn = "" ):
         return [ ]
         
     # Even though this is a single list in a list, this could change to have several component lists
-    queue    = [ [ lvl for lvl in currentTournaments[tourn].activePlayers.values() ] ]
+    queue    = [ [ lvl for lvl in tournaments[tourn].activePlayers.values() ] ]
     newQueue = [ [] for _ in range(len(queue)+1) ]
     plyrs    = [ ]
     indices  = [ ]
@@ -579,10 +577,10 @@ async def playersPerMatch( ctx, tourn = "", num = "" ):
     if not await correctGuild( tourn, ctx ): return
     if await isTournDead( tourn, ctx ): return
     
-    currentTournaments[tourn].playersPerMatch = num
-    currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    tournaments[tourn].playersPerMatch = num
+    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
     await ctx.send( f'{adminMention}, the number of players per match for {tourn} was changed to {num} by {ctx.message.author.mention}.' )
-    currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
 
 @bot.command(name='set-match-length')
 async def setMatchLength( ctx, tourn = "", num = "" ):
@@ -606,10 +604,10 @@ async def setMatchLength( ctx, tourn = "", num = "" ):
     if not await correctGuild( tourn, ctx ): return
     if await isTournDead( tourn, ctx ): return
     
-    currentTournaments[tourn].matchLength = num*60
-    currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    tournaments[tourn].matchLength = num*60
+    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
     await ctx.send( f'{adminMention}, the length of a match for {tourn} was changed to {num} minutes by {ctx.message.author.mention}.' )
-    currentTournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
 
 @bot.command(name='admin-confirm-result')
 async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
@@ -637,7 +635,7 @@ async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
         return
     
     userIdent = getUserIdent( member )
-    if not userIdent in currentTournaments[tourn].activePlayers:
+    if not userIdent in tournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
@@ -647,11 +645,11 @@ async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you did not provide a match number. Please specify a match number using digits.' )
         return
     
-    if mtch > len(currentTournaments[tourn].matches):
+    if mtch > len(tournaments[tourn].matches):
         await ctx.send( f'{ctx.message.author.mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
         
-    Match = currentTournaments[tourn].activePlayers[userIdent].getMatch( mtch )
+    Match = tournaments[tourn].activePlayers[userIdent].getMatch( mtch )
     if Match.matchNumber == -1:
         await ctx.send( f'{ctx.message.author.mention}, {member.mention} is not a player in Match #{mtch}. Double check the match number.' )
         return
@@ -664,10 +662,10 @@ async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
         return
     
     Match.saveXML( f'currentTournaments/{tourn}/matches/match_{mtch}.xml' )
-    await currentTournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'The result of match #{mtch} for {tourn} has been certified by tournament admin on your behave.' )
+    await tournaments[tourn].activePlayers[userIdent].discordUser.send( content=f'The result of match #{mtch} for {tourn} has been certified by tournament admin on your behave.' )
     msg = await Match.confirmResult( userIdent )
     if msg != "":
-        await currentTournaments[tourn].pairingsChannel.send( msg )
+        await tournaments[tourn].pairingsChannel.send( msg )
     await ctx.send( f'{ctx.message.author.mention}, you have certified the result of match #{mtch} on behave of {plyr}.' )
         
 
@@ -693,14 +691,14 @@ async def adminDropPlayer( ctx, tourn = "", plyr = "" ):
         return
 
     userIdent = getUserIdent( member )
-    if not userIdent in currentTournaments[tourn].activePlayers:
+    if not userIdent in tournaments[tourn].activePlayers:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". They may have already dropped from the tournament.' )
         return
     
-    await currentTournaments[tourn].dropPlayer( userIdent )
-    currentTournaments[tourn].droppedPlayers[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
+    await tournaments[tourn].dropPlayer( userIdent )
+    tournaments[tourn].droppedPlayers[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
     await ctx.send( f'{ctx.message.author.mention}, {plyr} has been dropped from the tournament.' )
-    await currentTournaments[tourn].droppedPlayers[userIdent].discordUser.send( content=f'You have been dropped from {tourn} on the server "{ctx.message.guild.name}" by tournament admin. If you believe this is an error, check with them.' )
+    await tournaments[tourn].droppedPlayers[userIdent].discordUser.send( content=f'You have been dropped from {tourn} on the server "{ctx.message.guild.name}" by tournament admin. If you believe this is an error, check with them.' )
 
 
 
