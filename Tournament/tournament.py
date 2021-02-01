@@ -384,7 +384,7 @@ class tournament:
         # print( "Completed pairings task" )
     
     
-    def getStandings( self ) -> str:
+    def getStandings( self ) -> List[List]:
         rough = [ ]
         for plyr in self.activePlayers.values():
             # Match Points
@@ -414,27 +414,18 @@ class tournament:
                         BIN[j] = BIN[j+1]
                         BIN[j+1] = tmp
         
-        """
-        points  = [ str(stand[0]) for BIN in bins for stand in BIN ]
-        GWP     = [ str(stand[1]) for BIN in bins for stand in BIN ]
-        OWP     = [ str(stand[2]) for BIN in bins for stand in BIN ]
-        players = [ stand[3] for BIN in bins for stand in BIN ]
-        
-        digest = discord.Embed( title=f'{self.tournName} Standings' )
-        digest.add_field(name="Players", value="\n".join(players), inline=True)
-        digest.add_field(name="Match Points", value="\n".join(points), inline=True)
-        digest.add_field(name="MWP", value="\n".join(GWP), inline=True)
-        digest.add_field(name="OMWP", value="\n".join(OWP), inline=True)
-
-        """
-        col_width = max([ len(plyr[-1]) for row in bins for plyr in row ]) + 2  # padding
-        digest = f'{"Player".ljust(col_width)}{"Match Points".ljust(col_width)}{"Match Win Percentage".ljust(col_width)}Opponent MWP\n'
+        # Place, Player name, Points, MWP, OWP
+        digest =  [ [], [], [], [], [] ]
+        count  = 0
         for BIN in reversed(bins):
             for plyr in BIN:
-                digest += plyr[3].ljust(col_width)
-                digest += f'{str(plyr[0])}'.ljust(col_width)
-                digest += f'{str(plyr[1]*100)}%'.ljust(col_width)
-                digest += f'{str(plyr[2]*100)}%\n'
+                count += 1
+                digest[0].append( count )
+                digest[1].append( plyr[3] )
+                digest[2].append( plyr[0] )
+                digest[3].append( plyr[1] )
+                digest[4].append( plyr[2] )
+
         return digest
             
 
