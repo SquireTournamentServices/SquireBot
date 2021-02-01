@@ -1,6 +1,8 @@
 import string
 import discord
 
+from datetime import datetime
+
 
 conv_dict = {
     int(c, 32): c for c in (string.digits + string.ascii_lowercase)[:32]

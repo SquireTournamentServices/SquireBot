@@ -6,7 +6,6 @@ import time
 import discord
 import asyncio
 import warnings
-from datetime import datetime
 
 from typing import List
 from typing import Tuple
@@ -265,15 +264,15 @@ class tournament:
                     self.players[plyr].opponents.append( p )
             if type( self.guild ) == discord.Guild:
                 await self.players[plyr].discordUser.add_roles( matchRole )
-                embed.add_field( name=self.players[plyr].getDisplayName(), value=self.players[plyr].pairingsString() )
+                embed.add_field( name=self.players[plyr].getDisplayName(), value=self.players[plyr].pairingString() )
         
         if type( self.guild ) == discord.Guild:
-            await self.pairingsChannel.send( message )
+            await self.pairingsChannel.send( content=message, embed=embed )
     
     # Wrapper for self.pairQueue so that it can be ran on a seperate thread
     def launch_pairings( self, a_waitTime ):
         time.sleep( 10**-3 )
-        fut_pairings = asyncio.run_coroutine_threadsafe( self.pairQueue(a_waitTime) )
+        fut_pairings = asyncio.run_coroutine_threadsafe( self.pairQueue(a_waitTime), self.loop )
         fut_pairings.result( )
     
     # Starting from the given position, searches through the queue to find opponents for the player at the given position.
@@ -563,13 +562,9 @@ class tournament:
             self.matches.append( newMatch )
             for aPlayer in newMatch.activePlayers:
                 if aPlayer in self.players:
-                    self.players[aPlayer].matches.append( newMatch )
-                    self.players[aPlayer].opponents += [ plyr for plyr in newMatch.activePlayers if plyr != aPlayer ]
-                    self.players[aPlayer].opponents += newMatch.droppedPlayers
+                    self.players[aPlayer].addMatch( newMatch )
             for dPlayer in newMatch.droppedPlayers:
                 if dPlayer in self.players:
-                    self.players[dPlayer].matches.append( newMatch )
-                    self.players[dPlayer].opponents += [ plyr for plyr in newMatch.droppedPlayers if plyr != aPlayer ]
-                    self.players[dPlayer].opponents += newMatch.droppedPlayers
+                    self.players[dPlayer].addMatch( newMatch )
 
 

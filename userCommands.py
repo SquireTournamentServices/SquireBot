@@ -323,7 +323,7 @@ async def matchResult( ctx, tourn = "", result = "" ):
     userIdent = getUserIdent( ctx.message.author )
     if not await hasRegistered( tourn, userIdent, ctx ): return
     if not await isActivePlayer( tourn, userIdent, ctx ): return
-    if not await hasOpenMatch( tourn, plyr, ctx ): return
+    if not await hasOpenMatch( tourn, userIdent, ctx ): return
     
     playerMatch = tournaments[tourn].players[userIdent].findOpenMatch()
     if result == "w" or result == "win" or result == "winner":

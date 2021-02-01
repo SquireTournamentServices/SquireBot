@@ -44,8 +44,8 @@ async def isTournDead( tourn, ctx, send: bool = True ) -> bool:
     return digest
 
 async def isTournRunning( tourn, ctx, send: bool = True ) -> bool:
-    digest = tournaments[tourn].isActive and not isTournDead( tourn, ctx, send )
-    if send and not tournaments.isActive:
+    digest = tournaments[tourn].isActive and not await isTournDead( tourn, ctx, send )
+    if send and not tournaments[tourn].isActive:
         await ctx.send( f'{ctx.message.author.mention}, {tourn} has not been started yet.' )
     return digest
 

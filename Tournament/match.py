@@ -63,7 +63,7 @@ class match:
     
     async def confirmMatch( self ) -> bool:
         digest  = len( self.activePlayers )  == 1
-        digest |= len(self.confirmedPlayers) == len(self.activePlayers)
+        digest |= len(self.confirmedPlayers) >= len(self.activePlayers)
         digest &= not self.isCertified( )
         if digest:
             self.status = "certified"

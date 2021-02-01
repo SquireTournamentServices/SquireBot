@@ -83,6 +83,7 @@ class player:
             return "\u200b" # Widthless whitespace char to prevent Embed issues
     
     def pairingString( self ):
+        digest = "\u200b\u200b"
         if self.triceName != "":
             digest += f'Cockatrice Username: {self.triceName}\n'
         counter = 0
@@ -104,6 +105,20 @@ class player:
         for match in self.matches:
             digest |= not match.isCertified( )
         return digest
+    
+    def addMatch( self, a_mtch: match ) -> None:
+        self.matches.append( a_mtch )
+        for plyr in a_mtch.activePlayers:
+            if plyr == self.name:
+                continue
+            if not plyr in self.opponents:
+                self.opponents.append( plyr )
+        for plyr in a_mtch.droppedPlayers:
+            if plyr == self.name:
+                continue
+            if not plyr in self.opponents:
+                self.opponents.append( plyr )
+
     
     def getMatch( self, a_matchNum: int ) -> match:
         for mtch in self.matches:
@@ -159,8 +174,9 @@ class player:
         index = self.findOpenMatchIndex( )
         if index == 1:
             return ""
-        await self.matches[index].recordWinner( "" )
-        return await self.matches[index].confirmResult( self.name )
+        digest  = await self.matches[index].recordWinner( "" )
+        digest += await self.matches[index].confirmResult( self.name )
+        return digest
             
     # Addes a deck to the list of decks
     def addDeck( self, a_ident: str = "", a_decklist: str = "" ) -> None:
@@ -206,6 +222,7 @@ class player:
         digest  = "<?xml version='1.0'?>\n"
         digest += '<player>\n'
         digest += f'\t<name>{self.name}</name>\n'
+        digest += f'\t<triceName>{self.triceName}</triceName>'
         digest += f'\t<discord id="{self.discordUser.id if type(self.discordUser) == discord.Member else str()}"/>\n'
         digest += f'\t<status>{self.status}</status>\n'
         for ident in self.decks:
@@ -218,13 +235,12 @@ class player:
     def loadXML( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
         self.name = xmlTree.getroot().find( 'name' ).text
+        self.triceName = xmlTree.getroot().find( 'triceName' ).text
         self.discordID  = xmlTree.getroot().find( 'discord' ).attrib['id']
         if self.discordID != "":
             self.discordID = int( self.discordID )
         self.status = xmlTree.getroot().find( "status" ).text
         for deckTag in xmlTree.getroot().findall('deck'):
-            # print( deckTag.attrib )
-            # print( deckTag.attrib['ident'] )
             self.decks[deckTag.attrib['ident']] = deck()
             self.decks[deckTag.attrib['ident']].importFromETree( deckTag )
     
