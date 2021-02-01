@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 
 from typing import List
 
-from .tournamentUtils import *
+from .utils import *
 from .deck import deck
 from .match import match
 
@@ -60,6 +60,9 @@ class player:
         digest &= ( self.discordID == other.discordID )
         return digest
     
+    def isActive( self ):
+        return self.status == "active"
+    
     def isValidOpponent( self, a_plyr: 'player' ) -> bool:
         if self.name in a_plyr.opponents:
             return False
@@ -73,15 +76,20 @@ class player:
                 return False
         return True
     
+    def getDisplayName( self ):
+        if type(self.discordUser) == discord.Member:
+            return self.discordUser.display_name
+        else:
+            return "\u200b" # Widthless whitespace char to prevent Embed issues
+    
     def pairingString( self ):
-        digest  = f'Player Name: {self.discordUser.mention}\n'
         if self.triceName != "":
             digest += f'Cockatrice Username: {self.triceName}\n'
         counter = 0
         for deck in self.decks:
             counter += 1
-            digest += f'Deck {counter}: {self.decks[deck].deckHash}\n'
-        return digest
+            digest += f'Deck #{counter}: {self.decks[deck].deckHash}\n'
+        return digest[:-1] # Trim the extra new line char
     
     # Adds a copy of a discord user object
     def addDiscordUser( self, a_discordUser ) -> None:

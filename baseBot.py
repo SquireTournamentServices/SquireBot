@@ -1,6 +1,5 @@
 import os
 
-
 import discord
 from discord import Activity, ActivityType
 from discord.ext import commands
@@ -25,23 +24,53 @@ async def isTournamentAdmin( ctx, send: bool = True ) -> bool:
         await ctx.send( f'{ctx.message.author.mention}, you do not admin permissions for tournaments on this server. Please do not do this again or {adminMention} may intervene.' )
     return digest
 
-async def checkTournExists( tourn, ctx, send: bool = True ):
+async def checkTournExists( tourn, ctx, send: bool = True ) -> bool:
     digest = ( tourn in tournaments )
     if not digest and send:
         await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
     return digest
 
-async def correctGuild( tourn, ctx, send: bool = True ):
+async def correctGuild( tourn, ctx, send: bool = True ) -> bool:
     digest = ( tournaments[tourn].hostGuildName == ctx.message.guild.name )
     if not digest and send:
         await ctx.send( f'{ctx.message.author.mention}, {tourn} does not belong to this server. Please send this command from the correct server.' )
     return digest
 
-async def isTournDead( tourn, ctx, send: bool = True ):
+async def isTournDead( tourn, ctx, send: bool = True ) -> bool:
     adminMetnion = getTournamentAdminMention( ctx.message.guild )
     digest = tournaments[tourn].isDead( )
     if digest and send:
         await ctx.send( f'{ctx.message.author.mention}, {tourn} has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
+    return digest
+
+async def isTournRunning( tourn, ctx, send: bool = True ) -> bool:
+    digest = tournaments[tourn].isActive and not isTournDead( tourn, ctx, send )
+    if send and not tournaments.isActive:
+        await ctx.send( f'{ctx.message.author.mention}, {tourn} has not been started yet.' )
+    return digest
+
+async def isRegOpen( tourn, ctx, send: bool = True ) -> bool:
+    digest = tournaments[tourn].regOpen
+    if send and not digest:
+        await ctx.send( f'{ctx.message.author.mention}, registration for {tourn} is closed. Please contact tournament staff if you think this is an error.' )
+    return digest
+
+async def hasRegistered( tourn, plyr, ctx, send: bool = True ) -> bool:
+    digest = plyr in tournaments[tourn].players
+    if send and not digest:
+        await ctx.send( f'{ctx.message.author.mention}, you are not registered for {tourn}. Please register before trying to access the tournament.' )
+    return digest
+        
+async def isActivePlayer( tourn, plyr, ctx, send: bool = True ) -> bool:
+    digest = tournaments[tourn].players[plyr].isActive( )
+    if send and not digest:
+        await ctx.send( f'{ctx.message.author.mention}, you registered for {tourn} but have been dropped. Talk to tournament admin if you think this is an error.' )
+    return digest
+    
+async def hasOpenMatch( tourn, plyr, ctx, send: bool = True ) -> bool:
+    digest = tournaments[tourn].players[plyr].hasOpenMatch( )
+    if send and not digest:
+        await ctx.send( f'{ctx.message.author.mention}, you are not an active player in any match, so you do not need to do anything.' )
     return digest
 
 def getTournamentAdminMention( a_guild ) -> str:
@@ -130,6 +159,9 @@ def message_to_xml( msg: discord.Message, indent: str = "" ) -> str:
     digest += f'{indent}</message>\n'
     return digest
 
+
+
+
 @bot.command(name='test')
 async def test( ctx, *args ):
     w1 = 7
@@ -140,6 +172,36 @@ async def test( ctx, *args ):
     print( args )
     print( findPlayer( ctx.message.guild, "Izzet", args[0] ) )
     
+    
+@bot.command(name='embed')
+async def embedTest( ctx, *args ):
+    #members = ctx.message.channel.members
+    members = ctx.message.guild.members
+    limit = 1024
+
+    bed = discord.Embed()
+    
+    names  = [ "Name:", "Points & Win Percent:", "Opp. WP" ]
+    values = [ "", "", "" ]
+    
+    lengths = [ len(s) for s in names ]
+    count = 1
+    for mem in members:
+        line = [ f'{count}) {mem.display_name}\n', f'0,\t00.0000%\n', f'00.0000%\n' ]
+        line_lengths = [ len(s) for s in line ]
+        if (lengths[0] + line_lengths[0] <= limit) and (lengths[1] + line_lengths[1] <= limit) and (lengths[2] + line_lengths[2] <= limit):
+            values  = [ values[i] + line[i] for i in range(len(values)) ]
+            lengths = [ lengths[i] + line_lengths[i] for i in range(len(lengths)) ]
+        else:
+            break
+        count += 1
+        
+    for i in range(len(names)):
+        bed.add_field( name=names[i], value=values[i] )
+    
+    print( len(bed), lengths )
+    
+    await ctx.send( embed=bed )
     
 
 @bot.command(name='scrape')

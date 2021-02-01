@@ -22,6 +22,16 @@ def str_to_bool( s: str ) -> bool:
         return True
     return False
 
+def trunk( score ) -> str:
+    if type(score) != str:
+        score = str(score)
+    score = score.split(".")
+    if len(score) > 1:
+        score[1] = score[1][:2]
+    return ".".join(score) 
+
+def getTime( ) -> str:
+    return datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')
 
 def getUserIdent( a_user: discord.Member ) -> str:
     l_name = a_user.name.replace("/", "_").replace("\"", "_").replace("\'", "_")

@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import List
 from typing import Tuple
 
-from .tournamentUtils import *
+from .utils import *
 from .match import match
 from .player import player
 from .deck import deck
@@ -74,7 +74,7 @@ class tournament:
         
         self.deckCount = 1
 
-        self.activePlayers  = {}
+        self.players  = {}
         self.droppedPlayers = {}
         
         self.matches = []
@@ -103,10 +103,10 @@ class tournament:
         print( f'The guild "{a_guild}" is being assigned to {self.tournName}.' )
         print( f'There are {len(a_guild.members)} members in this guild.' )
         self.addDiscordGuild( a_guild )
-        for player in self.activePlayers:
-            ID = self.activePlayers[player].discordID
+        for player in self.players:
+            ID = self.players[player].discordID
             if ID != "":
-                self.activePlayers[player].addDiscordUser( self.guild.get_member( ID ) )
+                self.players[player].addDiscordUser( self.guild.get_member( ID ) )
         for match in self.matches:
             if match.roleID != "":
                 match.addMatchRole( a_guild.get_role( match.roleID ) )
@@ -162,31 +162,38 @@ class tournament:
         self.tournCancel = True
         return "This tournament has been canceled."
     
-    def addPlayer( self, a_discordUser ) -> str:
+    def addPlayer( self, a_discordUser, admin=False ) -> str:
         if self.tournCancel:
             return "Sorry but this tournament has been cancelled. If you believe this to be incorrect, please contact the tournament officials."
         if self.tournEnded:
             return "Sorry, but this tournament has already ended. If you believe this to be incorrect, please contact the tournament officials."
-        if self.regOpen:
-            self.activePlayers[getUserIdent(a_discordUser)] = player( getUserIdent(a_discordUser) )
-            self.activePlayers[getUserIdent(a_discordUser)].addDiscordUser( a_discordUser )
+        if not ( admin or self.regOpen ):
+            return "Sorry, but registeration for the tounament is closed."
+        ident = getUserIdent( a_discordUser )
+        if ident in self.players:
+            self.players[ident].status = "active"
+            self.players[ident].discordUser.add_roles( self.role )
             return ""
         else:
-            return "Sorry, registeration for this tournament isn't open currently."
+            self.players[ident] = player( ident )
+            self.players[ident].addDiscordUser( a_discordUser )
+            return ""
     
     # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing
     # This is a prime canidate for adjustments when players how copies of match results.
-    def addPlayerToQueue( self, a_player: str ) -> None:
+    def addPlayerToQueue( self, a_plyr: str ) -> None:
         for lvl in self.queue:
-            if a_player in lvl:
+            if a_plyr in lvl:
                 return "You are already in the matchmaking queue."
-        if a_player not in self.activePlayers:
-            return "You aren't an active player."
+        if a_plyr not in self.players:
+            return "You are not registered for this tournament."
+        if not self.players[a_plyr].isActive( ):
+            return "You are registered but are not an active player."
         
-        self.queue[0].append(self.activePlayers[a_player])
-        self.queueActivity.append( (a_player, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
+        self.queue[0].append(self.players[a_plyr])
+        self.queueActivity.append( (a_plyr, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
         time.sleep( 10**-6 )
-        print( f'Added {a_player} to the queue' )
+        print( f'Added {a_plyr} to the queue' )
         if sum( [ len(level) for level in self.queue ] ) > self.pairingsThreshold and not (self.loop.is_running( ) or self.pairingsThread.is_alive()):
             print( "Creating task" )
             self.pairingsThread = threading.Thread( target=self.launch_pairings, args=(self.pairingWaitTime,) )
@@ -232,10 +239,10 @@ class tournament:
         t.start( )
         t.join( )
     
-    async def addMatch( self, a_players: List[str] ) -> None:
-        for plyr in a_players:
-            self.queueActivity.append( (plyr, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
-        newMatch = match( a_players )
+    async def addMatch( self, a_plyr: List[str] ) -> None:
+        for plyr in a_plyr:
+            self.queueActivity.append( (plyr, getTime() ) )
+        newMatch = match( a_plyr )
         self.matches.append( newMatch )
         newMatch.matchNumber = len(self.matches)
         if type( self.guild ) == discord.Guild:
@@ -247,16 +254,18 @@ class tournament:
             newMatch.role = matchRole
             newMatch.timer = threading.Thread( target=self.matchTimer, args=(newMatch,) )
             newMatch.timer.start( )
-            message  = f'\n{matchRole.mention}, you have been paired for your match. There is a voice channel for you that you may join. Below in information about your opponents.\n'
+            
+            message = f'\n{matchRole.mention} of {self.tournName}, you have been paired. A voice channel has been created for you. Below is information about your opponents.\n'
+            embed   = discord.Embed( )
         
-        for plyr in a_players:
-            self.activePlayers[plyr].matches.append( newMatch )
-            for p in a_players:
+        for plyr in a_plyr:
+            self.players[plyr].matches.append( newMatch )
+            for p in a_plyr:
                 if p != plyr:
-                    self.activePlayers[plyr].opponents.append( p )
+                    self.players[plyr].opponents.append( p )
             if type( self.guild ) == discord.Guild:
-                await self.activePlayers[plyr].discordUser.add_roles( matchRole )
-                message += f'{self.activePlayers[plyr].pairingString()}\n' 
+                await self.players[plyr].discordUser.add_roles( matchRole )
+                embed.add_field( name=self.players[plyr].getDisplayName(), value=self.players[plyr].pairingsString() )
         
         if type( self.guild ) == discord.Guild:
             await self.pairingsChannel.send( message )
@@ -386,45 +395,32 @@ class tournament:
     
     def getStandings( self ) -> List[List]:
         rough = [ ]
-        for plyr in self.activePlayers.values():
+        for plyr in self.players.values():
+            if not plyr.isActive( ):
+                continue
             # Match Points
             points = plyr.getMatchPoints()
             # Match Win Percentage
             MWP = plyr.getMatchWinPercentage( )
             # Opponent Match Win Percentage
             OWP = 0.0
-            oppWins = sum( [ self.activePlayers[opp].getMatchWinPercentage() if opp in self.activePlayers else self.droppedPlayers[opp].getMatchWinPercentage() for opp in plyr.opponents ] )
-            oppGames = sum( [ len(self.activePlayers[opp].matches) if opp in self.activePlayers else len(self.droppedPlayers[opp].matches) for opp in plyr.opponents ] )
+            oppWins = sum( [ self.players[opp].getNumberOfWins( ) for opp in plyr.opponents ] )
+            oppGames = sum( [ len(self.players[opp].matches) if opp in self.players else len(self.droppedPlayers[opp].matches) for opp in plyr.opponents ] )
             if oppGames > 0:
                 OWP = oppWins/oppGames
             rough.append( (points, MWP, OWP, plyr.discordUser.display_name) )
-        rough.sort( key= lambda x: x[0] )
-        bins = [ [] for _ in range(rough[-1][0]+1) ]
-        for stand in rough:
-            bins[stand[0]].append(stand)
-        for BIN in bins:
-            BIN.sort( reverse=True, key= lambda x: x[1] )
-            # Sort by OWP using bubble sort because I'm lazy
-            for i in range(len(BIN)-1):
-                for j in range(len(BIN)-1-i):
-                    if BIN[j][1] != BIN[j+1][1]:
-                        continue
-                    if BIN[j][2] < BIN[j+1][2]:
-                        tmp = BIN[j]
-                        BIN[j] = BIN[j+1]
-                        BIN[j+1] = tmp
+        
+        # sort() is stable, so relate order similar elements is preserved
+        rough.sort( key= lambda x: x[2], reverse=True )
+        rough.sort( key= lambda x: x[1], reverse=True )
+        rough.sort( key= lambda x: x[0], reverse=True )
         
         # Place, Player name, Points, MWP, OWP
-        digest =  [ [], [], [], [], [] ]
-        count  = 0
-        for BIN in reversed(bins):
-            for plyr in BIN:
-                count += 1
-                digest[0].append( count )
-                digest[1].append( plyr[3] )
-                digest[2].append( plyr[0] )
-                digest[3].append( plyr[1] )
-                digest[4].append( plyr[2] )
+        digest =  [ [ i+1 for i in range(len(rough))], \
+                    [ i[3] for i in rough ], \
+                    [ i[0] for i in rough ], \
+                    [ i[1]*100 for i in rough ], \
+                    [ i[2]*100 for i in rough ] ]
 
         return digest
             
@@ -439,37 +435,35 @@ class tournament:
             if mtch.matchNumber == a_matchNum:
                 return mtch
     
-    async def playerMatchDrop( self, a_player: str ) -> None:
-        if not a_player in self.activePlayers:
+    async def playerMatchDrop( self, a_plyr: str ) -> None:
+        if not a_plyr in self.players:
             return
-        await self.activePlayers[a_player].drop( )
+        await self.players[a_plyr].drop( )
     
-    async def dropPlayer( self, a_player: str ) -> None:
-        await self.playerMatchDrop( a_player )
-        if a_player in self.activePlayers:
-            await self.activePlayers[a_player].drop( )
-            self.droppedPlayers[a_player] = self.activePlayers[a_player]
-            del( self.activePlayers[a_player] )
-            print( self.droppedPlayers[a_player] )
+    async def dropPlayer( self, a_plyr: str ) -> None:
+        await self.playerMatchDrop( a_plyr )
+        if a_plyr in self.players:
+            await self.players[a_plyr].discordUser.remove_roles( self.role )
+            await self.players[a_plyr].drop( )
     
-    async def playerCertifyResult( self, a_player: str ) -> None:
-        if not a_player in self.activePlayers:
+    async def playerCertifyResult( self, a_plyr: str ) -> None:
+        if not a_plyr in self.players:
             return
-        message = await self.activePlayers[a_player].certifyResult( )
+        message = await self.players[a_plyr].certifyResult( )
         if message != "":
             await self.pairingsChannel.send( message )
     
     async def recordMatchWin( self, a_winner: str ) -> None:
-        if not a_winner in self.activePlayers:
+        if not a_winner in self.players:
             return
-        message = await self.activePlayers[a_winner].recordWin( )
+        message = await self.players[a_winner].recordWin( )
         if message != "":
             await self.pairingsChannel.send( message )
     
-    async def recordMatchDraw( self, a_player: str ) -> None:
-        if not a_player in self.activePlayers:
+    async def recordMatchDraw( self, a_plyr: str ) -> None:
+        if not a_plyr in self.players:
             return
-        message = await self.activePlayers[a_player].recordDraw( )
+        message = await self.players[a_plyr].recordDraw( )
         if message != "":
             await self.pairingsChannel.send( message )
 
@@ -505,11 +499,8 @@ class tournament:
         if not (os.path.isdir( f'{a_dirName}/players/' ) and os.path.exists( f'{a_dirName}/players/' )):
            os.mkdir( f'{a_dirName}/players/' ) 
 
-        for player in self.activePlayers:
-            self.activePlayers[player].saveXML( f'{a_dirName}/players/{self.activePlayers[player].name}.xml' )
-        for player in self.droppedPlayers:
-            self.droppedPlayers[player].saveXML( f'{a_dirName}/players/{self.droppedPlayers[player].name}.xml' )
-        
+        for player in self.players:
+            self.players[player].saveXML( f'{a_dirName}/players/{self.players[player].name}.xml' )
 
     def saveMatches( self, a_dirName: str ) -> None:
         if not (os.path.isdir( f'{a_dirName}/matches/' ) and os.path.exists( f'{a_dirName}/matches/' )):
@@ -548,7 +539,7 @@ class tournament:
         for _ in range(maxLevel):
             self.queue.append( [] )
         for plyr in players:
-            self.queue[int(plyr.attrib['priority'])].append( self.activePlayers[ plyr.attrib['name'] ] )
+            self.queue[int(plyr.attrib['priority'])].append( self.players[ plyr.attrib['name'] ] )
         if sum( [len(level) for level in self.queue] ) > self.playersPerMatch:
             print( "Enough players found during loading. Creating new pairing task." )
             self.pairingsThread = threading.Thread( target=self.launch_pairings, args=(self.pairingWaitTime,) )
@@ -560,7 +551,7 @@ class tournament:
             newPlayer = player( "" )
             newPlayer.loadXML( playerFile )
             if newPlayer.status == "active":
-                self.activePlayers[newPlayer.name]  = newPlayer
+                self.players[newPlayer.name]  = newPlayer
             else:
                 self.droppedPlayers[newPlayer.name] = newPlayer
     
@@ -571,22 +562,14 @@ class tournament:
             newMatch.loadXML( matchFile )
             self.matches.append( newMatch )
             for aPlayer in newMatch.activePlayers:
-                if aPlayer in self.activePlayers:
-                    self.activePlayers[aPlayer].matches.append( newMatch )
-                    self.activePlayers[aPlayer].opponents += [ plyr for plyr in newMatch.activePlayers if plyr != aPlayer ]
-                    self.activePlayers[aPlayer].opponents += newMatch.droppedPlayers
-                elif aPlayer in self.droppedPlayers:
-                    self.droppedPlayers[aPlayer].matches.append( newMatch )
-                    self.droppedPlayers[aPlayer].opponents += newMatch.droppedPlayers
-                    self.droppedPlayers[aPlayer].opponents += [ plyr for plyr in newMatch.droppedPlayers if plyr != dPlayer ]
+                if aPlayer in self.players:
+                    self.players[aPlayer].matches.append( newMatch )
+                    self.players[aPlayer].opponents += [ plyr for plyr in newMatch.activePlayers if plyr != aPlayer ]
+                    self.players[aPlayer].opponents += newMatch.droppedPlayers
             for dPlayer in newMatch.droppedPlayers:
-                if dPlayer in self.activePlayers:
-                    self.activePlayers[dPlayer].matches.append( newMatch )
-                    self.activePlayers[dPlayer].opponents += [ plyr for plyr in newMatch.activePlayers if plyr != aPlayer ]
-                    self.activePlayers[dPlayer].opponents += newMatch.droppedPlayers
-                elif dPlayer in self.droppedPlayers:
-                    self.droppedPlayers[dPlayer].matches.append( newMatch )
-                    self.droppedPlayers[dPlayer].opponents += newMatch.droppedPlayers
-                    self.droppedPlayers[dPlayer].opponents += [ plyr for plyr in newMatch.droppedPlayers if plyr != dPlayer ]
+                if dPlayer in self.players:
+                    self.players[dPlayer].matches.append( newMatch )
+                    self.players[dPlayer].opponents += [ plyr for plyr in newMatch.droppedPlayers if plyr != aPlayer ]
+                    self.players[dPlayer].opponents += newMatch.droppedPlayers
 
 
