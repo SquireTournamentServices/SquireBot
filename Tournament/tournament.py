@@ -212,31 +212,37 @@ class tournament:
             print( "The loop isn't running. Starting loop." )
             self.loop.run_until_complete( self.send_match_warning(msg) )
 
-    def matchTimer( self, mtch: match ) -> None:
-        print( f'Starting match timer for {self.matchLength} seconds.' )
+    def matchTimer( self, mtch: match, t: int = -1 ) -> None:
+        if t == -1:
+            t = self.matchLength
+        print( f'Starting match timer for {t} seconds.' )
         if self.matchLength < 300:
             return
         oneMin  = 60
         fiveMin = 300
-        time.sleep( self.matchLength - fiveMin )
-        if mtch.isCertified( ):
-            return
-        print( "Sending first message" )
-        t = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have five minutes left in your round.',) )
-        t.start( )
-        time.sleep( fiveMin - oneMin )
-        if mtch.isCertified( ):
-            return
-        print( "Sending second message" )
-        t = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have one minute left in your round.',) )
-        t.start( )
-        time.sleep( oneMin )
+        if t >= fiveMin:
+            time.sleep( t - fiveMin )
+            if mtch.isCertified( ):
+                return
+            print( "Sending first message" )
+            task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have five minutes left in your round.',) )
+            task.start( )
+            t = fiveMin
+        if t >= oneMin:
+            time.sleep( t - oneMin )
+            if mtch.isCertified( ):
+                return
+            print( "Sending second message" )
+            task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have one minute left in your round.',) )
+            task.start( )
+            t = oneMin
+        time.sleep( t )
         if mtch.isCertified( ):
             return
         print( "Sending third message" )
-        t = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, time is up for this match.',) )
-        t.start( )
-        t.join( )
+        task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, time is up for this match.',) )
+        task.start( )
+        task.join( )
     
     async def addMatch( self, a_plyr: List[str] ) -> None:
         for plyr in a_plyr:
@@ -566,5 +572,14 @@ class tournament:
             for dPlayer in newMatch.droppedPlayers:
                 if dPlayer in self.players:
                     self.players[dPlayer].addMatch( newMatch )
+            if self.matches[-1].status != "certified":
+                t = int( self.matchLength - timeDiff( getTime(), self.matches[-1].startTime ) )
+                if t <= 0:
+                    continue
+                self.matches[-1].timer = threading.Thread( target=self.matchTimer, args=(self.matches[-1],t,) )
+                self.matches[-1].timer.start( )
+        self.matches.sort( key= lambda x: x.matchNumber )
+        for plyr in self.players.values():
+            plyr.matches.sort( key= lambda x: x.matchNumber )
 
 

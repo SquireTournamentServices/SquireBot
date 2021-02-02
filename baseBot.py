@@ -160,8 +160,6 @@ def message_to_xml( msg: discord.Message, indent: str = "" ) -> str:
     return digest
 
 
-
-
 @bot.command(name='test')
 async def test( ctx, *args ):
     w1 = 7

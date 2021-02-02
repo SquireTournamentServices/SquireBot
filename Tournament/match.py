@@ -5,6 +5,8 @@ import discord
 from typing import List
 import threading
 
+from .utils import *
+
 
 """
     This class is designed to store information about a match and be a commonly referenced object amoungst player objects.
@@ -29,17 +31,23 @@ import threading
 class match:
     # The class constructor
     def __init__( self, a_players: List[str] ):
-        self.activePlayers  = a_players
-        self.droppedPlayers = [ ]
-        self.confirmedPlayers = [ ]
         self.matchNumber = -1
-        self.role = ""
+
+        self.activePlayers    = a_players
+        self.droppedPlayers   = [ ]
+        self.confirmedPlayers = [ ]
+
+        self.role   = ""
         self.roleID = ""
-        self.VC = ""
-        self.VC_ID = ""
+        self.VC     = ""
+        self.VC_ID  = ""
+
         self.status = "open"
         self.winner = ""
-        self.timer  = ""
+
+        self.timer     = ""
+        self.startTime = getTime( )
+        self.endTime   = ""
     
     def __str__( self ):
         digest  = f'Match #{self.matchNumber}\n'
@@ -67,6 +75,7 @@ class match:
         digest &= not self.isCertified( )
         if digest:
             self.status = "certified"
+            self.endTime = getTime( )
             if type( self.VC ) == discord.VoiceChannel:
                 await self.VC.delete()
         return digest
@@ -124,6 +133,8 @@ class match:
         digest  = "<?xml version='1.0'?>\n"
         digest += f'<match roleID="{self.role.id if type(self.role) == discord.Role else str()}" VC_ID="{self.VC.id if type(self.role) == discord.VoiceChannel else str()}">\n'
         digest += f'\t<number>{self.matchNumber}</number>\n'
+        digest += f'\t<startTime>{self.startTime}</startTime>\n'
+        digest += f'\t<endTime>{self.endTime}</endTime>\n'
         digest += f'\t<status>{self.status}</status>\n'
         digest += f'\t<winner name="{self.winner}"/>\n'
         digest += '\t<activePlayers>\n'
@@ -153,6 +164,8 @@ class match:
         if self.VC_ID != "":
             self.VC_ID = int( self.VC_ID )
         self.matchNumber = int( matchRoot.find( "number" ).text )
+        self.startTime = matchRoot.find( "startTime" ).text
+        self.endTime = matchRoot.find( "endTime" ).text
         self.status = matchRoot.find( "status" ).text
         self.winner = matchRoot.find( "winner" ).attrib["name"]
         for player in matchRoot.find("activePlayers"):

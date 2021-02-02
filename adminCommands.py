@@ -28,6 +28,7 @@ async def createTournament( ctx, tourn = "" ):
     await ctx.message.guild.create_role( name=f'{tourn} Player' )
     tournaments[tourn] = tournament( tourn, ctx.message.guild.name )
     tournaments[tourn].addDiscordGuild( ctx.message.guild )
+    tournaments[tourn].loop = bot.loop
     tournaments[tourn].saveTournament( f'currentTournaments/{tourn}' )
     await ctx.send( f'{adminMention}, a new tournament called "{tourn}" has been created by {ctx.message.author.mention}.' )
     
@@ -274,6 +275,7 @@ async def adminPruneDecks( ctx, tourn = "" ):
             await plyr.discordUser.send( content=f'Your deck with identifier "{deckIdents[0]}" has been pruned from {tourn} on the server "{ctx.guild.name}".' )
             del( deckIdents[0] )
         plyr.saveXML( f'currentTournaments/{tourn}/players/{plyr}.xml' )
+    await ctx.send( f'{adminMention}, the pruning of decks is done!' )
 
 
 @bot.command(name='admin-list-players')
