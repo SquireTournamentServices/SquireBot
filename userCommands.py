@@ -79,7 +79,9 @@ async def registerPlayer( ctx, tourn = "" ):
 
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
-    if not tournaments[tourn].regOpen: return
+    if not tournaments[tourn].regOpen:
+        await ctx.send( f'{ctx.message.author.mention}, registeration for {tourn} is closed. If you believe this is an error, contact tournament admin.' )
+        return
 
     re = False # Is the player re-enrolling?
     userIdent = getUserIdent( ctx.message.author )
@@ -90,9 +92,12 @@ async def registerPlayer( ctx, tourn = "" ):
         re = True
 
     await ctx.message.author.add_roles( tournaments[tourn].role )
-    tournaments[tourn].addPlayer( ctx.message.author )
-    tournaments[tourn].players[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
-    await ctx.send( f'{ctx.message.author.mention}, {"you have been re-enrolled in {tourn}!" if re else "you have been added to {tourn}!"}' )
+    await tournaments[tourn].addPlayer( ctx.message.author )
+    tournaments[tourn].players[userIdent].saveXML( )
+    if re:
+        await ctx.send( f'{ctx.message.author.mention}, you have been re-enrolled in {tourn}!' )
+    else:
+        await ctx.send( f'{ctx.message.author.mention}, you have been added to {tourn}!' )
 
 
 @bot.command(name='cockatrice-name')
@@ -126,7 +131,7 @@ async def addTriceName( ctx, tourn = "", name = "" ):
     if not await isActivePlayer( tourn, userIdent, ctx ): return
     
     tournaments[tourn].players[userIdent].triceName = name
-    tournaments[tourn].players[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
+    tournaments[tourn].players[userIdent].saveXML( )
     await ctx.send( f'{ctx.message.author.mention}, "{name}" was added as your Cocktrice username.' )
 
 
@@ -145,9 +150,12 @@ async def submitDecklist( ctx, tourn = "", ident = "", decklist = "" ):
     userIdent = getUserIdent( ctx.message.author )
     if not await hasRegistered( tourn, userIdent, ctx ): return
     if not await isActivePlayer( tourn, userIdent, ctx ): return
+    if not tournaments[tourn].regOpen:
+        await ctx.send( f'{ctx.message.author.mention}, deck registeration for {tourn} is closed. If you believe this is an error, contact tournament admin.' )
+        return
     
     tournaments[tourn].players[userIdent].addDeck( ident, decklist )
-    tournaments[tourn].players[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
+    tournaments[tourn].players[userIdent].saveXML( )
     deckHash = str( tournaments[tourn].players[userIdent].decks[ident].deckHash)
     await ctx.send( f'{ctx.message.author.mention}, your decklist has been submitted. Your deck hash is "{deckHash}". Please make sure this matches your deck hash in Cocktrice.' )
     if not await isPrivateMessage( ctx, False ):
@@ -188,7 +196,7 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
         return
     
     del( tournaments[tourn].players[userIdent].decks[deckName] )
-    tournaments[tourn].players[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
+    tournaments[tourn].players[userIdent].saveXML( )
     await ctx.send( f'{ctx.message.author.mention}, your decklist whose name or deck hash was "{ident}" has been deleted.' )
 
 
@@ -257,7 +265,7 @@ async def dropTournament( ctx, tourn = "" ):
         return
     
     await tournaments[tourn].dropPlayer( userIdent )
-    tournaments[tourn].players[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
+    tournaments[tourn].players[userIdent].saveXML( )
     await ctx.send( f'{ctx.message.author.mention}, you have been dropped from {tourn}.' )
 
 
@@ -289,9 +297,14 @@ async def queuePlayer( ctx, tourn = "" ):
     if not await isActivePlayer( tourn, userIdent, ctx ): return
     if not await isTournRunning( tourn, ctx ): return
     
+    for lvl in tournaments[tourn].queue:
+        for plyr in lvl:
+            if plyr.name == userIdent:
+                await ctx.send( f'{ctx.message.author.mention}, you are already in the queue. You will be paired for a match when more people join the queue.' )
+                return
+    
     tournaments[tourn].addPlayerToQueue( userIdent )
-    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' ) 
-    tournaments[tourn].saveMatches( f'currentTournaments/{tourn}/' ) 
+    tournaments[tourn].saveOverview( )
     await ctx.send( f'{ctx.message.author.mention}, you have been added to the match queue.' )
 
 
@@ -339,7 +352,7 @@ async def matchResult( ctx, tourn = "", result = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you have provided an incorrect result. The options are "win", "loss", and "draw". Please re-enter the correct result.' )
         return
     
-    playerMatch.saveXML( f'currentTournaments/{tourn}/matches/match_{playerMatch.matchNumber}.xml' )
+    playerMatch.saveXML( )
 
 
 @bot.command(name='confirm-result')
@@ -364,7 +377,7 @@ async def confirmMatchResult( ctx, tourn = "" ):
     userIdent = getUserIdent( ctx.message.author )
     if not await hasRegistered( tourn, userIdent, ctx ): return
     if not await isActivePlayer( tourn, userIdent, ctx ): return
-    if not await hasOpenMatch( tourn, plyr, ctx ): return
+    if not await hasOpenMatch( tourn, userIdent, ctx ): return
     
     playerMatch = tournaments[tourn].players[userIdent].findOpenMatch( )
     if userIdent in playerMatch.confirmedPlayers:
@@ -372,7 +385,7 @@ async def confirmMatchResult( ctx, tourn = "" ):
         return
     
     await tournaments[tourn].playerCertifyResult( userIdent )
-    playerMatch.saveXML( f'currentTournaments/{tourn}/matches/match_{playerMatch.matchNumber}.xml' )
+    playerMatch.saveXML( )
     await ctx.send( f'{ctx.message.author.mention}, your confirmation for your match has been recorded.' )
     
 

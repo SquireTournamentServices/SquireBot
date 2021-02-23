@@ -14,13 +14,6 @@ from userCommands import *
 
 
 
-savedTournaments = [ f'currentTournaments/{d}' for d in os.listdir( "currentTournaments" ) if os.path.isdir( f'currentTournaments/{d}' ) ]
-
-for tourn in savedTournaments:
-    newTourn = tournament( "", "" )
-    newTourn.loadTournament( tourn )
-    if newTourn.tournName != "":
-        tournaments[newTourn.tournName] = newTourn
 
 newLine = "\n\t- "
 print( f'These are the saved tournaments:{newLine}{newLine.join(savedTournaments)}' )

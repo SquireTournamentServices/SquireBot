@@ -34,6 +34,7 @@ from .match import match
 class player:
     # The class constructor
     def __init__( self, a_name: str = "" ):
+        self.saveLocation = f'{a_name}.xml'
         self.discordUser = ""
         self.discordID   = ""
         self.name  = a_name
@@ -102,9 +103,32 @@ class player:
     
     def hasOpenMatch( self ) -> bool:
         digest = False
-        for match in self.matches:
-            digest |= not match.isCertified( )
+        for mtch in self.matches:
+            digest |= not mtch.isCertified( )
         return digest
+    
+    def removeOpponent( self, a_plyr ) -> None:
+        if a_plyr == self.name:
+            return
+        for i in range(len(self.opponents)):
+            if a_plyr == self.opponents[i]:
+                del( self.opponents[i] )
+                return
+    
+    def removeMatch( self, a_matchNum: int ) -> None:
+        index = -1
+        for i in range(len(self.matches)):
+            if self.matches[i].matchNumber == a_matchNum:
+                index = i
+                break
+        if index == -1:
+            return
+        for plyr in self.matches[i].activePlayers:
+            self.removeOpponent( plyr )
+        for plyr in self.matches[i].droppedPlayers:
+            self.removeOpponent( plyr )
+        del( self.matches[i] )
+        self.saveXML( )
     
     def addMatch( self, a_mtch: match ) -> None:
         self.matches.append( a_mtch )
@@ -118,7 +142,6 @@ class player:
                 continue
             if not plyr in self.opponents:
                 self.opponents.append( plyr )
-
     
     def getMatch( self, a_matchNum: int ) -> match:
         for mtch in self.matches:
@@ -133,7 +156,7 @@ class player:
             # print( f'No open matches found. Returning one.' )
             return 1
         digest = -1
-        while self.matches[digest].status == "certified":
+        while self.matches[digest].isCertified():
             digest -= 1
         # print( f'An open match was found. Returning {digest}.' )
         return digest
@@ -154,6 +177,7 @@ class player:
     
     async def drop( self ) -> None:
         self.status = "dropped"
+        digest = []
         for match in self.matches:
             if match.status != "certified":
                 await match.dropPlayer( self.name )
@@ -192,23 +216,35 @@ class player:
                 break
         return digest
     
+    def getCertMatches( self, withBye: bool=True ):
+        digest = [ ]
+        for mtch in self.matches:
+            if not withBye and mtch.isBye():
+                continue
+            if mtch.isCertified():
+                digest.append( mtch )
+        return digest
+    
     # Tallies the number of matches that the player is in, has won, and have been certified.
-    def getMatchPoints( self ) -> int:
+    def getMatchPoints( self, withBye: bool=True ) -> int:
         digest = 0
-        certMatches = [ mtch for mtch in self.matches if mtch.isCertified( ) ]
+        certMatches = self.getCertMatches( withBye )
         for mtch in certMatches:
             if mtch.winner == self.name:
                 digest += 3
             elif "a draw" in mtch.winner.lower():
                 digest += 1
+            elif withBye and mtch.isBye():
+                digest += 3
         return digest
     
     # Calculates the percentage of game the player has won
-    def getMatchWinPercentage( self ) -> float:
-        certMatches = [ mtch for mtch in self.matches if mtch.isCertified( ) ]
+    def getMatchWinPercentage( self, withBye: bool=True ) -> float:
+        certMatches = self.getCertMatches( withBye )
         if len( certMatches ) == 0:
             return 0.0
-        return len( [ 1 for mtch in certMatches if mtch.winner == self.name ] )/len( certMatches )
+        digest = self.getMatchPoints( withBye )/( len(certMatches)*3. )
+        return digest if digest >= 1./3 else 1./3
     
     def getNumberOfWins( self ) -> int:
         return sum( [ 1 if mtch.winner == self.name else 0 for mtch in self.matches if mtch.isCertified( ) ] )
@@ -218,11 +254,11 @@ class player:
     # The tournament object loads match objects and then associates each player with their match(es)
     def saveXML( self, a_filename: str = "" ) -> None:
         if a_filename == "":
-            a_filename = self.discordUser.name + '.xml'
+            a_filename = self.saveLocation
         digest  = "<?xml version='1.0'?>\n"
         digest += '<player>\n'
         digest += f'\t<name>{self.name}</name>\n'
-        digest += f'\t<triceName>{self.triceName}</triceName>'
+        digest += f'\t<triceName>{self.triceName}</triceName>\n'
         digest += f'\t<discord id="{self.discordUser.id if type(self.discordUser) == discord.Member else str()}"/>\n'
         digest += f'\t<status>{self.status}</status>\n'
         for ident in self.decks:
@@ -234,8 +270,11 @@ class player:
     # Loads an xml file saved with the class after construction
     def loadXML( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
+        self.saveLocation = a_filename
         self.name = xmlTree.getroot().find( 'name' ).text
         self.triceName = xmlTree.getroot().find( 'triceName' ).text
+        if self.triceName == None:
+            self.triceName = ""
         self.discordID  = xmlTree.getroot().find( 'discord' ).attrib['id']
         if self.discordID != "":
             self.discordID = int( self.discordID )

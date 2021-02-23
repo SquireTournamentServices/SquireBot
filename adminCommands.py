@@ -9,7 +9,6 @@ from baseBot import *
 from Tournament import * 
 
 
-    
 
 @bot.command(name='create-tournament')
 async def createTournament( ctx, tourn = "" ):
@@ -27,6 +26,7 @@ async def createTournament( ctx, tourn = "" ):
     
     await ctx.message.guild.create_role( name=f'{tourn} Player' )
     tournaments[tourn] = tournament( tourn, ctx.message.guild.name )
+    tournaments[tourn].saveLocation = f'currentTournaments/{tourn}/'
     tournaments[tourn].addDiscordGuild( ctx.message.guild )
     tournaments[tourn].loop = bot.loop
     tournaments[tourn].saveTournament( f'currentTournaments/{tourn}' )
@@ -52,7 +52,7 @@ async def updateReg( ctx, tourn = "", status = "" ):
     status = "False" if status.lower() == "closed" else status
 
     tournaments[tourn].setRegStatus( str_to_bool(status) )
-    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    tournaments[tourn].saveOverview( )
     await ctx.send( f'{adminMention}, registeration for the "{tourn}" tournament has been {("opened" if str_to_bool(status) else "closed")} by {ctx.message.author.mention}.' ) 
 
 
@@ -73,7 +73,7 @@ async def startTournament( ctx, tourn = "" ):
         return
 
     tournaments[tourn].startTourn()
-    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    tournaments[tourn].saveOverview( )
     await ctx.send( f'{adminMention}, {tourn} has been started by {ctx.message.author.mention}.' )
     
 
@@ -152,8 +152,8 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
         return
 
     await member.add_roles( tournaments[tourn].role )
-    tournaments[tourn].addPlayer( member, admin=True )
-    tournaments[tourn].players[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
+    await tournaments[tourn].addPlayer( member, admin=True )
+    tournaments[tourn].players[userIdent].saveXML( )
     await tournaments[tourn].players[userIdent].discordUser.send( content=f'You have been registered for {tourn} on the server "{ctx.guild.name}".' )
     await ctx.send( f'{ctx.message.author.mention}, you have added {member.mention} to {tourn}.' )
 
@@ -187,7 +187,7 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
         return
     
     tournaments[tourn].players[userIdent].addDeck( ident, decklist )
-    tournaments[tourn].players[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
+    tournaments[tourn].players[userIdent].saveXML( )
     deckHash = str(tournaments[tourn].players[userIdent].decks[ident].deckHash)
     await ctx.send( f'{ctx.message.author.mention}, decklist that you added for {plyr} has been submitted. The deck hash is "{deckHash}".' )
     await tournaments[tourn].players[userIdent].discordUser.send( content=f'A decklist has been submitted for {tourn} on the server {ctx.guild.name} on your behalf. The identifier for the deck is "{ident}" and the deck hash is "{deckHash}". If this deck hash is incorrect or you are not expecting this, please contact tournament admin on that server.' )
@@ -227,7 +227,7 @@ async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
     deckHash = tournaments[tourn].players[userIdent].decks[deckName].deckHash
 
     del( tournaments[tourn].players[userIdent].decks[deckName] )
-    tournaments[tourn].players[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
+    tournaments[tourn].players[userIdent].saveXML( )
     await ctx.send( f'{ctx.message.author.mention}, decklist that you removed from {plyr} has been processed.' )
     await tournaments[tourn].players[userIdent].discordUser.send( content=f'The deck has been removed from {tourn} on the server {ctx.guild.name}. The identifier was "{ident}" and the deck hash was "{deckHash}".' )
 
@@ -248,7 +248,7 @@ async def setDeckCount( ctx, tourn = "", count = "" ):
     if await isTournDead( tourn, ctx ): return
     
     tournaments[tourn].deckCount = int( count )
-    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    tournaments[tourn].saveOverview( )
     await ctx.send( f'{adminMention}, the deck count for tournament called "{tourn}" has been changed to {count} by {ctx.message.author.display_name}.' )
 
 
@@ -274,7 +274,7 @@ async def adminPruneDecks( ctx, tourn = "" ):
             await ctx.send( f'{adminMention}, the deck with identifier "{deckIdents[0]}" belonging to {plyr.discordUser.display_name} has been pruned.' )
             await plyr.discordUser.send( content=f'Your deck with identifier "{deckIdents[0]}" has been pruned from {tourn} on the server "{ctx.guild.name}".' )
             del( deckIdents[0] )
-        plyr.saveXML( f'currentTournaments/{tourn}/players/{plyr}.xml' )
+        plyr.saveXML( )
     await ctx.send( f'{adminMention}, the pruning of decks is done!' )
 
 
@@ -414,7 +414,7 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
         await ctx.send( f'{ctx.message.author.mention}, you have provided an incorrect result. The options are "win", "loss", and "draw". Please re-enter the correct result.' )
         return
 
-    Match.saveXML( f'currentTournaments/{tourn}/matches/match_{mtch}.xml' )
+    Match.saveXML( )
 
 
 
@@ -461,7 +461,7 @@ async def adminCreatePairing( ctx, tourn = "", *plyrs ):
             tournaments[tourn].queueActivity.append( (ident, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
     
     await tournaments[tourn].addMatch( userIdents )
-    tournaments[tourn].matches[-1].saveXML( f'currentTournaments/{tourn}/matches/match_{tournaments[tourn].matches[-1].matchNumber}.xml' )
+    tournaments[tourn].matches[-1].saveXML( )
     await ctx.send( f'{ctx.message.author.mention}, the players you specified for the match are now paired. Their match number is #{tournaments[tourn].matches[-1].matchNumber}.' )
 
 
@@ -480,7 +480,7 @@ async def createPairingsList( ctx, tourn = "" ):
     if not await correctGuild( tourn, ctx ): return
     if await isTournDead( tourn, ctx ): return
 
-    def searchForOpponents( lvl: int, i: int ) -> List[Tuple[int,int]]:
+    def searchForOpponents( lvl: int, i: int, queue ) -> List[Tuple[int,int]]:
         if lvl > 0:
             lvl = -1*(lvl+1)
         
@@ -517,37 +517,64 @@ async def createPairingsList( ctx, tourn = "" ):
 
         # A full match couldn't be formed. Return an empty list
         return [ ]
-        
-    # Even though this is a single list in a list, this could change to have several component lists
-    queue    = [ [ lvl for lvl in tournaments[tourn].players.values() ] ]
-    newQueue = [ [] for _ in range(len(queue)+1) ]
-    plyrs    = [ ]
-    indices  = [ ]
-    pairings = [ ]
 
-    for lvl in queue:
-        random.shuffle( lvl )
-    oldQueue = queue
+    def pairingAttempt( ):
+        # Even though this is a single list in a list, this could change to have several component lists
+        queue    = [ [ plyr for plyr in tournaments[tourn].players.values() ] ]
+        newQueue = [ [] for _ in range(len(queue)+1) ]
+        plyrs    = [ ]
+        indices  = [ ]
+        pairings = [ ]
     
-    lvl = -1
-    while lvl >= -1*len(queue):
-        while len(queue[lvl]) > 0:
-            indices = searchForOpponents( lvl, 0 )
-            # If an empty array is returned, no match was found
-            # Add the current player to the end of the new queue
-            # and remove them from the current queue
-            if len(indices) == 0:
-                newQueue[lvl].append(queue[lvl][0])
-                del( queue[lvl][0] )
-            else:
-                plyrs = [ ] 
-                for index in indices:
-                    plyrs.append( f'"{queue[index[0]][index[1]].discordUser.display_name}"' )
-                    del( queue[index[0]][index[1]] )
-                pairings.append( "\t".join( plyrs ) )
-        lvl -= 1
-    
-    await ctx.send( f'{ctx.message.author.mention}, here is a list of possible pairings. There would be {sum( [ len(lvl) for lvl in newQueue ] )} players left unmatched.' )
+        for lvl in queue:
+            random.shuffle( lvl )
+        oldQueue = queue
+     
+        lvl = -1
+        while lvl >= -1*len(queue):
+            while len(queue[lvl]) > 0:
+                indices = searchForOpponents( lvl, 0, queue )
+                # If an empty array is returned, no match was found
+                # Add the current player to the end of the new queue
+                # and remove them from the current queue
+                if len(indices) == 0:
+                    newQueue[lvl].append(queue[lvl][0])
+                    del( queue[lvl][0] )
+                else:
+                    plyrs = [ ] 
+                    for index in indices:
+                        plyrs.append( f'"{queue[index[0]][index[1]].discordUser.display_name}"' )
+                        del( queue[index[0]][index[1]] )
+                    pairings.append( " ".join( plyrs ) )
+            lvl -= 1
+        
+        return pairings, newQueue
+        
+    tries = 25
+    results = []
+     
+    for _ in range(tries):
+        results.append( pairingAttempt() )
+        # Have we paired the maximum number of people, i.e. does the remainder of the queue by playersPerMatch equal the new queue
+        if sum( [ len(lvl) for lvl in results[-1][1] ] ) == sum( [len(lvl) for lvl in tournaments[tourn].queue] )%tournaments[tourn].playersPerMatch:
+            break
+
+    results.sort( key=lambda x: len(x) ) 
+    pairings = results[-1][0]
+    newQueue = results[-1][1]
+ 
+    newLine = "\n- "
+    if sum( [ len(lvl) for lvl in newQueue ] ) == 0:
+        await ctx.send( f'{ctx.message.author.mention}, here is a list of possible pairings. There would be no players left unmatched.' )
+    else:
+        plyrs = [ f'"{plyr.discordUser.display_name}"' for lvl in newQueue for plyr in lvl ]
+        message = f'{ctx.message.author.mention}, here is a list of possible pairings. These players would be left unmatched:{newLine}{newLine.join(plyrs)}'
+        for msg in splitMessage( message ):
+            if msg == "":
+                break
+            await ctx.send( msg )
+        
+    await ctx.send( f'\nThese are all the complete pairings.' ) 
     message = "\n".join( pairings )
     for msg in splitMessage( message ):
         if msg == "":
@@ -578,9 +605,8 @@ async def playersPerMatch( ctx, tourn = "", num = "" ):
     if await isTournDead( tourn, ctx ): return
     
     tournaments[tourn].playersPerMatch = num
-    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    tournaments[tourn].saveOverview( )
     await ctx.send( f'{adminMention}, the number of players per match for {tourn} was changed to {num} by {ctx.message.author.mention}.' )
-    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
 
 @bot.command(name='set-match-length')
 async def setMatchLength( ctx, tourn = "", num = "" ):
@@ -605,9 +631,8 @@ async def setMatchLength( ctx, tourn = "", num = "" ):
     if await isTournDead( tourn, ctx ): return
     
     tournaments[tourn].matchLength = num*60
-    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
+    tournaments[tourn].saveOverview( )
     await ctx.send( f'{adminMention}, the length of a match for {tourn} was changed to {num} minutes by {ctx.message.author.mention}.' )
-    tournaments[tourn].saveOverview( f'currentTournaments/{tourn}/overview.xml' )
 
 @bot.command(name='admin-confirm-result')
 async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
@@ -661,7 +686,7 @@ async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
         await ctx.send( f'{ctx.message.author.mention}, match #{mtch} is not certified, but {plyr} has already certified the result. There is no need to do this twice.' )
         return
     
-    Match.saveXML( f'currentTournaments/{tourn}/matches/match_{mtch}.xml' )
+    Match.saveXML( )
     await tournaments[tourn].players[userIdent].discordUser.send( content=f'The result of match #{mtch} for {tourn} has been certified by tournament admin on your behalf.' )
     msg = await Match.confirmResult( userIdent )
     if msg != "":
@@ -696,9 +721,77 @@ async def adminDropPlayer( ctx, tourn = "", plyr = "" ):
         return
     
     await tournaments[tourn].dropPlayer( userIdent )
-    tournaments[tourn].droppedPlayers[userIdent].saveXML( f'currentTournaments/{tourn}/players/{userIdent}.xml' )
+    tournaments[tourn].players[userIdent].saveXML( )
     await ctx.send( f'{ctx.message.author.mention}, {plyr} has been dropped from the tournament.' )
-    await tournaments[tourn].droppedPlayers[userIdent].discordUser.send( content=f'You have been dropped from {tourn} on the server "{ctx.message.guild.name}" by tournament admin. If you believe this is an error, check with them.' )
+    await tournaments[tourn].players[userIdent].discordUser.send( content=f'You have been dropped from {tourn} on the server "{ctx.message.guild.name}" by tournament admin. If you believe this is an error, check with them.' )
+
+
+@bot.command(name='admin-give-bye')
+async def adminGiveBye( ctx, tourn = "", plyr = "" ):
+    tourn = tourn.strip()
+    plyr  =  plyr.strip()
+
+    if await isPrivateMessage( ctx ): return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "" or plyr == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a player.' )
+        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    member = findPlayer( ctx.guild, tourn, plyr )
+    if member == "":
+        await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
+        return
+
+    userIdent = getUserIdent( member )
+    if not userIdent in tournaments[tourn].players:
+        await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". They may have already dropped from the tournament.' )
+        return
+    
+    if tournaments[tourn].players[userIdent].hasOpenMatch( ):
+        await ctx.send( f'{ctx.message.author.mention}, {plyr} currently has an open match in the tournament. That match needs to be certified before they can be given a bye.' )
+        return
+    
+    tournaments[tourn].addBye( userIdent )
+    tournaments[tourn].players[userIdent].saveXML( )
+    await ctx.send( f'{ctx.message.author.mention}, {plyr} has been given a bye.' )
+    await tournaments[tourn].players[userIdent].discordUser.send( content=f'You have been given a bye from the tournament admin for {tourn} on the server {ctx.guild.name}.' )
+
+
+@bot.command(name='admin-remove-match')
+async def adminRemoveMatch( ctx, tourn = "", mtch = "" ):
+    tourn = tourn.strip()
+    mtch  =  mtch.strip()
+
+    if await isPrivateMessage( ctx ): return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "" or mtch == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a player.' )
+        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    try:
+        mtch = int( mtch )
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide a match number. Please specify a match number using digits.' )
+        return
+    
+    if mtch > len(tournaments[tourn].matches):
+        await ctx.send( f'{ctx.message.author.mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
+        return
+        
+    
+    await tournaments[tourn].removeMatch( mtch )
+    tournaments[tourn].matches[mtch - 1].saveXML( )
+    await ctx.send( f'{ctx.message.author.mention}, match #{mtch} has been removed.' )
 
 
 

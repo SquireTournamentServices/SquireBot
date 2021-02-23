@@ -140,13 +140,24 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 tournaments = {}
 playersToBeDropped = []
 
+savedTournaments = [ f'currentTournaments/{d}' for d in os.listdir( "currentTournaments" ) if os.path.isdir( f'currentTournaments/{d}' ) ]
+
+
 # When ready, the bot needs to looks at each pre-loaded tournament and add a discord user to each player.
 @bot.event
 async def on_ready():
     await bot.wait_until_ready( )
-    print(f'{bot.user.name} has connected to Discord!')
+    print(f'{bot.user.name} has connected to Discord!\n')
+    for guild in bot.guilds:
+        print( f'This bot is connected to {guild.name} which has {len(guild.members)}!' )    
+    print( "" )
+    for tourn in savedTournaments:
+        newTourn = tournament( "", "" )
+        newTourn.loop = bot.loop
+        newTourn.loadTournament( tourn )
+        if newTourn.tournName != "":
+            tournaments[newTourn.tournName] = newTourn
     for tourn in tournaments:
-        print( f'{tourn} has a guild ID of "{tournaments[tourn].guildID}".' )
         guild = bot.get_guild( tournaments[tourn].guildID )
         if type( guild ) != None:
             tournaments[tourn].assignGuild( guild )
@@ -162,13 +173,49 @@ def message_to_xml( msg: discord.Message, indent: str = "" ) -> str:
 
 @bot.command(name='test')
 async def test( ctx, *args ):
-    w1 = 7
-    w2 = max( [ len(m.display_name) for m in ctx.message.channel.members ] ) + 2
-    w3 = max( [ len(str(m.id)) for m in ctx.message.channel.members ] ) + 2
-    for member in ctx.message.channel.members:
-        print( f'{str(member.display_name == member.name).ljust(w1)}{member.display_name.ljust(w2)}{str(member.id).ljust(w3)}{member.mention}' )
-    print( args )
-    print( findPlayer( ctx.message.guild, "Izzet", args[0] ) )
+    if len(args) == 0:
+        games = 6
+    else:
+        games = int(args[0])
+    
+    limit = 1024
+    
+    if len(args) > 3:
+        points = [ float(args[1]), float(args[2]), float(args[3]) ]
+    else:
+        points = [ 3, 1, 0 ]
+    
+    results = []
+    
+    for g in range(3,games+1):
+        for win in range(3,g+1):
+            draw = 0
+            while draw < 3 and draw + win <= g:
+                loss = (g - win) - draw
+                results.append((win,draw,loss,win*points[0] + draw*points[1] + loss*points[2],100*win/g))
+                draw += 1
+    
+    results.sort( key=lambda x: x[0]+x[1]+x[2], reverse=True )
+    results.sort( key=lambda x: x[4], reverse=True )
+    results.sort( key=lambda x: x[3], reverse=True )
+    bed = discord.Embed( )
+    f_1 = ""
+    f_2 = ""
+    f_3 = ""
+    for r in results:
+        tmp = f'{r[0]}-{r[1]}-{r[2]}\n'
+        if len(f_1) + len(tmp) > limit:
+            break
+        f_1 += tmp
+        f_2 += f'{r[3]}\n'
+        f_3 += f'{trunk(r[4])}\n'
+    
+    bed.add_field( name="Match Result", value=f_1 )
+    bed.add_field( name="Match Points", value=f_2 )
+    bed.add_field( name="Win Percent ", value=f_3 )
+    
+    await ctx.send( content="This is an example set of standings. The invisible breaker here is the number of games played.", embed=bed )
+    
     
     
 @bot.command(name='embed')

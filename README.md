@@ -1,4 +1,5 @@
-#Overview:
+#Overview
+
 **Currently in development**
 
 This project contains a Discord bot to help run and manage tournaments within a server
@@ -21,6 +22,7 @@ This is something most commonly done with the Mythic Qualifiers that WotC hosts 
 
 
 #Setup
+
 To get this bot working on your server, you to only do a few things.
 First, add the bot to your server [here]("https://discord.com/api/oauth2/authorize?client_id=784967512106074183&permissions=268634192&scope=bot").
 This will get the bot all necessary permissions, namely:

@@ -31,6 +31,8 @@ from .utils import *
 class match:
     # The class constructor
     def __init__( self, a_players: List[str] ):
+        self.saveLocation = ""
+
         self.matchNumber = -1
 
         self.activePlayers    = a_players
@@ -48,6 +50,8 @@ class match:
         self.timer     = ""
         self.startTime = getTime( )
         self.endTime   = ""
+        
+        self.stopTimer = False
     
     def __str__( self ):
         digest  = f'Match #{self.matchNumber}\n'
@@ -58,17 +62,42 @@ class match:
         digest += f'Match winner: {self.winner}'
         return digest
     
+    def isBye( self ) -> bool:
+        return self.winner == "This match is a bye."
+    
+    def isDead( self ) -> bool:
+        return self.status == "dead"
+    
     def isCertified( self ):
         return self.status == "certified"
     
     def addMatchRole( self, a_role: discord.Role ) -> None:
-        print( f'Adding the match role.' )
         self.role = a_role
-        print( f'Added the match role: {self.role}' )
     
     def addMatchVC( self, a_VC: discord.VoiceChannel ) -> None:
         self.VC = a_VC
     
+    async def killMatch( self ) -> None:
+        if type( self.VC ) == discord.VoiceChannel:
+            await self.VC.delete()
+        if type( self.role ) == discord.Role:
+            await self.role.delete()
+
+        self.activePlayers    = [ ]
+        self.droppedPlayers   = [ ]
+        self.confirmedPlayers = [ ]
+
+        self.role   = ""
+        self.roleID = ""
+        self.VC     = ""
+        self.VC_ID  = ""
+
+        self.winner = ""
+        self.status = "dead"
+        self.endTime = getTime( )
+        self.stopTimer = True
+
+ 
     async def confirmMatch( self ) -> bool:
         digest  = len( self.activePlayers )  == 1
         digest |= len(self.confirmedPlayers) >= len(self.activePlayers)
@@ -97,6 +126,10 @@ class match:
             return f'{self.role.mention}, your match has been certified. You can join the matchmaking queue again.'
         else:
             return ""
+    
+    def recordBye( self ) -> None:
+        self.winner = "This match is a bye."
+        self.status = "certified"
     
     # Confirms the result for one player.
     # If all players have confirmed the result, the status of the match is status to "certified"
@@ -129,10 +162,13 @@ class match:
             
 
     # Saves the match to an xml file at the given location.
-    def saveXML( self, a_filename: str ) -> None:
+    def saveXML( self, a_filename: str = "" ) -> None:
+        if a_filename == "":
+            a_filename = self.saveLocation
         digest  = "<?xml version='1.0'?>\n"
-        digest += f'<match roleID="{self.role.id if type(self.role) == discord.Role else str()}" VC_ID="{self.VC.id if type(self.role) == discord.VoiceChannel else str()}">\n'
+        digest += f'<match roleID="{self.role.id if type(self.role) == discord.Role else str()}" VC_ID="{self.VC.id if type(self.VC) == discord.VoiceChannel else str()}">\n'
         digest += f'\t<number>{self.matchNumber}</number>\n'
+        digest += f'\t<stopTimer>{self.stopTimer}</stopTimer>'
         digest += f'\t<startTime>{self.startTime}</startTime>\n'
         digest += f'\t<endTime>{self.endTime}</endTime>\n'
         digest += f'\t<status>{self.status}</status>\n'
@@ -155,6 +191,7 @@ class match:
     
     # Loads a match from an xml file saved with this class
     def loadXML( self, a_filename: str ) -> None:
+        self.saveLocation = a_filename
         xmlTree = ET.parse( a_filename )
         matchRoot = xmlTree.getroot()
         self.roleID = matchRoot.attrib["roleID"]
@@ -164,12 +201,12 @@ class match:
         if self.VC_ID != "":
             self.VC_ID = int( self.VC_ID )
         self.matchNumber = int( matchRoot.find( "number" ).text )
+        self.stopTimer = str_to_bool( matchRoot.find("stopTimer").text )
         self.startTime = matchRoot.find( "startTime" ).text
         self.endTime = matchRoot.find( "endTime" ).text
         self.status = matchRoot.find( "status" ).text
         self.winner = matchRoot.find( "winner" ).attrib["name"]
         for player in matchRoot.find("activePlayers"):
-            print( player.attrib )
             self.activePlayers.append( player.attrib["name"] )
         for player in matchRoot.find("droppedPlayers"):
             self.droppedPlayers.append( player.attrib["name"] )
