@@ -168,7 +168,7 @@ class match:
         digest  = "<?xml version='1.0'?>\n"
         digest += f'<match roleID="{self.role.id if type(self.role) == discord.Role else str()}" VC_ID="{self.VC.id if type(self.VC) == discord.VoiceChannel else str()}">\n'
         digest += f'\t<number>{self.matchNumber}</number>\n'
-        digest += f'\t<stopTimer>{self.stopTimer}</stopTimer>'
+        digest += f'\t<stopTimer>{self.stopTimer}</stopTimer>\n'
         digest += f'\t<startTime>{self.startTime}</startTime>\n'
         digest += f'\t<endTime>{self.endTime}</endTime>\n'
         digest += f'\t<status>{self.status}</status>\n'

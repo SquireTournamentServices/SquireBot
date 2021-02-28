@@ -138,6 +138,10 @@ intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 tournaments = {}
+
+# A dictionary indexed by user idents and consisting of creation time, duration, and a coro to be awaited
+commandsToConfirm = { }
+
 playersToBeDropped = []
 
 savedTournaments = [ f'currentTournaments/{d}' for d in os.listdir( "currentTournaments" ) if os.path.isdir( f'currentTournaments/{d}' ) ]
@@ -162,13 +166,6 @@ async def on_ready():
         if type( guild ) != None:
             tournaments[tourn].assignGuild( guild )
             tournaments[tourn].loop = bot.loop
-
-
-def message_to_xml( msg: discord.Message, indent: str = "" ) -> str:
-    digest  = f'{indent}<message author="{msg.author}" time="{msg.created_at}">\n'
-    digest += f'{indent*2}<text>{msg.content}</text>\n'
-    digest += f'{indent}</message>\n'
-    return digest
 
 
 @bot.command(name='test')
@@ -217,50 +214,38 @@ async def test( ctx, *args ):
     await ctx.send( content="This is an example set of standings. The invisible breaker here is the number of games played.", embed=bed )
     
     
-    
-@bot.command(name='embed')
-async def embedTest( ctx, *args ):
-    #members = ctx.message.channel.members
-    members = ctx.message.guild.members
-    limit = 1024
 
-    bed = discord.Embed()
+@bot.command(name='yes')
+async def confirmCommand( ctx ):
+    print( commandsToConfirm )
+    userIdent = getUserIdent( ctx.message.author )
+    if not userIdent in commandsToConfirm:
+        await ctx.send( f'{ctx.message.author.mention}, there are no commands needing your confirmation.' )
+        return
     
-    names  = [ "Name:", "Points & Win Percent:", "Opp. WP" ]
-    values = [ "", "", "" ]
+    if commandsToConfirm[userIdent][1] <= timeDiff( commandsToConfirm[userIdent][0], getTime() ):
+        await ctx.send( f'{ctx.message.author.mention}, you waited too long to confirm. If you wish to confirm, run your prior command and then confirm.' )
+        return
     
-    lengths = [ len(s) for s in names ]
-    count = 1
-    for mem in members:
-        line = [ f'{count}) {mem.display_name}\n', f'0,\t00.0000%\n', f'00.0000%\n' ]
-        line_lengths = [ len(s) for s in line ]
-        if (lengths[0] + line_lengths[0] <= limit) and (lengths[1] + line_lengths[1] <= limit) and (lengths[2] + line_lengths[2] <= limit):
-            values  = [ values[i] + line[i] for i in range(len(values)) ]
-            lengths = [ lengths[i] + line_lengths[i] for i in range(len(lengths)) ]
-        else:
-            break
-        count += 1
-        
-    for i in range(len(names)):
-        bed.add_field( name=names[i], value=values[i] )
-    
-    print( len(bed), lengths )
-    
-    await ctx.send( embed=bed )
-    
-
-@bot.command(name='scrape')
-async def adminPlayerProfile( ctx ):
-    messages = await ctx.message.channel.history( limit=100000, oldest_first=True ).flatten( )
-    with open( "scrapTest.xml", "w" ) as f:
-        f.write( "<history>\n" )
-        for msg in messages:
-            f.write( message_to_xml( msg, "\t" ) )
-        f.write( "</history>" )
-    print( f'A total of {len(messages)} messages were scrapped.' )
+    message = await commandsToConfirm[userIdent][2]
+    await ctx.send( message )
+    del( commandsToConfirm[userIdent] )
 
 
+@bot.command(name='no')
+async def denyCommand( ctx ):
+    print( commandsToConfirm )
+    userIdent = getUserIdent( ctx.message.author )
+    if not userIdent in commandsToConfirm:
+        await ctx.send( f'{ctx.message.author.mention}, there are no commands needing your confirmation.' )
+        return
+    
+    if commandsToConfirm[userIdent][1] <= timeDiff( commandsToConfirm[userIdent][0], getTime() ):
+        await ctx.send( f'{ctx.message.author.mention}, you waited too long to confirm, so your request has already been cancelled.' )
+    else:
+        await ctx.send( f'{ctx.message.author.mention}, your request has been cancelled.' )
 
+    del( commandsToConfirm[userIdent] )
 
 
 

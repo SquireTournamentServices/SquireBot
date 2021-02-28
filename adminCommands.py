@@ -333,7 +333,8 @@ async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
-    await ctx.send( f'{ctx.message.author.mention}, the following is the profile for the player "{plyr}":\n{tournaments[tourn].players[userIdent]}' )
+    #await ctx.send( f'{ctx.message.author.mention}, the following is the profile for the player "{plyr}":\n{tournaments[tourn].players[userIdent]}' )
+    await ctx.send( content=f'{ctx.message.author.mention}, the following is the profile for {plyr}:', embed=tournaments[tourn].getPlayerProfileEmbed(userIdent) )
 
 
 @bot.command(name='admin-match-result')
@@ -520,7 +521,7 @@ async def createPairingsList( ctx, tourn = "" ):
 
     def pairingAttempt( ):
         # Even though this is a single list in a list, this could change to have several component lists
-        queue    = [ [ plyr for plyr in tournaments[tourn].players.values() ] ]
+        queue    = [ [ plyr for plyr in tournaments[tourn].players.values() if plyr.isActive() ] ]
         newQueue = [ [] for _ in range(len(queue)+1) ]
         plyrs    = [ ]
         indices  = [ ]

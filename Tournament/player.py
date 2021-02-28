@@ -235,7 +235,7 @@ class player:
             elif "a draw" in mtch.winner.lower():
                 digest += 1
             elif withBye and mtch.isBye():
-                digest += 3
+                digest += 1
         return digest
     
     # Calculates the percentage of game the player has won
@@ -244,7 +244,7 @@ class player:
         if len( certMatches ) == 0:
             return 0.0
         digest = self.getMatchPoints( withBye )/( len(certMatches)*3. )
-        return digest if digest >= 1./3 else 1./3
+        return digest #if digest >= 1./3 else 1./3
     
     def getNumberOfWins( self ) -> int:
         return sum( [ 1 if mtch.winner == self.name else 0 for mtch in self.matches if mtch.isCertified( ) ] )

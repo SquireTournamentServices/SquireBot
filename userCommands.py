@@ -259,14 +259,15 @@ async def dropTournament( ctx, tourn = "" ):
     if not await hasRegistered( tourn, userIdent, ctx ): return
     if not await isActivePlayer( tourn, userIdent, ctx ): return
     
-    if not userIdent in playersToBeDropped:
-        playersToBeDropped.append( userIdent )
-        await ctx.send( f'{ctx.message.author.mention}, you are going to be dropped from {tourn}. Dropping from a tournament can not be reversed. If you are sure you want to drop, re-enter this command.' )
-        return
-    
-    await tournaments[tourn].dropPlayer( userIdent )
-    tournaments[tourn].players[userIdent].saveXML( )
-    await ctx.send( f'{ctx.message.author.mention}, you have been dropped from {tourn}.' )
+    if userIdent in commandsToConfirm:
+        await ctx.send( f'{ctx.message.author.mention}, you have a command waiting for your confirmation. That confirmation request is being overwriten by this one.' )
+        del( commandsToConfirm[userIdent] )
+
+    commandsToConfirm[userIdent] = (getTime(), 30, tournaments[tourn].dropPlayer( userIdent ) )
+    await ctx.send( f'{ctx.message.author.mention}, in order to drop from {tourn}, you need to confirm your request. Are you sure you want to drop?' )
+    #await tournaments[tourn].dropPlayer( userIdent )
+    #tournaments[tourn].players[userIdent].saveXML( )
+    #await ctx.send( f'{ctx.message.author.mention}, you have been dropped from {tourn}.' )
 
 
 @bot.command(name='lfg')
@@ -288,14 +289,11 @@ async def queuePlayer( ctx, tourn = "" ):
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
 
-    if not tournaments[tourn].isActive():
-        await ctx.send( f'{ctx.message.author.mention}, the tournament "{tourn}" has not started yet. Please wait until the admin starts the tournament.' )
-        return
+    if not await isTournRunning( tourn, ctx ): return
 
     userIdent = getUserIdent( ctx.message.author )
     if not await hasRegistered( tourn, userIdent, ctx ): return
     if not await isActivePlayer( tourn, userIdent, ctx ): return
-    if not await isTournRunning( tourn, ctx ): return
     
     for lvl in tournaments[tourn].queue:
         for plyr in lvl:

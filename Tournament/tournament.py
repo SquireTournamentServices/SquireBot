@@ -65,7 +65,7 @@ class tournament:
         self.fail_count = 0
         
         self.queue             = [ [] ]
-        self.playersPerMatch   = 4
+        self.playersPerMatch   = 2
         self.pairingsThreshold = self.playersPerMatch #* 2 + 3
         self.pairingWaitTime   = 20
         self.queueActivity     = [ ]
@@ -88,6 +88,21 @@ class tournament:
     
     def isDead( self ) -> bool:
         return self.tournEnded or self.tournCancel
+
+    def getPlayerProfileEmbed( self, a_plyr ) -> discord.Embed:
+        digest = discord.Embed()
+        deckPairs = [ f'{d}: {self.players[a_plyr].decks[d].deckHash}' for d in self.players[a_plyr].decks ]
+        digest.add_field( name="Decks:", value=("\u200b" + "\n".join(deckPairs)) )
+        for mtch in self.players[a_plyr].matches:
+            players = mtch.activePlayers + mtch.droppedPlayers
+            status = f'Status: {mtch.status}'
+            if mtch.winner in self.players:
+                winner = f'Winner: {self.players[mtch.winner].discordUser.mention}'
+            else:
+                winner = f'Winner: {mtch.winner if mtch.winner else "N/A"}'
+            oppens = "Opponents: " + ", ".join( [ self.players[plyr].discordUser.mention for plyr in players if plyr != a_plyr ] )
+            digest.add_field( name=f'Match #{mtch.matchNumber}', value=f'{status}\n{winner}\n{oppens}' )
+        return digest
     
     def addDiscordGuild( self, a_guild ) -> None:
         self.guild = a_guild
@@ -443,7 +458,7 @@ class tournament:
             # Match Points
             points = plyr.getMatchPoints()
             # Match Win Percentage
-            MWP = plyr.getMatchWinPercentage( )
+            MWP = plyr.getMatchWinPercentage( withBye=False )
             # Opponent Match Win Percentage
             OWP = 0.0
             if len(plyr.opponents) > 0:
@@ -483,9 +498,10 @@ class tournament:
     
     async def dropPlayer( self, a_plyr: str ) -> None:
         await self.playerMatchDrop( a_plyr )
-        if a_plyr in self.players:
-            await self.players[a_plyr].discordUser.remove_roles( self.role )
-            await self.players[a_plyr].drop( )
+        await self.players[a_plyr].discordUser.remove_roles( self.role )
+        await self.players[a_plyr].drop( )
+        self.players[a_plyr].saveXML()
+        return f'{self.players[a_plyr].discordUser.mention}, you have been dropped from {self.tournName}.'
     
     async def playerCertifyResult( self, a_plyr: str ) -> None:
         if not a_plyr in self.players:
@@ -601,10 +617,7 @@ class tournament:
             newPlayer = player( "" )
             newPlayer.saveLocation = playerFile
             newPlayer.loadXML( playerFile )
-            if newPlayer.status == "active":
-                self.players[newPlayer.name]  = newPlayer
-            else:
-                self.droppedPlayers[newPlayer.name] = newPlayer
+            self.players[newPlayer.name]  = newPlayer
     
     def loadMatches( self, a_dirName: str ) -> None:
         matchFiles = [ f'{a_dirName}/{f}' for f in os.listdir(a_dirName) if os.path.isfile( f'{a_dirName}/{f}' ) ]
