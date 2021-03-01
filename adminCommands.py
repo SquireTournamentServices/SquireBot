@@ -798,6 +798,54 @@ async def adminRemoveMatch( ctx, tourn = "", mtch = "" ):
     await ctx.send( f'{adminMention}, in order to remove match #{mtch}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to remove this match?' )
 
 
+@bot.command(name='give-time-extension')
+async def giveTimeExtension( ctx, tourn = "", mtch = "", t = "" ):
+    tourn = tourn.strip()
+    mtch  =  mtch.strip()
+    t     =  t.strip()
+
+    if await isPrivateMessage( ctx ): return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "" or mtch == "" or t == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, a match number, and an amount of time.' )
+        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    try:
+        mtch = int( mtch )
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide a match number correctly. Please specify a match number using digits.' )
+        return
+    
+    if mtch > len(tournaments[tourn].matches):
+        await ctx.send( f'{ctx.message.author.mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
+        return
+    
+    if tournaments[tourn].matches[mtch - 1].stopTimer:
+        await ctx.send( f'{ctx.message.author.mention}, match #{mtch} does not have a timer set. Make sure the match is not already over.' )
+        return
+    
+    try:
+        t = int( t )
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide an amount of time correctly. Please specify a match number using digits.' )
+        return
+    
+    if t < 1:
+        await ctx.send( f'{ctx.message.author.mention}, you can not give time extension of less than one minute in length.' )
+        return
+        
+    tournaments[tourn].matches[mtch - 1].timeExtension += t
+    tournaments[tourn].matches[mtch - 1].saveXML( )
+    for plyr in tournaments[tourn].matches[mtch - 1].activePlayers:
+        await tournaments[tourn].players[plyr].discordUser.send( content=f'Your match (#{mtch}) in {tourn} has been given a time extension of {t} minute{"" if t == 1 else "s"}.' )
+    await ctx.send( f'{ctx.message.author.mention}, you have given match #{mtch} a time extension of {t} minute{"" if t == 1 else "s"}.' )
+
+
 
 """
 

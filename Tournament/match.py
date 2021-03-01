@@ -47,6 +47,7 @@ class match:
         self.status = "open"
         self.winner = ""
 
+        self.timeExtension = 0
         self.timer     = ""
         self.startTime = getTime( )
         self.endTime   = ""
@@ -129,6 +130,7 @@ class match:
     
     def recordBye( self ) -> None:
         self.winner = "This match is a bye."
+        self.endTime = getTime()
         self.status = "certified"
     
     # Confirms the result for one player.
@@ -139,6 +141,7 @@ class match:
         if not a_player in self.confirmedPlayers:
             self.confirmedPlayers.append( a_player )
         if await self.confirmMatch( ):
+            self.stopTimer = True
             return f'{self.role.mention}, your match has been certified. You can join the matchmaking queue again.'
         else:
             return ""
@@ -168,6 +171,7 @@ class match:
         digest  = "<?xml version='1.0'?>\n"
         digest += f'<match roleID="{self.role.id if type(self.role) == discord.Role else str()}" VC_ID="{self.VC.id if type(self.VC) == discord.VoiceChannel else str()}">\n'
         digest += f'\t<number>{self.matchNumber}</number>\n'
+        digest += f'\t<timeExtension>{self.timeExtension}</timeExtension>\n'
         digest += f'\t<stopTimer>{self.stopTimer}</stopTimer>\n'
         digest += f'\t<startTime>{self.startTime}</startTime>\n'
         digest += f'\t<endTime>{self.endTime}</endTime>\n'

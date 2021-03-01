@@ -254,30 +254,37 @@ class tournament:
     def matchTimer( self, mtch: match, t: int = -1 ) -> None:
         if t == -1:
             t = self.matchLength
-        if self.matchLength < 300:
-            return
         oneMin  = 60
         fiveMin = 300
-        if t >= fiveMin:
-            time.sleep( t - fiveMin )
-            if mtch.isCertified( ) or mtch.stopTimer:
-                return
-            task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have five minutes left in your round.',) )
+        margin  = 1
+        
+        timeLeft = t + margin + mtch.timeExtension - timeDiff( mtch.startTime, getTime() )
+        lastTimeExt = mtch.timeExtension
+        sentWarningOne = False
+        sentWarningTwo = False
+        while timeLeft > 0 and not mtch.stopTimer:
+            if timeLeft <= oneMin:
+                if not sentWarningTwo:
+                    task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have one minute left in your round.',) )
+                    task.start( )
+                    sentWarningOne = True
+            elif timeLeft <= fiveMin:
+                if not sentWarningOne:
+                    task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have five minutes left in your round.',) )
+                    task.start( )
+                    sentWarningOne = True
+            time.sleep( oneMin )
+            if lastTimeExt != mtch.timeExtension:
+                sentWarningOne = False
+                sentWarningTwo = False
+            lastTimeExt = mtch.timeExtension
+            timeLeft = t + margin + mtch.timeExtension - timeDiff( mtch.startTime, getTime() )
+
+        if not mtch.stopTimer:
+            task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, time is up for this match.',) )
             task.start( )
-            t = fiveMin
-        if t >= oneMin:
-            time.sleep( t - oneMin )
-            if mtch.isCertified( ) or mtch.stopTimer:
-                return
-            task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have one minute left in your round.',) )
-            task.start( )
-            t = oneMin
-        time.sleep( t )
-        if mtch.isCertified( ) or mtch.stopTimer:
-            return
-        task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, time is up for this match.',) )
-        task.start( )
-        task.join( )
+            task.join( )
+            
     
     async def addMatch( self, a_plyrs: List[str] ) -> None:
         for plyr in a_plyrs:
@@ -656,7 +663,7 @@ class tournament:
             for dPlayer in newMatch.droppedPlayers:
                 if dPlayer in self.players:
                     self.players[dPlayer].addMatch( newMatch )
-            if self.matches[-1].status != "certified":
+            if self.matches[-1].status != "certified" and not self.matches[-1].stopTimer:
                 t = int( self.matchLength - timeDiff( getTime(), self.matches[-1].startTime ) )
                 if t <= 0:
                     continue

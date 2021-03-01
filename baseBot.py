@@ -169,7 +169,7 @@ async def on_ready():
             tournaments[newTourn.tournName] = newTourn
     for tourn in tournaments:
         guild = bot.get_guild( tournaments[tourn].guildID )
-        if type( guild ) != None:
+        if not guild is None:
             tournaments[tourn].assignGuild( guild )
             tournaments[tourn].loop = bot.loop
 
