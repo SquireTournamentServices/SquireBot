@@ -194,10 +194,14 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
     if deckName == "":
         await ctx.send( f'{ctx.message.author.mention}, it appears that you do not have a deck whose name nor hash is "{ident}" registered for tourn.' )
         return
+
+    if hasCommandWaiting( ctx, userIdent ):
+        del( commandsToConfirm[userIdent] )
+
+    commandsToConfirm[userIdent] = ( getTime(), 30, tournaments[tourn].players[userIdent].removeDeckCoro( deckName ) )
+    await ctx.send( f'{ctx.message.author.mention}, in order to remove your deck, you need to confirm your request. Are you sure you want to remove it?' )
     
-    del( tournaments[tourn].players[userIdent].decks[deckName] )
-    tournaments[tourn].players[userIdent].saveXML( )
-    await ctx.send( f'{ctx.message.author.mention}, your decklist whose name or deck hash was "{ident}" has been deleted.' )
+    
 
 
 @bot.command(name='list-decks')
@@ -236,7 +240,7 @@ async def listDecklists( ctx, tourn = "" ):
     await ctx.send( content=f'{ctx.message.author.mention}, here are the decks that you currently have registered:', embed=embed )
     
 
-@bot.command(name='drop-tournament')
+@bot.command(name='drop')
 async def dropTournament( ctx, tourn = "" ):
     tourn = tourn.strip()
     if await isPrivateMessage( ctx ): return
@@ -259,15 +263,11 @@ async def dropTournament( ctx, tourn = "" ):
     if not await hasRegistered( tourn, userIdent, ctx ): return
     if not await isActivePlayer( tourn, userIdent, ctx ): return
     
-    if userIdent in commandsToConfirm:
-        await ctx.send( f'{ctx.message.author.mention}, you have a command waiting for your confirmation. That confirmation request is being overwriten by this one.' )
+    if hasCommandWaiting( ctx, userIdent ):
         del( commandsToConfirm[userIdent] )
 
     commandsToConfirm[userIdent] = (getTime(), 30, tournaments[tourn].dropPlayer( userIdent ) )
     await ctx.send( f'{ctx.message.author.mention}, in order to drop from {tourn}, you need to confirm your request. Are you sure you want to drop?' )
-    #await tournaments[tourn].dropPlayer( userIdent )
-    #tournaments[tourn].players[userIdent].saveXML( )
-    #await ctx.send( f'{ctx.message.author.mention}, you have been dropped from {tourn}.' )
 
 
 @bot.command(name='lfg')

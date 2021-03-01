@@ -94,6 +94,12 @@ def hasStartedTournament( a_guildName ) -> bool:
             return True
     return False
 
+async def hasCommandWaiting( ctx, a_user: str, send: bool = True ) -> bool:
+    digest = a_user in commandsToConfirm
+    if send and digest:
+        await ctx.send( f'{ctx.message.author.mention}, you have a command waiting for your confirmation. That confirmation request is being overwriten by this one.' )
+    return digest
+
 def findGuildMember( a_guild: discord.Guild, a_memberName: str ):
     for member in a_guild.members:
         if member.display_name == a_memberName:
@@ -228,6 +234,16 @@ async def confirmCommand( ctx ):
         return
     
     message = await commandsToConfirm[userIdent][2]
+    # Check to see if the message is from endTourn or cancelTourn
+    # If so, the tournament needs to be cancelled
+    if "has been closed" in message or "has been cancelled" in message:
+        words = message.split( "," )[1].strip().split( " " )
+        for i in range(1,len(words)-1):
+            if words[i] == "has":
+                if words[i+1] == "been":
+                    tourn = words[i-1]
+                    break
+        del( tournaments[tourn] )
     await ctx.send( message )
     del( commandsToConfirm[userIdent] )
 

@@ -115,7 +115,7 @@ class player:
                 del( self.opponents[i] )
                 return
     
-    def removeMatch( self, a_matchNum: int ) -> None:
+    async def removeMatch( self, a_matchNum: int ) -> None:
         index = -1
         for i in range(len(self.matches)):
             if self.matches[i].matchNumber == a_matchNum:
@@ -204,7 +204,20 @@ class player:
             
     # Addes a deck to the list of decks
     def addDeck( self, a_ident: str = "", a_decklist: str = "" ) -> None:
+        # Removes an deck instead of overwriting it to keep self.decks in chrono order
+        if a_ident in self.decks: 
+            del( self.decks[a_ident] )
         self.decks[a_ident] = deck( a_ident, a_decklist )
+    
+    # A coroutine that returns a string for use in the generallized verification commands
+    # An author is needed only when admin run the command
+    async def removeDeckCoro( self, a_ident: str, author: str = "" ) -> str:
+        del( self.decks[a_ident] )
+        self.saveXML( )
+        if author != "":
+            await self.discordUser.send( content=f'Your deck {a_ident} has been removed by tournament admin.' )
+            return f'{author}, the deck {a_ident} has been removed from {self.discordUser.mention}.' 
+        return f'{self.discordUser.mention}, your decklist whose name or deck hash was "{ident}" has been deleted.'
     
     def getDeckIdent( self, a_ident: str = "" ) -> str:
         if a_ident in self.decks:

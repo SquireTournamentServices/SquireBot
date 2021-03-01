@@ -1,4 +1,5 @@
 import os
+import shutil
 import xml.etree.ElementTree as ET
 import random
 import threading
@@ -167,17 +168,35 @@ class tournament:
             except:
                 pass
     
-    async def endTourn( self ) -> str:
-        await self.purgeTourn( )
+    async def endTourn( self, adminMention: str = "", author: str = "" ) -> str:
         if not self.tournStarted:
-            return "The tournament has not started. As such, it can't be ended; however, it can be cancelled. Please use the cancel command if that's what you intended to do."
-        else:
-            self.tournEnded = False
+            return f'{self.tournName} has not started, so it can not be ended. However, it can be cancelled.'
+        await self.purgeTourn( )
+        self.tournEnded = False
+        self.saveTournament( f'closedTournaments/{self.tournName}' )
+        if os.path.isdir( f'currentTournaments/{self.tournName}' ): 
+            shutil.rmtree( f'currentTournaments/{self.tournName}' )
+        return f'{adminMention}, {self.tournName} has been closed by {author}.'
     
-    async def cancelTourn( self ) -> str:
+    async def cancelTourn( self, adminMention: str = "", author: str = "") -> str:
         await self.purgeTourn( )
         self.tournCancel = True
-        return "This tournament has been canceled."
+        self.saveTournament( f'closedTournaments/{self.tournName}' )
+        if os.path.isdir( f'currentTournaments/{self.tournName}' ): 
+            shutil.rmtree( f'currentTournaments/{self.tournName}' )
+        return f'{adminMention}, {self.tournName} has been cancelled by {author}.'
+    
+    async def pruneDecks( self, ctx ) -> str:
+        await ctx.send( f'The pruning of decks is starting... now!' )
+        for plyr in self.players.values():
+            deckIdents = [ ident for ident in plyr.decks ]
+            while len( plyr.decks ) > self.deckCount:
+                del( plyr.decks[deckIdents[0]] )
+                await ctx.send( f'The deck {deckIdents[0]} belonging to {plyr.discordUser.mention} has been pruned.' )
+                await plyr.discordUser.send( content=f'Your deck {deckIdents[0]} has been pruned from the tournament {self.tournName} on {ctx.guild.name} by tournament admin.' )
+                del( deckIdents[0] )
+            plyr.saveXML( )
+        return f'Decks have been pruned. All players have at most {self.deckCount} deck{"" if self.deckCount == 1 else "s"}.'
     
     async def addPlayer( self, a_discordUser, admin=False ) -> str:
         if not admin and self.tournCancel:
@@ -305,18 +324,21 @@ class tournament:
         self.players[a_plyr].matches.append( newMatch )
         newMatch.saveXML( )
     
-    async def removeMatch( self, a_matchNum: int ) -> None:
+    async def removeMatch( self, a_matchNum: int, author: str = "" ) -> str:
         if self.matches[a_matchNum - 1] != a_matchNum:
             self.matches.sort( key=lambda x: x.matchNumber )
 
         for plyr in self.matches[a_matchNum - 1].activePlayers:
-            self.players[plyr].removeMatch( a_matchNum )
+            await self.players[plyr].removeMatch( a_matchNum )
             await self.players[plyr].discordUser.send( content=f'You were a particpant in match #{a_matchNum} in the tournament {self.tournName} on the server {self.hostGuildName}. This match has been removed by tournament admin. If you think this is an error, contact them.' )
         for plyr in self.matches[a_matchNum - 1].droppedPlayers:
-            self.players[plyr].removeMatch( a_matchNum )
+            await self.players[plyr].removeMatch( a_matchNum )
             await self.players[plyr].discordUser.send( content=f'You were a particpant in match #{a_matchNum} in the tournament {self.tournName} on the server {self.hostGuildName}. This match has been removed by tournament admin. If you think this is an error, contact them.' )
 
         await self.matches[a_matchNum - 1].killMatch( )
+        self.matches[a_matchNum - 1].saveXML( )
+        
+        return f'{author}, match #{a_matchNum} has been removed.'
         
     
     # Wrapper for self.pairQueue so that it can be ran on a seperate thread
@@ -478,7 +500,6 @@ class tournament:
                     [ i[2]*100 for i in rough ] ]
 
         return digest
-            
 
     
     def getMatch( self, a_matchNum: int ) -> match:
@@ -496,11 +517,14 @@ class tournament:
         while self.players[a_plyr].findOpenMatchIndex() != 1:
             await self.players[a_plyr].findOpenMatch().dropPlayer( a_plyr )
     
-    async def dropPlayer( self, a_plyr: str ) -> None:
+    async def dropPlayer( self, a_plyr: str, author: str = "" ) -> None:
         await self.playerMatchDrop( a_plyr )
         await self.players[a_plyr].discordUser.remove_roles( self.role )
         await self.players[a_plyr].drop( )
         self.players[a_plyr].saveXML()
+        if author != "":
+            await self.players[a_plyr].discordUser.send( content=f'You have been dropped from {self.tournName} on {self.guild.name} by tournament admin. If you believe this is an error, check with them.' )
+            return f'{author}, {self.players[a_plyr].discordUser.mention} has been dropped from the tournament.'
         return f'{self.players[a_plyr].discordUser.mention}, you have been dropped from {self.tournName}.'
     
     async def playerCertifyResult( self, a_plyr: str ) -> None:
