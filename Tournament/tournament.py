@@ -665,8 +665,6 @@ class tournament:
                 if dPlayer in self.players:
                     self.players[dPlayer].addMatch( newMatch )
             if self.matches[-1].status != "certified" and not self.matches[-1].stopTimer:
-                if t <= 0:
-                    continue
                 self.matches[-1].timer = threading.Thread( target=self.matchTimer, args=(self.matches[-1],) )
                 self.matches[-1].timer.start( )
         self.matches.sort( key= lambda x: x.matchNumber )
