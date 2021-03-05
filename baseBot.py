@@ -176,48 +176,46 @@ async def on_ready():
 
 @bot.command(name='test')
 async def test( ctx, *args ):
-    if len(args) == 0:
-        games = 6
-    else:
-        games = int(args[0])
+    if ctx.message.author.id != int( os.getenv( "TYLORDS_ID" ) ):
+        await ctx.send( f'{ctx.message.author.mention}, you do not have permission to use this command. Contact Tylord2894 to learn more.' )
+        return
     
-    limit = 1024
+    codes = (await ctx.message.attachments[0].read()).decode("utf-8").split( "\n" )
     
-    if len(args) > 3:
-        points = [ float(args[1]), float(args[2]), float(args[3]) ]
-    else:
-        points = [ 3, 1, 0 ]
+    await ctx.send( "This is the content of the file (line-by-line)." )
+    for code in codes:
+        if len(code.strip()) != 0:
+            await ctx.send( code )
+
+
+@bot.command(name='send-codes')
+async def test( ctx, *args ):
+    if ctx.message.author.id != int( os.getenv( "TYLORDS_ID" ) ):
+        await ctx.send( f'{ctx.message.author.mention}, you do not have permission to use this command. Contact Tylord2894 to learn more.' )
+        return
     
-    results = []
+    if len(args) < 1:
+        await ctx.send( f'{ctx.message.author.mention}, specify a tournament.' )
+        return
     
-    for g in range(3,games+1):
-        for win in range(3,g+1):
-            draw = 0
-            while draw < 3 and draw + win <= g:
-                loss = (g - win) - draw
-                results.append((win,draw,loss,win*points[0] + draw*points[1] + loss*points[2],100*win/g))
-                draw += 1
+    codes = [ code for code in (await ctx.message.attachments[0].read()).decode("utf-8").split( "\n" ) if len(code.strip()) != 0 ]
     
-    results.sort( key=lambda x: x[0]+x[1]+x[2], reverse=True )
-    results.sort( key=lambda x: x[4], reverse=True )
-    results.sort( key=lambda x: x[3], reverse=True )
-    bed = discord.Embed( )
-    f_1 = ""
-    f_2 = ""
-    f_3 = ""
-    for r in results:
-        tmp = f'{r[0]}-{r[1]}-{r[2]}\n'
-        if len(f_1) + len(tmp) > limit:
-            break
-        f_1 += tmp
-        f_2 += f'{r[3]}\n'
-        f_3 += f'{trunk(r[4])}\n'
+    if len(codes) < len(tournaments[args[0]].players):
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough codes. You provided {len(codes)} codes but there are {len(tournaments[args[0]].players)} players (dropped and active) in {args[0]}.' )
+        return
     
-    bed.add_field( name="Match Result", value=f_1 )
-    bed.add_field( name="Match Points", value=f_2 )
-    bed.add_field( name="Win Percent ", value=f_3 )
+    if len(codes) > len(tournaments[args[0]].players):
+        await ctx.send( f'{ctx.message.author.mention}, you provided more than enough codes. You provided {len(codes)} codes but there are {len(tournaments[args[0]].players)} players (dropped and active) in {args[0]}. The codes will be sent, but some will go unused.' )
     
-    await ctx.send( content="This is an example set of standings. The invisible breaker here is the number of games played.", embed=bed )
+    await ctx.send( "Sending codes." )
+    players = list( tournaments[args[0]].players.values() )
+    for i in range(len(players)):
+        try:
+            await players[i].discordUser.send( content=f'Thank you for playing in {args[0]}!! As a thank you, here is a code for an Altar Sleeve, which is redemable [here], {codes[i]}.' )
+        except:
+            await ctx.send( f'There was an issue sending a code to {players[i].name}' )
+    await ctx.send( "All codes have been sent" )
+    
     
     
 

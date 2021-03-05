@@ -77,7 +77,6 @@ class tournament:
         self.deckCount = 1
 
         self.players  = {}
-        self.droppedPlayers = {}
         
         self.matches = []
     
@@ -265,12 +264,12 @@ class tournament:
         while timeLeft > 0 and not mtch.stopTimer:
             if timeLeft <= oneMin:
                 if not sentWarningTwo:
-                    task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have one minute left in your round.',) )
+                    task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have one minute left in your match.',) )
                     task.start( )
                     sentWarningOne = True
             elif timeLeft <= fiveMin:
                 if not sentWarningOne:
-                    task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have five minutes left in your round.',) )
+                    task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have five minutes left in your match.',) )
                     task.start( )
                     sentWarningOne = True
             time.sleep( oneMin )
@@ -279,9 +278,11 @@ class tournament:
                 sentWarningTwo = False
             lastTimeExt = mtch.timeExtension
             timeLeft = t + margin + mtch.timeExtension - timeDiff( mtch.startTime, getTime() )
+            print( f'The match length is {t}. The start time is {mtch.startTime} and current time is {getTime()}, so the time elapsed is {timeDiff(mtch.startTime, getTime())}.' )
+            
 
         if not mtch.stopTimer:
-            task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, time is up for this match.',) )
+            task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, time in your match is up!!',) )
             task.start( )
             task.join( )
             
