@@ -1,6 +1,8 @@
 import os
 
 import discord
+import random
+from random import getrandbits
 from discord import Activity, ActivityType
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -140,6 +142,8 @@ def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
+random.seed( )
+
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -188,8 +192,28 @@ async def test( ctx, *args ):
             await ctx.send( code )
 
 
+@bot.command(name='flip-coins')
+async def flipCoin( ctx, num ):
+    try:
+        num = int( num.strip() )
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, you need to specify a number of coins to flip (using digits, not words).' )
+    
+    count = 0
+    tmp = getrandbits( num )
+    print( num, tmp )
+    for i in range( num ):
+        print( 1<<i, 1<<i & tmp )
+        if 1<<i & tmp != 0:
+            print( "win" )
+            count += 1
+    
+    await ctx.send( f'{ctx.message.author.mention}, out of {num} coin flip{"" if num == 1 else "s"} you won {count} time{"" if count == 1 else""}.' )
+
+
+
 @bot.command(name='send-codes')
-async def test( ctx, *args ):
+async def sendCodes( ctx, *args ):
     if ctx.message.author.id != int( os.getenv( "TYLORDS_ID" ) ):
         await ctx.send( f'{ctx.message.author.mention}, you do not have permission to use this command. Contact Tylord2894 to learn more.' )
         return
