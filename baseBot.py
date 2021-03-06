@@ -207,14 +207,11 @@ async def flipCoin( ctx, num ):
     
     count = 0
     tmp = getrandbits( num )
-    print( num, tmp )
     for i in range( num ):
-        print( 1<<i, 1<<i & tmp )
         if 1<<i & tmp != 0:
-            print( "win" )
             count += 1
     
-    await ctx.send( f'{ctx.message.author.mention}, out of {num} coin flip{"" if num == 1 else "s"} you won {count} time{"" if count == 1 else""}.' )
+    await ctx.send( f'{ctx.message.author.mention}, out of {num} coin flip{"" if num == 1 else "s"} you won {count} time{"" if count == 1 else "s"}.' )
 
 
 
