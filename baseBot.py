@@ -256,6 +256,7 @@ async def confirmCommand( ctx ):
     
     if commandsToConfirm[userIdent][1] <= timeDiff( commandsToConfirm[userIdent][0], getTime() ):
         await ctx.send( f'{ctx.message.author.mention}, you waited too long to confirm. If you wish to confirm, run your prior command and then confirm.' )
+        del( commandsToConfirm[userIdent]
         return
     
     message = await commandsToConfirm[userIdent][2]
@@ -266,7 +267,7 @@ async def confirmCommand( ctx ):
         for i in range(1,len(words)-1):
             if words[i] == "has":
                 if words[i+1] == "been":
-                    tourn = words[i-1]
+                    tourn = " ".join( words[:i] )
                     break
         del( tournaments[tourn] )
     await ctx.send( message )
