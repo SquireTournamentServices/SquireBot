@@ -134,7 +134,7 @@ async def addTriceName( ctx, tourn = "", name = "" ):
     
     tournaments[tourn].players[userIdent].triceName = name
     tournaments[tourn].players[userIdent].saveXML( )
-    await ctx.send( f'{ctx.message.author.mention}, "{name}" was added as your Cocktrice username.' )
+    await ctx.send( f'{ctx.message.author.mention}, "{name}" was added as your Cockatrice username.' )
 
 
 @bot.command(name='add-deck')
@@ -159,7 +159,7 @@ async def submitDecklist( ctx, tourn = "", ident = "", decklist = "" ):
     tournaments[tourn].players[userIdent].addDeck( ident, decklist )
     tournaments[tourn].players[userIdent].saveXML( )
     deckHash = str( tournaments[tourn].players[userIdent].decks[ident].deckHash )
-    await ctx.send( f'{ctx.message.author.mention}, your deck has been successfully registered. Your deck hash is "{deckHash}"; this must match your deck hash in Cocktrice. If these hashes do not match, refer to the FAQ or contact tournament staff.' )
+    await ctx.send( f'{ctx.message.author.mention}, your deck has been successfully registered. Your deck hash is "{deckHash}"; this must match your deck hash in Cockatrice. If these hashes do not match, refer to the FAQ or contact tournament staff.' )
     if not await isPrivateMessage( ctx, False ):
         await ctx.send( f'{ctx.message.author.mention}, for future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
 
