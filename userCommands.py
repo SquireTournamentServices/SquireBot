@@ -398,7 +398,8 @@ async def confirmMatchResult( ctx, tourn = "" ):
 async def standings( ctx, tourn = "" ):
     tourn  = tourn.strip()
     if await isPrivateMessage( ctx ): return
-    if ctx.message.channel.id != int( os.getenv("STANDINGS_CHANNEL_ID" ) ):
+
+    if ctx.message.channel.id != int( os.getenv("STANDINGS_CHANNEL_ID" ) ) and not isTournamentAdmin( ctx, send=False ):
         await ctx.send( f'{ctx.message.author.mention}, this is not the correct channel to see standings. Please go to <#{os.getenv("STANDINGS_CHANNEL_ID" )}> to see standings.' )
         return
     
@@ -422,5 +423,38 @@ async def standings( ctx, tourn = "" ):
     for bed in embeds[1:]:
         await ctx.send( embed=bed )
 
+
+@bot.command(name='misfortune')
+async def misfortune( ctx, num = "" ):
+    num = num.strip()
+    
+    userIdent = getUserIdent( ctx.message.author )
+    
+    playerMatch = ""
+    count = 0
+
+    for mtch in listOfMisfortunes:
+        if userIdent in mtch[1].activePlayers:
+            playerMatch = mtch[1]
+            break
+        count += 1
+    
+    if playerMatch == "":
+        if not await isPrivateMessage( ctx, send=False ):
+            await createMisfortune( ctx )
+            return
+        else:
+            await ctx.send( f'{ctx.message.author.mention}, in order to prevent too much misfortune, you must send this inciting command from the server that is hosting your tournament.' )
+            return
+
+    try:
+        num = int( num )
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, invalid number: You must specify a number using digits. Please re-enter.' )
+        return
+
+    delete = await recordMisfortune( ctx, mtch, num )
+    if delete:
+        del( listOfMisfortunes[count] )
 
 

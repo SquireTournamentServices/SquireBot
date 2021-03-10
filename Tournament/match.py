@@ -38,6 +38,8 @@ class match:
         self.activePlayers    = a_players
         self.droppedPlayers   = [ ]
         self.confirmedPlayers = [ ]
+        
+        self.misfortunes = { }
 
         self.role   = ""
         self.roleID = ""

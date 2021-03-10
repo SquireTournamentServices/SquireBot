@@ -107,6 +107,45 @@ async def hasCommandWaiting( ctx, a_user: str, send: bool = True ) -> bool:
         await ctx.send( f'{ctx.message.author.mention}, you have a command waiting for your confirmation. That confirmation request is being overwriten by this one.' )
     return digest
 
+async def createMisfortune( ctx ) -> None:
+    userIdent = getUserIdent( ctx.message.author )
+    playerMatch = ""
+    tourns = currentGuildTournaments( ctx.message.guild.name )
+    for tourn in tourns.values():
+        if not userIdent in tourn.players:
+            continue
+        if tourn.players[userIdent].hasOpenMatch():
+            playerMatch = tourn.players[userIdent].findOpenMatch()
+            break
+    if playerMatch == "":
+        await ctx.send( f'{ctx.message.author.mention}, you are not in an open match, so you can not create any misfortune.' )
+        return
+    
+    await ctx.send( f'{ctx.message.author.mention}, you have created misfortune for {playerMatch.role.mention}. How will you all respond (via DM)?' )
+    for plyr in playerMatch.activePlayers:
+        await tourn.players[plyr].discordUser.send( content=f'Misfortune has been created in your match. Tell me how you will respond (with "!misfortune [number]")!' )
+    
+    listOfMisfortunes.append( (ctx, playerMatch) )
+
+async def recordMisfortune( ctx, misfortune, num: int ) -> bool:
+    userIdent = getUserIdent( ctx.message.author )
+    misfortune[1].misfortunes[userIdent] = num
+    await ctx.send( f'{ctx.message.author.mention}, your response to this misfortune has been recorded!' )
+    if len( misfortune[1].misfortunes ) == len( misfortune[1].activePlayers ):
+        tourns = currentGuildTournaments( misfortune[0].message.guild.name )
+        for tourn in tourns.values():
+            if not userIdent in tourn.players:
+                continue
+            if tourn.players[userIdent].hasOpenMatch():
+                break
+        newLine = "\n\t"
+        printout = newLine.join( [ f'{tourn.players[plyr].discordUser.mention}: {misfortune[1].misfortunes[plyr]}' for plyr in misfortune[1].misfortunes ] )
+        await misfortune[0].send( f'{misfortune[1].role.mention}, the results of your misfortune are in!{newLine}{printout}' )
+        misfortune[1].misfortunes = { }
+        return True
+    return False
+     
+
 def getTournamentAdminMention( a_guild ) -> str:
     adminMention = ""
     for role in a_guild.roles:
@@ -178,6 +217,9 @@ tournaments = {}
 
 # A dictionary indexed by user idents and consisting of creation time, duration, and a coro to be awaited
 commandsToConfirm = { }
+
+# A list of matches that we currently resolving Wheel of Misfortune
+listOfMisfortunes = [ ]
 
 playersToBeDropped = []
 
