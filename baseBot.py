@@ -10,6 +10,32 @@ from dotenv import load_dotenv
 
 from Tournament import *
 
+#async def sendAdminHelpMessage( ctx ) -> None:
+
+async def sendUserHelpMessage( ctx ) -> None:
+    embed = discord.Embed( )
+    embed.add_field( name="Overview", value="Below, you'll find a brief description of this bot's commands. You can find a more detailed list [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing). There is also a [crash course](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
+    
+    regDigest = "- register : Registers you for a tournament\n\
+                 - add-deck : Registers a deck for a tournament (should be sent via DM)\n\
+                 - remove-deck : Removes a deck you registered\n\
+                 - list-decks : Lists the names and hashes of the decks you've registered\n\
+                 - cockatrice-name : Adds your Cockatrice username to your profile\n\
+                 - drop : Removes you from the tournament"
+    embed.add_field( name="Registration Commands", value=regDigest, inline=False )
+    
+    matchDigest = "- lfg : Places you into the matchmaking queue\n\
+                   - match-result : Records you as the winner of your match or that the match was a draw\n\
+                   - confirm-result : Records that you agree with the declared result"
+    embed.add_field( name="Match Commands", value=matchDigest,inline=False )
+    
+    miscDigest = "- standings : Prints out the current standings\n\
+                  - misfortune : Helps you resolve Wheel of Misfortune."
+    embed.add_field( name="Miscellaneous Commands", value=miscDigest,inline=False )
+    
+    await ctx.send( embed=embed )
+    return
+
 
 async def isPrivateMessage( ctx, send: bool = True ) -> bool:
     digest = (str(ctx.message.channel.type) == 'private')
@@ -243,12 +269,22 @@ async def sendCodes( ctx, *args ):
             await ctx.send( f'There was an issue sending a code to {players[i].name}' )
     await ctx.send( "All codes have been sent" )
     
-    
+
+bot.remove_command( "help" )
+@bot.command(name='help')
+async def printHelp( ctx ):
+    if await isPrivateMessage( ctx, send=False ):
+        ctx.send( f'There are two commands that you can use via DM, "!add-deck" and "!misfortune".' )
+        return
+
+    #if await isTournamentAdmin( ctx, send=False ):
+        #sendAdminHelpMessage( ctx )
+    #else:
+    await sendUserHelpMessage( ctx )
     
 
 @bot.command(name='yes')
 async def confirmCommand( ctx ):
-    print( commandsToConfirm )
     userIdent = getUserIdent( ctx.message.author )
     if not userIdent in commandsToConfirm:
         await ctx.send( f'{ctx.message.author.mention}, there are no commands needing your confirmation.' )
@@ -256,7 +292,7 @@ async def confirmCommand( ctx ):
     
     if commandsToConfirm[userIdent][1] <= timeDiff( commandsToConfirm[userIdent][0], getTime() ):
         await ctx.send( f'{ctx.message.author.mention}, you waited too long to confirm. If you wish to confirm, run your prior command and then confirm.' )
-        del( commandsToConfirm[userIdent]
+        del( commandsToConfirm[userIdent] )
         return
     
     message = await commandsToConfirm[userIdent][2]
