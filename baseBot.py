@@ -40,7 +40,7 @@ async def sendUserHelpMessage( ctx ) -> None:
 async def isPrivateMessage( ctx, send: bool = True ) -> bool:
     digest = (str(ctx.message.channel.type) == 'private')
     if digest and send:
-        await ctx.send( f'In general, you are not allowed to send commands via DM. Each tournament is tied to a server. Please send this message from the appropriate server.' )
+        await ctx.send( f'You are not allowed to send commands via DM other than "!add-deck". Please send your command in the Discord server that is hosting your tournament.' )
     return digest
 
 async def isTournamentAdmin( ctx, send: bool = True ) -> bool:
@@ -49,32 +49,32 @@ async def isTournamentAdmin( ctx, send: bool = True ) -> bool:
     for role in ctx.message.author.roles:
         digest |= str(role).lower() == "tournament admin"
     if not digest and send:
-        await ctx.send( f'{ctx.message.author.mention}, you do not admin permissions for tournaments on this server. Please do not do this again or {adminMention} may intervene.' )
+        await ctx.send( f'{ctx.message.author.mention}, invalid permissions: You are not tournament staff. Please do not use this command again or {adminMention} may intervene.' )
     return digest
 
 async def checkTournExists( tourn, ctx, send: bool = True ) -> bool:
     digest = ( tourn in tournaments )
     if not digest and send:
-        await ctx.send( f'{ctx.message.author.mention}, there is not a tournament named "{tourn}" in this server.' )
+        await ctx.send( f'{ctx.message.author.mention}, there is no tournament named "{tourn}" in this server.' )
     return digest
 
 async def correctGuild( tourn, ctx, send: bool = True ) -> bool:
     digest = ( tournaments[tourn].hostGuildName == ctx.message.guild.name )
     if not digest and send:
-        await ctx.send( f'{ctx.message.author.mention}, {tourn} does not belong to this server. Please send this command from the correct server.' )
+        await ctx.send( f'{ctx.message.author.mention}, this server is not hosting {tourn}. Please send your command in the correct server.' )
     return digest
 
 async def isTournDead( tourn, ctx, send: bool = True ) -> bool:
     adminMetnion = getTournamentAdminMention( ctx.message.guild )
     digest = tournaments[tourn].isDead( )
     if digest and send:
-        await ctx.send( f'{ctx.message.author.mention}, {tourn} has either ended or been cancelled. Check with {adminMention} if you think this is an error.' )
+        await ctx.send( f'{ctx.message.author.mention}, {tourn} has ended or been cancelled. Contact {adminMention} if you think this is an error.' )
     return digest
 
 async def isTournRunning( tourn, ctx, send: bool = True ) -> bool:
     digest = tournaments[tourn].isActive and not await isTournDead( tourn, ctx, send )
     if send and not tournaments[tourn].isActive:
-        await ctx.send( f'{ctx.message.author.mention}, {tourn} has not been started yet.' )
+        await ctx.send( f'{ctx.message.author.mention}, {tourn} has not started yet.' )
     return digest
 
 async def isRegOpen( tourn, ctx, send: bool = True ) -> bool:
@@ -92,13 +92,19 @@ async def hasRegistered( tourn, plyr, ctx, send: bool = True ) -> bool:
 async def isActivePlayer( tourn, plyr, ctx, send: bool = True ) -> bool:
     digest = tournaments[tourn].players[plyr].isActive( )
     if send and not digest:
-        await ctx.send( f'{ctx.message.author.mention}, you registered for {tourn} but have been dropped. Talk to tournament admin if you think this is an error.' )
+        await ctx.send( f'{ctx.message.author.mention}, you registered for {tourn} but have been dropped. Contact tournament staff if you think this is an error.' )
     return digest
     
 async def hasOpenMatch( tourn, plyr, ctx, send: bool = True ) -> bool:
     digest = tournaments[tourn].players[plyr].hasOpenMatch( )
     if send and not digest:
-        await ctx.send( f'{ctx.message.author.mention}, you are not an active player in any match, so you do not need to do anything.' )
+        await ctx.send( f'{ctx.message.author.mention}, you are not an active player in a match. You do not need to do anything.' )
+    return digest
+
+async def hasCommandWaiting( ctx, a_user: str, send: bool = True ) -> bool:
+    digest = a_user in commandsToConfirm
+    if send and digest:
+        await ctx.send( f'{ctx.message.author.mention}, you have a command waiting for your confirmation. That confirmation request is being overwriten by this one.' )
     return digest
 
 def getTournamentAdminMention( a_guild ) -> str:
@@ -121,12 +127,6 @@ def hasStartedTournament( a_guildName ) -> bool:
         if tournaments[tourn].tournStarted and tournaments[tourn].hostGuildName == a_guildName:
             return True
     return False
-
-async def hasCommandWaiting( ctx, a_user: str, send: bool = True ) -> bool:
-    digest = a_user in commandsToConfirm
-    if send and digest:
-        await ctx.send( f'{ctx.message.author.mention}, you have a command waiting for your confirmation. That confirmation request is being overwriten by this one.' )
-    return digest
 
 def findGuildMember( a_guild: discord.Guild, a_memberName: str ):
     for member in a_guild.members:
@@ -219,28 +219,6 @@ async def test( ctx, *args ):
             await ctx.send( code )
 
 
-@bot.command(name='flip-coins')
-async def flipCoin( ctx, num ):
-    try:
-        num = int( num.strip() )
-    except:
-        await ctx.send( f'{ctx.message.author.mention}, you need to specify a number of coins to flip (using digits, not words).' )
-        return
-    
-    if num > MAX_COIN_FLIPS:
-        await ctx.send( f'{ctx.message.author.mention}, you specified too many coins. I can flip at most {MAX_COIN_FLIPS} at a time. I will flip that many, but you still need to have {num - MAX_COIN_FLIPS} flipped.' )
-        num = MAX_COIN_FLIPS
-    
-    count = 0
-    tmp = getrandbits( num )
-    for i in range( num ):
-        if 1<<i & tmp != 0:
-            count += 1
-    
-    await ctx.send( f'{ctx.message.author.mention}, out of {num} coin flip{"" if num == 1 else "s"} you won {count} time{"" if count == 1 else "s"}.' )
-
-
-
 @bot.command(name='send-codes')
 async def sendCodes( ctx, *args ):
     if ctx.message.author.id != int( os.getenv( "TYLORDS_ID" ) ):
@@ -281,7 +259,28 @@ async def printHelp( ctx ):
         #sendAdminHelpMessage( ctx )
     #else:
     await sendUserHelpMessage( ctx )
+
+
+@bot.command(name='flip-coins')
+async def flipCoin( ctx, num ):
+    try:
+        num = int( num.strip() )
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, you need to specify a number of coins to flip (using digits, not words).' )
+        return
     
+    if num > MAX_COIN_FLIPS:
+        await ctx.send( f'{ctx.message.author.mention}, you specified too many coins. I can flip at most {MAX_COIN_FLIPS} at a time. I will flip that many, but you still need to have {num - MAX_COIN_FLIPS} flipped.' )
+        num = MAX_COIN_FLIPS
+    
+    count = 0
+    tmp = getrandbits( num )
+    for i in range( num ):
+        if 1<<i & tmp != 0:
+            count += 1
+    
+    await ctx.send( f'{ctx.message.author.mention}, out of {num} coin flip{"" if num == 1 else "s"} you won {count} time{"" if count == 1 else "s"}.' )
+
 
 @bot.command(name='yes')
 async def confirmCommand( ctx ):
@@ -291,7 +290,7 @@ async def confirmCommand( ctx ):
         return
     
     if commandsToConfirm[userIdent][1] <= timeDiff( commandsToConfirm[userIdent][0], getTime() ):
-        await ctx.send( f'{ctx.message.author.mention}, you waited too long to confirm. If you wish to confirm, run your prior command and then confirm.' )
+        await ctx.send( f'{ctx.message.author.mention}, you waited too long to confirm. If you still wish to confirm, run your prior command and then confirm.' )
         del( commandsToConfirm[userIdent] )
         return
     
@@ -318,10 +317,7 @@ async def denyCommand( ctx ):
         await ctx.send( f'{ctx.message.author.mention}, there are no commands needing your confirmation.' )
         return
     
-    if commandsToConfirm[userIdent][1] <= timeDiff( commandsToConfirm[userIdent][0], getTime() ):
-        await ctx.send( f'{ctx.message.author.mention}, you waited too long to confirm, so your request has already been cancelled.' )
-    else:
-        await ctx.send( f'{ctx.message.author.mention}, your request has been cancelled.' )
+    await ctx.send( f'{ctx.message.author.mention}, your request has been cancelled.' )
 
     del( commandsToConfirm[userIdent] )
 
