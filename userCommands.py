@@ -481,7 +481,7 @@ async def misfortune( ctx, num = "" ):
         del( listOfMisfortunes[count] )
 
 
-commandSnippets["flip-coins"] = "- flip-coins : Flips coins for you (limit of {MAX_COIN_FLIPS} coins)" 
+commandSnippets["flip-coins"] = f'- flip-coins : Flips coins for you (limit of {MAX_COIN_FLIPS} coins)' 
 commandCategories["misc"].append( "flip-coins" )
 @bot.command(name='flip-coins')
 async def flipCoin( ctx, num ):
