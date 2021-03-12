@@ -12,7 +12,34 @@ from Tournament import *
 
 commandSnippets = { } 
 commandCategories = { "registration": [ ], "playing": [ ], "misc": [ ],
-                      "sudo-registration": [ ], "sudo-playing": [ ], "sudo-misc": [ ] }
+                      "sudo-registration": [ ], "sudo-playing": [ ], "sudo-misc": [ ],
+                      "management": [ ], "properties": [ ], "day-of": [ ] }
+
+async def sendAdminHelpMessage( ctx ) -> None:
+    embed = discord.Embed( )
+    
+    embed.add_field( name="**__User Commands__**", value="\u200b", inline = False )
+
+    embed.add_field( name="Registration", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["registration"] ]), inline=False )
+    embed.add_field( name="Match", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
+    embed.add_field( name="Miscellaneous", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
+    
+    embed.add_field( name="**__Judge Commands__**", value="\u200b", inline = False )
+
+    embed.add_field( name="Registration", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-registration"] ]), inline=False )
+    embed.add_field( name="Match", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-playing"] ]), inline=False )
+    embed.add_field( name="Miscellaneous", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-misc"] ]),inline=False )
+    
+    embed.add_field( name="**__Admin Commands__**", value="\u200b", inline = False )
+
+    embed.add_field( name="Manage Tournament", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["management"] ]), inline=False )
+    embed.add_field( name="Properties", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["properties"] ]), inline=False )
+    embed.add_field( name="Day-Of", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["day-of"] ]),inline=False )
+    
+    embed.add_field( name="**__Additional Information__**", value="The full documentation for the judge commands can be found [here](https://docs.google.com/document/d/1rLVJZZKR-MF54WNhvbQdRJBhI5U_oUHbmfNcSbihUJQ/edit?usp=sharing) and admin commands [here](https://docs.google.com/document/d/1AlBRYAW5d4cLDc9VC89sa_Agzdhy1I-DkaYbXIJ45xM/edit?usp=sharing). The user commands are [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing), and the crash course is [here](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
+    
+    await ctx.send( embed=embed )
+    return
 
 async def sendJudgeHelpMessage( ctx ) -> None:
     embed = discord.Embed( )
@@ -29,7 +56,7 @@ async def sendJudgeHelpMessage( ctx ) -> None:
     embed.add_field( name="Match", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-playing"] ]), inline=False )
     embed.add_field( name="Miscellaneous", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-misc"] ]),inline=False )
     
-    embed.add_field( name="**__Additional Information__**", value="The full documentation for the judge command can be found [here](https://docs.google.com/document/d/1rLVJZZKR-MF54WNhvbQdRJBhI5U_oUHbmfNcSbihUJQ/edit?usp=sharing). The user commands are [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing), and the crash course is [here](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
+    embed.add_field( name="**__Additional Information__**", value="The full documentation for the judge commands can be found [here](https://docs.google.com/document/d/1rLVJZZKR-MF54WNhvbQdRJBhI5U_oUHbmfNcSbihUJQ/edit?usp=sharing). The user commands are [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing), and the crash course is [here](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
     
     await ctx.send( embed=embed )
     return
@@ -326,10 +353,9 @@ async def printHelp( ctx ):
         await ctx.send( f'There are two commands that you can use via DM, "!add-deck" and "!misfortune".' )
         return
 
-    #if await isTournamentAdmin( ctx, send=False ):
-        #sendAdminHelpMessage( ctx )
-    #else:
-    if await isSudo( ctx, send=False ):
+    if await isTournamentAdmin( ctx, send=False ):
+        await sendAdminHelpMessage( ctx )
+    elif await isSudo( ctx, send=False ):
         await sendJudgeHelpMessage( ctx )
     else:
         await sendUserHelpMessage( ctx )

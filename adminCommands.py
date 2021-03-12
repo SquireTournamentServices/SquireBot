@@ -10,6 +10,8 @@ from Tournament import *
 
 
 
+commandSnippets["create-tournament"] = "- create-tournament : Creates a tournament" 
+commandCategories["management"].append("create-tournament")
 @bot.command(name='create-tournament')
 async def createTournament( ctx, tourn = "" ):
     tourn = tourn.strip()
@@ -33,6 +35,8 @@ async def createTournament( ctx, tourn = "" ):
     await ctx.send( f'{adminMention}, a new tournament called "{tourn}" has been created by {ctx.message.author.mention}.' )
     
 
+commandSnippets["update-reg"] = "- update-reg : Opens or closes registration" 
+commandCategories["management"].append("update-reg")
 @bot.command(name='update-reg')
 async def updateReg( ctx, tourn = "", status = "" ):
     tourn  = tourn.strip()
@@ -56,6 +60,8 @@ async def updateReg( ctx, tourn = "", status = "" ):
     await ctx.send( f'{adminMention}, registeration for the "{tourn}" tournament has been {("opened" if str_to_bool(status) else "closed")} by {ctx.message.author.mention}.' ) 
 
 
+commandSnippets["start-tournament"] = "- start-tournament : Starts the tournament, which closes registration and let's players LFG" 
+commandCategories["management"].append("start-tournament")
 @bot.command(name='start-tournament')
 async def startTournament( ctx, tourn = "" ):
     tourn = tourn.strip()
@@ -77,6 +83,8 @@ async def startTournament( ctx, tourn = "" ):
     await ctx.send( f'{adminMention}, {tourn} has been started by {ctx.message.author.mention}.' )
     
 
+commandSnippets["end-tournament"] = "- end-tournament : Ends a tournament that's been started" 
+commandCategories["management"].append("end-tournament")
 @bot.command(name='end-tournament')
 async def endTournament( ctx, tourn = "" ):
     tourn = tourn.strip()
@@ -104,6 +112,8 @@ async def endTournament( ctx, tourn = "" ):
     await ctx.send( f'{adminMention}, in order to end {tourn}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to end {tourn}?' )
 
 
+commandSnippets["cancel-tournament"] = "- cancel-tournament : Ends any tournament" 
+commandCategories["management"].append("cancel-tournament")
 @bot.command(name='cancel-tournament')
 async def cancelTournament( ctx, tourn = "" ):
     tourn = tourn.strip()
@@ -127,6 +137,8 @@ async def cancelTournament( ctx, tourn = "" ):
     await ctx.send( f'{adminMention}, in order to cancel {tourn}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to cancel {tourn}?' )
 
 
+commandSnippets["set-deck-count"] = "- set-deck-count : Sets the number of decks a player can have after pruning" 
+commandCategories["properties"].append("set-deck-count")
 @bot.command(name='set-deck-count')
 async def setDeckCount( ctx, tourn = "", count = "" ):
     tourn = tourn.strip()
@@ -147,6 +159,8 @@ async def setDeckCount( ctx, tourn = "", count = "" ):
     await ctx.send( f'{adminMention}, the deck count for tournament called "{tourn}" has been changed to {count} by {ctx.message.author.mention}.' )
 
 
+commandSnippets["prune-decks"] = "- prune-decks : Removes decks from players until they have the max number" 
+commandCategories["day-of"].append("prune-decks")
 @bot.command(name='prune-decks')
 async def adminPruneDecks( ctx, tourn = "" ):
     tourn = tourn.strip()
@@ -169,6 +183,8 @@ async def adminPruneDecks( ctx, tourn = "" ):
     await ctx.send( f'{adminMention}, in order to prune decks, confirmation is needed. {ctx.message.author.mention}, are you sure you want to prune decks?' )
 
 
+commandSnippets["create-match"] = "- create-match : Creates a match" 
+commandCategories["day-of"].append("create-match")
 @bot.command(name='create-match')
 async def adminCreatePairing( ctx, tourn = "", *plyrs ):
     tourn  = tourn.strip()
@@ -216,6 +232,8 @@ async def adminCreatePairing( ctx, tourn = "", *plyrs ):
     await ctx.send( f'{ctx.message.author.mention}, the players you specified for the match are now paired. Their match number is #{tournaments[tourn].matches[-1].matchNumber}.' )
 
 
+commandSnippets["create-pairings-list"] = "- create-pairings-list : Creates a list of possible match pairings (unweighted)" 
+commandCategories["day-of"].append("create-pairings-list")
 @bot.command(name='create-pairings-list')
 async def createPairingsList( ctx, tourn = "" ):
     tourn  = tourn.strip()
@@ -333,6 +351,8 @@ async def createPairingsList( ctx, tourn = "" ):
         await ctx.send( msg )
     
 
+commandSnippets["set-match-size"] = "- set-match-size : Sets the number of players needed for a match" 
+commandCategories["properties"].append("set-match-size")
 @bot.command(name='set-match-size')
 async def playersPerMatch( ctx, tourn = "", num = "" ):
     tourn  = tourn.strip()
@@ -360,6 +380,8 @@ async def playersPerMatch( ctx, tourn = "", num = "" ):
     await ctx.send( f'{adminMention}, the number of players per match for {tourn} was changed to {num} by {ctx.message.author.mention}.' )
 
 
+commandSnippets["set-match-length"] = "- set-match-length : Sets the amount of time for a match (in minutes)" 
+commandCategories["properties"].append("set-match-length")
 @bot.command(name='set-match-length')
 async def setMatchLength( ctx, tourn = "", num = "" ):
     tourn  = tourn.strip()
@@ -387,6 +409,8 @@ async def setMatchLength( ctx, tourn = "", num = "" ):
     await ctx.send( f'{adminMention}, the length of a match for {tourn} was changed to {num} minutes by {ctx.message.author.mention}.' )
 
 
+commandSnippets["admin-drop"] = "- admin-drop : Removes a player for a tournament" 
+commandCategories["day-of"].append("admin-drop")
 @bot.command(name='admin-drop')
 async def adminDropPlayer( ctx, tourn = "", plyr = "" ):
     tourn = tourn.strip()
@@ -421,6 +445,8 @@ async def adminDropPlayer( ctx, tourn = "", plyr = "" ):
     await ctx.send( f'{adminMention}, in order to drop {member.mention}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to drop this player?' )
 
 
+commandSnippets["give-bye"] = "- give-bye : Grants a bye to a player" 
+commandCategories["day-of"].append("give-bye")
 @bot.command(name='give-bye')
 async def adminGiveBye( ctx, tourn = "", plyr = "" ):
     tourn = tourn.strip()
@@ -457,6 +483,8 @@ async def adminGiveBye( ctx, tourn = "", plyr = "" ):
     await tournaments[tourn].players[userIdent].discordUser.send( content=f'You have been given a bye from the tournament admin for {tourn} on the server {ctx.guild.name}.' )
 
 
+commandSnippets["remove-match"] = "- remove-match : Removes a match" 
+commandCategories["day-of"].append("remove-match")
 @bot.command(name='remove-match')
 async def adminRemoveMatch( ctx, tourn = "", mtch = "" ):
     tourn = tourn.strip()

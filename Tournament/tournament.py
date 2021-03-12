@@ -526,11 +526,8 @@ class tournament:
             await self.players[a_plyr].findOpenMatch().dropPlayer( a_plyr )
     
     async def dropPlayer( self, a_plyr: str, author: str = "" ) -> None:
-        print( "Dropping player's matches" )
         await self.playerMatchDrop( a_plyr )
-        print( "Removing player's roles" )
         await self.players[a_plyr].discordUser.remove_roles( self.role )
-        print( "Dropping player" )
         await self.players[a_plyr].drop( )
         self.players[a_plyr].saveXML()
         if author != "":
