@@ -217,7 +217,7 @@ class player:
         if author != "":
             await self.discordUser.send( content=f'Your deck {a_ident} has been removed by tournament admin.' )
             return f'{author}, the deck {a_ident} has been removed from {self.discordUser.mention}.' 
-        return f'{self.discordUser.mention}, your decklist whose name or deck hash was "{ident}" has been deleted.'
+        return f'{self.discordUser.mention}, your decklist whose name or deck hash was "{a_ident}" has been deleted.'
     
     def getDeckIdent( self, a_ident: str = "" ) -> str:
         if a_ident in self.decks:
