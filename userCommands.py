@@ -420,7 +420,7 @@ async def standings( ctx, tourn = "" ):
     tourn  = tourn.strip()
     if await isPrivateMessage( ctx ): return
 
-    if ctx.message.channel.id != int( os.getenv("STANDINGS_CHANNEL_ID" ) ) and not isTournamentAdmin( ctx, send=False ):
+    if ctx.message.channel.id != int( os.getenv("STANDINGS_CHANNEL_ID" ) ) and not await isTournamentAdmin( ctx, send=False ):
         await ctx.send( f'{ctx.message.author.mention}, this is not the correct channel to see standings. Please go to <#{os.getenv("STANDINGS_CHANNEL_ID" )}> to see standings.' )
         return
     

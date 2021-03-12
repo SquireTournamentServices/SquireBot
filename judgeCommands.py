@@ -143,7 +143,7 @@ async def adminListPlayers( ctx, tourn = "", num = "" ):
         return
     else:
         newLine = "\n\t- "
-        playerNames = [ tournaments[tourn].players[plyr].discordUser.mention for plyr in tournaments[tourn].players if plyr.discordUser is not None ]
+        playerNames = [ tournaments[tourn].players[plyr].discordUser.mention for plyr in tournaments[tourn].players if plyr.isActive() and plyr.discordUser is not None ]
         await ctx.send( f'{ctx.message.author.mention}, the following are all active players registered for {tourn}:' )
         message = f'{newLine}{newLine.join(playerNames)}'
         for msg in splitMessage( message ):
