@@ -11,6 +11,7 @@ from Tournament import *
 from baseBot import *
 from adminCommands import *
 from userCommands import *
+from judgeCommands import *
 
 
 

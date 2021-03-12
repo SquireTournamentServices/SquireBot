@@ -10,30 +10,38 @@ from dotenv import load_dotenv
 
 from Tournament import *
 
-#async def sendAdminHelpMessage( ctx ) -> None:
+commandSnippets = { } 
+commandCategories = { "registration": [ ], "playing": [ ], "misc": [ ],
+                      "sudo-registration": [ ], "sudo-playing": [ ], "sudo-misc": [ ] }
+
+async def sendJudgeHelpMessage( ctx ) -> None:
+    embed = discord.Embed( )
+    
+    embed.add_field( name="**__User Commands__**", value="\u200b", inline = False )
+
+    embed.add_field( name="Registration", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["registration"] ]), inline=False )
+    embed.add_field( name="Match", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
+    embed.add_field( name="Miscellaneous", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
+    
+    embed.add_field( name="**__Judge Commands__**", value="\u200b", inline = False )
+
+    embed.add_field( name="Registration", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-registration"] ]), inline=False )
+    embed.add_field( name="Match", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-playing"] ]), inline=False )
+    embed.add_field( name="Miscellaneous", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-misc"] ]),inline=False )
+    
+    embed.add_field( name="**__Additional Information__**", value="The full documentation for the judge command can be found [here](https://docs.google.com/document/d/1rLVJZZKR-MF54WNhvbQdRJBhI5U_oUHbmfNcSbihUJQ/edit?usp=sharing). The user commands are [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing), and the crash course is [here](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
+    
+    await ctx.send( embed=embed )
+    return
 
 async def sendUserHelpMessage( ctx ) -> None:
     embed = discord.Embed( )
     
-    regDigest = "- register : Registers you for a tournament\n\
-                 - add-deck : Registers a deck for a tournament (should be sent via DM)\n\
-                 - remove-deck : Removes a deck you registered\n\
-                 - list-decks : Lists the names and hashes of the decks you've registered\n\
-                 - cockatrice-name : Adds your Cockatrice username to your profile\n\
-                 - drop : Removes you from the tournament"
-    embed.add_field( name="Registration Commands", value=regDigest, inline=False )
-    
-    matchDigest = "- lfg : Places you into the matchmaking queue\n\
-                   - match-result : Records you as the winner of your match or that the match was a draw\n\
-                   - confirm-result : Records that you agree with the declared result"
-    embed.add_field( name="Match Commands", value=matchDigest,inline=False )
-    
-    miscDigest = "- standings : Prints out the current standings\n\
-                  - flip-coins : Flips coins for you (limit of 2^14 coins)\n\
-                  - misfortune : Helps you resolve Wheel of Misfortune."
-    embed.add_field( name="Miscellaneous Commands", value=miscDigest,inline=False )
+    embed.add_field( name="**__Registration Commands__**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["registration"] ]), inline=False )
+    embed.add_field( name="**__Match Commands__**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
+    embed.add_field( name="**__Miscellaneous Commands__**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
 
-    embed.add_field( name="Additional Information", value="Additional information about each command can be found [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing). There is also a [crash course](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing) for new users. If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
+    embed.add_field( name="**__Additional Information__**", value="Additional information about each command can be found [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing). There is also a [crash course](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing) for new users. If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
     
     await ctx.send( embed=embed )
     return
@@ -43,6 +51,17 @@ async def isPrivateMessage( ctx, send: bool = True ) -> bool:
     digest = (str(ctx.message.channel.type) == 'private')
     if digest and send:
         await ctx.send( f'You are not allowed to send commands via DM other than "!add-deck". Please send your command in the Discord server that is hosting your tournament.' )
+    return digest
+
+async def isSudo( ctx, send: bool = True ) -> bool:
+    digest = False
+    judgeMention = getJudgeMention( ctx.guild )
+    adminMention = getTournamentAdminMention( ctx.guild )
+    for role in ctx.message.author.roles:
+        digest |= str(role).lower() == "tournament admin"
+        digest |= str(role).lower() == "judge"
+    if not digest and send:
+        await ctx.send( f'{ctx.message.author.mention}, invalid permissions: You are not tournament staff. Please do not use this command again or {adminMention} or {judgeMention} may intervene.' )
     return digest
 
 async def isTournamentAdmin( ctx, send: bool = True ) -> bool:
@@ -147,6 +166,14 @@ async def recordMisfortune( ctx, misfortune, num: int ) -> bool:
         return True
     return False
      
+
+def getJudgeMention( a_guild ) -> str:
+    digest = ""
+    for role in a_guild.roles:
+        if str(role).lower() == "judge":
+            digest = role.mention
+            break
+    return digest
 
 def getTournamentAdminMention( a_guild ) -> str:
     adminMention = ""
@@ -293,37 +320,19 @@ async def sendCodes( ctx, *args ):
     
 
 bot.remove_command( "help" )
-@bot.command(name='help')
+@bot.command(name='squirebot-help')
 async def printHelp( ctx ):
     if await isPrivateMessage( ctx, send=False ):
-        ctx.send( f'There are two commands that you can use via DM, "!add-deck" and "!misfortune".' )
+        await ctx.send( f'There are two commands that you can use via DM, "!add-deck" and "!misfortune".' )
         return
 
     #if await isTournamentAdmin( ctx, send=False ):
         #sendAdminHelpMessage( ctx )
     #else:
-    await sendUserHelpMessage( ctx )
-
-
-@bot.command(name='flip-coins')
-async def flipCoin( ctx, num ):
-    try:
-        num = int( num.strip() )
-    except:
-        await ctx.send( f'{ctx.message.author.mention}, you need to specify a number of coins to flip (using digits, not words).' )
-        return
-    
-    if num > MAX_COIN_FLIPS:
-        await ctx.send( f'{ctx.message.author.mention}, you specified too many coins. I can flip at most {MAX_COIN_FLIPS} at a time. I will flip that many, but you still need to have {num - MAX_COIN_FLIPS} flipped.' )
-        num = MAX_COIN_FLIPS
-    
-    count = 0
-    tmp = getrandbits( num )
-    for i in range( num ):
-        if 1<<i & tmp != 0:
-            count += 1
-    
-    await ctx.send( f'{ctx.message.author.mention}, out of {num} coin flip{"" if num == 1 else "s"} you won {count} time{"" if count == 1 else "s"}.' )
+    if await isSudo( ctx, send=False ):
+        await sendJudgeHelpMessage( ctx )
+    else:
+        await sendUserHelpMessage( ctx )
 
 
 @bot.command(name='yes')

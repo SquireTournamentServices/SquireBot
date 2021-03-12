@@ -47,7 +47,8 @@ def createStandingsEmbeds( places: List[str], names: List[str], points: List[str
     return digest
         
 
-
+commandSnippets["list-tournaments"] = "- list-tournaments : Registers you for a tournament"
+commandCategories["registration"].append( "list-tournaments" )
 @bot.command(name='list-tournaments')
 async def listTournaments( ctx ):
     if await isPrivateMessage( ctx ): return
@@ -61,6 +62,8 @@ async def listTournaments( ctx ):
     await ctx.send( f'{ctx.message.author.mention}, the following tournaments for this server are planned but have not been started:{newLine}{newLine.join(tourns)}' )
 
 
+commandSnippets["register"] = "- register : Registers you for a tournament"
+commandCategories["registration"].append( "register" )
 @bot.command(name='register')
 async def registerPlayer( ctx, tourn = "" ):
     tourn = tourn.strip()
@@ -101,6 +104,8 @@ async def registerPlayer( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you have been enrolled in {tourn}!' )
 
 
+commandSnippets["cockatrice-name"] = "- cockatrice-name : Adds your Cockatrice username to your profile" 
+commandCategories["registration"].append( "cockatrice-name" )
 @bot.command(name='cockatrice-name')
 async def addTriceName( ctx, tourn = "", name = "" ):
     tourn = tourn.strip()
@@ -137,6 +142,8 @@ async def addTriceName( ctx, tourn = "", name = "" ):
     await ctx.send( f'{ctx.message.author.mention}, "{name}" was added as your Cockatrice username.' )
 
 
+commandSnippets["add-deck"] = "- add-deck : Registers a deck for a tournament (should be sent via DM)" 
+commandCategories["registration"].append( "add-deck" )
 @bot.command(name='add-deck')
 async def submitDecklist( ctx, tourn = "", ident = "", decklist = "" ):
     tourn = tourn.strip()
@@ -164,6 +171,8 @@ async def submitDecklist( ctx, tourn = "", ident = "", decklist = "" ):
         await ctx.send( f'{ctx.message.author.mention}, for future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
 
 
+commandSnippets["remove-deck"] = "- remove-deck : Removes a deck you registered" 
+commandCategories["registration"].append( "remove-deck" )
 @bot.command(name='remove-deck')
 async def removeDecklist( ctx, tourn = "", ident = "" ):
     tourn = tourn.strip()
@@ -211,6 +220,8 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
     await ctx.send( f'{ctx.message.author.mention}, in order to remove your deck, you need to confirm your request. Are you sure you want to remove it? (!yes/!no)' )
     
 
+commandSnippets["list-decks"] = "- list-decks : Lists the names and hashes of the decks you've registered"
+commandCategories["registration"].append( "list-decks" )
 @bot.command(name='list-decks')
 async def listDecklists( ctx, tourn = "" ):
     tourn = tourn.strip()
@@ -247,6 +258,8 @@ async def listDecklists( ctx, tourn = "" ):
     await ctx.send( content=f'{ctx.message.author.mention}, here are the decks that you currently have registered:', embed=embed )
     
 
+commandSnippets["drop"] = "- drop : Removes you from the tournament" 
+commandCategories["registration"].append( "drop" )
 @bot.command(name='drop')
 async def dropTournament( ctx, tourn = "" ):
     tourn = tourn.strip()
@@ -277,6 +290,8 @@ async def dropTournament( ctx, tourn = "" ):
     await ctx.send( f'{ctx.message.author.mention}, in order to drop from {tourn}, you need to confirm your request. Are you sure you want to drop? (!yes/!no)' )
 
 
+commandSnippets["lfg"] ="- lfg : Places you into the matchmaking queue" 
+commandCategories["playing"].append( "lfg" )
 @bot.command(name='lfg')
 async def queuePlayer( ctx, tourn = "" ):
     tourn = tourn.strip()
@@ -313,6 +328,8 @@ async def queuePlayer( ctx, tourn = "" ):
     await ctx.send( f'{ctx.message.author.mention}, you have been added to the queue.' )
 
 
+commandSnippets["match-result"] = "- match-result : Records you as the winner of your match or that the match was a draw" 
+commandCategories["playing"].append( "match-result" )
 @bot.command(name='match-result')
 async def matchResult( ctx, tourn = "", result = "" ):
     tourn  = tourn.strip()
@@ -360,6 +377,8 @@ async def matchResult( ctx, tourn = "", result = "" ):
     playerMatch.saveXML( )
 
 
+commandSnippets["confirm-result"] = "- confirm-result : Records that you agree with the declared result" 
+commandCategories["playing"].append( "confirm-result" )
 @bot.command(name='confirm-result')
 async def confirmMatchResult( ctx, tourn = "" ):
     tourn  = tourn.strip()
@@ -394,6 +413,8 @@ async def confirmMatchResult( ctx, tourn = "" ):
     await ctx.send( f'{ctx.message.author.mention}, you have confirmed the result of match #{playerMatch.matchNumber}.' )
     
 
+commandSnippets["standings"] = "- standings : Prints out the current standings" 
+commandCategories["misc"].append( "standings" )
 @bot.command(name='standings')
 async def standings( ctx, tourn = "" ):
     tourn  = tourn.strip()
@@ -424,6 +445,8 @@ async def standings( ctx, tourn = "" ):
         await ctx.send( embed=bed )
 
 
+commandSnippets["misfortune"] = "- misfortune : Helps you resolve Wheel of Misfortune" 
+commandCategories["misc"].append( "misfortune" )
 @bot.command(name='misfortune')
 async def misfortune( ctx, num = "" ):
     num = num.strip()
@@ -456,5 +479,28 @@ async def misfortune( ctx, num = "" ):
     delete = await recordMisfortune( ctx, mtch, num )
     if delete:
         del( listOfMisfortunes[count] )
+
+
+commandSnippets["flip-coins"] = "- flip-coins : Flips coins for you (limit of {MAX_COIN_FLIPS} coins)" 
+commandCategories["misc"].append( "flip-coins" )
+@bot.command(name='flip-coins')
+async def flipCoin( ctx, num ):
+    try:
+        num = int( num.strip() )
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, you need to specify a number of coins to flip (using digits, not words).' )
+        return
+    
+    if num > MAX_COIN_FLIPS:
+        await ctx.send( f'{ctx.message.author.mention}, you specified too many coins. I can flip at most {MAX_COIN_FLIPS} at a time. I will flip that many, but you still need to have {num - MAX_COIN_FLIPS} flipped.' )
+        num = MAX_COIN_FLIPS
+    
+    count = 0
+    tmp = getrandbits( num )
+    for i in range( num ):
+        if 1<<i & tmp != 0:
+            count += 1
+    
+    await ctx.send( f'{ctx.message.author.mention}, out of {num} coin flip{"" if num == 1 else "s"} you won {count} time{"" if count == 1 else "s"}.' )
 
 
