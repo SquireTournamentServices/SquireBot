@@ -204,7 +204,7 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
             await ctx.send( content=f'{ctx.message.author.mention}, invalid deck name/hash: You have not registered "{ident}". Here are your registered decks:', embed=embed )
         return
 
-    if hasCommandWaiting( ctx, userIdent ):
+    if await hasCommandWaiting( ctx, userIdent ):
         del( commandsToConfirm[userIdent] )
 
     commandsToConfirm[userIdent] = ( getTime(), 30, tournaments[tourn].players[userIdent].removeDeckCoro( deckName ) )
@@ -270,7 +270,7 @@ async def dropTournament( ctx, tourn = "" ):
     if not await hasRegistered( tourn, userIdent, ctx ): return
     if not await isActivePlayer( tourn, userIdent, ctx ): return
     
-    if hasCommandWaiting( ctx, userIdent ):
+    if await hasCommandWaiting( ctx, userIdent ):
         del( commandsToConfirm[userIdent] )
 
     commandsToConfirm[userIdent] = (getTime(), 30, tournaments[tourn].dropPlayer( userIdent ) )
