@@ -504,3 +504,57 @@ async def flipCoin( ctx, num ):
     await ctx.send( f'{ctx.message.author.mention}, out of {num} coin flip{"" if num == 1 else "s"} you won {count} time{"" if count == 1 else "s"}.' )
 
 
+commandSnippets["decklist"] = "- decklist : Posts one of your decklists" 
+commandCategories["misc"].append( "decklist" )
+@bot.command(name='decklist')
+async def printDecklist( ctx, tourn = "", ident = "" ):
+    tourn = tourn.strip()
+    ident = ident.strip()
+    
+    private = await isPrivateMessage( ctx, send = False )
+
+    if tourn == "":
+        await ctx.send( f'{ctx.message.author.mention}, not enough information provided: Please provide your deckname or deck hash to list your deck.' )
+        return
+    if ident == "":
+        if private:
+            await ctx.send( f'{ctx.message.author.mention}, not enough information provided: You must specify the tournament name via DM.' )
+            return
+        tourns = currentGuildTournaments( ctx.message.guild.name )
+        if len( tourns ) > 1:
+            await ctx.send( f'{ctx.message.author.mention}, there are multiple tournaments planned in this server. Please specify which tournament you are playing in.' )
+            return
+        elif len( tourns ) < 1:
+            await ctx.send( f'{ctx.message.author.mention}, there are no planned tournaments for this server. If you think this is an error, contact tournament staff.' )
+            return
+        else:
+            ident = tourn
+            tourn = [ name for name in tourns ][0]
+
+    if not await checkTournExists( tourn, ctx ): return
+
+    if not private:
+        if not await correctGuild( tourn, ctx ): return
+    
+    userIdent = getUserIdent( ctx.message.author )
+    if not await hasRegistered( tourn, userIdent, ctx ): return
+    if not await isActivePlayer( tourn, userIdent, ctx ): return
+    
+    deckName = tournaments[tourn].players[userIdent].getDeckIdent( ident )
+    if deckName == "":
+        await ctx.send( f'{ctx.message.author.mention}, you do not have any decks registered for {tourn}.' )
+        return
+
+    if await isPrivateMessage( ctx, send=False ):
+        await ctx.send( embed = await tournaments[tourn].players[userIdent].getDeckEmbed( deckName ) )
+    else:
+        if await hasCommandWaiting( ctx, userIdent ):
+            del( commandsToConfirm[userIdent] )
+        commandsToConfirm[userIdent] = ( getTime(), 30, tournaments[tourn].players[userIdent].getDeckEmbed( deckName ) )
+        await ctx.send( f'{ctx.message.author.mention}, since you are about to post your decklist publicly, you need to confirm your request. Are you sure you want to post it? (!yes/!no)' )
+
+
+
+
+
+

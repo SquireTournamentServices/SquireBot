@@ -83,6 +83,22 @@ class player:
         else:
             return "\u200b" # Widthless whitespace char to prevent Embed issues
     
+    async def getDeckEmbed( self, a_deckname: str ) -> discord.Embed:
+        digest = discord.Embed()
+        
+        fields = [ "" ]
+        for card in self.decks[a_deckname].cards:
+            if len(fields[-1]) + len(card) > 1023:
+                fields.append( "" )
+            fields[-1] += card + "\n"
+        
+        digest.add_field( name=f'{a_deckname}: {self.decks[a_deckname].deckHash}', value=fields[0], inline=False )
+        
+        for f in fields[1:]:
+            digest.add_field( name="\u200b", value=f, inline=False )
+        
+        return digest
+    
     def pairingString( self ):
         digest = "\u200b\u200b"
         if self.triceName != "":

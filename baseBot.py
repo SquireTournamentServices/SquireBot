@@ -12,7 +12,7 @@ from Tournament import *
 
 commandSnippets = { } 
 commandCategories = { "registration": [ ], "playing": [ ], "misc": [ ],
-                      "sudo-registration": [ ], "sudo-playing": [ ], "sudo-misc": [ ],
+                      "admin-registration": [ ], "admin-playing": [ ], "admin-misc": [ ],
                       "management": [ ], "properties": [ ], "day-of": [ ] }
 
 async def sendAdminHelpMessage( ctx ) -> None:
@@ -20,21 +20,21 @@ async def sendAdminHelpMessage( ctx ) -> None:
     
     embed.add_field( name="**__User Commands__**", value="\u200b", inline = False )
 
-    embed.add_field( name="Registration", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["registration"] ]), inline=False )
-    embed.add_field( name="Match", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
-    embed.add_field( name="Miscellaneous", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
+    embed.add_field( name="**Registration**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["registration"] ]), inline=False )
+    embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
+    embed.add_field( name="**Miscellaneous**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
     
     embed.add_field( name="**__Judge Commands__**", value="\u200b", inline = False )
 
-    embed.add_field( name="Registration", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-registration"] ]), inline=False )
-    embed.add_field( name="Match", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-playing"] ]), inline=False )
-    embed.add_field( name="Miscellaneous", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-misc"] ]),inline=False )
+    embed.add_field( name="**Registration**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-registration"] ]), inline=False )
+    embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-playing"] ]), inline=False )
+    embed.add_field( name="**Miscellaneous**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-misc"] ]),inline=False )
     
     embed.add_field( name="**__Admin Commands__**", value="\u200b", inline = False )
 
-    embed.add_field( name="Manage Tournament", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["management"] ]), inline=False )
-    embed.add_field( name="Properties", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["properties"] ]), inline=False )
-    embed.add_field( name="Day-Of", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["day-of"] ]),inline=False )
+    embed.add_field( name="**Manage Tournament**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["management"] ]), inline=False )
+    embed.add_field( name="**Properties**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["properties"] ]), inline=False )
+    embed.add_field( name="**Day-Of**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["day-of"] ]),inline=False )
     
     embed.add_field( name="**__Additional Information__**", value="The full documentation for the judge commands can be found [here](https://docs.google.com/document/d/1rLVJZZKR-MF54WNhvbQdRJBhI5U_oUHbmfNcSbihUJQ/edit?usp=sharing) and admin commands [here](https://docs.google.com/document/d/1AlBRYAW5d4cLDc9VC89sa_Agzdhy1I-DkaYbXIJ45xM/edit?usp=sharing). The user commands are [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing), and the crash course is [here](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
     
@@ -46,15 +46,15 @@ async def sendJudgeHelpMessage( ctx ) -> None:
     
     embed.add_field( name="**__User Commands__**", value="\u200b", inline = False )
 
-    embed.add_field( name="Registration", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["registration"] ]), inline=False )
-    embed.add_field( name="Match", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
-    embed.add_field( name="Miscellaneous", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
+    embed.add_field( name="**Registration**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["registration"] ]), inline=False )
+    embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
+    embed.add_field( name="**Miscellaneous**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
     
     embed.add_field( name="**__Judge Commands__**", value="\u200b", inline = False )
 
-    embed.add_field( name="Registration", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-registration"] ]), inline=False )
-    embed.add_field( name="Match", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-playing"] ]), inline=False )
-    embed.add_field( name="Miscellaneous", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["sudo-misc"] ]),inline=False )
+    embed.add_field( name="**Registration**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-registration"] ]), inline=False )
+    embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-playing"] ]), inline=False )
+    embed.add_field( name="**Miscellaneous**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-misc"] ]),inline=False )
     
     embed.add_field( name="**__Additional Information__**", value="The full documentation for the judge commands can be found [here](https://docs.google.com/document/d/1rLVJZZKR-MF54WNhvbQdRJBhI5U_oUHbmfNcSbihUJQ/edit?usp=sharing). The user commands are [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing), and the crash course is [here](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
     
@@ -376,6 +376,11 @@ async def confirmCommand( ctx ):
     message = await commandsToConfirm[userIdent][2]
     # Check to see if the message is from endTourn or cancelTourn
     # If so, the tournament needs to be cancelled
+    print( type(message) )
+    if type(message) == discord.Embed:
+        await ctx.send( embed=message )
+        return
+
     if "has been closed" in message or "has been cancelled" in message:
         words = message.split( "," )[1].strip().split( " " )
         for i in range(1,len(words)-1):

@@ -9,9 +9,9 @@ from baseBot import *
 from Tournament import * 
 
 
-commandSnippets["sudo-register"] = "- sudo-register : Registers a player for a tournament"
-commandCategories["sudo-registration"].append("sudo-register")
-@bot.command(name='sudo-register')
+commandSnippets["admin-register"] = "- admin-register : Registers a player for a tournament"
+commandCategories["admin-registration"].append("admin-register")
+@bot.command(name='admin-register')
 async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
     tourn = tourn.strip()
     plyr  = plyr.strip()
@@ -42,9 +42,9 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
     await ctx.send( f'{ctx.message.author.mention}, you have added {member.mention} to {tourn}.' )
 
 
-commandSnippets["sudo-add-deck"] = "- sudo-add-deck : Registers a deck for a player in a tournament" 
-commandCategories["sudo-registration"].append("sudo-add-deck")
-@bot.command(name='sudo-add-deck')
+commandSnippets["admin-add-deck"] = "- admin-add-deck : Registers a deck for a player in a tournament" 
+commandCategories["admin-registration"].append("admin-add-deck")
+@bot.command(name='admin-add-deck')
 async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
     tourn = tourn.strip()
     plyr  =  plyr.strip()
@@ -78,9 +78,9 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
     await tournaments[tourn].players[userIdent].discordUser.send( content=f'A decklist has been submitted for {tourn} on the server {ctx.guild.name} on your behalf. The identifier for the deck is "{ident}" and the deck hash is "{deckHash}". If this deck hash is incorrect or you are not expecting this, please contact tournament admin on that server.' )
 
 
-commandSnippets["sudo-remove-deck"] = "- sudo-remove-deck : Removes a deck for a player in a tournament" 
-commandCategories["sudo-registration"].append("sudo-remove-deck")
-@bot.command(name='sudo-remove-deck')
+commandSnippets["admin-remove-deck"] = "- admin-remove-deck : Removes a deck for a player in a tournament" 
+commandCategories["admin-registration"].append("admin-remove-deck")
+@bot.command(name='admin-remove-deck')
 async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
     tourn = tourn.strip()
     plyr  =  plyr.strip()
@@ -120,7 +120,7 @@ async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
 
 
 commandSnippets["list-players"] = "- list-players : Lists all player (or the number of players) in a tournament " 
-commandCategories["sudo-misc"].append("list-players")
+commandCategories["admin-misc"].append("list-players")
 @bot.command(name='list-players')
 async def adminListPlayers( ctx, tourn = "", num = "" ):
     tourn = tourn.strip()
@@ -151,7 +151,7 @@ async def adminListPlayers( ctx, tourn = "", num = "" ):
     
 
 commandSnippets["player-profile"] = "- player-profile : Lists out a player's profile, including decks names, matches, and status" 
-commandCategories["sudo-misc"].append("player-profile")
+commandCategories["admin-misc"].append("player-profile")
 @bot.command(name='player-profile')
 async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
     tourn = tourn.strip()
@@ -180,9 +180,9 @@ async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
     await ctx.send( content=f'{ctx.message.author.mention}, the following is the profile for {plyr}:', embed=tournaments[tourn].getPlayerProfileEmbed(userIdent) )
 
 
-commandSnippets["sudo-match-result"] = "- sudo-match-result : Record the result of a match for a player" 
-commandCategories["sudo-playing"].append("sudo-match-result")
-@bot.command(name='sudo-match-result')
+commandSnippets["admin-match-result"] = "- admin-match-result : Record the result of a match for a player" 
+commandCategories["admin-playing"].append("admin-match-result")
+@bot.command(name='admin-match-result')
 async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" ):
     tourn  = tourn.strip()
     plyr   = plyr.strip()
@@ -259,9 +259,9 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
     Match.saveXML( )
     
 
-commandSnippets["sudo-confirm-result"] = "- sudo-confirm-result : Confirms the result of a match on a player's behalf" 
-commandCategories["sudo-playing"].append("sudo-confirm-result")
-@bot.command(name='sudo-confirm-result')
+commandSnippets["admin-confirm-result"] = "- admin-confirm-result : Confirms the result of a match on a player's behalf" 
+commandCategories["admin-playing"].append("admin-confirm-result")
+@bot.command(name='admin-confirm-result')
 async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
     tourn  = tourn.strip()
     plyr   = plyr.strip()
@@ -319,7 +319,7 @@ async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
 
 
 commandSnippets["give-time-extension"] = "- give-time-extension : Give a match more time in their match" 
-commandCategories["sudo-playing"].append("give-time-extension")
+commandCategories["admin-playing"].append("give-time-extension")
 @bot.command(name='give-time-extension')
 async def giveTimeExtension( ctx, tourn = "", mtch = "", t = "" ):
     tourn = tourn.strip()
@@ -365,4 +365,43 @@ async def giveTimeExtension( ctx, tourn = "", mtch = "", t = "" ):
     for plyr in tournaments[tourn].matches[mtch - 1].activePlayers:
         await tournaments[tourn].players[plyr].discordUser.send( content=f'Your match (#{mtch}) in {tourn} has been given a time extension of {t} minute{"" if t == 1 else "s"}.' )
     await ctx.send( f'{ctx.message.author.mention}, you have given match #{mtch} a time extension of {t} minute{"" if t == 1 else "s"}.' )
+
+
+
+commandSnippets["admin-decklist"] = "- admin-decklist : Posts a decklist of a player" 
+commandCategories["admin-misc"].append( "admin-decklist" )
+@bot.command(name='admin-decklist')
+async def adminPrintDecklist( ctx, tourn = "", plyr = "", ident = "" ):
+    tourn = tourn.strip()
+    plyr  =  plyr.strip()
+    ident = ident.strip()
+
+    if await isPrivateMessage( ctx ): return
+
+    if not await isSudo( ctx ): return
+    if tourn == "" or plyr == "" or ident == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, a player, a deck identifier, and a decklist in order to add a deck for someone.' )
+        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    member = findPlayer( ctx.guild, tourn, plyr )
+    if member == "":
+        await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
+        return
+
+    userIdent = getUserIdent( member )
+    if not userIdent in tournaments[tourn].players:
+        await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
+        return
+    
+    deckName = tournaments[tourn].players[userIdent].getDeckIdent( ident )
+    if deckName == "":
+        await ctx.send( f'{ctx.message.author.mention}, {plyr} does not have any decks registered for {tourn}.' )
+        return
+
+    await ctx.send( embed = await tournaments[tourn].players[userIdent].getDeckEmbed( deckName ) )
+
+
 
