@@ -485,6 +485,8 @@ class tournament:
         for plyr in self.players.values():
             if not plyr.isActive( ):
                 continue
+            if plyr.discordUser is None:
+                continue
             # Match Points
             points = plyr.getMatchPoints()
             # Match Win Percentage
