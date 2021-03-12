@@ -33,7 +33,7 @@ async def sendUserHelpMessage( ctx ) -> None:
                   - misfortune : Helps you resolve Wheel of Misfortune."
     embed.add_field( name="Miscellaneous Commands", value=miscDigest,inline=False )
 
-    embed.add_field( name="Overview", value="Additional information about each command can be found [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing). There is also a [crash course](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing) for new users. If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
+    embed.add_field( name="Additional Information", value="Additional information about each command can be found [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing). There is also a [crash course](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing) for new users. If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
     
     await ctx.send( embed=embed )
     return
@@ -208,7 +208,7 @@ def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
-MAX_COIN_FLIPS = 2**14
+MAX_COIN_FLIPS = int( os.getenv('MAX_COIN_FLIPS') )
 
 random.seed( )
 
