@@ -522,7 +522,7 @@ class tournament:
     async def playerMatchDrop( self, a_plyr: str ) -> None:
         if not a_plyr in self.players:
             return
-        while self.players[a_plyr].findOpenMatchIndex() != 1:
+        while self.players[a_plyr].findOpenMatchIndex() < 0:
             await self.players[a_plyr].findOpenMatch().dropPlayer( a_plyr )
     
     async def dropPlayer( self, a_plyr: str, author: str = "" ) -> None:
