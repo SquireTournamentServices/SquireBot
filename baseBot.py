@@ -14,7 +14,6 @@ from Tournament import *
 
 async def sendUserHelpMessage( ctx ) -> None:
     embed = discord.Embed( )
-    embed.add_field( name="Overview", value="Below, you'll find a brief description of this bot's commands. You can find a more detailed list [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing). There is also a [crash course](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
     
     regDigest = "- register : Registers you for a tournament\n\
                  - add-deck : Registers a deck for a tournament (should be sent via DM)\n\
@@ -30,8 +29,11 @@ async def sendUserHelpMessage( ctx ) -> None:
     embed.add_field( name="Match Commands", value=matchDigest,inline=False )
     
     miscDigest = "- standings : Prints out the current standings\n\
+                  - flip-coins : Flips coins for you (limit of 2^14 coins)\n\
                   - misfortune : Helps you resolve Wheel of Misfortune."
     embed.add_field( name="Miscellaneous Commands", value=miscDigest,inline=False )
+
+    embed.add_field( name="Overview", value="Additional information about each command can be found [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing). There is also a [crash course](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing) for new users. If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
     
     await ctx.send( embed=embed )
     return
@@ -203,10 +205,10 @@ def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
     return digest
     
 
-MAX_COIN_FLIPS = 2**19
-
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+
+MAX_COIN_FLIPS = 2**14
 
 random.seed( )
 
