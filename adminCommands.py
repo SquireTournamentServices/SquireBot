@@ -57,7 +57,7 @@ async def updateReg( ctx, tourn = "", status = "" ):
 
     tournaments[tourn].setRegStatus( str_to_bool(status) )
     tournaments[tourn].saveOverview( )
-    await ctx.send( f'{adminMention}, registeration for the "{tourn}" tournament has been {("opened" if str_to_bool(status) else "closed")} by {ctx.message.author.mention}.' ) 
+    await ctx.send( f'{adminMention}, registration for the "{tourn}" tournament has been {("opened" if str_to_bool(status) else "closed")} by {ctx.message.author.mention}.' ) 
 
 
 commandSnippets["start-tournament"] = "- start-tournament : Starts the tournament, which closes registration and let's players LFG" 

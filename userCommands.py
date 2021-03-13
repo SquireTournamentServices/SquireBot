@@ -31,7 +31,7 @@ def createStandingsEmbeds( places: List[str], names: List[str], points: List[str
             lengths = [ lengths[i] + line_lengths[i] for i in range(len(lengths)) ]
         else:
             digest.append( discord.Embed() )
-            if len(digest) > 0:
+            if len(digest) > 1:
                 for i in range(len(headers)):
                     digest[-1].add_field( name="\u200b", value=values[i] )
             else:
@@ -114,7 +114,7 @@ async def addTriceName( ctx, tourn = "", name = "" ):
     if await isPrivateMessage( ctx ): return
 
     if tourn == "" and name == "":
-        await ctx.send( "{ctx.message.author.mention}, not enough information provided: You must include your Cockatrice username." )
+        await ctx.send( f'{ctx.message.author.mention}, not enough information provided: You must include your Cockatrice username.' )
         return
     if name == "":
         name = tourn
@@ -316,6 +316,9 @@ async def queuePlayer( ctx, tourn = "" ):
     userIdent = getUserIdent( ctx.message.author )
     if not await hasRegistered( tourn, userIdent, ctx ): return
     if not await isActivePlayer( tourn, userIdent, ctx ): return
+    if tournaments[tourn].players[userIdent].hasOpenMatch( ):
+        await ctx.send( f'{ctx.message.author.mention}, you are in an match that is not uncertified. Please confirm the result using !confirm-result.' )
+        return
     
     for lvl in tournaments[tourn].queue:
         for plyr in lvl:

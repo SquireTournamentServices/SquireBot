@@ -55,4 +55,13 @@ def getAdminRole( a_guild: discord.Guild ):
             break
     return ret
 
+def getJudgeRole( a_guild: discord.Guild ):
+    digest = ""
+    for role in a_guild.roles:
+        if str(role).lower() == "judge":
+            digest = role
+            break
+    return digest
+
+
 

@@ -67,8 +67,8 @@ class tournament:
         
         self.queue             = [ [] ]
         self.playersPerMatch   = 2
-        self.pairingsThreshold = self.playersPerMatch #* 2 + 3
-        self.pairingWaitTime   = 20
+        self.pairingsThreshold = self.playersPerMatch * 2 # + 3
+        self.pairingWaitTime   = 30
         self.queueActivity     = [ ]
         self.matchLength       = 60*60 # Length of matches in seconds
         self.highestPriority   = 0
@@ -278,7 +278,7 @@ class tournament:
                 sentWarningTwo = False
             lastTimeExt = mtch.timeExtension
             timeLeft = t + margin + mtch.timeExtension - timeDiff( mtch.startTime, getTime() )
-            print( f'The match length is {t}. The start time is {mtch.startTime} and current time is {getTime()}, so the time elapsed is {timeDiff(mtch.startTime, getTime())}.' )
+            #print( f'The match length is {t}. The start time is {mtch.startTime} and current time is {getTime()}, so the time elapsed is {timeDiff(mtch.startTime, getTime())}.' )
             
 
         if not mtch.stopTimer:
@@ -298,6 +298,7 @@ class tournament:
             matchRole = await self.guild.create_role( name=f'Match {newMatch.matchNumber}' )
             overwrites = { self.guild.default_role: discord.PermissionOverwrite(read_messages=False),
                            getAdminRole(self.guild): discord.PermissionOverwrite(read_messages=True),
+                           getJudgeRole(self.guild): discord.PermissionOverwrite(read_messages=True),
                            matchRole: discord.PermissionOverwrite(read_messages=True) }
             newMatch.VC = await self.guild.create_voice_channel( name=f'{self.tournName} Match {newMatch.matchNumber}', overwrites=overwrites, category=discord.utils.get( self.guild.categories, name="Matches" ) ) 
             newMatch.role = matchRole
@@ -494,7 +495,11 @@ class tournament:
             # Opponent Match Win Percentage
             OWP = 0.0
             if len(plyr.opponents) > 0:
-                OWP = sum( [ self.players[opp].getMatchWinPercentage( withBye=False ) for opp in plyr.opponents ] )/len(plyr.opponents)
+                wins  = sum( [ self.players[opp].getNumberOfWins( ) for opp in plyr.opponents ] )
+                games = sum( [len(self.players[opp].getCertMatches( withBye=False )) for opp in plyr.opponents] )
+                if games != 0:
+                    OWP = wins/games
+                #OWP = sum( [ self.players[opp].getMatchWinPercentage( withBye=False ) for opp in plyr.opponents ] )/len(plyr.opponents)
             rough.append( (points, MWP, OWP, plyr.discordUser.display_name) )
         
         # sort() is stable, so relate order similar elements is preserved

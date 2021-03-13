@@ -117,7 +117,6 @@ class deck:
                 prefix = "SB: "
             else:
                 digest.append(prefix + line)
-        print( digest )
         return digest
 
     # Parses an annotated decklist from Cockatrice into a list of cards. 

@@ -255,24 +255,28 @@ class player:
         return digest
     
     # Tallies the number of matches that the player is in, has won, and have been certified.
-    def getMatchPoints( self, withBye: bool=True ) -> int:
+    def getMatchPoints( self, withBye: bool=True ) -> float:
         digest = 0
         certMatches = self.getCertMatches( withBye )
+        losses = 0
         for mtch in certMatches:
             if mtch.winner == self.name:
-                digest += 3
+                digest += 4
             elif "a draw" in mtch.winner.lower():
-                digest += 1
+                digest += 0.5
             elif withBye and mtch.isBye():
                 digest += 1
-        return digest
+            else:
+                losses += 1
+        return digest - losses*2.25
     
     # Calculates the percentage of game the player has won
     def getMatchWinPercentage( self, withBye: bool=True ) -> float:
         certMatches = self.getCertMatches( withBye )
         if len( certMatches ) == 0:
             return 0.0
-        digest = self.getMatchPoints( withBye )/( len(certMatches)*3. )
+        digest = self.getNumberOfWins( )/( len(certMatches)*1.0 )
+        #digest = self.getMatchPoints( withBye )/( len(certMatches)*4. )
         return digest #if digest >= 1./3 else 1./3
     
     def getNumberOfWins( self ) -> int:

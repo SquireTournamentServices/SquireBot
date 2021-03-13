@@ -374,13 +374,14 @@ async def confirmCommand( ctx ):
         return
     
     message = await commandsToConfirm[userIdent][2]
-    # Check to see if the message is from endTourn or cancelTourn
-    # If so, the tournament needs to be cancelled
-    print( type(message) )
-    if type(message) == discord.Embed:
+    del( commandsToConfirm[userIdent] )
+    
+    if type(message) is discord.Embed:
         await ctx.send( embed=message )
         return
 
+    # Check to see if the message is from endTourn or cancelTourn
+    # If so, the tournament needs to be cancelled
     if "has been closed" in message or "has been cancelled" in message:
         words = message.split( "," )[1].strip().split( " " )
         for i in range(1,len(words)-1):
@@ -390,7 +391,6 @@ async def confirmCommand( ctx ):
                     break
         del( tournaments[tourn] )
     await ctx.send( message )
-    del( commandsToConfirm[userIdent] )
 
 
 @bot.command(name='no')
