@@ -602,7 +602,7 @@ class tournament:
            os.mkdir( f'{a_dirName}/players/' ) 
 
         for player in self.players:
-            self.players[player].saveXML( )
+            self.players[player].saveXML( f'{a_dirName}/players/{self.players[player].name}.xml' )
 
     def saveMatches( self, a_dirName: str = "" ) -> None:
         if a_dirName == "":
@@ -611,7 +611,7 @@ class tournament:
            os.mkdir( f'{a_dirName}/matches/' ) 
 
         for match in self.matches:
-            match.saveXML( )
+            match.saveXML( f'{a_dirName}/matches/match_{match.matchNumber}.xml' )
         
     def loadTournament( self, a_dirName: str ) -> None:
         self.saveLocation = a_dirName

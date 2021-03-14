@@ -80,7 +80,7 @@ async def isPrivateMessage( ctx, send: bool = True ) -> bool:
         await ctx.send( f'You are not allowed to send commands via DM other than "!add-deck". Please send your command in the Discord server that is hosting your tournament.' )
     return digest
 
-async def isSudo( ctx, send: bool = True ) -> bool:
+async def isAdmin( ctx, send: bool = True ) -> bool:
     digest = False
     judgeMention = getJudgeMention( ctx.guild )
     adminMention = getTournamentAdminMention( ctx.guild )
@@ -193,6 +193,13 @@ async def recordMisfortune( ctx, misfortune, num: int ) -> bool:
         return True
     return False
      
+
+def isNumber( s: str ) -> bool:
+    try:
+        s = int(s)
+    except:
+        return False
+    return True
 
 def getJudgeMention( a_guild ) -> str:
     digest = ""
@@ -404,6 +411,11 @@ async def denyCommand( ctx ):
     await ctx.send( f'{ctx.message.author.mention}, your request has been cancelled.' )
 
     del( commandsToConfirm[userIdent] )
+
+
+@bot.command(name='scrape')
+async def scrape( ctx ):
+    return
 
 
 

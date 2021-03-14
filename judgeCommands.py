@@ -17,7 +17,7 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
     plyr  = plyr.strip()
     if await isPrivateMessage( ctx ): return
 
-    if not await isSudo( ctx ): return
+    if not await isAdmin( ctx ): return
     if tourn == "" or plyr == "":
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and player in order to add someone to a tournament.' )
         return
@@ -53,7 +53,7 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
     
     if await isPrivateMessage( ctx ): return
 
-    if not await isSudo( ctx ): return
+    if not await isAdmin( ctx ): return
     if tourn == "" or plyr == "" or ident == "" or decklist == "":
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, a player, a deck identifier, and a decklist in order to add a deck for someone.' )
         return
@@ -88,7 +88,7 @@ async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
 
     if await isPrivateMessage( ctx ): return
 
-    if not await isSudo( ctx ): return
+    if not await isAdmin( ctx ): return
     if tourn == "" or plyr == "" or ident == "":
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, a player, a deck identifier, and a decklist in order to add a deck for someone.' )
         return
@@ -127,7 +127,7 @@ async def adminListPlayers( ctx, tourn = "", num = "" ):
     num   = num.strip().lower()
     if await isPrivateMessage( ctx ): return
 
-    if not await isSudo( ctx ): return
+    if not await isAdmin( ctx ): return
     if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament in order to list the players.' )
         return
@@ -159,7 +159,7 @@ async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
     plyr  = plyr.strip()
     if await isPrivateMessage( ctx ): return
 
-    if not await isSudo( ctx ): return
+    if not await isAdmin( ctx ): return
     if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament in order to list the players.' )
         return
@@ -192,7 +192,7 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
     
     if await isPrivateMessage( ctx ): return
 
-    if not await isSudo( ctx ): return
+    if not await isAdmin( ctx ): return
     if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, match number, player, and result in order to remove a player from a match.' )
         return
@@ -270,7 +270,7 @@ async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
     
     if await isPrivateMessage( ctx ): return
 
-    if not await isSudo( ctx ): return
+    if not await isAdmin( ctx ): return
     if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, match number, player, and result in order to remove a player from a match.' )
         return
@@ -329,7 +329,7 @@ async def giveTimeExtension( ctx, tourn = "", mtch = "", t = "" ):
 
     if await isPrivateMessage( ctx ): return
 
-    if not await isSudo( ctx ): return
+    if not await isAdmin( ctx ): return
     if tourn == "" or mtch == "" or t == "":
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, a match number, and an amount of time.' )
         return
@@ -379,7 +379,7 @@ async def adminPrintDecklist( ctx, tourn = "", plyr = "", ident = "" ):
 
     if await isPrivateMessage( ctx ): return
 
-    if not await isSudo( ctx ): return
+    if not await isAdmin( ctx ): return
     if tourn == "" or plyr == "" or ident == "":
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, a player, a deck identifier, and a decklist in order to add a deck for someone.' )
         return

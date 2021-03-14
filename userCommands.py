@@ -145,10 +145,10 @@ async def addTriceName( ctx, tourn = "", name = "" ):
 commandSnippets["add-deck"] = "- add-deck : Registers a deck for a tournament (should be sent via DM)" 
 commandCategories["registration"].append( "add-deck" )
 @bot.command(name='add-deck')
-async def submitDecklist( ctx, tourn = "", ident = "", decklist = "" ):
+async def submitDecklist( ctx, tourn = "", ident = "", *decklist ):
     tourn = tourn.strip()
     ident = ident.strip()
-    decklist = decklist.strip()
+    decklist = " ".join( [ "\n"+card.strip() if isNumber(card) else card.strip() for card in decklist  ] )
 
     if tourn == "" or ident == "" or decklist == "":
         await ctx.send( f'{ctx.message.author.mention}, not enough information provided: You must include the tournament name, the deckname, and your decklist.' )
@@ -166,7 +166,7 @@ async def submitDecklist( ctx, tourn = "", ident = "", decklist = "" ):
     tournaments[tourn].players[userIdent].addDeck( ident, decklist )
     tournaments[tourn].players[userIdent].saveXML( )
     deckHash = str( tournaments[tourn].players[userIdent].decks[ident].deckHash )
-    await ctx.send( f'{ctx.message.author.mention}, your deck has been successfully registered. Your deck hash is "{deckHash}"; this must match your deck hash in Cockatrice. If these hashes do not match, refer to the FAQ or contact tournament staff.' )
+    await ctx.send( f'{ctx.message.author.mention}, your deck has been successfully registered. Your deck hash is "{deckHash}"; this must match your deck hash in Cockatrice. If these hashes do not match, check to see how your decklist looks using !decklist {ident} or !decklist {deckHash}. If there is still an error, contact tournament staff.' )
     if not await isPrivateMessage( ctx, False ):
         await ctx.send( f'{ctx.message.author.mention}, for future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
 
