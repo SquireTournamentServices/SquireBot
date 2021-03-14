@@ -45,11 +45,11 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
 commandSnippets["admin-add-deck"] = "- admin-add-deck : Registers a deck for a player in a tournament" 
 commandCategories["admin-registration"].append("admin-add-deck")
 @bot.command(name='admin-add-deck')
-async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
+async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", *decklist ):
     tourn = tourn.strip()
     plyr  =  plyr.strip()
     ident = ident.strip()
-    decklist = decklist.strip()
+    decklist = " ".join( [ "\n"+card.strip() if isNumber(card) else card.strip() for card in decklist  ] )
     
     if await isPrivateMessage( ctx ): return
 
@@ -75,7 +75,7 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", decklist = "" ):
     tournaments[tourn].players[userIdent].saveXML( )
     deckHash = str(tournaments[tourn].players[userIdent].decks[ident].deckHash)
     await ctx.send( f'{ctx.message.author.mention}, decklist that you added for {plyr} has been submitted. The deck hash is "{deckHash}".' )
-    await tournaments[tourn].players[userIdent].discordUser.send( content=f'A decklist has been submitted for {tourn} on the server {ctx.guild.name} on your behalf. The identifier for the deck is "{ident}" and the deck hash is "{deckHash}". If this deck hash is incorrect or you are not expecting this, please contact tournament admin on that server.' )
+    await tournaments[tourn].players[userIdent].discordUser.send( content=f'A decklist has been submitted for {tourn} on the server {ctx.guild.name} on your behalf. The name of the deck is "{ident}" and the deck hash is "{deckHash}". If this deck hash is incorrect or you are not expecting this, please contact tournament staff.' )
 
 
 commandSnippets["admin-remove-deck"] = "- admin-remove-deck : Removes a deck for a player in a tournament" 
