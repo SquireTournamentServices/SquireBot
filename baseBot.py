@@ -18,19 +18,19 @@ commandCategories = { "registration": [ ], "playing": [ ], "misc": [ ],
 async def sendAdminHelpMessage( ctx ) -> None:
     embed = discord.Embed( )
     
-    embed.add_field( name="**__User Commands__**", value="\u200b", inline = False )
+    embed.add_field( name="\u200b", value="**__User Commands__**", inline = False )
 
     embed.add_field( name="**Registration**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["registration"] ]), inline=False )
     embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
     embed.add_field( name="**Miscellaneous**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
     
-    embed.add_field( name="**__Judge Commands__**", value="\u200b", inline = False )
+    embed.add_field( name="\u200b", value="**__Judge Commands__**", inline = False )
 
     embed.add_field( name="**Registration**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-registration"] ]), inline=False )
     embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-playing"] ]), inline=False )
     embed.add_field( name="**Miscellaneous**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-misc"] ]),inline=False )
     
-    embed.add_field( name="**__Admin Commands__**", value="\u200b", inline = False )
+    embed.add_field( name="\u200b", value="**__Admin Commands__**", inline = False )
 
     embed.add_field( name="**Manage Tournament**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["management"] ]), inline=False )
     embed.add_field( name="**Properties**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["properties"] ]), inline=False )
@@ -44,13 +44,13 @@ async def sendAdminHelpMessage( ctx ) -> None:
 async def sendJudgeHelpMessage( ctx ) -> None:
     embed = discord.Embed( )
     
-    embed.add_field( name="**__User Commands__**", value="\u200b", inline = False )
+    embed.add_field( name="\u200b", value="**__User Commands__**", inline = False )
 
     embed.add_field( name="**Registration**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["registration"] ]), inline=False )
     embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
     embed.add_field( name="**Miscellaneous**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
     
-    embed.add_field( name="**__Judge Commands__**", value="\u200b", inline = False )
+    embed.add_field( name="\u200b", value="**__Judge Commands__**", inline = False )
 
     embed.add_field( name="**Registration**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-registration"] ]), inline=False )
     embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-playing"] ]), inline=False )
