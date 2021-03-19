@@ -261,13 +261,13 @@ class player:
         losses = 0
         for mtch in certMatches:
             if mtch.winner == self.name:
-                digest += 4
+                digest += 3 #4
             elif "a draw" in mtch.winner.lower():
-                digest += 0.5
+                digest += 1 #0.5
             elif withBye and mtch.isBye():
                 digest += 1
             else:
-                losses += 1
+                losses += 0 #1
         return digest - losses*2.25
     
     # Calculates the percentage of game the player has won
