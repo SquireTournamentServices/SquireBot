@@ -146,7 +146,6 @@ commandSnippets["add-deck"] = "- add-deck : Registers a deck for a tournament (s
 commandCategories["registration"].append( "add-deck" )
 @bot.command(name='add-deck')
 async def submitDecklist( ctx, tourn = "", ident = "", *decklist ):
-    print( decklist )
     tourn = tourn.strip()
     ident = ident.strip()
     decklist = " ".join( [ "\n"+card.strip() if isNumber(card) else card.strip() for card in decklist  ] )
