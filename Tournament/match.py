@@ -108,6 +108,7 @@ class match:
         if digest:
             self.status = "certified"
             self.endTime = getTime( )
+            self.stopTimer = True
             if type( self.VC ) == discord.VoiceChannel:
                 await self.VC.delete()
         return digest

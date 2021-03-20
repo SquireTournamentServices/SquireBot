@@ -320,7 +320,7 @@ class tournament:
                 await self.players[plyr].discordUser.add_roles( matchRole )
                 embed.add_field( name=self.players[plyr].getDisplayName(), value=self.players[plyr].pairingString() )
         
-        if type( self.guild ) == discord.Guild:
+        if type( self.guild ) is discord.Guild:
             await self.pairingsChannel.send( content=message, embed=embed )
     
     def addBye( self, a_plyr: str ) -> None:
@@ -671,7 +671,9 @@ class tournament:
             for dPlayer in newMatch.droppedPlayers:
                 if dPlayer in self.players:
                     self.players[dPlayer].addMatch( newMatch )
-            if self.matches[-1].status != "certified" and not self.matches[-1].stopTimer:
+            if not self.matches[-1].isCertified() and not self.matches[-1].isDead() and not self.matches[-1].stopTimer and self.matches[-1].role != "":
+                print( f'Starting timer for {self.matches[-1].matchNumber}' )
+                print( self.matches[-1].status, self.matches[-1].stopTimer )
                 self.matches[-1].timer = threading.Thread( target=self.matchTimer, args=(self.matches[-1],) )
                 self.matches[-1].timer.start( )
         self.matches.sort( key= lambda x: x.matchNumber )
