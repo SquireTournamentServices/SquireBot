@@ -229,7 +229,7 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
         message = f'{Match.role.mention}, {member.mention} has been recorded as the winner of your match by tournament admin.'
         if Match.isCertified( ):
             Match.winner = userIdent
-            await tournaments[tourn].pairingsChannel.send( f'{message} There is no need to recertify the result of this match.' )
+            await ctx.send( f'{ctx.message.author.mention}, match #{mtch} is already certified. There is no need to recertify the result of this match.' )
         else:
             msg = await Match.recordWinner( userIdent )
             if msg == "":
@@ -253,6 +253,7 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
         if message != "":
             await tournaments[tourn].pairingsChannel.send( message )
         await tournaments[tourn].players[userIdent].discordUser.send( content=f'You were dropped from Match #{mtch} in {tourn} on the server {ctx.guild.name}. If you believe this was an error, contact tournament admin.' )
+        await ctx.send( f'{ctx.message.author.mention}, you have recorded {plyr} as a loser in match #{mtch}.' )
     else:
         await ctx.send( f'{ctx.message.author.mention}, you have provided an incorrect result. The options are "win", "loss", and "draw". Please re-enter the correct result.' )
         return
@@ -310,9 +311,9 @@ async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
         await ctx.send( f'{ctx.message.author.mention}, match #{mtch} is not certified, but {plyr} has already certified the result. There is no need to do this twice.' )
         return
     
-    Match.saveXML( )
     await tournaments[tourn].players[userIdent].discordUser.send( content=f'The result of match #{mtch} for {tourn} has been certified by tournament staff on your behalf.' )
     msg = await Match.confirmResult( userIdent )
+    Match.saveXML( )
     if msg != "":
         await tournaments[tourn].pairingsChannel.send( msg )
     await ctx.send( f'{ctx.message.author.mention}, you have certified the result of match #{mtch} on behalf of {plyr}.' )
