@@ -506,24 +506,43 @@ async def misfortune( ctx, num = "" ):
 commandSnippets["flip-coins"] = f'- flip-coins : Flips coins for you (limit of {MAX_COIN_FLIPS} coins)' 
 commandCategories["misc"].append( "flip-coins" )
 @bot.command(name='flip-coins')
-async def flipCoin( ctx, num ):
+async def flipCoin( ctx, num = "", thumb = "" ):
+    tmumb = thumb.strip().lower()
     try:
         num = int( num.strip() )
     except:
         await ctx.send( f'{ctx.message.author.mention}, you need to specify a number of coins to flip (using digits, not words).' )
         return
     
-    if num > MAX_COIN_FLIPS:
-        await ctx.send( f'{ctx.message.author.mention}, you specified too many coins. I can flip at most {MAX_COIN_FLIPS} at a time. I will flip that many, but you still need to have {num - MAX_COIN_FLIPS} flipped.' )
-        num = MAX_COIN_FLIPS
+    if thumb == "":
+        if num > MAX_COIN_FLIPS:
+            await ctx.send( f'{ctx.message.author.mention}, you specified too many coins. I can flip at most {MAX_COIN_FLIPS} at a time. I will flip that many, but you still need to have {num - MAX_COIN_FLIPS} flipped.' )
+            num = MAX_COIN_FLIPS
+     
+        count = 0
+        tmp = getrandbits( num )
+        for i in range( num ):
+            if ( (tmp >> i) & 1) != 0:
+                count += 1
+     
+        await ctx.send( f'{ctx.message.author.mention}, out of {num} coin flip{"" if num == 1 else "s"} you won {count} time{"" if count == 1 else "s"}.' )
+
+    elif thumb == "thumb" or thumb == "krark":
+        if num > MAX_COIN_FLIPS/2:
+            await ctx.send( f'{ctx.message.author.mention}, you specified too many coins. I can flip at most {int(MAX_COIN_FLIPS/2)} at a time with Krark\'s Thumb. I will flip that many, but you still need to have {num - int(MAX_COIN_FLIPS/2)} flipped.' )
+            num = int(MAX_COIN_FLIPS/2)
+     
+        count = 0
+        tmp = getrandbits( 2*num )
+        for i in range( num ):
+            if ( (tmp >> (2*i) ) & 3 ) != 0:
+                count += 1
+     
+        await ctx.send( f'{ctx.message.author.mention}, out of {num} coin flip{"" if num == 1 else "s"} you won {count} time{"" if count == 1 else "s"}.' )
+    else:
+        await ctx.send( f'{ctx.message.author.mention}, invalid argument, to specify that you want to use Krark\'s Thumb, use the word "thumb" or "krark" after your number.' )
+        return
     
-    count = 0
-    tmp = getrandbits( num )
-    for i in range( num ):
-        if 1<<i & tmp != 0:
-            count += 1
-    
-    await ctx.send( f'{ctx.message.author.mention}, out of {num} coin flip{"" if num == 1 else "s"} you won {count} time{"" if count == 1 else "s"}.' )
 
 
 commandSnippets["decklist"] = "- decklist : Posts one of your decklists" 
