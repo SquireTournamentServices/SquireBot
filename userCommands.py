@@ -463,7 +463,8 @@ async def standings( ctx, tourn = "", printAll = "" ):
     embeds = createStandingsEmbeds( standings[0], standings[1], standings[2], standings[3], standings[4] )
     await ctx.send( content=f'{ctx.message.author.mention}, the standings for {tourn} are:', embed=embeds[0] )
     for bed in embeds[1:]:
-        await ctx.send( embed=bed )
+        await ctx.send( content=" ", embed=bed )
+    print( "End of the standings command" )
 
 
 commandSnippets["misfortune"] = "- misfortune : Helps you resolve Wheel of Misfortune" 

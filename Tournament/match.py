@@ -54,7 +54,7 @@ class match:
         self.startTime = getTime( )
         self.endTime   = ""
         
-        self.stopTimer = False
+        self.stopTimer = True
     
     def __str__( self ):
         digest  = f'Match #{self.matchNumber}\n'
