@@ -357,7 +357,7 @@ bot.remove_command( "help" )
 @bot.command(name='squirebot-help')
 async def printHelp( ctx ):
     if await isPrivateMessage( ctx, send=False ):
-        await ctx.send( f'There are two commands that you can use via DM, "!add-deck" and "!misfortune".' )
+        await ctx.send( f'There are only a few commands that you can use via DM, "!add-deck", "!decklist", and "!misfortune".' )
         return
 
     if await isTournamentAdmin( ctx, send=False ):

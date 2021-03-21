@@ -514,6 +514,8 @@ async def flipCoin( ctx, num = "", thumb = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you need to specify a number of coins to flip (using digits, not words).' )
         return
     
+    if await isPrivateMessage( ctx ): return
+    
     if thumb == "":
         if num > MAX_COIN_FLIPS:
             await ctx.send( f'{ctx.message.author.mention}, you specified too many coins. I can flip at most {MAX_COIN_FLIPS} at a time. I will flip that many, but you still need to have {num - MAX_COIN_FLIPS} flipped.' )
