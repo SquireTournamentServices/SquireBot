@@ -204,9 +204,7 @@ async def adminCreatePairing( ctx, tourn = "", *plyrs ):
         await ctx.send( f'{ctx.message.author.mention}, {tourn} requires {tournaments[tourn].playersPerMatch} be in a match, but you specified {len(plyrs)} players.' )
         return
         
-    print( plyrs )
     members = [ findPlayer( ctx.guild, tourn, plyr ) for plyr in plyrs ]
-    print( members )
     if "" in members:
         await ctx.send( f'{ctx.message.author.mention}, at least one of the members that you specified is not a part of the tournament. Verify that they have the "{tourn} Player" role.' )
         return

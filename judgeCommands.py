@@ -256,6 +256,8 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
     else:
         await ctx.send( f'{ctx.message.author.mention}, you have provided an incorrect result. The options are "win", "loss", and "draw". Please re-enter the correct result.' )
         return
+    
+    await ctx.send( f'{ctx.message.author.mention}, the players in match #{mtch} have been notified of this change.' )
 
     Match.saveXML( )
     
@@ -310,9 +312,9 @@ async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
         await ctx.send( f'{ctx.message.author.mention}, match #{mtch} is not certified, but {plyr} has already certified the result. There is no need to do this twice.' )
         return
     
-    Match.saveXML( )
     await tournaments[tourn].players[userIdent].discordUser.send( content=f'The result of match #{mtch} for {tourn} has been certified by tournament staff on your behalf.' )
     msg = await Match.confirmResult( userIdent )
+    Match.saveXML( )
     if msg != "":
         await tournaments[tourn].pairingsChannel.send( msg )
     await ctx.send( f'{ctx.message.author.mention}, you have certified the result of match #{mtch} on behalf of {plyr}.' )

@@ -20,24 +20,18 @@ def createStandingsEmbeds( places: List[str], names: List[str], points: List[str
 
     digest  = [ ]
     headers = [ "Name:", "Points & Win Percent:", "Opp. WP" ]
-    lengths = [ len(s) for s in headers ]
     values  = [ "", "", "" ]
     
     for i in range(length):
         line = [ f'{places[i]}) {names[i]}\n', f'{points[i]},\t{trunk(GWP[i])}%\n', f'{trunk(OWP[i])}%\n' ]
         line_lengths = [ len(s) for s in line ]
-        if (lengths[0] + line_lengths[0] <= limit) and (lengths[1] + line_lengths[1] <= limit) and (lengths[2] + line_lengths[2] <= limit):
+        if (len(values[0]) + line_lengths[0] <= limit) and (len(values[1]) + line_lengths[1] <= limit) and (len(values[2]) + line_lengths[2] <= limit):
             values  = [ values[i] + line[i] for i in range(len(values)) ]
-            lengths = [ lengths[i] + line_lengths[i] for i in range(len(lengths)) ]
         else:
             digest.append( discord.Embed() )
-            if len(digest) > 1:
-                for i in range(len(headers)):
-                    digest[-1].add_field( name="\u200b", value=values[i] )
-            else:
-                for i in range(len(headers)):
-                    digest[-1].add_field( name=headers[i], value=values[i] )
-            values = [ "", "", "" ]
+            for i in range(len(headers)):
+                digest[-1].add_field( name=headers[i], value=values[i] )
+            values = line.copy()
 
     if len(digest) == 0:
         digest.append( discord.Embed() )
@@ -166,7 +160,7 @@ async def submitDecklist( ctx, tourn = "", ident = "", *decklist ):
     tournaments[tourn].players[userIdent].addDeck( ident, decklist )
     tournaments[tourn].players[userIdent].saveXML( )
     deckHash = str( tournaments[tourn].players[userIdent].decks[ident].deckHash )
-    await ctx.send( f'{ctx.message.author.mention}, your deck has been successfully registered. Your deck hash is "{deckHash}"; this must match your deck hash in Cockatrice. If these hashes do not match, check to see how your decklist looks using !decklist {ident} or !decklist {deckHash}. If there is still an error, contact tournament staff.' )
+    await ctx.send( f'{ctx.message.author.mention}, your deck has been successfully registered. Your deck hash is "{deckHash}"; this must match your deck hash in Cockatrice. If these hashes do not match, check to see how your decklist looks using !decklist "{ident}" or !decklist {deckHash}. If there is still an error, contact tournament staff.' )
     if not await isPrivateMessage( ctx, False ):
         await ctx.send( f'{ctx.message.author.mention}, for future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
 
@@ -419,13 +413,22 @@ async def confirmMatchResult( ctx, tourn = "" ):
 commandSnippets["standings"] = "- standings : Prints out the current standings" 
 commandCategories["misc"].append( "standings" )
 @bot.command(name='standings')
-async def standings( ctx, tourn = "" ):
+async def standings( ctx, tourn = "", printAll = "" ):
     tourn  = tourn.strip()
     if await isPrivateMessage( ctx ): return
 
-    if ctx.message.channel.id != int( os.getenv("STANDINGS_CHANNEL_ID" ) ) and not await isTournamentAdmin( ctx, send=False ):
-        await ctx.send( f'{ctx.message.author.mention}, this is not the correct channel to see standings. Please go to <#{os.getenv("STANDINGS_CHANNEL_ID" )}> to see standings.' )
+    if tourn != "" and printAll == "":
+        if not tourn in tournaments and tourn.lower() != "all":
+            await ctx.send( f'{ctx.message.author.mention}, invalid option, please specify a tournament name and/or the word "all".' )
+            return
+        printAll = tourn
+        tourn = ""
+    
+    if not printAll.lower() != "all" and not printAll != "":
+        await ctx.send( f'{ctx.message.author.mention}, invalid option, to see the entire standings please use the word "all".' )
         return
+    else:
+        printAll = True if printAll.lower() == "all" else False
     
     if tourn == "":
         tourns = currentGuildTournaments( ctx.message.guild.name )
@@ -441,7 +444,22 @@ async def standings( ctx, tourn = "" ):
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
     
+    if printAll and (ctx.message.channel.id != int( os.getenv("STANDINGS_CHANNEL_ID" ) ) and not await isTournamentAdmin( ctx, send=False )):
+        await ctx.send( f'{ctx.message.author.mention}, this is not the correct channel to see the full standings. Please go to <#{os.getenv("STANDINGS_CHANNEL_ID" )}> to use this command.' )
+        return
+    
     standings = tournaments[tourn].getStandings( )
+    name = ctx.message.author.display_name
+    
+    if name in standings[1] and not printAll:
+        index = standings[1].index(name)
+        upper = index - 12
+        lower = index + 12
+        if upper < 0:
+            upper = 0
+        for i in range(len(standings)):
+            standings[i] = standings[i][upper:lower]
+        
     embeds = createStandingsEmbeds( standings[0], standings[1], standings[2], standings[3], standings[4] )
     await ctx.send( content=f'{ctx.message.author.mention}, the standings for {tourn} are:', embed=embeds[0] )
     for bed in embeds[1:]:

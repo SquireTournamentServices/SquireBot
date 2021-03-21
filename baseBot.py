@@ -362,7 +362,7 @@ async def printHelp( ctx ):
 
     if await isTournamentAdmin( ctx, send=False ):
         await sendAdminHelpMessage( ctx )
-    elif await isSudo( ctx, send=False ):
+    elif await isAdmin( ctx, send=False ):
         await sendJudgeHelpMessage( ctx )
     else:
         await sendUserHelpMessage( ctx )
