@@ -310,8 +310,11 @@ class tournament:
                            getAdminRole(self.guild): discord.PermissionOverwrite(read_messages=True),
                            getJudgeRole(self.guild): discord.PermissionOverwrite(read_messages=True),
                            matchRole: discord.PermissionOverwrite(read_messages=True) }
-            newMatch.VC = await self.guild.create_voice_channel( name=f'{self.tournName} Match {newMatch.matchNumber}', overwrites=overwrites, category=discord.utils.get( self.guild.categories, name="Matches" ) ) 
-            newMatch.role = matchRole
+            matchCategory = discord.utils.get( self.guild.categories, name="Matches" ) 
+            if len(matchCategory.channels) >= 50:
+                matchCategory = category=discord.utils.get( self.guild.categories, name="More Matches" ) 
+            newMatch.VC    = await matchCategory.create_voice_channel( name=f'{self.tournName} Match {newMatch.matchNumber}', overwrites=overwrites ) 
+            newMatch.role  = matchRole
             newMatch.timer = threading.Thread( target=self.matchTimer, args=(newMatch,) )
             newMatch.timer.start( )
             newMatch.saveXML()
