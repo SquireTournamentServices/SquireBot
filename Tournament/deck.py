@@ -104,6 +104,8 @@ class deck:
         )
         processed_hash = number_to_base(hashed_deck, 32)
         self.deckHash = "".join([conv_dict[i] for i in processed_hash])
+        while len(self.deckHash) < 8:
+            self.deckHash = "0" + self.deckHash
 
     # Parses a nonannotated decklist from Cockatrice into a list of cards. 
     # A nonannotated, Cockatrice decklist has a double space between the main and side boards.

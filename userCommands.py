@@ -311,8 +311,13 @@ async def queuePlayer( ctx, tourn = "" ):
     if not await hasRegistered( tourn, userIdent, ctx ): return
     if not await isActivePlayer( tourn, userIdent, ctx ): return
     if tournaments[tourn].players[userIdent].hasOpenMatch( ):
-        await ctx.send( f'{ctx.message.author.mention}, you are in an match that is not uncertified. Please confirm the result using !confirm-result.' )
+        await ctx.send( f'{ctx.message.author.mention}, you are in a match that is not certified. Make sure that everone in your last match has certified the result with !confirm-result.' )
         return
+    
+    if len(tournaments[tourn].players[userIdent].decks) == 0:
+        await ctx.send( f'{ctx.message.author.mention}, you have failed to submit a deck. As such, you can not play in this tournament. If you believe this is an error, talk to tournament staff.' )
+        return
+        
     
     for lvl in tournaments[tourn].queue:
         for plyr in lvl:
@@ -401,6 +406,9 @@ async def confirmMatchResult( ctx, tourn = "" ):
     if not await hasOpenMatch( tourn, userIdent, ctx ): return
     
     playerMatch = tournaments[tourn].players[userIdent].findOpenMatch( )
+    if playerMatch.status == "open":
+        await ctx.send( f'{ctx.message.author.mention}, match #{playerMatch.matchNumber} is still open, no result has been recorded yet, so there is nothing to confirm.' )
+        return
     if userIdent in playerMatch.confirmedPlayers:
         await ctx.send( f'{ctx.message.author.mention}, you have already confirmed the result of match #{playerMatch.matchNumber}. Your opponents are still confirming.' )
         return

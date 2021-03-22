@@ -186,7 +186,7 @@ class tournament:
         return f'{adminMention}, {self.tournName} has been cancelled by {author}.'
     
     async def pruneDecks( self, ctx ) -> str:
-        await ctx.send( f'The pruning of decks is starting... now!' )
+        await ctx.send( f'Pruning decks starting... now!' )
         for plyr in self.players.values():
             deckIdents = [ ident for ident in plyr.decks ]
             while len( plyr.decks ) > self.deckCount:
@@ -196,6 +196,16 @@ class tournament:
                 del( deckIdents[0] )
             plyr.saveXML( )
         return f'Decks have been pruned. All players have at most {self.deckCount} deck{"" if self.deckCount == 1 else "s"}.'
+    
+    async def prunePlayers( self, ctx ) -> str:
+        await ctx.send( f'Pruning players starting... now!' )
+        for plyr in self.players:
+            if len(self.players[plyr].decks) == 0:
+                await self.dropPlayer( plyr ) 
+                await ctx.send( f'{self.players[plyr].discordUser.mention} has been pruned.' )
+                await self.players[plyr].discordUser.send( content=f'You have been dropped from the tournament {self.tournName} on {ctx.guild.name} by tournament staff for not submitting a deck. If you believe this is an error, contact them immediately.' )
+                self.players[plyr].saveXML( )
+        return f'All players that did not submit a deck have been pruned.'
     
     async def addPlayer( self, a_discordUser, admin=False ) -> str:
         if not admin and self.tournCancel:
@@ -396,8 +406,9 @@ class tournament:
                         return digest
         return [ ]
         
-    def pairingAttempt( self ):
-        queue = [ [ i for i in lvl ] for lvl in self.queue ]
+    def pairingAttempt( self, queue = [] ):
+        if len(queue) == 0:
+            queue = [ [ i for i in lvl ] for lvl in self.queue ]
         newQueue = []
         for _ in range(len(queue) + 1):
             newQueue.append( [] )
@@ -432,10 +443,11 @@ class tournament:
         time.sleep( a_waitTime )
         
         tries = 25
+        tempQueue = [ lvl.copy() for lvl in self.queue ]
         results = []
         
         for _ in range(tries):
-            results.append( self.pairingAttempt() )
+            results.append( self.pairingAttempt( tempQueue ) )
             # Have we paired the maximum number of people, i.e. does the remainder of the queue by playersPerMatch equal the new queue
             if sum( [ len(lvl) for lvl in results[-1][1] ] ) == sum( [len(lvl) for lvl in self.queue] )%self.playersPerMatch:
                 break
@@ -467,6 +479,11 @@ class tournament:
                     if not isSame: break
                 if not isSame: break
 
+
+        for plyr in self.queue[0]:
+            if plyr not in newQueue[0]:
+                newQueue[0].append( plyr )
+        
         self.queue = newQueue
 
         if len(self.queue) > self.highestPriority:
@@ -642,7 +659,7 @@ class tournament:
         for plyr in players:
             if int( plyr.attrib['priority'] ) > maxLevel:
                 maxLevel = int( plyr.attrib['priority'] )
-        for _ in range(maxLevel):
+        for _ in range(maxLevel-1):
             self.queue.append( [] )
         for plyr in players:
             self.queue[int(plyr.attrib['priority'])].append( self.players[ plyr.attrib['name'] ] )
@@ -671,7 +688,7 @@ class tournament:
             for dPlayer in newMatch.droppedPlayers:
                 if dPlayer in self.players:
                     self.players[dPlayer].addMatch( newMatch )
-            if not self.matches[-1].isCertified() and not self.matches[-1].isDead() and not self.matches[-1].stopTimer and self.matches[-1].role != "":
+            if not ( self.matches[-1].isCertified() or self.matches[-1].isDead() ) and not self.matches[-1].stopTimer:
                 print( f'Starting timer for {self.matches[-1].matchNumber}' )
                 print( self.matches[-1].status, self.matches[-1].stopTimer )
                 self.matches[-1].timer = threading.Thread( target=self.matchTimer, args=(self.matches[-1],) )

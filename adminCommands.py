@@ -169,7 +169,7 @@ async def adminPruneDecks( ctx, tourn = "" ):
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn == "":
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a max number of decks.' )
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
@@ -181,6 +181,30 @@ async def adminPruneDecks( ctx, tourn = "" ):
 
     commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].pruneDecks( ctx ) )
     await ctx.send( f'{adminMention}, in order to prune decks, confirmation is needed. {ctx.message.author.mention}, are you sure you want to prune decks?' )
+
+
+commandSnippets["prune-players"] = "- prune-players : Drops players that didn't submit a deck" 
+commandCategories["day-of"].append("prune-players")
+@bot.command(name='prune-players')
+async def adminPruneDecks( ctx, tourn = "" ):
+    tourn = tourn.strip()
+    if await isPrivateMessage( ctx ): return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament.' )
+        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    authorIdent = getUserIdent( ctx.message.author )
+    if await hasCommandWaiting( ctx, authorIdent ):
+        del( commandsToConfirm[authorIdent] )
+
+    commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].prunePlayers( ctx ) )
+    await ctx.send( f'{adminMention}, in order to prune players, confirmation is needed. {ctx.message.author.mention}, are you sure you want to prune players?' )
 
 
 commandSnippets["create-match"] = "- create-match : Creates a match" 
@@ -515,6 +539,44 @@ async def adminRemoveMatch( ctx, tourn = "", mtch = "" ):
 
     commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].removeMatch( mtch, ctx.message.author.mention ) )
     await ctx.send( f'{adminMention}, in order to remove match #{mtch}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to remove this match?' )
+
+
+commandSnippets["view-queue"] = "- view-queue : Prints the currect matchmaking queue" 
+commandCategories["day-of"].append("view-queue")
+@bot.command(name='view-queue')
+async def viewQueue( ctx, tourn = "" ):
+    tourn = tourn.strip()
+
+    if await isPrivateMessage( ctx ): return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament to view the queue.' )
+        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    if sum( [ len(lvl) for lvl in tournaments[tourn].queue ] ) == 0:
+        await ctx.send( f'{ctx.message.author.mention}, the current matchmaking queue for {tourn} is empty:' )
+        return
+    
+    embed = discord.Embed( )
+    value =  ""
+    count = 0
+    
+    for lvl in range(len(tournaments[tourn].queue)):
+        value += f'{lvl+1}) ' + ", ".join( [ plyr.discordUser.display_name for plyr in tournaments[tourn].queue[lvl] ] ) + "\n"
+        if len(value) > 1024:
+            embed.add_field( name = f'{tourn} Queue' if count == 0 else "\u200b", value = value, inline=False )
+            value = ""
+            count += 1
+    
+    if value != "":
+        embed.add_field( name = f'{tourn} Queue' if count == 0 else "\u200b", value = value, inline=False )
+        
+    await ctx.send( f'{ctx.message.author.mention}, here is the current matchmaking queue for {tourn}:', embed=embed )
 
 
 """
