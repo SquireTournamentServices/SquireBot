@@ -103,6 +103,35 @@ class tournament:
             oppens = "Opponents: " + ", ".join( [ self.players[plyr].discordUser.mention for plyr in players if plyr != a_plyr ] )
             digest.add_field( name=f'Match #{mtch.matchNumber}', value=f'{status}\n{winner}\n{oppens}' )
         return digest
+
+    def getMatchEmbed( self, mtch: int ):
+        digest = discord.Embed( )
+        Match = self.matches[mtch] 
+        digest.add_field( name="Status", value=Match.status )
+        digest.add_field( name="Active Players", value="\u200b" + ", ".join( [ self.players[plyr].discordUser.mention for plyr in Match.activePlayers ] ) )
+        if len(Match.droppedPlayers) != 0:
+            digest.add_field( name="Dropped Players", value=", ".join( [ self.players[plyr].discordUser.mention for plyr in Match.droppedPlayers ] ) )
+        if not ( Match.isCertified() or Match.stopTimer ):
+            t = Match.getTimeElapsed()
+            if t > self.matchLength/60:
+                digest.add_field( name="Time Remaining", value=f'0 minutes' )
+            else:
+                digest.add_field( name="Time Remaining", value=f'{round(self.matchLength/60 - t)} minutes' )
+        if Match.winner != "":
+            if Match.winner in self.players:
+                digest.add_field( name="Winner", value=self.players[Match.winner].discordUser.mention )
+            else:
+                digest.add_field( name="Winner", value=Match.winner )
+        if len(Match.confirmedPlayers) != 0:
+            digest.add_field( name="Confirmed Players", value=", ".join( [ self.players[plyr].discordUser.mention for plyr in Match.confirmedPlayers ] ) )
+        return digest
+    
+    def updatePairingsThreshold( self, count: int ) -> None:
+        self.pairingsThreshold = count
+        if sum( [ len(level) for level in self.queue ] ) >= self.pairingsThreshold and not self.pairingsThread.is_alive():
+            self.pairingsThread = threading.Thread( target=self.launch_pairings, args=(self.pairingWaitTime,) )
+            self.pairingsThread.start( )
+
     
     def addDiscordGuild( self, a_guild ) -> None:
         self.guild = a_guild

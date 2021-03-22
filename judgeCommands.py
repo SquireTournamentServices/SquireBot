@@ -408,4 +408,34 @@ async def adminPrintDecklist( ctx, tourn = "", plyr = "", ident = "" ):
     await ctx.send( embed = await tournaments[tourn].players[userIdent].getDeckEmbed( deckName ) )
 
 
+commandSnippets["match-status"] = "- match-status : View the currect status of a match" 
+commandCategories["admin-misc"].append("match-status")
+@bot.command(name='match-status')
+async def matchStatus( ctx, tourn = "", mtch = "" ):
+    tourn = tourn.strip()
+    mtch  =  mtch.strip()
+
+    if await isPrivateMessage( ctx ): return
+
+    if not await isAdmin( ctx ): return
+    if tourn == "" or mtch == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, a match number, and an amount of time.' )
+        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    try:
+        mtch = int( mtch )
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide a match number correctly. Please specify a match number using digits.' )
+        return
+    
+    if mtch > len(tournaments[tourn].matches):
+        await ctx.send( f'{ctx.message.author.mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
+        return
+    
+    await ctx.send( f'{ctx.message.author.mention}, here is the status of match #{mtch}:', embed=tournaments[tourn].getMatchEmbed( mtch-1 ) )
+
+
 

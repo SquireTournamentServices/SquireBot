@@ -74,6 +74,15 @@ class match:
     def isCertified( self ):
         return self.status == "certified"
     
+    def getTimeElapsed( self ) -> int:
+        if self.isCertified() or self.stopTimer:
+            return -1
+        digest = round(timeDiff( getTime(), self.startTime ) - self.timeExtension)
+        if digest < 0:
+            return 0
+        else:
+            return round(digest/60)
+    
     def addMatchRole( self, a_role: discord.Role ) -> None:
         self.role = a_role
     

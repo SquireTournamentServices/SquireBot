@@ -551,7 +551,6 @@ async def flipCoin( ctx, num = "", thumb = "" ):
     else:
         await ctx.send( f'{ctx.message.author.mention}, invalid argument, to specify that you want to use Krark\'s Thumb, use the word "thumb" or "krark" after your number.' )
         return
-    
 
 
 commandSnippets["decklist"] = "- decklist : Posts one of your decklists" 
@@ -602,8 +601,6 @@ async def printDecklist( ctx, tourn = "", ident = "" ):
             del( commandsToConfirm[userIdent] )
         commandsToConfirm[userIdent] = ( getTime(), 30, tournaments[tourn].players[userIdent].getDeckEmbed( deckName ) )
         await ctx.send( f'{ctx.message.author.mention}, since you are about to post your decklist publicly, you need to confirm your request. Are you sure you want to post it? (!yes/!no)' )
-
-
 
 
 

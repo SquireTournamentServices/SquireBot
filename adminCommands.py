@@ -373,6 +373,35 @@ async def createPairingsList( ctx, tourn = "" ):
         await ctx.send( msg )
     
 
+commandSnippets["set-pairing-threshold"] = "- set-pairing-threshold : Sets the number of players needed to pair the queue" 
+commandCategories["properties"].append("set-pairing-threshold")
+@bot.command(name='set-pairing-threshold')
+async def pairingsThreshold( ctx, tourn = "", num = "" ):
+    tourn  = tourn.strip()
+    num    = num.strip()
+    
+    if await isPrivateMessage( ctx ): return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "" or num == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a number of players for a match.' )
+        return
+    try:
+        num = int(num)
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, "{num}" could not be converted to a number. Please make sure you only use digits.' )
+        return
+
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    tournaments[tourn].updatePairingsThreshold( num )
+    tournaments[tourn].saveOverview( )
+    await ctx.send( f'{adminMention}, the pairings threshold for {tourn} was changed to {num} by {ctx.message.author.mention}.' )
+
+
 commandSnippets["set-match-size"] = "- set-match-size : Sets the number of players needed for a match" 
 commandCategories["properties"].append("set-match-size")
 @bot.command(name='set-match-size')
