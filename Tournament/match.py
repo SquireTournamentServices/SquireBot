@@ -134,6 +134,7 @@ class match:
     def recordBye( self ) -> None:
         self.winner = "This match is a bye."
         self.endTime = getTime()
+        self.stopTimer = True
         self.status = "certified"
     
     # Confirms the result for one player.

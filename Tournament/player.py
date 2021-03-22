@@ -169,12 +169,10 @@ class player:
     # Returns 1 if no open matches exist; otherwise, returns a negative index
     def findOpenMatchIndex( self ) -> int:
         if not self.hasOpenMatch( ):
-            # print( f'No open matches found. Returning one.' )
             return 1
         digest = -1
         while self.matches[digest].isCertified() and abs(digest) <= len(self.matches):
             digest -= 1
-        # print( f'An open match was found. Returning {digest}.' )
         return digest
 
     def findOpenMatch( self ) -> match:

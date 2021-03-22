@@ -33,10 +33,9 @@ def createStandingsEmbeds( places: List[str], names: List[str], points: List[str
                 digest[-1].add_field( name=headers[i], value=values[i] )
             values = line.copy()
 
-    if len(digest) == 0:
-        digest.append( discord.Embed() )
-        for i in range(len(headers)):
-            digest[-1].add_field( name=headers[i], value=values[i] )
+    digest.append( discord.Embed() )
+    for i in range(len(headers)):
+        digest[-1].add_field( name=headers[i], value=values[i] )
     
     return digest
         
