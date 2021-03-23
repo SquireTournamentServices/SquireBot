@@ -135,7 +135,7 @@ async def addTriceName( ctx, tourn = "", name = "" ):
     await ctx.send( f'{ctx.message.author.mention}, "{name}" was added as your Cockatrice username.' )
 
 
-commandSnippets["add-deck"] = "- add-deck : Registers a deck for a tournament (can be DM-ed)" 
+commandSnippets["add-deck"] = "- add-deck : Registers a deck for a tournament (should be sent via DM)" 
 commandCategories["registration"].append( "add-deck" )
 @bot.command(name='add-deck')
 async def submitDecklist( ctx, tourn = "", ident = "" ):
@@ -146,14 +146,14 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
     decklist = ctx.message.content[index:].replace('"', "").strip() 
     print( decklist )
     
-    if tourn == "":
+    if tourn == "" or decklist == "":
         await ctx.send( f'{ctx.message.author.mention}, not enough information provided: Please provide your deckname and decklist to add a deck.' )
         return
 
     private = await isPrivateMessage( ctx, send=False )
 
     userIdent = getUserIdent( ctx.message.author )
-    if tourn not in tournaments:
+    if ident == "":
         tourns = findPlayerTourns( userIdent, "" if private else ctx.message.guild.name )
         if len( tourns ) > 1:
             await ctx.send( f'{ctx.message.author.mention}, you are registered for multiple tournaments{"" if private else " in this server"}. Please specify a tournament before your deck name.' )
@@ -162,7 +162,6 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
             await ctx.send( f'{ctx.message.author.mention}, you are not regisered for any tournaments.' )
             return
         else:
-            decklist = ident + decklist
             ident = tourn
             tourn = tourns[0]
 
@@ -184,7 +183,7 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
         await ctx.send( f'{ctx.message.author.mention}, for future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
 
 
-commandSnippets["remove-deck"] = "- remove-deck : Removes a deck you registered (can be DM-ed)" 
+commandSnippets["remove-deck"] = "- remove-deck : Removes a deck you registered" 
 commandCategories["registration"].append( "remove-deck" )
 @bot.command(name='remove-deck')
 async def removeDecklist( ctx, tourn = "", ident = "" ):
@@ -236,7 +235,7 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
     await ctx.send( f'{ctx.message.author.mention}, in order to remove your deck, you need to confirm your request. Are you sure you want to remove it? (!yes/!no)' )
     
 
-commandSnippets["list-decks"] = "- list-decks : Lists the names and hashes of the decks you've registered (can be DM-ed)"
+commandSnippets["list-decks"] = "- list-decks : Lists the names and hashes of the decks you've registered"
 commandCategories["registration"].append( "list-decks" )
 @bot.command(name='list-decks')
 async def listDecklists( ctx, tourn = "" ):
@@ -499,7 +498,7 @@ async def standings( ctx, tourn = "", printAll = "" ):
     print( "End of the standings command" )
 
 
-commandSnippets["misfortune"] = "- misfortune : Helps you resolve Wheel of Misfortune (can be DM-ed)" 
+commandSnippets["misfortune"] = "- misfortune : Helps you resolve Wheel of Misfortune" 
 commandCategories["misc"].append( "misfortune" )
 @bot.command(name='misfortune')
 async def misfortune( ctx, num = "" ):
@@ -578,7 +577,7 @@ async def flipCoin( ctx, num = "", thumb = "" ):
         return
 
 
-commandSnippets["decklist"] = "- decklist : Posts one of your decklists (can be DM-ed)" 
+commandSnippets["decklist"] = "- decklist : Posts one of your decklists" 
 commandCategories["misc"].append( "decklist" )
 @bot.command(name='decklist')
 async def printDecklist( ctx, tourn = "", ident = "" ):
@@ -590,24 +589,27 @@ async def printDecklist( ctx, tourn = "", ident = "" ):
     if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, not enough information provided: Please provide your deckname or deck hash to list your deck.' )
         return
-
-    userIdent = getUserIdent( ctx.message.author )
     if ident == "":
-        tourns = findPlayerTourns( userIdent, "" if private else ctx.message.guild.name )
+        if private:
+            await ctx.send( f'{ctx.message.author.mention}, not enough information provided: You must specify the tournament name via DM.' )
+            return
+        tourns = currentGuildTournaments( ctx.message.guild.name )
         if len( tourns ) > 1:
-            await ctx.send( f'{ctx.message.author.mention}, you are registered for multiple tournaments{"" if private else " in this server"}. Please specify a tournament.' )
+            await ctx.send( f'{ctx.message.author.mention}, there are multiple tournaments planned in this server. Please specify which tournament you are playing in.' )
             return
         elif len( tourns ) < 1:
-            await ctx.send( f'{ctx.message.author.mention}, you are not regisered for any tournaments.' )
+            await ctx.send( f'{ctx.message.author.mention}, there are no planned tournaments for this server. If you think this is an error, contact tournament staff.' )
             return
         else:
             ident = tourn
             tourn = [ name for name in tourns ][0]
 
+    if not await checkTournExists( tourn, ctx ): return
+
     if not private:
-        if not await checkTournExists( tourn, ctx ): return
         if not await correctGuild( tourn, ctx ): return
     
+    userIdent = getUserIdent( ctx.message.author )
     if not await hasRegistered( tourn, userIdent, ctx ): return
     if not await isActivePlayer( tourn, userIdent, ctx ): return
     

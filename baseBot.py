@@ -253,6 +253,20 @@ def findPlayer( a_guild: discord.Guild, a_tourn: str, a_memberName: str ):
             return member
     return ""
 
+def findPlayerTourns( plyr: str, guild_name: str = "" ) -> List[str]: 
+    digest = [ ]
+    
+    if guild_name == "":
+        for tourn in tournaments.values():
+            if plyr in tourn.players:
+                digest.append( tourn.tournName )
+    else:
+        for tourn in currentGuildTournaments( guild_name ):
+            if plyr in tournaments[tourn].players:
+                digest.append( tourn )
+    
+    return digest
+
 def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
     if len(msg) <= limit:
         return [ msg ]
@@ -356,10 +370,6 @@ async def sendCodes( ctx, *args ):
 bot.remove_command( "help" )
 @bot.command(name='squirebot-help')
 async def printHelp( ctx ):
-    if await isPrivateMessage( ctx, send=False ):
-        await ctx.send( f'There are only a few commands that you can use via DM, "!add-deck", "!decklist", and "!misfortune".' )
-        return
-
     if await isTournamentAdmin( ctx, send=False ):
         await sendAdminHelpMessage( ctx )
     elif await isAdmin( ctx, send=False ):
