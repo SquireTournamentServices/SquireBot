@@ -68,6 +68,9 @@ class match:
     def isBye( self ) -> bool:
         return self.winner == "This match is a bye."
     
+    def isDraw( self ) -> bool:
+        return self.winner == "This match was a draw."
+    
     def isDead( self ) -> bool:
         return self.status == "dead"
     
