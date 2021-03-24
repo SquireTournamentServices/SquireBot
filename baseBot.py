@@ -259,7 +259,8 @@ def findPlayerTourns( plyr: str, guild_name: str = "" ) -> List[str]:
     if guild_name == "":
         for tourn in tournaments.values():
             if plyr in tourn.players:
-                digest.append( tourn.tournName )
+                if tourn.players[plyr].isActive():
+                    digest.append( tourn.tournName )
     else:
         for tourn in currentGuildTournaments( guild_name ):
             if plyr in tournaments[tourn].players:
@@ -370,6 +371,9 @@ async def sendCodes( ctx, *args ):
 bot.remove_command( "help" )
 @bot.command(name='squirebot-help')
 async def printHelp( ctx ):
+    if await isPrivateMessage( ctx, send=False ):
+        await sendUserHelpMessage( ctx )
+        return
     if await isTournamentAdmin( ctx, send=False ):
         await sendAdminHelpMessage( ctx )
     elif await isAdmin( ctx, send=False ):

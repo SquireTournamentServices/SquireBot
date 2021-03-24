@@ -144,9 +144,8 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
 
     index = ctx.message.content.find( ident ) + len(ident)
     decklist = ctx.message.content[index:].replace('"', "").strip() 
-    print( decklist )
     
-    if tourn == "":
+    if tourn == "" or decklist == "":
         await ctx.send( f'{ctx.message.author.mention}, not enough information provided: Please provide your deckname and decklist to add a deck.' )
         return
 
@@ -179,7 +178,8 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
     tournaments[tourn].players[userIdent].addDeck( ident, decklist )
     tournaments[tourn].players[userIdent].saveXML( )
     deckHash = str( tournaments[tourn].players[userIdent].decks[ident].deckHash )
-    await ctx.send( f'{ctx.message.author.mention}, your deck has been successfully registered. Your deck hash is "{deckHash}"; this must match your deck hash in Cockatrice. If these hashes do not match, check to see how your decklist looks using !decklist "{ident}" or !decklist {deckHash}. If there is still an error, contact tournament staff.' )
+    deckName = tournaments[tourn].players[userIdent].decks[ident].ident
+    await ctx.send( f'{ctx.message.author.mention}, your deck has been successfully registered in {tourn}. Your deck name is "{deckName}", and the deck hash is "{deckHash}"; this must match your deck hash in Cockatrice. If these hashes do not match, check to see how your decklist looks using !decklist "{ident}" or !decklist {deckHash}. If there is still an error, contact tournament staff.' )
     if not await isPrivateMessage( ctx, False ):
         await ctx.send( f'{ctx.message.author.mention}, for future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
 
@@ -613,7 +613,10 @@ async def printDecklist( ctx, tourn = "", ident = "" ):
     
     deckName = tournaments[tourn].players[userIdent].getDeckIdent( ident )
     if deckName == "":
-        await ctx.send( f'{ctx.message.author.mention}, you do not have any decks registered for {tourn}.' )
+        if len(tournaments[tourn].players[userIdent].decks) == 0:
+            await ctx.send( f'{ctx.message.author.mention}, you do not have any decks registered for {tourn}.' )
+        else:
+            await ctx.send( f'{ctx.message.author.mention}, you do not have a deck registered for {tourn} whose name/hash is "{ident}".' )
         return
 
     if await isPrivateMessage( ctx, send=False ):
