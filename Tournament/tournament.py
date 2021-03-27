@@ -702,6 +702,7 @@ class tournament:
     def loadPlayers( self, a_dirName: str ) -> None:
         playerFiles = [ f'{a_dirName}/{f}' for f in os.listdir(a_dirName) if os.path.isfile( f'{a_dirName}/{f}' ) ]
         for playerFile in playerFiles:
+            print( playerFile )
             newPlayer = player( "" )
             newPlayer.saveLocation = playerFile
             newPlayer.loadXML( playerFile )

@@ -1,6 +1,7 @@
 import os
 import shutil
 import random
+import re
 
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -142,10 +143,7 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
     tourn = tourn.strip()
     ident = ident.strip()
 
-    index = ctx.message.content.find( ident ) + len(ident)
-    decklist = ctx.message.content[index:].replace('"', "").strip() 
-    
-    if tourn == "" or decklist == "":
+    if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, not enough information provided: Please provide your deckname and decklist to add a deck.' )
         return
 
@@ -161,9 +159,16 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
             await ctx.send( f'{ctx.message.author.mention}, you are not regisered for any tournaments.' )
             return
         else:
-            decklist = ident + decklist
             ident = tourn
             tourn = tourns[0]
+    
+    index = ctx.message.content.find( ident ) + len(ident)
+    decklist = re.sub( "^[^A-Za-z0-9\w\/]+", "", ctx.message.content[index:].replace('"', "") ).strip() 
+    decklist = re.sub( "[^A-Za-z0-9\w\/]+$", "", decklist )
+    
+    if decklist == "":
+        await ctx.send( f'{ctx.message.author.mention}, not enough information provided: Please provide your deckname and decklist to add a deck.' )
+        return
 
     if not private:
         if not await checkTournExists( tourn, ctx ): return
@@ -175,7 +180,11 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
         await ctx.send( f'{ctx.message.author.mention}, registration for {tourn} is closed. If you believe this is an error, contact tournament staff.' )
         return
     
-    tournaments[tourn].players[userIdent].addDeck( ident, decklist )
+    try:
+        tournaments[tourn].players[userIdent].addDeck( ident, decklist )
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, there was an error while processing your deck list. Make sure you follow the instructions. To find them, use !squirebot-help' )
+        return
     tournaments[tourn].players[userIdent].saveXML( )
     deckHash = str( tournaments[tourn].players[userIdent].decks[ident].deckHash )
     deckName = tournaments[tourn].players[userIdent].decks[ident].ident

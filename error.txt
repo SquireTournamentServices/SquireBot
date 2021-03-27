@@ -1,4 +1,0 @@
-Ignoring exception in command None:
-discord.ext.commands.errors.CommandNotFound: Command "deck-list" is not found
-Ignoring exception in command None:
-discord.ext.commands.errors.CommandNotFound: Command "list" is not found

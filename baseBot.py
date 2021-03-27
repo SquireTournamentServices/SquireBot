@@ -432,4 +432,10 @@ async def scrape( ctx ):
     return
 
 
+commandSnippets["marchesa"] = "- marchesa : Long may she reign" 
+commandCategories["misc"].append( "marchesa" )
+@bot.command(name='marchesa')
+async def scrape( ctx ):
+    await ctx.send( f'Long may she reign!' )
+    return
 
