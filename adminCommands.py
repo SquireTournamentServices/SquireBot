@@ -251,6 +251,7 @@ async def adminCreatePairing( ctx, tourn = "", *plyrs ):
     
     await tournaments[tourn].addMatch( userIdents )
     tournaments[tourn].matches[-1].saveXML( )
+    tournaments[tourn].saveOverview( )
     await ctx.send( f'{ctx.message.author.mention}, the players you specified for the match are now paired. Their match number is #{tournaments[tourn].matches[-1].matchNumber}.' )
 
 

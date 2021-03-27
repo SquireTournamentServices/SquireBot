@@ -21,7 +21,7 @@ def createStandingsEmbeds( places: List[str], names: List[str], points: List[str
 
     digest  = [ ]
     headers = [ "Name:", "Points & Win Percent:", "Opp. WP" ]
-    values  = [ "", "", "" ]
+    values  = [ "\u200b", "\u200b", "\u200b" ]
     
     for i in range(length):
         line = [ f'{places[i]}) {names[i]}\n', f'{points[i]},\t{trunk(GWP[i])}%\n', f'{trunk(OWP[i])}%\n' ]
@@ -505,7 +505,6 @@ async def standings( ctx, tourn = "", printAll = "" ):
     await ctx.send( content=f'{ctx.message.author.mention}, the standings for {tourn} are:', embed=embeds[0] )
     for bed in embeds[1:]:
         await ctx.send( content=" ", embed=bed )
-    print( "End of the standings command" )
 
 
 commandSnippets["misfortune"] = "- misfortune : Helps you resolve Wheel of Misfortune (can be DM-ed)" 

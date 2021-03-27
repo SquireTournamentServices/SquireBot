@@ -68,7 +68,7 @@ class tournament:
         self.queue             = [ [] ]
         self.playersPerMatch   = 2
         self.pairingsThreshold = self.playersPerMatch * 2 # + 3
-        self.pairingWaitTime   = 30
+        self.pairingWaitTime   = 5
         self.queueActivity     = [ ]
         self.matchLength       = 60*60 # Length of matches in seconds
         self.highestPriority   = 0
@@ -270,6 +270,7 @@ class tournament:
         if sum( [ len(level) for level in self.queue ] ) >= self.pairingsThreshold and not self.pairingsThread.is_alive():
             self.pairingsThread = threading.Thread( target=self.launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )
+        return "You have been successfully added to the queue."
     
     def removePlayerFromQueue( self, a_plyr: str ) -> None:
         for lvl in self.queue:
@@ -301,6 +302,12 @@ class tournament:
         sentWarningOne = False
         sentWarningTwo = False
         while timeLeft > 0 and not mtch.stopTimer:
+            time.sleep( oneMin )
+            if lastTimeExt != mtch.timeExtension:
+                sentWarningOne = False
+                sentWarningTwo = False
+            lastTimeExt = mtch.timeExtension
+            timeLeft = t + margin + mtch.timeExtension - timeDiff( mtch.startTime, getTime() )
             if timeLeft <= oneMin:
                 if not sentWarningTwo:
                     task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have one minute left in your match.',) )
@@ -311,14 +318,6 @@ class tournament:
                     task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have five minutes left in your match.',) )
                     task.start( )
                     sentWarningOne = True
-            time.sleep( oneMin )
-            if lastTimeExt != mtch.timeExtension:
-                sentWarningOne = False
-                sentWarningTwo = False
-            lastTimeExt = mtch.timeExtension
-            timeLeft = t + margin + mtch.timeExtension - timeDiff( mtch.startTime, getTime() )
-            #print( f'The match length is {t}. The start time is {mtch.startTime} and current time is {getTime()}, so the time elapsed is {timeDiff(mtch.startTime, getTime())}.' )
-            
 
         if not mtch.stopTimer:
             task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, time in your match is up!!',) )
@@ -394,7 +393,7 @@ class tournament:
     
     # Wrapper for self.pairQueue so that it can be ran on a seperate thread
     def launch_pairings( self, a_waitTime ):
-        time.sleep( 10**-3 )
+        time.sleep( a_waitTime )
         fut_pairings = asyncio.run_coroutine_threadsafe( self.pairQueue(a_waitTime), self.loop )
         fut_pairings.result( )
     
@@ -440,7 +439,7 @@ class tournament:
         
     def pairingAttempt( self, queue = [] ):
         if len(queue) == 0:
-            queue = [ [ i for i in lvl ] for lvl in self.queue ]
+            queue = self.queue.copy()
         newQueue = []
         for _ in range(len(queue) + 1):
             newQueue.append( [] )
@@ -472,8 +471,6 @@ class tournament:
         return digest, newQueue
     
     async def pairQueue( self, a_waitTime: int ) -> None:
-        time.sleep( a_waitTime )
-        
         tries = 25
         tempQueue = [ lvl.copy() for lvl in self.queue ]
         results = []
@@ -491,12 +488,14 @@ class tournament:
         # Waiting for the tasks to be made
         for task in matchTasks:
             await task
+        
 
         # Trimming empty bins from the top of the new queue
         while len(newQueue) > 1:
             if len(newQueue[-1]) != 0:
                 break
             del( newQueue[-1] )
+        
         
 
         # Check to see if the new queue is the same as the old queue
@@ -511,9 +510,11 @@ class tournament:
                     if not isSame: break
                 if not isSame: break
 
-
         for plyr in self.queue[0]:
-            if plyr not in newQueue[0]:
+            isInQueue = False
+            for lvl in newQueue:
+                isInQueue |= plyr not in lvl
+            if not isInQueue:
                 newQueue[0].append( plyr )
         
         self.queue = newQueue
@@ -536,6 +537,8 @@ class tournament:
             if not plyr.isActive( ):
                 continue
             if plyr.discordUser is None:
+                continue
+            if len(plyr.matches) == 0:
                 continue
             # Match Points
             points = plyr.getMatchPoints()
@@ -639,6 +642,10 @@ class tournament:
             for plyr in self.queue[level]:
                 digest += f'\t\t<player name="{plyr.name}" priority="{level}"/>\n'
         digest += f'\t</queue>\n'
+        digest += f'\t<queueActivity>\n'
+        for act in self.queueActivity:
+            digest += f'\t\t<event player="{act[0]}" time="{act[1]}"/>\n'
+        digest += f'\t</queueActivity>\n'
         digest += '</tournament>'
         
         with open( a_filename, 'w' ) as xmlFile:
@@ -686,12 +693,15 @@ class tournament:
         self.pairingsThreshold = int( tournRoot.find( 'queue' ).attrib['threshold'] )
         self.matchLength     = int( tournRoot.find( 'matchLength' ).text )
         
+        acts    = tournRoot.find( 'queueActivity' ).findall( 'event' )
+        for act in acts:
+            self.queueActivity.append( ( act.attrib['player'], act.attrib['time'] ) )
         players = tournRoot.find( 'queue' ).findall( 'player' )
         maxLevel = 1
         for plyr in players:
             if int( plyr.attrib['priority'] ) > maxLevel:
                 maxLevel = int( plyr.attrib['priority'] )
-        for _ in range(maxLevel-1):
+        for _ in range(maxLevel):
             self.queue.append( [] )
         for plyr in players:
             self.queue[int(plyr.attrib['priority'])].append( self.players[ plyr.attrib['name'] ] )
@@ -722,8 +732,6 @@ class tournament:
                 if dPlayer in self.players:
                     self.players[dPlayer].addMatch( newMatch )
             if not ( self.matches[-1].isCertified() or self.matches[-1].isDead() ) and not self.matches[-1].stopTimer:
-                print( f'Starting timer for {self.matches[-1].matchNumber}' )
-                print( self.matches[-1].status, self.matches[-1].stopTimer )
                 self.matches[-1].timer = threading.Thread( target=self.matchTimer, args=(self.matches[-1],) )
                 self.matches[-1].timer.start( )
         self.matches.sort( key= lambda x: x.matchNumber )
