@@ -352,7 +352,7 @@ class tournament:
             if len(matchCategory.channels) >= 50:
                 matchCategory = category=discord.utils.get( self.guild.categories, name="More Matches" ) 
                 
-            game_name: str = str(self.tournName) + "Match" + str(newMatch.matchNumber)
+            game_name: str = f'{self.tournName} Match {newMatch.matchNumber}'
             newMatch.VC    = await matchCategory.create_voice_channel( game_name, overwrites=overwrites ) 
             newMatch.role  = matchRole
             newMatch.timer = threading.Thread( target=self.matchTimer, args=(newMatch,) )
@@ -769,5 +769,4 @@ class tournament:
         self.matches.sort( key= lambda x: x.matchNumber )
         for plyr in self.players.values():
             plyr.matches.sort( key= lambda x: x.matchNumber )
-
 
