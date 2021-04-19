@@ -54,7 +54,8 @@ class TriceBot:
             
         try:
             status = self.req("api/creategame/", body)     
-        except:
+        except OSError as exc:
+            # logging.error(f"exception while requesting create game with body:\n{body}", exc_info=exc)
             return False
 
         if (status == "timeout error" or status == "error 404" or status == "invalid auth token"):
