@@ -283,7 +283,7 @@ def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-
+TRICE_BOT_AUTH_TOKEN = os.getenv('TRICE_BOT_AUTH_TOKEN')
 MAX_COIN_FLIPS = int( os.getenv('MAX_COIN_FLIPS') )
 
 random.seed( )

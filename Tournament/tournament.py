@@ -8,6 +8,8 @@ import discord
 import asyncio
 import warnings
 
+from tricebot import TriceBot
+
 from typing import List
 from typing import Tuple
 
@@ -44,7 +46,7 @@ from .deck import deck
         - matches: A list of all match objects in the tournament, regardless of status
 """
 class tournament:
-    def __init__( self, a_tournName: str, a_hostGuildName: str, a_format: str = "EDH" ):
+    def __init__( self, a_tournName: str, a_hostGuildName: str, auth_token: str, a_format: str = "EDH" , spectators_allowed: int = 1, spectators_need_password: int = 1, spectators_can_chat : int = 0, spectators_can_see_hands: int = 0, only_reistered: int = 0):
         self.tournName = a_tournName
         self.hostGuildName = a_hostGuildName
         self.format    = a_format
@@ -79,7 +81,15 @@ class tournament:
         self.players  = {}
         
         self.matches = []
-    
+        
+        #Create bot class and store the game creation settings
+        self.trice_bot = TriceBot(auth_token)
+        self.spectators_allowed = spectators_allowed
+        self.spectators_need_password = spectators_need_password 
+        self.spectators_can_chat = spectators_can_chat 
+        self.spectators_can_see_hands = spectators_can_see_hands 
+        self.only_reistered = only_reistered
+            
     def isPlanned( self ) -> bool:
         return not ( self.tournStarted or self.tournEnded or self.tournCancel )
     
@@ -341,15 +351,37 @@ class tournament:
             matchCategory = discord.utils.get( self.guild.categories, name="Matches" ) 
             if len(matchCategory.channels) >= 50:
                 matchCategory = category=discord.utils.get( self.guild.categories, name="More Matches" ) 
-            newMatch.VC    = await matchCategory.create_voice_channel( name=f'{self.tournName} Match {newMatch.matchNumber}', overwrites=overwrites ) 
+                
+            game_name: str = str(self.tournName) + "Match" + str(newMatch.matchNumber)
+            newMatch.VC    = await matchCategory.create_voice_channel( game_name, overwrites=overwrites ) 
             newMatch.role  = matchRole
             newMatch.timer = threading.Thread( target=self.matchTimer, args=(newMatch,) )
             newMatch.timer.start( )
             newMatch.saveXML()
             
             message = f'\n{matchRole.mention} of {self.tournName}, you have been paired. A voice channel has been created for you. Below is information about your opponents.\n'
-            embed   = discord.Embed( )
-        
+            embed   = discord.Embed( )            
+                        
+            #Try to create the game
+            creation_success: bool = False
+            tries: int = 0
+            max_tries: int = 3
+            
+            game_password: str = "game-" + str(newMatch.matchNumber)
+            
+            #Try up to three times
+            while not creation_success and tries < max_tries:
+                creation_success = self.trice_bot.createGame(game_name, game_password, len(a_plyrs), self.spectators_allowed, self.spectators_need_password, self.spectators_can_chat, self.spectators_can_see_hands, self.only_reistered)
+                tries+=1
+                
+            if creation_success:
+                #Game was made
+                message += "A cockatrice game was automatically made for you and has password `" + game_password + "`\n"
+            
+            else:
+                #Game was not made
+                message += "A cockatrice game was not automatically made for you.\n"
+            
         for plyr in a_plyrs:
             self.removePlayerFromQueue( plyr )
             self.players[plyr].matches.append( newMatch )

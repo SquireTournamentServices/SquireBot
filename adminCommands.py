@@ -27,7 +27,7 @@ async def createTournament( ctx, tourn = "" ):
         return
     
     await ctx.message.guild.create_role( name=f'{tourn} Player' )
-    tournaments[tourn] = tournament( tourn, ctx.message.guild.name )
+    tournaments[tourn] = tournament( tourn, ctx.message.guild.name, TRICE_BOT_AUTH_TOKEN )
     tournaments[tourn].saveLocation = f'currentTournaments/{tourn}/'
     tournaments[tourn].addDiscordGuild( ctx.message.guild )
     tournaments[tourn].loop = bot.loop

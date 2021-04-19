@@ -48,6 +48,18 @@ This is also were the bot will send end of round messages.
 Because of this, its generally recommended that only this bot and anyone with either role be allowed to send messages here.
 It is also generally recommended to have a channel where players' bot commands can be directed as well as a tournament official version of this channel.
 
+A file called .env should be created that includes the follwing tags:
+```yaml
+DISCORD_TOKEN=
+MAX_COIN_FLIPS=
+TRICE_BOT_AUTH_TOKEN=
+```
+You should set each tag to the value that you want.
+
+##Trice Bot Setup
+Goto https://github.com/djpiper28/CockatriceTournamentBot for the README to setup the tricebot.
+The auth token for the trice bot should be put into .env under the `TRICE_BOT_AUTH_TOKEN` tag,
+the trice bot should be ran on the same machine on `https://127.0.0.1:8000`.
 
 
 #Additional Resources
