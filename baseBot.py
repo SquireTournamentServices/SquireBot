@@ -287,7 +287,9 @@ TRICE_BOT_AUTH_TOKEN = os.getenv('TRICE_BOT_AUTH_TOKEN')
 
 #Defaults to false given no or, bad input.
 TRICE_BOT_ENABLED = os.getenv('TRICE_BOT_ENABLED')
-if (TRICE_BOT_ENABLED.lower() == "true"):
+if TRICE_BOT_ENABLED == None:
+    TRICE_BOT_ENABLED = False
+elif (TRICE_BOT_ENABLED.lower() == "true"):
     TRICE_BOT_ENABLED = True
 else:
     TRICE_BOT_ENABLED = False
