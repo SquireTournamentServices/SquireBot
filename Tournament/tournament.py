@@ -355,6 +355,7 @@ class tournament:
                 matchCategory = category=discord.utils.get( self.guild.categories, name="More Matches" ) 
                 
             game_name: str = f'{self.tournName} Match {newMatch.matchNumber}'
+            
             newMatch.VC    = await matchCategory.create_voice_channel( name=game_name, overwrites=overwrites ) 
             newMatch.role  = matchRole
             newMatch.timer = threading.Thread( target=self.matchTimer, args=(newMatch,) )
