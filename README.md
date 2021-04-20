@@ -52,6 +52,7 @@ A file called .env should be created that includes the follwing tags:
 ```yaml
 DISCORD_TOKEN=
 MAX_COIN_FLIPS=
+TRICE_BOT_ENABLED=true/false
 TRICE_BOT_AUTH_TOKEN=
 ```
 You should set each tag to the value that you want.
@@ -59,7 +60,7 @@ You should set each tag to the value that you want.
 ##Trice Bot Setup
 Goto https://github.com/djpiper28/CockatriceTournamentBot for the README to setup the tricebot.
 The auth token for the trice bot should be put into .env under the `TRICE_BOT_AUTH_TOKEN` tag,
-the trice bot should be ran on the same machine on `https://127.0.0.1:8000`.
+the trice bot should be ran on the same machine on `https://127.0.0.1:8000` with SSL enabled.
 
 
 #Additional Resources

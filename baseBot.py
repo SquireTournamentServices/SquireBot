@@ -284,6 +284,15 @@ def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 TRICE_BOT_AUTH_TOKEN = os.getenv('TRICE_BOT_AUTH_TOKEN')
+
+#Defaults to false given no or, bad input.
+TRICE_BOT_ENABLED = os.getenv('TRICE_BOT_ENABLED')
+if (TRICE_BOT_ENABLED == "true"):
+    TRICE_BOT_ENABLED = True
+else:
+    TRICE_BOT_ENABLED = False
+
+
 MAX_COIN_FLIPS = int( os.getenv('MAX_COIN_FLIPS') )
 
 random.seed( )
@@ -313,7 +322,7 @@ async def on_ready():
         print( f'This bot is connected to {guild.name} which has {len(guild.members)}!' )    
     print( "" )
     for tourn in savedTournaments:
-        newTourn = tournament( "", "" )
+        newTourn = tournament( "", "", TRICE_BOT_AUTH_TOKEN, TRICE_BOT_ENABLED )
         newTourn.loop = bot.loop
         newTourn.loadTournament( tourn )
         if newTourn.tournName != "":
