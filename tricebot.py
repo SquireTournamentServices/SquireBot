@@ -12,7 +12,7 @@ class TriceBot:
     def checkauthkey(self):
         return self.req("api/checkauthkey", self.authToken) == "1"
     
-    def createGame(self, gamename, password, playercount, spectatorsallowed, spectatorsneedpassword, spectatorscanchat, spectatorscanseehands, onlyreistered):
+    def createGame(self, gamename, password, playercount, spectatorsallowed, spectatorsneedpassword, spectatorscanchat, spectatorscanseehands, onlyregistered):
         body = "authtoken=" + self.authToken + "\n"
         body += "gamename=" + gamename + "\n"
         body += "password=" + password + "\n"
@@ -47,7 +47,7 @@ class TriceBot:
         body += "\n"
         
         body += "onlyRegistered="
-        if onlyreistered:
+        if onlyregistered:
             body += "1"
         else:
             body +="0"
