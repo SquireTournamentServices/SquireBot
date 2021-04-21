@@ -1,18 +1,33 @@
 import requests
 
+class GameMade:
+    def __init__(self, success: str, gameID: int, replayName: str):
+        self.success = success
+        self.gameID = gameID
+        self.replayName = replayName
+
 class TriceBot:    
-    def __init__(self, authToken, apiURL="https://0.0.0.0:8000"):
+    #Set externURL to the domain address and apiURL to the loopback address in LAN configs
+    def __init__(self, authToken: str, apiURL: str="https://0.0.0.0:8000", externURL: str=""):
         self.authToken = authToken
         self.apiURL = apiURL
         
+        if (externURL == ""):
+            self.externURL = self.apiURL
+        else:
+            self.externURL = externURL
+        
     # verify = false as self signed ssl certificates will cause errors here
-    def req(self, urlpostfix, data):
+    def req(self, urlpostfix: str, data: str):
         return requests.get(self.apiURL + "/" + urlpostfix, timeout=7.0, data=data,  verify=False).text
         
     def checkauthkey(self):
         return self.req("api/checkauthkey", self.authToken) == "1"
     
-    def createGame(self, gamename, password, playercount, spectatorsallowed, spectatorsneedpassword, spectatorscanchat, spectatorscanseehands, onlyregistered):
+    def getDownloadLink(self, replayName):
+        return self.externURL + "/" + replayName
+    
+    def createGame(self, gamename: str, password: str, playercount: int, spectatorsallowed: bool, spectatorsneedpassword: bool, spectatorscanchat: bool, spectatorscanseehands: bool, onlyregistered: bool):
         body = "authtoken=" + self.authToken + "\n"
         body += "gamename=" + gamename + "\n"
         body += "password=" + password + "\n"
@@ -53,12 +68,53 @@ class TriceBot:
             body +="0"
             
         try:
-            status = self.req("api/creategame/", body)     
+            message = self.req("api/creategame/", body)   
+            print(message)
         except OSError as exc:
-            # logging.error(f"exception while requesting create game with body:\n{body}", exc_info=exc)
-            return False
-
-        if (status == "timeout error" or status == "error 404" or status == "invalid auth token"):
-            return False
+            #Network issues
+            print("[TRICEBOT ERROR]: Netty error")
+            return GameMade(False, -1, "")
+            
+        #Check for server error
+        if (message == "timeout error" or message == "error 404" or message == "invalid auth token"):
+            #Server issues         
+            print("[TRICEBOT ERROR]: " + message)
+            return GameMade(False, -1, "")
         
-        return True
+        #Try to parse the message
+        lines = message.split("\n")
+        gameID: int = -1
+        replayName: str = ""
+        
+        #Parse line for line
+        for line in lines:
+            parts = line.split("=")
+            
+            #Check length
+            if (len(parts) >= 2):            
+                tag = parts[0]
+                value = ""
+                
+                i = 1
+                while i < len(parts):
+                    value += parts[i]
+                    #readd equal signs in the gamename
+                    if (i > 1):
+                        value += "="
+                    i+=1
+                    
+                if (tag == "gameid"):
+                    #There has to be a better way to do this
+                    try:
+                        gameID = int(value)
+                    except:
+                        #Error checked at end
+                        pass
+                elif (tag == "replayName"):
+                    replayName = value.replace(" ", "%20")
+                #Ignore other tags
+            #Ignores lines that have no equals in them
+        
+        #Check if there was an error
+        success = gameID != -1 and replayName != ""
+        return GameMade(success, gameID, replayName)

@@ -2,11 +2,11 @@ import os
 
 import discord
 import random
+import re
 from random import getrandbits
 from discord import Activity, ActivityType
 from discord.ext import commands
 from dotenv import load_dotenv
-
 
 from Tournament import *
 
@@ -293,7 +293,11 @@ elif (TRICE_BOT_ENABLED.lower() == "true"):
     TRICE_BOT_ENABLED = True
 else:
     TRICE_BOT_ENABLED = False
-
+# This is the external URL of the tricebot for replay downloads, this is different
+# to the apiURL which is a loopback address or internal IP address allowing for
+# nginx or similar to be setup.
+EXTERN_URL = os.getenv('EXTERN_URL')
+API_URL = os.getenv('API_URL')
 
 MAX_COIN_FLIPS = int( os.getenv('MAX_COIN_FLIPS') )
 
@@ -315,6 +319,12 @@ playersToBeDropped = []
 savedTournaments = [ f'currentTournaments/{d}' for d in os.listdir( "currentTournaments" ) if os.path.isdir( f'currentTournaments/{d}' ) ]
 
 
+def isFolderSafe(name: str) -> bool:
+    #bad chars are xml chars and "../" as it is a directory buggerer
+    if (name.replace("/", "") != name):
+        return False
+    return True
+
 # When ready, the bot needs to looks at each pre-loaded tournament and add a discord user to each player.
 @bot.event
 async def on_ready():
@@ -324,7 +334,7 @@ async def on_ready():
         print( f'This bot is connected to {guild.name} which has {len(guild.members)}!' )    
     print( "" )
     for tourn in savedTournaments:
-        newTourn = tournament( "", "", TRICE_BOT_AUTH_TOKEN, TRICE_BOT_ENABLED )
+        newTourn = tournament( "", "", TRICE_BOT_AUTH_TOKEN, TRICE_BOT_ENABLED, API_URL, EXTERN_URL )
         newTourn.loop = bot.loop
         newTourn.loadTournament( tourn )
         if newTourn.tournName != "":

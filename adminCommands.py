@@ -22,12 +22,16 @@ async def createTournament( ctx, tourn = "" ):
     if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, you need to specify what you want the tournament to be called.' )
         return
+    elif not isFolderSafe(tourn):        
+        await ctx.send( f'{ctx.message.author.mention}, you cannot have that as a tournament name.' )
+        return
+    
     if tourn in tournaments:
         await ctx.send( f'{ctx.message.author.mention}, there is already a tournament call {tourn} either on this server or another. Pick a different name.' )
         return
     
     await ctx.message.guild.create_role( name=f'{tourn} Player' )
-    tournaments[tourn] = tournament( tourn, ctx.message.guild.name, TRICE_BOT_AUTH_TOKEN, TRICE_BOT_ENABLED )
+    tournaments[tourn] = tournament( tourn, ctx.message.guild.name, TRICE_BOT_AUTH_TOKEN, TRICE_BOT_ENABLED, API_URL, EXTERN_URL )
     tournaments[tourn].saveLocation = f'currentTournaments/{tourn}/'
     tournaments[tourn].addDiscordGuild( ctx.message.guild )
     tournaments[tourn].loop = bot.loop

@@ -46,8 +46,11 @@ from .deck import deck
         - matches: A list of all match objects in the tournament, regardless of status
 """
 class tournament:
-    def __init__( self, a_tournName: str, a_hostGuildName: str, auth_token: str, trice_enabled:bool, a_format: str = "EDH" , spectators_allowed: int = 1, spectators_need_password: int = 1, spectators_can_chat : int = 0, spectators_can_see_hands: int = 0, only_registered: int = 0):
-        self.tournName = a_tournName
+    def __init__( self, a_tournName: str, a_hostGuildName: str, auth_token: str, trice_enabled:bool, apiURL: str, externURL: str, a_format: str = "EDH", spectators_allowed: int = 1, spectators_need_password: int = 1, spectators_can_chat : int = 0, spectators_can_see_hands: int = 0, only_registered: int = 0):     
+        self.tournName = a_tournName   
+        #Safety Checks!!
+        self.tournName.replace("\.\./", "")
+        
         self.hostGuildName = a_hostGuildName
         self.format    = a_format
         
@@ -85,7 +88,7 @@ class tournament:
         #Create bot class and store the game creation settings
         self.trice_enabled = trice_enabled
         if (self.trice_enabled):
-            self.trice_bot = TriceBot(auth_token)
+            self.trice_bot = TriceBot(auth_token, apiURL=apiURL, externURL=externURL)
             self.spectators_allowed = spectators_allowed
             self.spectators_need_password = spectators_need_password 
             self.spectators_can_chat = spectators_can_chat 
@@ -354,7 +357,8 @@ class tournament:
             if len(matchCategory.channels) >= 50:
                 matchCategory = category=discord.utils.get( self.guild.categories, name="More Matches" ) 
                 
-            game_name: str = f'{self.tournName} Match {newMatch.matchNumber}'
+            #Save replay into a folder on the bot end
+            game_name: str = f'{self.tournName}/Match {newMatch.matchNumber}'
             
             newMatch.VC    = await matchCategory.create_voice_channel( name=game_name, overwrites=overwrites ) 
             newMatch.role  = matchRole
@@ -368,6 +372,7 @@ class tournament:
             if(self.trice_enabled):                        
                 #Try to create the game
                 creation_success: bool = False
+                replay_download_link: str = ""
                 tries: int = 0
                 max_tries: int = 3
                 
@@ -375,17 +380,21 @@ class tournament:
                 
                 #Try up to three times
                 while not creation_success and tries < max_tries:
-                    creation_success = self.trice_bot.createGame(game_name, game_password, len(a_plyrs), self.spectators_allowed, self.spectators_need_password, self.spectators_can_chat, self.spectators_can_see_hands, self.only_registered)
+                    game_made = self.trice_bot.createGame(game_name, game_password, len(a_plyrs), self.spectators_allowed, self.spectators_need_password, self.spectators_can_chat, self.spectators_can_see_hands, self.only_registered)
+                    
+                    creation_success = game_made.success
+                    replay_download_link = self.trice_bot.getDownloadLink(game_made.replayName)
                     tries+=1
                     
                 if creation_success:
                     #Game was made
-                    message += "A cockatrice game was automatically made for you and has password `" + game_password + "`\n"
+                    message += "A cockatrice game was automatically made for you and has a password of `" + game_password + "`\n"
                 
+                    message +="Test download link "+replay_download_link+"\n"
                 else:
                     #Game was not made
                     message += "A cockatrice game was not automatically made for you.\n"
-            
+                #TODO: store replay download link
         for plyr in a_plyrs:
             self.removePlayerFromQueue( plyr )
             self.players[plyr].matches.append( newMatch )
@@ -651,7 +660,10 @@ class tournament:
         if message != "":
             await self.pairingsChannel.send( message )
 
-    def saveTournament( self, a_dirName: str = "" ) -> None:
+    def saveTournament( self, a_unsafe_dirName: str = "" ) -> None:        
+        a_dirName = a_unsafe_dirName.replace("\.\./", "") 
+        #Check on folder creation, event though input should be safe
+        
         if a_dirName == "":
             a_dirName = self.saveLocation
         if not (os.path.isdir( f'{a_dirName}' ) and os.path.exists( f'{a_dirName}' )):
@@ -665,22 +677,22 @@ class tournament:
             a_filename = f'{self.saveLocation}/overview.xml'
         digest  = "<?xml version='1.0'?>\n"
         digest += '<tournament>\n'
-        digest += f'\t<name>{self.tournName}</name>\n'
-        digest += f'\t<guild id="{self.guild.id if type(self.guild) == discord.Guild else str()}">{self.hostGuildName}</guild>\n'
-        digest += f'\t<role id="{self.role.id if type(self.role) == discord.Role else str()}"/>\n'
-        digest += f'\t<format>{self.format}</format>\n'
-        digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
-        digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
-        digest += f'\t<deckCount>{self.deckCount}</deckCount>\n'
-        digest += f'\t<matchLength>{self.matchLength}</matchLength>\n'
-        digest += f'\t<queue size="{self.playersPerMatch}" threshold="{self.pairingsThreshold}">\n'
+        digest += f'\t<name>{toSafeXML(self.tournName)}</name>\n'
+        digest += f'\t<guild id="{toSafeXML(self.guild.id if type(self.guild) == discord.Guild else str())}">{toSafeXML(self.hostGuildName)}</guild>\n'
+        digest += f'\t<role id="{toSafeXML(self.role.id if type(self.role) == discord.Role else str())}"/>\n'
+        digest += f'\t<format>{toSafeXML(self.format)}</format>\n'
+        digest += f'\t<regOpen>{toSafeXML(self.regOpen)}</regOpen>\n'
+        digest += f'\t<status started="{toSafeXML(self.tournStarted)}" ended="{self.tournEnded}" canceled="{toSafeXML(self.tournCancel)}"/>\n'
+        digest += f'\t<deckCount>{toSafeXML(self.deckCount)}</deckCount>\n'
+        digest += f'\t<matchLength>{toSafeXML(self.matchLength)}</matchLength>\n'
+        digest += f'\t<queue size="{toSafeXML(self.playersPerMatch)}" threshold="{toSafeXML(self.pairingsThreshold)}">\n'
         for level in range(len(self.queue)):
             for plyr in self.queue[level]:
-                digest += f'\t\t<player name="{plyr.name}" priority="{level}"/>\n'
+                digest += f'\t\t<player name="{toSafeXML(plyr.name)}" priority="{toSafeXML(level)}"/>\n'
         digest += f'\t</queue>\n'
         digest += f'\t<queueActivity>\n'
         for act in self.queueActivity:
-            digest += f'\t\t<event player="{act[0]}" time="{act[1]}"/>\n'
+            digest += f'\t\t<event player="{toSafeXML(act[0])}" time="{toSafeXML(act[1])}"/>\n'
         digest += f'\t</queueActivity>\n'
         digest += '</tournament>'
         
@@ -714,33 +726,33 @@ class tournament:
     def loadOverview( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
         tournRoot = xmlTree.getroot() 
-        self.tournName = tournRoot.find( 'name' ).text
-        self.guildID   = int( tournRoot.find( 'guild' ).attrib["id"] )
-        self.roleID    = int( tournRoot.find( 'role' ).attrib["id"] )
-        self.format    = tournRoot.find( 'format' ).text
-        self.deckCount = int( tournRoot.find( 'deckCount' ).text )
+        self.tournName = fromXML(tournRoot.find( 'name' ).text)
+        self.guildID   = int( fromXML(tournRoot.find( 'guild' ).attrib["id"]) )
+        self.roleID    = int( fromXML(tournRoot.find( 'role' ).attrib["id"]) )
+        self.format    = fromXML(tournRoot.find( 'format' ).text)
+        self.deckCount = int( fromXML(tournRoot.find( 'deckCount' ).text) )
 
-        self.regOpen      = str_to_bool( tournRoot.find( 'regOpen' ).text )
-        self.tournStarted = str_to_bool( tournRoot.find( 'status' ).attrib['started'] )
-        self.tournEnded   = str_to_bool( tournRoot.find( 'status' ).attrib['ended'] )
-        self.tournCancel  = str_to_bool( tournRoot.find( 'status' ).attrib['canceled'] )
+        self.regOpen      = str_to_bool( fromXML(tournRoot.find( 'regOpen' ).text ))
+        self.tournStarted = str_to_bool( fromXML(tournRoot.find( 'status' ).attrib['started'] ))
+        self.tournEnded   = str_to_bool( fromXML(tournRoot.find( 'status' ).attrib['ended'] ))
+        self.tournCancel  = str_to_bool( fromXML(tournRoot.find( 'status' ).attrib['canceled'] ))
 
-        self.playersPerMatch = int( tournRoot.find( 'queue' ).attrib['size'] )
-        self.pairingsThreshold = int( tournRoot.find( 'queue' ).attrib['threshold'] )
-        self.matchLength     = int( tournRoot.find( 'matchLength' ).text )
+        self.playersPerMatch = int( fromXML(tournRoot.find( 'queue' ).attrib['size'] ))
+        self.pairingsThreshold = int( fromXML(tournRoot.find( 'queue' ).attrib['threshold'] ))
+        self.matchLength     = int( fromXML(tournRoot.find( 'matchLength' ).text ))
         
         acts    = tournRoot.find( 'queueActivity' ).findall( 'event' )
         for act in acts:
-            self.queueActivity.append( ( act.attrib['player'], act.attrib['time'] ) )
+            self.queueActivity.append( fromXML( act.attrib['player'], act.attrib['time'] ) )
         players = tournRoot.find( 'queue' ).findall( 'player' )
         maxLevel = 1
         for plyr in players:
             if int( plyr.attrib['priority'] ) > maxLevel:
-                maxLevel = int( plyr.attrib['priority'] )
+                maxLevel = int( fromXML(plyr.attrib['priority']) )
         for _ in range(maxLevel):
             self.queue.append( [] )
         for plyr in players:
-            self.queue[int(plyr.attrib['priority'])].append( self.players[ plyr.attrib['name'] ] )
+            self.queue[int(plyr.attrib['priority'])].append( fromXML(self.players[ plyr.attrib['name'] ] ))
         if sum( [ len(level) for level in self.queue ] ) >= self.pairingsThreshold and not self.pairingsThread.is_alive( ):
             self.pairingsThread = threading.Thread( target=self.launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )
@@ -752,7 +764,7 @@ class tournament:
             newPlayer = player( "" )
             newPlayer.saveLocation = playerFile
             newPlayer.loadXML( playerFile )
-            self.players[newPlayer.name]  = newPlayer
+            self.players[newPlayer.name] = newPlayer
     
     def loadMatches( self, a_dirName: str ) -> None:
         matchFiles = [ f'{a_dirName}/{f}' for f in os.listdir(a_dirName) if os.path.isfile( f'{a_dirName}/{f}' ) ]

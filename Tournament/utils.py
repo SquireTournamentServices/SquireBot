@@ -63,5 +63,17 @@ def getJudgeRole( a_guild: discord.Guild ):
             break
     return digest
 
+"""
+"   &quot;
+'   &apos;
+<   &lt;
+>   &gt;
+&   &amp;
+"""
+def toSafeXML( input_XML: str ) -> str:
+    return str(input_XML).replace("\"", "&quot;").replace("'", "&apos;").replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;")
 
+#Shouldn't be needed as the reader should expand XML escaped chars but has to be as the xml library is dumb
+def fromXML( input_XML: str ) -> str:
+    return str(input_XML).replace("&quot;", "\"").replace("&apos;", "'").replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
 

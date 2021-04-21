@@ -156,7 +156,7 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
             await ctx.send( f'{ctx.message.author.mention}, you are registered for multiple tournaments{"" if private else " in this server"}. Please specify a tournament before your deck name.' )
             return
         elif len( tourns ) < 1:
-            await ctx.send( f'{ctx.message.author.mention}, you are not regisered for any tournaments.' )
+            await ctx.send( f'{ctx.message.author.mention}, you are not registered for any tournaments.' )
             return
         else:
             ident = tourn

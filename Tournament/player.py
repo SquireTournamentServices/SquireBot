@@ -287,10 +287,10 @@ class player:
             a_filename = self.saveLocation
         digest  = "<?xml version='1.0'?>\n"
         digest += '<player>\n'
-        digest += f'\t<name>{self.name}</name>\n'
-        digest += f'\t<triceName>{self.triceName}</triceName>\n'
-        digest += f'\t<discord id="{self.discordUser.id if type(self.discordUser) == discord.Member else str()}"/>\n'
-        digest += f'\t<status>{self.status}</status>\n'
+        digest += f'\t<name>{toSafeXML(self.name)}</name>\n'
+        digest += f'\t<triceName>{toSafeXML(self.triceName)}</triceName>\n'
+        digest += f'\t<discord id="{toSafeXML(self.discordUser.id if type(self.discordUser) == discord.Member else str())}"/>\n'
+        digest += f'\t<status>{toSafeXML(self.status)}</status>\n'
         for ident in self.decks:
             digest += self.decks[ident].exportXMLString( '\t' )
         digest += '</player>'
@@ -301,14 +301,14 @@ class player:
     def loadXML( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
         self.saveLocation = a_filename
-        self.name = xmlTree.getroot().find( 'name' ).text
-        self.triceName = xmlTree.getroot().find( 'triceName' ).text
+        self.name = fromXML(xmlTree.getroot().find( 'name' ).text)
+        self.triceName = fromXML(xmlTree.getroot().find( 'triceName' ).text)
         if self.triceName == None:
             self.triceName = ""
-        self.discordID  = xmlTree.getroot().find( 'discord' ).attrib['id']
+        self.discordID  = fromXML(xmlTree.getroot().find( 'discord' ).attrib['id'])
         if self.discordID != "":
             self.discordID = int( self.discordID )
-        self.status = xmlTree.getroot().find( "status" ).text
+        self.status = fromXML(xmlTree.getroot().find( "status" ).text)
         for deckTag in xmlTree.getroot().findall('deck'):
             self.decks[deckTag.attrib['ident']] = deck()
             self.decks[deckTag.attrib['ident']].importFromETree( deckTag )
