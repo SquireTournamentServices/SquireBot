@@ -222,10 +222,10 @@ class match:
             self.VC_ID = int( fromXML( self.VC_ID ) )
         self.matchNumber = int( fromXML( matchRoot.find( "number" ).text ) )
         self.stopTimer = str_to_bool( fromXML( matchRoot.find("stopTimer").text ) )
-        self.startTime = matchRoot.find( fromXML( "startTime" ).text )
-        self.endTime = matchRoot.find( fromXML( "endTime" ).text )
-        self.status = matchRoot.find( fromXML( "status" ).text )
-        self.winner = matchRoot.find( fromXML( "winner" ).attrib["name"] )
+        self.startTime = fromXML( matchRoot.find( "startTime") .text )
+        self.endTime = fromXML( matchRoot.find( "endTime" ).text )
+        self.status = fromXML( matchRoot.find(  "status" ).text )
+        self.winner = fromXML( matchRoot.find( "winner" ).attrib["name"] )
         for player in matchRoot.find("activePlayers"):
             self.activePlayers.append( fromXML( player.attrib["name"] ) )
         for player in matchRoot.find("droppedPlayers"):
