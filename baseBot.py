@@ -8,6 +8,7 @@ from discord import Activity, ActivityType
 from discord.ext import commands
 from dotenv import load_dotenv
 
+from tricebot import TriceBot
 from Tournament import *
 
 commandSnippets = { } 
@@ -93,6 +94,7 @@ async def isAdmin( ctx, send: bool = True ) -> bool:
 
 async def isTournamentAdmin( ctx, send: bool = True ) -> bool:
     digest = False
+    
     adminMention = getTournamentAdminMention( ctx.message.guild )
     for role in ctx.message.author.roles:
         digest |= str(role).lower() == "tournament admin"
@@ -283,22 +285,6 @@ def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-TRICE_BOT_AUTH_TOKEN = os.getenv('TRICE_BOT_AUTH_TOKEN')
-
-#Defaults to false given no or, bad input.
-TRICE_BOT_ENABLED = os.getenv('TRICE_BOT_ENABLED')
-if TRICE_BOT_ENABLED == None:
-    TRICE_BOT_ENABLED = False
-elif (TRICE_BOT_ENABLED.lower() == "true"):
-    TRICE_BOT_ENABLED = True
-else:
-    TRICE_BOT_ENABLED = False
-# This is the external URL of the tricebot for replay downloads, this is different
-# to the apiURL which is a loopback address or internal IP address allowing for
-# nginx or similar to be setup.
-EXTERN_URL = os.getenv('EXTERN_URL')
-API_URL = os.getenv('API_URL')
-
 MAX_COIN_FLIPS = int( os.getenv('MAX_COIN_FLIPS') )
 
 random.seed( )
@@ -334,7 +320,7 @@ async def on_ready():
         print( f'This bot is connected to {guild.name} which has {len(guild.members)}!' )    
     print( "" )
     for tourn in savedTournaments:
-        newTourn = tournament( "", "", TRICE_BOT_AUTH_TOKEN, TRICE_BOT_ENABLED, API_URL, EXTERN_URL )
+        newTourn = tournament( "", "" )
         newTourn.loop = bot.loop
         newTourn.loadTournament( tourn )
         if newTourn.tournName != "":

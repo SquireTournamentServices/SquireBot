@@ -8,12 +8,13 @@ from dotenv import load_dotenv
 from baseBot import *
 from Tournament import * 
 
+async def sendTriceBotEnabledMessage ( ctx, adminMention, tourn ):
+    await ctx.send( f'{adminMention}, tricebot has been enabled for "{tourn}" by {ctx.message.author.mention}. It is using the default settings (spectators are allowed, do not need a password, cannot chat, cannot see hands and, players must be registered).' )
 
-
-commandSnippets["create-tournament"] = "- create-tournament : Creates a tournament" 
+commandSnippets["create-tournament"] = "- create-tournament : Creates a tournament and has a toggle to enable tricebot." 
 commandCategories["management"].append("create-tournament")
 @bot.command(name='create-tournament')
-async def createTournament( ctx, tourn = "" ):
+async def createTournament( ctx, tourn = "", triceBotEnabledIn = ""):
     tourn = tourn.strip()
     if await isPrivateMessage( ctx ): return
 
@@ -30,20 +31,83 @@ async def createTournament( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, there is already a tournament call {tourn} either on this server or another. Pick a different name.' )
         return
     
+    triceBotFlag = False
+    triceBotEnabledIn = triceBotEnabledIn.lower()
+    if (triceBotEnabledIn != ""):
+        if (triceBotEnabledIn == "true"):
+            triceBotFlag = True
+        elif (triceBotEnabledIn == "false"):
+            triceBotFlag = False
+        else:
+            await ctx.send( f'{ctx.message.author.mention}, Please enter either true or false for the tricebot toggle. i.e: !create-tournament "Tournament with trice bot" "true"' )
+            return 
+    
     await ctx.message.guild.create_role( name=f'{tourn} Player' )
-    tournaments[tourn] = tournament( tourn, ctx.message.guild.name, TRICE_BOT_AUTH_TOKEN, TRICE_BOT_ENABLED, API_URL, EXTERN_URL )
+    tournaments[tourn] = tournament( tourn, ctx.message.guild.name, trice_enabled = triceBotFlag )
     tournaments[tourn].saveLocation = f'currentTournaments/{tourn}/'
     tournaments[tourn].addDiscordGuild( ctx.message.guild )
     tournaments[tourn].loop = bot.loop
     tournaments[tourn].saveTournament( f'currentTournaments/{tourn}' )
     await ctx.send( f'{adminMention}, a new tournament called "{tourn}" has been created by {ctx.message.author.mention}.' )
     
+    if (triceBotFlag):
+        await sendTriceBotEnabledMessage(ctx, adminMention, tourn)
 
+commandSnippets["enable-tricebot"] = "- enable-tricebot : Enables tricebot for a tounament" 
+commandCategories["management"].append("enable-tricebot")
+@bot.command(name='enable-tricebot')
+async def enableTriceBot( ctx, tourn = "" ):  
+    tourn = tourn.strip()
+    
+    if await isPrivateMessage( ctx ): return
+
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "":
+        await ctx.send( f'{ctx.message.author.mention}, you need to specify what you want the tournament to be called.' )
+        return
+    
+    if (tournaments[tourn].triceBotEnabled):
+        await ctx.send( f'{ctx.message.author.mention}, tricebot is already enabled.' )
+        return
+    
+    tournaments[tourn].triceBotEnabled = True
+    tournaments[tourn].saveOverview( )
+    await sendTriceBotEnabledMessage(ctx, adminMention, tourn)
+
+commandSnippets["disable-tricebot"] = "- disable-tricebot : Disables tricebot for a tounament" 
+commandCategories["management"].append("disable-tricebot")
+@bot.command(name='disable-tricebot')
+async def disableTriceBot( ctx, tourn = "" ):  
+    tourn = tourn.strip()
+    
+    if await isPrivateMessage( ctx ): return
+
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "":
+        await ctx.send( f'{ctx.message.author.mention}, you need to specify what you want the tournament to be called.' )
+        return
+    
+    if (not tournaments[tourn].triceBotEnabled):
+        await ctx.send( f'{ctx.message.author.mention}, tricebot is already disabled.' )
+        return
+    
+    tournaments[tourn].triceBotEnabled = False
+    tournaments[tourn].saveOverview( )
+    await ctx.send( f'{adminMention}, tricebot has been disabled for "{tourn}" by {ctx.message.author.mention}.' )
+    
 commandSnippets["update-reg"] = "- update-reg : Opens or closes registration" 
 commandCategories["management"].append("update-reg")
 @bot.command(name='update-reg')
 async def updateReg( ctx, tourn = "", status = "" ):
-    tourn  = tourn.strip()
+    tourn = tourn.strip()
     status = status.strip()
     
     if await isPrivateMessage( ctx ): return
@@ -171,7 +235,7 @@ async def adminPruneDecks( ctx, tourn = "" ):
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
-    if not await isTournamentAdmin( ctx ): return
+    if not await isTournamentAdmin( ctx, tourn ): return
     if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament.' )
         return
@@ -215,7 +279,7 @@ commandSnippets["create-match"] = "- create-match : Creates a match"
 commandCategories["day-of"].append("create-match")
 @bot.command(name='create-match')
 async def adminCreatePairing( ctx, tourn = "", *plyrs ):
-    tourn  = tourn.strip()
+    tourn = tourn.strip()
     plyrs  = [ plyr.strip() for plyr in plyrs ]
     
     if await isPrivateMessage( ctx ): return
@@ -263,7 +327,7 @@ commandSnippets["create-pairings-list"] = "- create-pairings-list : Creates a li
 commandCategories["day-of"].append("create-pairings-list")
 @bot.command(name='create-pairings-list')
 async def createPairingsList( ctx, tourn = "" ):
-    tourn  = tourn.strip()
+    tourn = tourn.strip()
     
     if await isPrivateMessage( ctx ): return
 
@@ -382,7 +446,7 @@ commandSnippets["set-pairing-threshold"] = "- set-pairing-threshold : Sets the n
 commandCategories["properties"].append("set-pairing-threshold")
 @bot.command(name='set-pairing-threshold')
 async def pairingsThreshold( ctx, tourn = "", num = "" ):
-    tourn  = tourn.strip()
+    tourn = tourn.strip()
     num    = num.strip()
     
     if await isPrivateMessage( ctx ): return
@@ -411,7 +475,7 @@ commandSnippets["set-match-size"] = "- set-match-size : Sets the number of playe
 commandCategories["properties"].append("set-match-size")
 @bot.command(name='set-match-size')
 async def playersPerMatch( ctx, tourn = "", num = "" ):
-    tourn  = tourn.strip()
+    tourn = tourn.strip()
     num    = num.strip()
     
     if await isPrivateMessage( ctx ): return
@@ -440,7 +504,7 @@ commandSnippets["set-match-length"] = "- set-match-length : Sets the amount of t
 commandCategories["properties"].append("set-match-length")
 @bot.command(name='set-match-length')
 async def setMatchLength( ctx, tourn = "", num = "" ):
-    tourn  = tourn.strip()
+    tourn = tourn.strip()
     num    = num.strip()
     
     if await isPrivateMessage( ctx ): return

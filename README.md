@@ -52,16 +52,18 @@ A file called .env should be created that includes the follwing tags:
 ```yaml
 DISCORD_TOKEN=
 MAX_COIN_FLIPS=
-TRICE_BOT_ENABLED=true/false
-TRICE_BOT_AUTH_TOKEN=
+TRICE_BOT_AUTH_TOKEN=tricebot auth token, same as in config.conf for tricebot
+API_URL=tricebot api url (LAN address) i.e: https://0.0.0.0:8000
+EXTERN_URL=tricebot WAN address
 ```
 You should set each tag to the value that you want.
 
 ##Trice Bot Setup
-Goto https://github.com/djpiper28/CockatriceTournamentBot for the README to setup the tricebot.
+Go to https://github.com/djpiper28/CockatriceTournamentBot for the README to setup the tricebot.
 The auth token for the trice bot should be put into .env under the `TRICE_BOT_AUTH_TOKEN` tag,
 the trice bot should be ran on the same machine on `https://127.0.0.1:8000` with SSL enabled.
-
+It is recommended to use nginx to expose the tricebot replay downloads to the WAN (proxy http 
+to API_URL).
 
 #Additional Resources
 
