@@ -236,7 +236,7 @@ def findGuildMember( a_guild: discord.Guild, a_memberName: str ):
     for member in a_guild.members:
         if member.display_name == a_memberName:
             return member
-        if member.mention == a_memberName.replace("!", ""):
+        if member.mention.replace("!", "") == a_memberName.replace("!", ""):
             return member
     return ""
     
