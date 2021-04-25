@@ -8,9 +8,6 @@ from dotenv import load_dotenv
 from baseBot import *
 from Tournament import * 
 
-async def sendTriceBotEnabledMessage ( ctx, adminMention, tourn ):
-    await ctx.send( f'{adminMention}, tricebot has been enabled for "{tourn}" by {ctx.message.author.mention}. It is using the default settings (spectators are allowed, do not need a password, cannot chat, cannot see hands and, players must be registered).' )
-
 commandSnippets["create-tournament"] = "- create-tournament : Creates a tournament and has a toggle to enable tricebot." 
 commandCategories["management"].append("create-tournament")
 @bot.command(name='create-tournament')
@@ -51,13 +48,14 @@ async def createTournament( ctx, tourn = "", triceBotEnabledIn = ""):
     await ctx.send( f'{adminMention}, a new tournament called "{tourn}" has been created by {ctx.message.author.mention}.' )
     
     if (triceBotFlag):
-        await sendTriceBotEnabledMessage(ctx, adminMention, tourn)
+        await ctx.send( f'{adminMention}, tricebot has been enabled for "{tourn}" by {ctx.message.author.mention}. It is using the default settings (spectators are allowed, do not need a password, cannot chat, cannot see hands and, players must be registered).' )
 
-commandSnippets["enable-tricebot"] = "- enable-tricebot : Enables tricebot for a tounament" 
-commandCategories["management"].append("enable-tricebot")
-@bot.command(name='enable-tricebot')
-async def enableTriceBot( ctx, tourn = "" ):  
+commandSnippets["update-tricebot"] = "- update-tricebot : Updates whether tricebot is enabled for a tounament" 
+commandCategories["management"].append("update-tricebot")
+@bot.command(name='update-tricebot')
+async def enableTriceBot( ctx, tourn = "", value = "" ):  
     tourn = tourn.strip()
+    value = value.strip()
     
     if await isPrivateMessage( ctx ): return
 
@@ -70,18 +68,56 @@ async def enableTriceBot( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you need to specify what you want the tournament to be called.' )
         return
     
-    if (tournaments[tourn].triceBotEnabled):
+    value = str_to_bool(value)
+    if (tournaments[tourn].triceBotEnabled and value):
         await ctx.send( f'{ctx.message.author.mention}, tricebot is already enabled.' )
         return
     
-    tournaments[tourn].triceBotEnabled = True
-    tournaments[tourn].saveOverview( )
-    await sendTriceBotEnabledMessage(ctx, adminMention, tourn)
+    if (not tournaments[tourn].triceBotEnabled and not value):
+        await ctx.send( f'{ctx.message.author.mention}, tricebot is already disabled.' )
+        return
+    
+    tournaments[tourn].triceBotEnabled = value
+    tournaments[tourn].saveOverview( ) 
+    
+    if (value):
+        await ctx.send( f'{adminMention}, tricebot has been enabled for "{tourn}" by {ctx.message.author.mention}.' )
+    else:
+        await ctx.send( f'{adminMention}, tricebot has been disabled for "{tourn}" by {ctx.message.author.mention}.' )
 
-commandSnippets["disable-tricebot"] = "- disable-tricebot : Disables tricebot for a tounament" 
-commandCategories["management"].append("disable-tricebot")
-@bot.command(name='disable-tricebot')
-async def disableTriceBot( ctx, tourn = "" ):  
+    
+commandSnippets["tricebot-status"] = "- tricebot-status : Displays the status of tricebot for a tournament" 
+commandCategories["management"].append("tricebot-status")
+@bot.command(name='tricebot-status')
+async def triceBotStatus( ctx, tourn = "" ):  
+    tourn = tourn.strip()
+    
+    if await isPrivateMessage( ctx ): return
+
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "":
+        await ctx.send( f'{ctx.message.author.mention}, you need to specify what you want the tournament to be called.' )
+        return
+        
+    if (tournaments[tourn].triceBotEnabled):  
+        settings_str = "Spectators allowed: " + str(tournaments[tourn].spectators_allowed)
+        settings_str += "\nSpectator need password: " + str(tournaments[tourn].spectators_need_password)        
+        settings_str += "\nSpectator can chat: " + str(tournaments[tourn].spectators_can_chat)
+        settings_str += "\nSpectator can see hands: " + str(tournaments[tourn].spectators_can_see_hands)
+        settings_str += "\nOnly allow registered users: " + str(tournaments[tourn].only_registered)
+        
+        await ctx.send( f'{adminMention}, tricebot is enabled for "{tourn} and has the follwing settings:\n```{settings_str}```' )
+    else:
+        await ctx.send( f'{adminMention}, tricebot is not enabled for "{tourn}.' )
+
+commandSnippets["change-tricebot"] = "- change-tricebot : Changes tricebot settings for a tournament."
+commandCategories["management"].append("change-tricebot")
+@bot.command(name='change-tricebot')
+async def triceBotStatus( ctx, tourn = "", verb = "", value = "" ):  
     tourn = tourn.strip()
     
     if await isPrivateMessage( ctx ): return
@@ -95,13 +131,52 @@ async def disableTriceBot( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you need to specify what you want the tournament to be called.' )
         return
     
-    if (not tournaments[tourn].triceBotEnabled):
-        await ctx.send( f'{ctx.message.author.mention}, tricebot is already disabled.' )
+    verb = verb.strip().lower()
+    value = value.strip().lower()
+    
+    usage =  """Usage: !change-tricebot <VERB> <VALUE>
+Verbs:
+```
+ spectators-allowed
+ spectators-need-password
+ spectators-can-chat
+ spectators-can-see-hands
+ only-registered
+```
+All values are true/false.
+i.e: `!change-tricebot tournament spectators-allowed true`"""
+    if (verb == "" or value == ""):
+        await ctx.send( f'{ctx.message.author.mention}, Incorrect command usage.  {usage}.' )
         return
     
-    tournaments[tourn].triceBotEnabled = False
+    value_bool: bool = str_to_bool(value)
+    original_value: bool = False
+    if verb == "spectators-allowed":
+        original_value = tournaments[tourn].spectators_allowed
+        tournaments[tourn].spectators_allowed = value_bool
+        
+    elif verb == "spectators-need-password":
+        original_value = tournaments[tourn].spectators_need_password
+        tournaments[tourn].spectators_need_password = value_bool
+        
+    elif verb == "spectators-can-chat":
+        original_value = tournaments[tourn].spectators_can_chat
+        tournaments[tourn].spectators_can_chat = value_bool
+        
+    elif verb == "spectators-can-see-hands":
+        original_value = tournaments[tourn].spectators_can_see_hands
+        tournaments[tourn].spectators_can_see_hands = value_bool
+        
+    elif verb == "only-registered":
+        original_value = tournaments[tourn].only_registered
+        tournaments[tourn].only_registered = value_bool
+    
+    else:
+        await ctx.send( f'{ctx.message.author.mention}, Incorrect command usage.  {usage}.' )
+        return
+    
+    await ctx.send( f'{adminMention}, the tricebot setting {verb} was changed to {value_bool} from {original_value} by {ctx.message.author.mention}.' )     
     tournaments[tourn].saveOverview( )
-    await ctx.send( f'{adminMention}, tricebot has been disabled for "{tourn}" by {ctx.message.author.mention}.' )
     
 commandSnippets["update-reg"] = "- update-reg : Opens or closes registration" 
 commandCategories["management"].append("update-reg")
@@ -677,6 +752,54 @@ async def viewQueue( ctx, tourn = "" ):
     await ctx.send( f'{ctx.message.author.mention}, here is the current matchmaking queue for {tourn}:', embed=embed )
 
 
+commandSnippets["tricebot-kick-player"] = "- tricebot-kick-player : Kicks a player from a cockatrice match when tricebot is enabled for that match" 
+commandCategories["day-of"].append("tricebot-kick-player")
+@bot.command(name='tricebot-kick-player')
+async def tricebotKickPlayer( ctx, tourn = "", mtch = "", playerName = "" ):
+    tourn = tourn.strip()
+    mtch  =  mtch.strip()
+    playerName = playerName.strip()
+
+    if await isPrivateMessage( ctx ): return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "" or mtch == "":
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a player.' )
+        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    try:
+        mtch = int( mtch )
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, you did not provide a match number. Please specify a match number using digits.' )
+        return
+    
+    if mtch > len(tournaments[tourn].matches):
+        await ctx.send( f'{ctx.message.author.mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
+        return
+    
+    if not tournaments[tourn].matches[mtch - 1].triceMatch:
+        await ctx.send( f'{ctx.message.author.mention}, that match is not a match with tricebot enabled.' )
+        return
+    
+    result = tournaments[tourn].kickTricePlayer(mtch, playerName)    
+    
+    #  1 success
+    #  0 auth token is bad or error404 or network issue
+    # -1 player not found
+    # -2 an unknown error occurred
+    
+    if result == 1:
+        await ctx.send( f'{ctx.message.author.mention}, "{playerName}" was kicked from match {mtch}.' )
+    elif result == -1:
+        await ctx.send( f'{ctx.message.author.mention}, "{playerName}" was not found in match {mtch}.' )
+    else:
+        await ctx.send( f'{ctx.message.author.mention}, An error has occured whilst kicking "{playerName}" from match {mtch}.' )        
+        
+        
 """
 
 @bot.command(name='tournament-report')

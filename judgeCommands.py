@@ -15,6 +15,7 @@ commandCategories["admin-registration"].append("admin-register")
 async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
     tourn = tourn.strip()
     plyr  = plyr.strip()
+    
     if await isPrivateMessage( ctx ): return
 
     if not await isAdmin( ctx ): return
@@ -25,7 +26,7 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
     if not await correctGuild( tourn, ctx ): return
     if await isTournDead( tourn, ctx ): return
     
-    member = findGuildMember( ctx.guild, plyr )
+    member = findGuildMember( ctx.message.guild, plyr )
     if member == "":
         await ctx.send( f'{ctx.message.author.mention}, there is not a member of this server whose name nor mention is "{plyr}".' )
         return

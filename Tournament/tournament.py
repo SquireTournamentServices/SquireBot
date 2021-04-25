@@ -60,7 +60,7 @@ trice_bot = TriceBot(TRICE_BOT_AUTH_TOKEN, apiURL=API_URL, externURL=EXTERN_URL)
         - matches: A list of all match objects in the tournament, regardless of status
 """
 class tournament:
-    def __init__( self, a_tournName: str, a_hostGuildName: str, trice_enabled: bool = False, a_format: str = "EDH", spectators_allowed: bool = True, spectators_need_password: bool = 0, spectators_can_chat : bool = 0, spectators_can_see_hands: bool = 0, only_registered: bool = True):     
+    def __init__( self, a_tournName: str, a_hostGuildName: str, trice_enabled: bool = False, a_format: str = "EDH", spectators_allowed: bool = True, spectators_need_password: bool = False, spectators_can_chat : bool = False, spectators_can_see_hands: bool = False, only_registered: bool = True):     
         self.tournName = a_tournName   
         #Safety Checks!!
         self.tournName.replace("\.\./", "")
@@ -151,6 +151,10 @@ class tournament:
                 digest.add_field( name="Winner", value=Match.winner )
         if len(Match.confirmedPlayers) != 0:
             digest.add_field( name="Confirmed Players", value=", ".join( [ self.players[plyr].discordUser.mention for plyr in Match.confirmedPlayers ] ) )
+            
+        if Match.triceMatch:
+            digest.addfield( name="Tricebot Match", value = ("Replay at" + replayURL) )
+            
         return digest
     
     def updatePairingsThreshold( self, count: int ) -> None:
@@ -335,21 +339,24 @@ class tournament:
                 sentWarningTwo = False
             lastTimeExt = mtch.timeExtension
             timeLeft = t + margin + mtch.timeExtension - timeDiff( mtch.startTime, getTime() )
-            if timeLeft <= oneMin:
-                if not sentWarningTwo:
-                    task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have one minute left in your match.',) )
-                    task.start( )
-                    sentWarningOne = True
-            elif timeLeft <= fiveMin:
-                if not sentWarningOne:
-                    task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have five minutes left in your match.',) )
-                    task.start( )
-                    sentWarningOne = True
+                    
+            if mtch.role != None:
+                if timeLeft <= oneMin:
+                    if not sentWarningTwo:
+                        task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have one minute left in your match.',) )
+                        task.start( )
+                        sentWarningOne = True
+                elif timeLeft <= fiveMin:
+                    if not sentWarningOne:
+                        task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have five minutes left in your match.',) )
+                        task.start( )
+                        sentWarningOne = True
 
-        if not mtch.stopTimer:
-            task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, time in your match is up!!',) )
-            task.start( )
-            task.join( )
+        if not mtch.stopTimer:            
+            if mtch.role != None:
+                task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, time in your match is up!!',) )
+                task.start( )
+                task.join( )
             
     
     async def addMatch( self, a_plyrs: List[str] ) -> None:
@@ -375,8 +382,6 @@ class tournament:
             newMatch.VC    = await matchCategory.create_voice_channel( name=game_name, overwrites=overwrites ) 
             newMatch.role  = matchRole
             newMatch.timer = threading.Thread( target=self.matchTimer, args=(newMatch,) )
-            newMatch.timer.start( )
-            newMatch.saveXML()
             
             message = f'\n{matchRole.mention} of {self.tournName}, you have been paired. A voice channel has been created for you. Below is information about your opponents.\n'
             embed   = discord.Embed( )   
@@ -385,6 +390,7 @@ class tournament:
                 #Try to create the game
                 creation_success: bool = False
                 replay_download_link: str = ""
+                game_id: int = -1
                 tries: int = 0
                 max_tries: int = 3
                 
@@ -396,15 +402,20 @@ class tournament:
                     
                     creation_success = game_made.success
                     replay_download_link = trice_bot.getDownloadLink(game_made.replayName)
+                    game_id = game_made.gameID
                     tries+=1
                     
                 if creation_success:
                     #Game was made
+                    newMatch.triceMatch = True
+                    newMatch.gameID = game_id
+                    newMatch.replayURL = replay_download_link
+                    
                     message += "A cockatrice game was automatically made for you it is called " + game_name 
                     message += " and has a password of `" + game_password + "`\n"
                 
-                    #TODO: store replay download link and allow admins and, judges? to download replays
-                    message +="Replay download link "+replay_download_link+" (available on game end)\n"
+                    #TODO: move replay download link?
+                    message +="Replay download link " + replay_download_link + " (available on game end)\n"
                 else:
                     #Game was not made
                     message += "A cockatrice game was not automatically made for you.\n"
@@ -421,6 +432,20 @@ class tournament:
         
         if type( self.guild ) is discord.Guild:
             await self.pairingsChannel.send( content=message, embed=embed )
+            
+        newMatch.timer.start( )
+        newMatch.saveXML()
+    
+    # See tricebot.py for retun details
+    # copy pasta of them is here. accurate as of 25/04/21
+    
+    #  1 if success
+    #  0 auth token is bad or error404 or network issue
+    # -1 if player not found
+    # -2 if an unknown error occurred
+    def kickTricePlayer(self, a_matchNum, playerName):
+        match = self.matches[a_matchNum - 1]
+        return trice_bot.kickPlayer(match.gameID, playerName)
     
     def addBye( self, a_plyr: str ) -> None:
         self.removePlayerFromQueue( a_plyr )
@@ -773,7 +798,7 @@ class tournament:
         
         acts    = tournRoot.find( 'queueActivity' ).findall( 'event' )
         for act in acts:
-            self.queueActivity.append( fromXML( act.attrib['player'], act.attrib['time'] ) )
+            self.queueActivity.append( fromXML( (act.attrib['player'], act.attrib['time'] ) ) )
         players = tournRoot.find( 'queue' ).findall( 'player' )
         maxLevel = 1
         for plyr in players:

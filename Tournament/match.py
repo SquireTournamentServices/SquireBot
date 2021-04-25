@@ -30,7 +30,7 @@ from .utils import *
 
 class match:
     # The class constructor
-    def __init__( self, a_players: List[str] ):
+    def __init__( self, a_players: List[str]):
         self.saveLocation = ""
 
         self.matchNumber = -1
@@ -41,7 +41,7 @@ class match:
         
         self.misfortunes = { }
 
-        self.role   = ""
+        self.role   = None
         self.roleID = ""
         self.VC     = ""
         self.VC_ID  = ""
@@ -51,8 +51,13 @@ class match:
 
         self.timeExtension = 0
         self.timer     = ""
-        self.startTime = getTime( )
+        self.startTime = getTime( )        
         self.endTime   = ""
+        
+        # Only changed if it is a trice match
+        self.triceMatch = False
+        self.gameID = -1
+        self.replayURL = ""
         
         self.stopTimer = False
     
@@ -192,6 +197,9 @@ class match:
         digest += f'\t<startTime>{toSafeXML(self.startTime)}</startTime>\n'
         digest += f'\t<endTime>{toSafeXML(self.endTime)}</endTime>\n'
         digest += f'\t<status>{toSafeXML(self.status)}</status>\n'
+        digest += f'\t<triceMatch>{toSafeXML(self.triceMatch)}</triceMatch>\n'
+        digest += f'\t<gameID>{toSafeXML(self.gameID)}</gameID>\n'
+        digest += f'\t<replayURL>{toSafeXML(self.replayURL)}</replayURL>\n'
         digest += f'\t<winner name="{toSafeXML(self.winner)}"/>\n'
         digest += '\t<activePlayers>\n'
         for player in self.activePlayers:
@@ -224,7 +232,10 @@ class match:
         self.stopTimer = str_to_bool( fromXML( matchRoot.find("stopTimer").text ) )
         self.startTime = fromXML( matchRoot.find( "startTime") .text )
         self.endTime = fromXML( matchRoot.find( "endTime" ).text )
-        self.status = fromXML( matchRoot.find(  "status" ).text )
+        self.status = fromXML( matchRoot.find(  "status" ).text )                
+        self.triceMatch = fromXML( matchRoot.find(  "triceMatch" ).text )
+        self.gameID = fromXML( matchRoot.find(  "gameID" ).text )
+        self.replayURL = fromXML( matchRoot.find(  "replayURL" ).text )
         self.winner = fromXML( matchRoot.find( "winner" ).attrib["name"] )
         for player in matchRoot.find("activePlayers"):
             self.activePlayers.append( fromXML( player.attrib["name"] ) )

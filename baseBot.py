@@ -236,7 +236,7 @@ def findGuildMember( a_guild: discord.Guild, a_memberName: str ):
     for member in a_guild.members:
         if member.display_name == a_memberName:
             return member
-        if member.mention == a_memberName:
+        if member.mention == a_memberName.replace("!", ""):
             return member
     return ""
     
@@ -292,7 +292,7 @@ random.seed( )
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-tournaments = {}
+tournaments = { }
 
 # A dictionary indexed by user idents and consisting of creation time, duration, and a coro to be awaited
 commandsToConfirm = { }
@@ -300,7 +300,7 @@ commandsToConfirm = { }
 # A list of matches that we currently resolving Wheel of Misfortune
 listOfMisfortunes = [ ]
 
-playersToBeDropped = []
+playersToBeDropped = [ ]
 
 savedTournaments = [ f'currentTournaments/{d}' for d in os.listdir( "currentTournaments" ) if os.path.isdir( f'currentTournaments/{d}' ) ]
 
