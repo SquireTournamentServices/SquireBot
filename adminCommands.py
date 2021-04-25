@@ -550,7 +550,7 @@ commandSnippets["set-match-size"] = "- set-match-size : Sets the number of playe
 commandCategories["properties"].append("set-match-size")
 @bot.command(name='set-match-size')
 async def playersPerMatch( ctx, tourn = "", num = "" ):
-    tourn = tourn.strip()
+    tourn  = tourn.strip()
     num    = num.strip()
     
     if await isPrivateMessage( ctx ): return
@@ -579,7 +579,7 @@ commandSnippets["set-match-length"] = "- set-match-length : Sets the amount of t
 commandCategories["properties"].append("set-match-length")
 @bot.command(name='set-match-length')
 async def setMatchLength( ctx, tourn = "", num = "" ):
-    tourn = tourn.strip()
+    tourn  = tourn.strip()
     num    = num.strip()
     
     if await isPrivateMessage( ctx ): return

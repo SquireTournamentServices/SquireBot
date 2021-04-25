@@ -1,3 +1,5 @@
+from .tricebot import *
+
 from .deck import *
 from .match import *
 from .player import *

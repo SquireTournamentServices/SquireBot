@@ -353,10 +353,9 @@ class tournament:
                         sentWarningOne = True
 
         if not mtch.stopTimer:            
-            if mtch.role != None:
-                task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, time in your match is up!!',) )
-                task.start( )
-                task.join( )
+            task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, time in your match is up!!',) )
+            task.start( )
+            task.join( )
             
     
     async def addMatch( self, a_plyrs: List[str] ) -> None:

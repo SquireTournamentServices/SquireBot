@@ -19,22 +19,22 @@ class TriceBot:
         
     # verify = false as self signed ssl certificates will cause errors here
     def req(self, urlpostfix: str, data: str):
-        return requests.get(self.apiURL + "/" + urlpostfix, timeout=7.0, data=data,  verify=False).text
+        return requests.get(f'{self.apiURL}/{urlpostfix}', timeout=7.0, data=data,  verify=False).text
         
     def checkauthkey(self):
         return self.req("api/checkauthkey", self.authToken) == "1"
     
     def getDownloadLink(self, replayName):
-        return self.externURL + "/" + replayName
+        return f'{self.externURL}/{replayName}'
             
     #  1 if success
     #  0 auth token is bad or error404 or network issue
     # -1 if player not found
     # -2 if an unknown error occurred
     def kickPlayer(self, gameID: int, name: str) -> int:
-        body = "authtoken=" + self.authToken + "\n"
-        body += "gameid=" + str(gameID) + "\n"
-        body += "target=" + name        
+        body  = f'authtoken={self.authToken}\n'
+        body += f'gameid={gameID}\n'
+        body += f'target{name}'        
         
         try:
             message = self.req("api/kickplayer", body)   
@@ -58,44 +58,20 @@ class TriceBot:
         return -2
     
     def createGame(self, gamename: str, password: str, playercount: int, spectatorsallowed: bool, spectatorsneedpassword: bool, spectatorscanchat: bool, spectatorscanseehands: bool, onlyregistered: bool):
-        body = "authtoken=" + self.authToken + "\n"
-        body += "gamename=" + gamename + "\n"
-        body += "password=" + password + "\n"
-        body += "playerCount=" + str(playercount) + "\n"
+        body  = f'authtoken={self.authToken}\n'
+        body += f'gamename={gamename}\n'
+        body += f'password={password}\n'
+        body += f'playerCount={playercount}\n'
         
-        body += "spectatorsAllowed="
-        if spectatorsallowed:
-            body += "1"
-        else:
-            body +="0"
-        body += "\n"
+        body += "spectatorsAllowed={int(spectatorsallowed)}\n"
             
-        body += "spectatorsNeedPassword="
-        if spectatorsneedpassword:
-            body += "1"
-        else:
-            body += "0"
-        body += "\n"
+        body += "spectatorsNeedPassword={int(spectatorsneedpassword)}\n"
         
-        body += "spectatorsCanChat="
-        if spectatorscanchat:
-            body += "1"
-        else:
-            body +="0"
-        body += "\n"
+        body += "spectatorsCanChat={int(spectatorscanchat)}\n"
         
-        body += "spectatorsCanSeeHands="
-        if spectatorscanseehands:
-            body += "1"
-        else:
-            body +="0"
-        body += "\n"
+        body += "spectatorsCanSeeHands={int(spectatorscanseehands}\n"
         
-        body += "onlyRegistered="
-        if onlyregistered:
-            body += "1"
-        else:
-            body +="0"
+        body += "onlyRegistered={int(onlyregistered)}"
             
         try:
             message = self.req("api/creategame", body)   
@@ -106,7 +82,7 @@ class TriceBot:
             return GameMade(False, -1, "")
             
         #Check for server error
-        if (message == "timeout error" or message == "error 404" or message == "invalid auth token"):
+        if (message.lower() == "timeout error") or (message.lower() == "error 404") or (message.lower() == "invalid auth token"):
             #Server issues         
             print("[TRICEBOT ERROR]: " + message)
             return GameMade(False, -1, "")
@@ -121,30 +97,26 @@ class TriceBot:
             parts = line.split("=")
             
             #Check length
-            if (len(parts) >= 2):            
+            if len(parts) >= 2 :            
                 tag = parts[0]
-                value = ""
-                
-                i = 1
-                while i < len(parts):
-                    value += parts[i]
-                    #readd equal signs in the gamename
-                    if (i > 1):
-                        value += "="
-                    i+=1
+                value = parts[1] + "".join( f'{p}=' for p in parts[1:] )
                     
-                if (tag == "gameid"):
+                if tag == "gameid":
                     #There has to be a better way to do this
                     try:
                         gameID = int(value)
                     except:
                         #Error checked at end
                         pass
-                elif (tag == "replayName"):
+                elif tag == "replayName":
                     replayName = value.replace(" ", "%20")
                 #Ignore other tags
             #Ignores lines that have no equals in them
         
         #Check if there was an error
-        success = gameID != -1 and replayName != ""
+        success = (gameID != -1) and (replayName != "")
         return GameMade(success, gameID, replayName)
+
+
+
+
