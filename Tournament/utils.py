@@ -63,6 +63,12 @@ def getJudgeRole( a_guild: discord.Guild ):
             break
     return digest
 
+def isFolderSafe(name: str) -> bool:
+    #bad chars are xml chars and "../" as it is a directory buggerer
+    if (name.replace("../", "") != name):
+        return False
+    return True
+
 """
 "   &quot;
 '   &apos;

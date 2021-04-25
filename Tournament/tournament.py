@@ -702,8 +702,8 @@ class tournament:
         return
 
     # ---------------- XML Saving/Loading ---------------- 
-    def saveTournament( self, a_unsafe_dirName: str = "" ) -> None:        
-        a_dirName = a_unsafe_dirName.replace("\.\./", "") 
+    def saveTournament( self, dirName: str = "" ) -> None:        
+        a_dirName = dirName.replace("\.\./", "") 
         #Check on folder creation, event though input should be safe
         
         if a_dirName == "":
