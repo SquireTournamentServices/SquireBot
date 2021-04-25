@@ -110,6 +110,83 @@ class tournament:
 
     def isDead( self ) -> bool:
         return self.tournEnded or self.tournCancel
+    
+    # ---------------- Property Accessors ---------------- 
+
+    def updatePairingsThreshold( self, count: int ) -> None:
+        self.pairingsThreshold = count
+        if sum( [ len(level) for level in self.queue ] ) >= self.pairingsThreshold and not self.pairingsThread.is_alive():
+            self.pairingsThread = threading.Thread( target=self.launch_pairings, args=(self.pairingWaitTime,) )
+            self.pairingsThread.start( )
+    
+    def addDiscordGuild( self, a_guild ) -> None:
+        self.guild = a_guild
+        self.hostGuildName = a_guild.name
+        self.guildID = self.guild.id
+        if self.roleID != "":
+            self.role = a_guild.get_role( self.roleID )
+        else:
+            self.role = discord.utils.get( a_guild.roles, name=f'{self.tournName} Player' )
+        self.pairingsChannel = discord.utils.get( a_guild.channels, name="match-pairings" )
+    
+    def assignGuild( self, a_guild ) -> None:
+        print( f'The guild "{a_guild}" is being assigned to {self.tournName}.' )
+        print( f'There are {len(self.players)} players in this tournament!\n' )
+        self.addDiscordGuild( a_guild )
+        for player in self.players:
+            ID = self.players[player].discordID
+            if ID != "":
+                self.players[player].addDiscordUser( self.guild.get_member( ID ) )
+        for match in self.matches:
+            if match.roleID != "":
+                match.addMatchRole( a_guild.get_role( match.roleID ) )
+
+    def getMatch( self, a_matchNum: int ) -> match:
+        if a_matchNum > len(self.matches) + 1:
+            return match( [] )
+        if self.matches[a_matchNum - 1].matchNumber == a_matchNum:
+            return self.matches[a_matchNum - 1]
+        for mtch in self.matches:
+            if mtch.matchNumber == a_matchNum:
+                return mtch
+    
+            if match.VC_ID != "":
+    
+    # ---------------- Misc ---------------- 
+    def getStandings( self ) -> List[List]:
+        rough = [ ]
+        for plyr in self.players.values():
+            if not plyr.isActive( ):
+                continue
+            if plyr.discordUser is None:
+                continue
+            if len(plyr.matches) == 0:
+                continue
+            # Match Points
+            points = plyr.getMatchPoints()
+            # Match Win Percentage
+            MWP = plyr.getMatchWinPercentage( withBye=False )
+            # Opponent Match Win Percentage
+            OWP = 0.0
+            if len(plyr.opponents) > 0:
+                wins  = sum( [ self.players[opp].getNumberOfWins( ) for opp in plyr.opponents ] )
+                games = sum( [len(self.players[opp].getCertMatches( withBye=False )) for opp in plyr.opponents] )
+                if games != 0:
+                    OWP = wins/games
+                #OWP = sum( [ self.players[opp].getMatchWinPercentage( withBye=False ) for opp in plyr.opponents ] )/len(plyr.opponents)
+            rough.append( (points, MWP, OWP, plyr.discordUser.display_name) )
+        
+        # sort() is stable, so relate order similar elements is preserved
+        rough.sort( key= lambda x: x[2], reverse=True )
+        rough.sort( key= lambda x: x[1], reverse=True )
+        rough.sort( key= lambda x: x[0], reverse=True )
+        
+        # Place, Player name, Points, MWP, OWP
+        digest =  [ [ i+1 for i in range(len(rough))], \
+                    [ i[3] for i in rough ], \
+                    [ i[0] for i in rough ], \
+                    [ i[1]*100 for i in rough ], \
+                    [ i[2]*100 for i in rough ] ]
 
     # ---------------- Universally Defined Methods ----------------
 
