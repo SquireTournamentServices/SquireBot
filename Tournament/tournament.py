@@ -120,9 +120,11 @@ class tournament:
             ID = self.players[player].discordID
             if ID != "":
                 self.players[player].addDiscordUser( self.guild.get_member( ID ) )
-        for match in self.matches:
-            if match.roleID != "":
-                match.addMatchRole( a_guild.get_role( match.roleID ) )
+        for mtch in self.matches:
+            if mtch.roleID != "":
+                mtch.addMatchRole( a_guild.get_role( mtch.roleID ) )
+            if mtch.VC_ID != "":
+                mtch.addMatchVC( a_guild.get_channel( mtch.VC_ID ) )
 
     def getMatch( self, a_matchNum: int ) -> match:
         if a_matchNum > len(self.matches) + 1:
@@ -132,8 +134,6 @@ class tournament:
         for mtch in self.matches:
             if mtch.matchNumber == a_matchNum:
                 return mtch
-    
-            if match.VC_ID != "":
     
     # ---------------- Misc ---------------- 
     def getStandings( self ) -> List[List]:
@@ -173,7 +173,6 @@ class tournament:
 
         return digest
 
-                match.addMatchVC( a_guild.get_channel( match.VC_ID ) )
 
     # ---------------- Embed Generators ---------------- 
     def getPlayerProfileEmbed( self, a_plyr ) -> discord.Embed:
@@ -705,7 +704,6 @@ class tournament:
     def saveTournament( self, dirName: str = "" ) -> None:        
         a_dirName = dirName.replace("\.\./", "") 
         #Check on folder creation, event though input should be safe
-        
         if a_dirName == "":
             a_dirName = self.saveLocation
         if not (os.path.isdir( f'{a_dirName}' ) and os.path.exists( f'{a_dirName}' )):
