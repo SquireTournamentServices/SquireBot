@@ -41,9 +41,9 @@ def createStandingsEmbeds( places: List[str], names: List[str], points: List[str
     return digest
         
 
-commandSnippets["list-tournaments"] = "- list-tournaments : Registers you for a tournament"
-commandCategories["registration"].append( "list-tournaments" )
-@bot.command(name='list-tournaments')
+commandSnippets["tournaments"] = "- tournaments : Registers you for a tournament"
+commandCategories["registration"].append( "tournaments" )
+@bot.command(name='tournaments')
 async def listTournaments( ctx ):
     if await isPrivateMessage( ctx ): return
     
@@ -67,7 +67,7 @@ async def registerPlayer( ctx, tourn = "" ):
     if tourn == "":
         tourns = currentGuildTournaments( ctx.message.guild.name )
         if len( tourns ) > 1:
-            await ctx.send( f'{ctx.message.author.mention}, there are multiple tournaments planned in this server. Please specify which tournament you would like to register for.' )
+            await ctx.send( f'{ctx.message.author.mention}, there are multiple tournaments planned in this server. Please specify which tournament you would like to register for. Use the !tournaments command to see what tournaments there are.' )
             return
         elif len( tourns ) < 1:
             await ctx.send( f'{ctx.message.author.mention}, there are no planned tournaments for this server. If you think this is an error, contact tournament staff.' )
@@ -77,25 +77,9 @@ async def registerPlayer( ctx, tourn = "" ):
 
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
-    if not tournaments[tourn].regOpen:
-        await ctx.send( f'{ctx.message.author.mention}, registration for {tourn} is closed. If you believe this is an error, contact tournament staff.' )
-        return
 
-    re = False # Is the player re-enrolling?
-    userIdent = getUserIdent( ctx.message.author )
-    if await hasRegistered( tourn, userIdent, ctx, False ) :
-        if await isActivePlayer( tourn, userIdent, ctx, False ):
-            await ctx.send( f'{ctx.message.author.mention}, you are already an active player in {tourn}. There is no need to re-enroll.' )
-            return
-        re = True
-
-    await ctx.message.author.add_roles( tournaments[tourn].role )
-    await tournaments[tourn].addPlayer( ctx.message.author )
-    tournaments[tourn].players[userIdent].saveXML( )
-    if re:
-        await ctx.send( f'{ctx.message.author.mention}, you have been re-enrolled in {tourn}!' )
-    else:
-        await ctx.send( f'{ctx.message.author.mention}, you have been enrolled in {tourn}!' )
+    message = await tournaments[tourn].addPlayer( ctx.message.author )
+    await ctx.send( f'{ctx.message.author.mention}, {message}' )
 
 
 commandSnippets["cockatrice-name"] = "- cockatrice-name : Adds your Cockatrice username to your profile" 
@@ -110,30 +94,28 @@ async def addTriceName( ctx, tourn = "", name = "" ):
     if tourn == "" and name == "":
         await ctx.send( f'{ctx.message.author.mention}, not enough information provided: You must include your Cockatrice username.' )
         return
+    
     if name == "":
         name = tourn
         tourn = ""
+
+    userIdent = getUserIdent( ctx.message.author )
     if tourn == "":
-        tourns = currentGuildTournaments( ctx.message.guild.name )
-        if len( tourns ) > 1:
-            await ctx.send( f'{ctx.message.author.mention}, there are multiple tournaments planned in this server. Please specify which tournament you are playing in.' )
+        tourns = findPlayerTourns(userIdent, ctx.message.guild.name )
+        if len( tourns ) < 1:
+            await ctx.send( f'{ctx.message.author.mention}, you are not registered for any tournaments on this server. Please register for a tournament first. Use the !tournaments command to see what tournaments there are.' )
             return
-        elif len( tourns ) < 1:
-            await ctx.send( f'{ctx.message.author.mention}, there are no planned tournaments for this server. If you think this is an error, contact tournament staff.' )
+        elif len( tourns ) > 1:
+            await ctx.send( f'{ctx.message.author.mention}, you are registered for multiple tournaments on this server. Please specify which tournament you are playing in.' )
             return
         else:
-            tourn = [ name for name in tourns ][0]
+            tourn = tourns[0]
 
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
     
-    userIdent = getUserIdent( ctx.message.author )
-    if not await hasRegistered( tourn, userIdent, ctx ): return
-    if not await isActivePlayer( tourn, userIdent, ctx ): return
-    
-    tournaments[tourn].players[userIdent].triceName = name
-    tournaments[tourn].players[userIdent].saveXML( )
-    await ctx.send( f'{ctx.message.author.mention}, "{name}" was added as your Cockatrice username.' )
+    message = tournaments[tourn].setPlayerTriceName( userIdent, name )
+    await ctx.send( f'{ctx.message.author.mention}, {message}' )
 
 
 commandSnippets["add-deck"] = "- add-deck : Registers a deck for a tournament (can be DM-ed)" 
@@ -170,8 +152,8 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
         await ctx.send( f'{ctx.message.author.mention}, not enough information provided: Please provide your deckname and decklist to add a deck.' )
         return
 
+    if not await checkTournExists( tourn, ctx ): return
     if not private:
-        if not await checkTournExists( tourn, ctx ): return
         if not await correctGuild( tourn, ctx ): return
 
     if not await hasRegistered( tourn, userIdent, ctx ): return
@@ -181,16 +163,13 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
         return
     
     try:
-        tournaments[tourn].players[userIdent].addDeck( ident, decklist )
+        message = tournaments[tourn].players[userIdent].addDeck( ident, decklist )
     except:
-        await ctx.send( f'{ctx.message.author.mention}, there was an error while processing your deck list. Make sure you follow the instructions. To find them, use !squirebot-help' )
+        await ctx.send( f'{ctx.message.author.mention}, there was an error while processing your deck list. Make sure you follow the instructions. To find them, use !squirebot-help add-deck' )
         return
-    tournaments[tourn].players[userIdent].saveXML( )
-    deckHash = str( tournaments[tourn].players[userIdent].decks[ident].deckHash )
-    deckName = tournaments[tourn].players[userIdent].decks[ident].ident
-    await ctx.send( f'{ctx.message.author.mention}, your deck has been successfully registered in {tourn}. Your deck name is "{deckName}", and the deck hash is "{deckHash}"; this must match your deck hash in Cockatrice. If these hashes do not match, check to see how your decklist looks using !decklist "{ident}" or !decklist {deckHash}. If there is still an error, contact tournament staff.' )
-    if not await isPrivateMessage( ctx, False ):
-        await ctx.send( f'{ctx.message.author.mention}, for future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
+    await ctx.send( f'{ctx.message.author.mention}, {message}' )
+    if not private:
+        await ctx.author.send( f'For future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
 
 
 commandSnippets["remove-deck"] = "- remove-deck : Removes a deck you registered (can be DM-ed)" 
@@ -219,12 +198,9 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
             ident = tourn
             tourn = tourns[0]
 
+    if not await checkTournExists( tourn, ctx ): return
     if not private:
-        if not await checkTournExists( tourn, ctx ): return
         if not await correctGuild( tourn, ctx ): return
-    
-    if not await hasRegistered( tourn, userIdent, ctx ): return
-    if not await isActivePlayer( tourn, userIdent, ctx ): return
     
     deckName = tournaments[tourn].players[userIdent].getDeckIdent( ident )
     if deckName == "":
@@ -232,10 +208,7 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
         if len( decks ) < 1:
             await ctx.send( f'{ctx.message.author.mention}, you do not have any decks registered for {tourn}.' )
         else:
-            embed = discord.Embed( )
-            embed.add_field( name="Deck Names", value="\n".join( decks) )
-            embed.add_field( name="Deck Hashes", value="\n".join( [ str(d.deckHash) for d in decks.values() ] ) )
-            await ctx.send( content=f'{ctx.message.author.mention}, invalid deck name/hash: You have not registered "{ident}". Here are your registered decks:', embed=embed )
+            await ctx.send( f'{ctx.message.author.mention}, you do not have a deck whose name or hash is "{ident}". To see the decks you have registered, use !profile {tourn}' )
         return
 
     if await hasCommandWaiting( ctx, userIdent ):
@@ -265,8 +238,8 @@ async def listDecklists( ctx, tourn = "" ):
         else:
             tourn = tourns[0]
 
+    if not await checkTournExists( tourn, ctx ): return
     if not private:
-        if not await checkTournExists( tourn, ctx ): return
         if not await correctGuild( tourn, ctx ): return
     
     if not await hasRegistered( tourn, userIdent, ctx ): return
@@ -612,8 +585,8 @@ async def printDecklist( ctx, tourn = "", ident = "" ):
             ident = tourn
             tourn = [ name for name in tourns ][0]
 
+    if not await checkTournExists( tourn, ctx ): return
     if not private:
-        if not await checkTournExists( tourn, ctx ): return
         if not await correctGuild( tourn, ctx ): return
     
     if not await hasRegistered( tourn, userIdent, ctx ): return
