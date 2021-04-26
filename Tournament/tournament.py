@@ -235,7 +235,7 @@ class tournament:
             return f'registration for {self.tournName} is closed, so you can not submit a deck. If you believe this is an error, contact tournament staff.'
         self.players[plyr].addDeck( deckName, decklist )
         self.players[plyr].saveXML( )
-        deckHash self.players[plyr].decks[deckName].deckHash
+        deckHash = self.players[plyr].decks[deckName].deckHash
         return f'your deck has been successfully registered in {self.tournName}. Your deck name is "{deckName}", and the deck hash is "{deckHash}". Make sure it matches your deck hash in Cockatrice. You can see your decklist by using !decklist "{ident}" or !decklist {deckHash}.'
         
     
@@ -801,7 +801,7 @@ class tournament:
         
         acts    = tournRoot.find( 'queueActivity' ).findall( 'event' )
         for act in acts:
-            self.queueActivity.append( fromXML( (act.attrib['player'], act.attrib['time'] ) ) )
+            self.queueActivity.append( ( fromXML( act.attrib['player'] ), fromXML(act.attrib['time'] ) ) )
         players = tournRoot.find( 'queue' ).findall( 'player' )
         maxLevel = 1
         for plyr in players:
