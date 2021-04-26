@@ -398,38 +398,26 @@ class tournament:
     def matchTimer( self, mtch: match, t: int = -1 ) -> None:
         if t == -1:
             t = self.matchLength
-        oneMin  = 60
-        fiveMin = 300
-        margin  = 1
         
-        timeLeft = t + margin + mtch.timeExtension - timeDiff( mtch.startTime, getTime() )
-        lastTimeExt = mtch.timeExtension
-        sentWarningOne = False
-        sentWarningTwo = False
-        while timeLeft > 0 and not mtch.stopTimer:
-            time.sleep( oneMin )
-            if lastTimeExt != mtch.timeExtension:
-                sentWarningOne = False
-                sentWarningTwo = False
-            lastTimeExt = mtch.timeExtension
-            timeLeft = t + margin + mtch.timeExtension - timeDiff( mtch.startTime, getTime() )
-                    
-            if mtch.role != None:
-                if timeLeft <= oneMin:
-                    if not sentWarningTwo:
-                        task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have one minute left in your match.',) )
-                        task.start( )
-                        sentWarningOne = True
-                elif timeLeft <= fiveMin:
-                    if not sentWarningOne:
-                        task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have five minutes left in your match.',) )
-                        task.start( )
-                        sentWarningOne = True
+        while mtch.getTimeLeft() > 0 and not mtch.stopTimer:
+            time.sleep( 1 )
+            if mtch.getTimeLeft() <= 60 and not mtch.sentOneMinWarning:
+                    task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have one minute left in your match.',) )
+                    task.start( )
+                    mtch.sentOneMinWarning = True
+                    mtch.saveXML( )
+            elif mtch.getTimeLeft() <= 300 and not mtch.sentFiveMinWarning:
+                    task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, you have five minutes left in your match.',) )
+                    task.start( )
+                    mtch.sentFiveMinWarning = True
+                    mtch.saveXML( )
 
-        if not mtch.stopTimer:            
+        if not mtch.stopTimer and not mtch.sentFinalWarning:
             task = threading.Thread( target=self.launch_match_warning, args=(f'{mtch.role.mention}, time in your match is up!!',) )
             task.start( )
             task.join( )
+            mtch.sentFinalWarning = True
+        mtch.saveXML( )
     
     async def addMatch( self, a_plyrs: List[str] ) -> None:
         for plyr in a_plyrs:
@@ -437,6 +425,7 @@ class tournament:
         newMatch = match( a_plyrs )
         self.matches.append( newMatch )
         newMatch.matchNumber = len(self.matches)
+        newMatch.matchLength = self.matchLength
         newMatch.saveLocation = f'{self.saveLocation}/matches/match_{newMatch.matchNumber}.xml'
         if type( self.guild ) == discord.Guild:
             matchRole = await self.guild.create_role( name=f'Match {newMatch.matchNumber}' )

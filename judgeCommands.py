@@ -365,7 +365,7 @@ async def giveTimeExtension( ctx, tourn = "", mtch = "", t = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you can not give time extension of less than one minute in length.' )
         return
         
-    tournaments[tourn].matches[mtch - 1].timeExtension += t
+    tournaments[tourn].matches[mtch - 1].giveTimeExtension( t*60 )
     tournaments[tourn].matches[mtch - 1].saveXML( )
     for plyr in tournaments[tourn].matches[mtch - 1].activePlayers:
         await tournaments[tourn].players[plyr].discordUser.send( content=f'Your match (#{mtch}) in {tourn} has been given a time extension of {t} minute{"" if t == 1 else "s"}.' )
