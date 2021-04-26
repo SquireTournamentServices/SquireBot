@@ -330,8 +330,19 @@ class tournament:
         self.players[ident].saveXML( )
         return f'you have been {RE}enrolled in {self.tournName}!'
 
+    async def playerMatchDrop( self, plyr: str, mtch: int ) -> str:
+        if not a_plyr in self.players:
+            return f'you are not registered in {self.tournName}.'
+        Match = self.player.getMatch( mtch - 1 )
+        if Match.matchNumber == -1:
+            return f'you are not in match #{mtch}.'
+        message = await Match.dropPlayer( a_plyr )
+        if message != "":
+            await self.pairingsChannel.send( content = message )
+        return f'you have been droppped from match #{mtch}'
+    
     async def dropPlayer( self, a_plyr: str, author: str = "" ) -> None:
-        await self.playerMatchDrop( a_plyr )
+        # await self.playerMatchDrop( a_plyr )
         await self.players[a_plyr].discordUser.remove_roles( self.role )
         await self.players[a_plyr].drop( )
         self.players[a_plyr].saveXML()
@@ -339,6 +350,27 @@ class tournament:
             await self.players[a_plyr].discordUser.send( content=f'You have been dropped from {self.tournName} on {self.guild.name} by tournament staff. If you believe this is an error, check with them.' )
             return f'{author}, {self.players[a_plyr].discordUser.mention} has been dropped from the tournament.'
         return f'{self.players[a_plyr].discordUser.mention}, you have been dropped from {self.tournName}.'
+    
+    async def playerCertifyResult( self, a_plyr: str ) -> None:
+        if not a_plyr in self.players:
+            return
+        message = await self.players[a_plyr].certifyResult( )
+        if message != "":
+            await self.pairingsChannel.send( message )
+    
+    async def recordMatchWin( self, a_winner: str ) -> None:
+        if not a_winner in self.players:
+            return
+        message = await self.players[a_winner].recordWin( )
+        if message != "":
+            await self.pairingsChannel.send( message )
+    
+    async def recordMatchDraw( self, a_plyr: str ) -> None:
+        if not a_plyr in self.players:
+            return
+        message = await self.players[a_plyr].recordDraw( )
+        if message != "":
+            await self.pairingsChannel.send( message )
     
     async def pruneDecks( self, ctx ) -> str:
         await ctx.send( f'Pruning decks starting... now!' )
@@ -513,38 +545,7 @@ class tournament:
         
         return f'{author}, match #{a_matchNum} has been removed.'
     
-    async def playerMatchDrop( self, plyr: str, mtch: int ) -> str:
-        if not a_plyr in self.players:
-            return f'you are not registered in {self.tournName}.'
-        Match = self.player.getMatch( mtch - 1 )
-        if Match.matchNumber == -1:
-            return f'you are not in match #{mtch}.'
-        message = await Match.dropPlayer( a_plyr )
-        if message != "":
-            await self.pairingsChannel.send( content = message )
-        return f'you have been droppped from match #{mtch}'
     
-    async def playerCertifyResult( self, a_plyr: str ) -> None:
-        if not a_plyr in self.players:
-            return
-        message = await self.players[a_plyr].certifyResult( )
-        if message != "":
-            await self.pairingsChannel.send( message )
-    
-    async def recordMatchWin( self, a_winner: str ) -> None:
-        if not a_winner in self.players:
-            return
-        message = await self.players[a_winner].recordWin( )
-        if message != "":
-            await self.pairingsChannel.send( message )
-    
-    async def recordMatchDraw( self, a_plyr: str ) -> None:
-        if not a_plyr in self.players:
-            return
-        message = await self.players[a_plyr].recordDraw( )
-        if message != "":
-            await self.pairingsChannel.send( message )
-        
     # ---------------- Matchmaking Queue ---------------- 
     
     # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing

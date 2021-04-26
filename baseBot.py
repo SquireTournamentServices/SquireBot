@@ -316,6 +316,7 @@ savedTournaments = [ f'currentTournaments/{d}' for d in os.listdir( "currentTour
 async def on_ready():
     await bot.wait_until_ready( )
     print(f'{bot.user.name} has connected to Discord!\n')
+    #await discord.utils.get( bot.users, id=int(os.getenv("TYLORDS_ID")) ).send( f'I have restarted.' ) 
     for guild in bot.guilds:
         print( f'This bot is connected to {guild.name} which has {len(guild.members)}!' )    
     print( "" )

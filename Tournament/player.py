@@ -256,13 +256,13 @@ class player:
         certMatches = self.getCertMatches( withBye )
         for mtch in certMatches:
             if mtch.winner == self.name:
-                digest += 4
+                digest += 3 #4
             elif mtch.isDraw():
-                digest += 0.5
+                digest += 1 #0.5
             elif withBye and mtch.isBye():
                 digest += 1
             else:
-                digest += -2.25
+                digest += 0 #-2.25
         return digest
     
     # Calculates the percentage of game the player has won

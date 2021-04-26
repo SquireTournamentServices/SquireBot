@@ -116,6 +116,11 @@ class match:
         self.status = "dead"
         self.endTime = getTime( )
         self.stopTimer = True
+    
+    def getMention( self ):
+        if type(self.role) == discord.Role:
+            return self.role.mention
+        return f'Match #{self.matchNumber}'
 
  
     async def confirmMatch( self ) -> bool:
@@ -144,7 +149,7 @@ class match:
             else:
                 self.winner = self.activePlayers[0]
             self.confirmedPlayers.append( self.winner )
-            return f'{self.role.mention}, your match has been certified. You can join the matchmaking queue again.'
+            return f'{self.getMention()}, your match has been certified. You can join the matchmaking queue again.'
         else:
             return ""
     
