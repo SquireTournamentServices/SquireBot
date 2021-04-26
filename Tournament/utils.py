@@ -63,23 +63,30 @@ def getJudgeRole( a_guild: discord.Guild ):
             break
     return digest
 
-def isFolderSafe(name: str) -> bool:
-    #bad chars are xml chars and "../" as it is a directory buggerer
-    if (name.replace("../", "") != name):
-        return False
-    return True
+problem_chars = { '"': "&quot",
+                  "'": "&apos",
+                  "<": "&lt",
+                  ">": "&gt",
+                  "&": "&amp"
+                }
 
-"""
-"   &quot;
-'   &apos;
-<   &lt;
->   &gt;
-&   &amp;
-"""
+def isPathSafeName(name: str) -> bool:
+    #bad chars are xml chars, "~", and "../" as it is a directory buggerer
+    digest = ("~" in name) or ("../" in name)
+    for c in problem_chars:
+        digest |= (c in name)
+    return digest
+
 def toSafeXML( input_XML: str ) -> str:
-    return str(input_XML).replace("\"", "&quot;").replace("'", "&apos;").replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;")
+    digest = str(input_XML)
+    for c in problem_chars:
+        digest.replace(c, problem_chars[c])
+    return digest
 
 #Shouldn't be needed as the reader should expand XML escaped chars but has to be as the xml library is dumb
 def fromXML( input_XML: str ) -> str:
-    return str(input_XML).replace("&quot;", "\"").replace("&apos;", "'").replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+    digest = str(input_XML)
+    for c in problem_chars:
+        digest.replace(problem_chars[c], c)
+    return digest
 

@@ -20,7 +20,7 @@ async def createTournament( ctx, tourn = "", triceBotEnabledIn = ""):
     if tourn == "":
         await ctx.send( f'{ctx.message.author.mention}, you need to specify what you want the tournament to be called.' )
         return
-    elif not isFolderSafe(tourn):        
+    elif not isPathSafeName(tourn):        
         await ctx.send( f'{ctx.message.author.mention}, you cannot have that as a tournament name.' )
         return
     
