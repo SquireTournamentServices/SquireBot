@@ -330,19 +330,7 @@ class tournament:
         self.players[ident].saveXML( )
         return f'you have been {RE}enrolled in {self.tournName}!'
 
-    async def playerMatchDrop( self, plyr: str, mtch: int ) -> str:
-        if not a_plyr in self.players:
-            return f'you are not registered in {self.tournName}.'
-        Match = self.player.getMatch( mtch - 1 )
-        if Match.matchNumber == -1:
-            return f'you are not in match #{mtch}.'
-        message = await Match.dropPlayer( a_plyr )
-        if message != "":
-            await self.pairingsChannel.send( content = message )
-        return f'you have been droppped from match #{mtch}'
-    
     async def dropPlayer( self, a_plyr: str, author: str = "" ) -> None:
-        # await self.playerMatchDrop( a_plyr )
         await self.players[a_plyr].discordUser.remove_roles( self.role )
         await self.players[a_plyr].drop( )
         self.players[a_plyr].saveXML()
@@ -353,24 +341,49 @@ class tournament:
     
     async def playerCertifyResult( self, a_plyr: str ) -> None:
         if not a_plyr in self.players:
-            return
+            return f'you are not registered in {self.tournName}.'
         message = await self.players[a_plyr].certifyResult( )
         if message != "":
             await self.pairingsChannel.send( message )
+            return f'your confirmation has been logged.'
+        return message
     
-    async def recordMatchWin( self, a_winner: str ) -> None:
-        if not a_winner in self.players:
-            return
-        message = await self.players[a_winner].recordWin( )
+    async def recordMatchResult( self, plyr, result, matchNum ) -> str:
+        if result == "w" or result == "win" or result == "winner":
+            return await tournaments[tourn].recordMatchWin( userIdent, matchNum )
+        elif result == "d" or result == "draw":
+            return await tournaments[tourn].recordMatchDraw( userIdent, matchNum )
+        elif result == "l" or result == "loss" or result == "lose" or result == "loser":
+            return await tournaments[tourn].recordMatchLoss( userIdent, matchNum )
+        else:
+            return f'{self.players[plyr].getMention()}, invalid result: Use "win", "loss", or "draw". Please re-enter.' )
+    
+    async def recordMatchWin( self, plyr: str, mtch: int ) -> str:
+        if not plyr in self.players:
+            return f'you are not registered in {self.tournName}.'
+        message = await self.players[plyr].recordWin( )
         if message != "":
             await self.pairingsChannel.send( message )
+        return f'{self.players[plyr].getMention()} has recorded themself as the winner of match #{mtch}. {self.matches[mtch-1].getMention()}, please confirm with "!confirm-result".'
     
-    async def recordMatchDraw( self, a_plyr: str ) -> None:
+    async def recordMatchDraw( self, plyr: str, mtch: int ) -> str:
+        if not plyr in self.players:
+            return f'you are not registered in {self.tournName}.'
+        message = await self.players[plyr].recordDraw( )
+        if message != "":
+            await self.pairingsChannel.send( message )
+        return f'{self.players[plyr].getMention()} has recorded the result of the match #{mtch} as a draw. {self.matches[mtch-1].getMention()}, please confirm with "!confirm-result".'
+    
+    async def recordMatchLoss( self, plyr: str, mtch: int ) -> str:
         if not a_plyr in self.players:
-            return
-        message = await self.players[a_plyr].recordDraw( )
+            return f'you are not registered in {self.tournName}.'
+        Match = self.player.getMatch( mtch - 1 )
+        if Match.matchNumber == -1:
+            return f'you are not in match #{mtch}.'
+        message = await Match.dropPlayer( a_plyr )
         if message != "":
-            await self.pairingsChannel.send( message )
+            await self.pairingsChannel.send( content = message )
+        await f'{self.players[plyr].getMention()}, you have been dropped from your match. You will not be able to start a new match until match #{Match.matchNumber} finishes. You will not need to confirm the result of the match.'
     
     async def pruneDecks( self, ctx ) -> str:
         await ctx.send( f'Pruning decks starting... now!' )
@@ -542,18 +555,18 @@ class tournament:
     def addPlayerToQueue( self, a_plyr: str ) -> None:
         for lvl in self.queue:
             if a_plyr in lvl:
-                return "You are already in the matchmaking queue."
+                return "you are already in the matchmaking queue."
         if a_plyr not in self.players:
-            return "You are not registered for this tournament."
+            return "you are not registered for this tournament."
         if not self.players[a_plyr].isActive( ):
-            return "You are registered but are not an active player."
+            return "you are registered but are not an active player."
         
         self.queue[0].append(self.players[a_plyr])
         self.queueActivity.append( (a_plyr, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
         if sum( [ len(level) for level in self.queue ] ) >= self.pairingsThreshold and not self.pairingsThread.is_alive():
             self.pairingsThread = threading.Thread( target=self.launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )
-        return "You have been successfully added to the queue."
+        return "you have been added to the queue."
     
     def removePlayerFromQueue( self, a_plyr: str ) -> None:
         for lvl in self.queue:

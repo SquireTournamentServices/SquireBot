@@ -77,8 +77,13 @@ class player:
                 return False
         return True
     
+    def getMention( self ):
+        if type(self.discordUser) == discord.User or type(self.discordUser) == discord.Member:
+            return self.discordUser.mention
+        return f'<@{self.discordID}>'
+    
     def getDisplayName( self ):
-        if type(self.discordUser) == discord.Member:
+        if type(self.discordUser) == discord.User or type(self.discordUser) == discord.Member:
             return self.discordUser.display_name
         else:
             return "\u200b" # Widthless whitespace char to prevent Embed issues
@@ -199,7 +204,7 @@ class player:
     async def certifyResult( self ) -> str:
         index = self.findOpenMatchIndex( )
         if index == 1:
-            return ""
+            return f'you are not in any open matches.'
         return await self.matches[index].confirmResult( self.name )
     
     async def recordWin( self ) -> str:

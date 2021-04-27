@@ -165,7 +165,7 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
     try:
         message = tournaments[tourn].players[userIdent].addDeck( ident, decklist )
     except:
-        await ctx.send( f'{ctx.message.author.mention}, there was an error while processing your deck list. Make sure you follow the instructions. To find them, use !squirebot-help add-deck' )
+        await ctx.send( f'{ctx.message.author.mention}, there was an error while processing your deck list. Make sure you follow the instructions for submitting a deck. To find them, use !squirebot-help add-deck' )
         return
     await ctx.send( f'{ctx.message.author.mention}, {message}' )
     if not private:
@@ -218,10 +218,10 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
     await ctx.send( f'{ctx.message.author.mention}, in order to remove your deck, you need to confirm your request. Are you sure you want to remove it? (!yes/!no)' )
     
 
-commandSnippets["list-decks"] = "- list-decks : Lists the names and hashes of the decks you've registered (can be DM-ed)"
-commandCategories["registration"].append( "list-decks" )
-@bot.command(name='list-decks')
-async def listDecklists( ctx, tourn = "" ):
+commandSnippets["decks"] = "- decks : Lists the names and hashes of the decks you've registered (can be DM-ed)"
+commandCategories["registration"].append( "decks" )
+@bot.command(name='decks')
+async def listDeck( ctx, tourn = "" ):
     tourn = tourn.strip()
 
     private = await isPrivateMessage( ctx, send=False )
@@ -331,9 +331,9 @@ async def queuePlayer( ctx, tourn = "" ):
                 await ctx.send( f'{ctx.message.author.mention}, you are already in the queue. You will be paired for a match when more people join the queue.' )
                 return
     
-    tournaments[tourn].addPlayerToQueue( userIdent )
+    message = tournaments[tourn].addPlayerToQueue( userIdent )
     tournaments[tourn].saveOverview( )
-    await ctx.send( f'{ctx.message.author.mention}, you have been added to the queue.' )
+    await ctx.send( f'{ctx.message.author.mention}, {message}.' )
 
 
 commandSnippets["match-result"] = "- match-result : Records you as the winner of your match or that the match was a draw" 
@@ -369,18 +369,8 @@ async def matchResult( ctx, tourn = "", result = "" ):
     if not await hasOpenMatch( tourn, userIdent, ctx ): return
     
     playerMatch = tournaments[tourn].players[userIdent].findOpenMatch()
-    if result == "w" or result == "win" or result == "winner":
-        await ctx.send( f'{ctx.message.author.mention} has recorded themself as the winner of match #{playerMatch.matchNumber}. {playerMatch.role.mention}, please confirm with "!confirm-result".' )
-        await tournaments[tourn].recordMatchWin( userIdent )
-    elif result == "d" or result == "draw":
-        await ctx.send( f'{ctx.message.author.mention} has recorded the result of match #{playerMatch.matchNumber} as a draw. {playerMatch.role.mention}, please confirm with "!confirm-result".' )
-        await tournaments[tourn].recordMatchDraw( userIdent )
-    elif result == "l" or result == "loss" or result == "lose" or result == "loser":
-        await ctx.send( f'{ctx.message.author.mention}, you have been dropped from your match. You will not be able to start a new match until match #{playerMatch.matchNumber} finishes. You will not need to confirm the result of the match.' )
-        await tournaments[tourn].playerMatchDrop( userIdent )
-    else:
-        await ctx.send( f'{ctx.message.author.mention}, invalid result: Use "win", "loss", or "draw". Please re-enter.' )
-        return
+    message = await tournaments[tourn].recordMatchResult( userIdent, result, playerMatch.matchNumber )
+    ctx.send( message )
     
     playerMatch.saveXML( )
 
@@ -419,9 +409,9 @@ async def confirmMatchResult( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you have already confirmed the result of match #{playerMatch.matchNumber}. Your opponents are still confirming.' )
         return
     
-    await tournaments[tourn].playerCertifyResult( userIdent )
+    message = await tournaments[tourn].playerCertifyResult( userIdent )
     playerMatch.saveXML( )
-    await ctx.send( f'{ctx.message.author.mention}, you have confirmed the result of match #{playerMatch.matchNumber}.' )
+    await ctx.send( f'{ctx.message.author.mention}, {message}' )
     
 
 commandSnippets["standings"] = "- standings : Prints out the current standings" 
@@ -463,7 +453,7 @@ async def standings( ctx, tourn = "", printAll = "" ):
         return
     
     standings = tournaments[tourn].getStandings( )
-    name = ctx.message.author.display_name
+    name = tournaments[tourn].players[getUserIdent(ctx.message.author)].getDisplayName()
     
     if name in standings[1] and not printAll:
         index = standings[1].index(name)

@@ -140,7 +140,6 @@ class match:
         if type(self.role) == discord.Role:
             return self.role.mention
         return f'Match #{self.matchNumber}'
-
  
     async def confirmMatch( self ) -> bool:
         digest  = len( self.activePlayers )  == 1
@@ -182,14 +181,14 @@ class match:
     # If all players have confirmed the result, the status of the match is status to "certified"
     async def confirmResult( self, a_player: str ) -> str:
         if self.status != "uncertified":
-            return ""
+            return f'a result for match #{self.matchNumber} has not been recorded.'
         if not a_player in self.confirmedPlayers:
             self.confirmedPlayers.append( a_player )
         if await self.confirmMatch( ):
             self.stopTimer = True
             return f'{self.role.mention}, your match has been certified. You can join the matchmaking queue again.'
         else:
-            return ""
+            return "your confirmation has been logged, but not all players have confirmed the result."
     
     # Records the winner of a match and adds them to the confirmed players list.
     # An empty string is interpretted as a draw, in which case, no one is added to the confirmed players list.
