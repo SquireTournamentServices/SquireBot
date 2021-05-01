@@ -211,13 +211,13 @@ class player:
         index = self.findOpenMatchIndex( )
         if index == 1:
             return ""
-        return await self.matches[index].recordWinner( self.name )
+        return await self.matches[index].recordResult( self.name, "win" )
     
     async def recordDraw( self ) -> str:
         index = self.findOpenMatchIndex( )
         if index == 1:
             return ""
-        digest  = await self.matches[index].recordWinner( "" )
+        digest  = await self.matches[index].recordResult(  self.name, "draw" )
         digest += await self.matches[index].confirmResult( self.name )
         return digest
             

@@ -349,41 +349,10 @@ class tournament:
         return message
     
     async def recordMatchResult( self, plyr, result, matchNum ) -> str:
-        if result == "w" or result == "win" or result == "winner":
-            return await tournaments[tourn].recordMatchWin( userIdent, matchNum )
-        elif result == "d" or result == "draw":
-            return await tournaments[tourn].recordMatchDraw( userIdent, matchNum )
-        elif result == "l" or result == "loss" or result == "lose" or result == "loser":
-            return await tournaments[tourn].recordMatchLoss( userIdent, matchNum )
-        else:
-            return f'{self.players[plyr].getMention()}, invalid result: Use "win", "loss", or "draw". Please re-enter.' )
-    
-    async def recordMatchWin( self, plyr: str, mtch: int ) -> str:
-        if not plyr in self.players:
-            return f'you are not registered in {self.tournName}.'
-        message = await self.players[plyr].recordWin( )
-        if message != "":
-            await self.pairingsChannel.send( message )
-        return f'{self.players[plyr].getMention()} has recorded themself as the winner of match #{mtch}. {self.matches[mtch-1].getMention()}, please confirm with "!confirm-result".'
-    
-    async def recordMatchDraw( self, plyr: str, mtch: int ) -> str:
-        if not plyr in self.players:
-            return f'you are not registered in {self.tournName}.'
-        message = await self.players[plyr].recordDraw( )
-        if message != "":
-            await self.pairingsChannel.send( message )
-        return f'{self.players[plyr].getMention()} has recorded the result of the match #{mtch} as a draw. {self.matches[mtch-1].getMention()}, please confirm with "!confirm-result".'
-    
-    async def recordMatchLoss( self, plyr: str, mtch: int ) -> str:
-        if not a_plyr in self.players:
-            return f'you are not registered in {self.tournName}.'
-        Match = self.player.getMatch( mtch - 1 )
-        if Match.matchNumber == -1:
-            return f'you are not in match #{mtch}.'
-        message = await Match.dropPlayer( a_plyr )
-        if message != "":
-            await self.pairingsChannel.send( content = message )
-        await f'{self.players[plyr].getMention()}, you have been dropped from your match. You will not be able to start a new match until match #{Match.matchNumber} finishes. You will not need to confirm the result of the match.'
+        message = self.matches[matchNum - 1].recordResult( plyr, result )
+        if "announcement" in message:
+            await self.pairingsChannel.send( content=message["announcement"] )
+        return message["message"]
     
     async def pruneDecks( self, ctx ) -> str:
         await ctx.send( f'Pruning decks starting... now!' )

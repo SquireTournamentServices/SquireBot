@@ -142,8 +142,8 @@ class match:
         return f'Match #{self.matchNumber}'
  
     async def confirmMatch( self ) -> bool:
-        digest  = len( self.activePlayers )  == 1
-        digest |= len(self.confirmedPlayers) >= len(self.activePlayers)
+        digest  = len( self.activePlayers    ) == 1
+        digest |= len( self.confirmedPlayers ) >= len( self.activePlayers )
         digest &= not self.isCertified( )
         if digest:
             self.status = "certified"
@@ -153,24 +153,6 @@ class match:
                 await self.VC.delete()
         return digest
 
-    # Drops a player, which entains removing them from the active players
-    # list and adding them to the dropped players list.
-    async def dropPlayer( self, a_player: str ) -> str:
-        for i in range(len(self.activePlayers)):
-            if a_player == self.activePlayers[i]:
-                self.droppedPlayers.append( a_player )
-                del( self.activePlayers[i] )
-                break
-        if await self.confirmMatch( ):
-            if len(self.activePlayers) == 0:
-                self.winner = "This match was a draw."
-            else:
-                self.winner = self.activePlayers[0]
-            self.confirmedPlayers.append( self.winner )
-            return f'{self.getMention()}, your match has been certified. You can join the matchmaking queue again.'
-        else:
-            return ""
-    
     def recordBye( self ) -> None:
         self.winner = "This match is a bye."
         self.endTime = getTime()
@@ -188,25 +170,43 @@ class match:
             self.stopTimer = True
             return f'{self.role.mention}, your match has been certified. You can join the matchmaking queue again.'
         else:
-            return "your confirmation has been logged, but not all players have confirmed the result."
+            return ""
     
-    # Records the winner of a match and adds them to the confirmed players list.
-    # An empty string is interpretted as a draw, in which case, no one is added to the confirmed players list.
-    # In either case, the status of the match is changed to "uncertified"
-    async def recordWinner( self, a_winner: str ) -> str:
-        if a_winner == "":
-            self.winner = "This match was a draw."
-            self.confirmedPlayers = [ ]
+    # Combines previous methods into a single method.  A player and "win",
+    # "loss", or "draw" is specified and the result for that player is
+    # recorded.  Messages and the announcements for the bot to send are made
+    # here.  It is intended that any derived class use this method to handle
+    # the recording on results in order to provide a single interface for the
+    # tournament classes to use
+    async def recordResult( self, plyr: str, result: str ) -> Dict[str]:
+        digest = { "message": "" }
+        if "win" == result or "winner" == result:
+            self.winner = plyr
+            self.confirmedPlayers = [ plyr ]
+            digest["message"] = f'<@{plyr}> has recorded themself as the winner of match #{self.matchNumber}. {self.getMention}, please confirm with "!confirm-result".'
+        elif "draw" == result:
+            self.winner = "This match is a draw."
+            self.confirmedPlayers = [ plyr ]
+            digest["message"] = f'<@{plyr}> has recorded match #{self.matchNumber} as a draw. {self.getMention}, please confirm with "!confirm-result".'
+        elif "loss" == result or "loser" == result:
+            self.droppedPlayers.append( plyr )
+            del( self.activePlayers[ self.activePlayers.index(plyr) ] )
+            digest["message"] = f'<@{plyr}> your have been recorded as losing match #{self.matchNumber}. You will not be able to join the queue until this match is finished, but you will not need to confirm the result.'
         else:
-            self.winner = a_winner
-            self.confirmedPlayers = [ a_winner ]
-
+            digest["message"] = f'<@{plyr}>, you have given an invalid result. The possible match results are "win", "draw", and "loss".'
+            
+        
         if await self.confirmMatch( ):
-            return f'{self.role.mention}, your match has been certified. You can join the matchmaking queue again.'
+            if len(self.activePlayers) == 0:
+                self.winner = "This match was a draw."
+            elif len(self.activePlayers) == 1:
+                self.winner = self.activePlayers[0]
+                self.confirmedPlayers.append( self.winner )
+            digest["announcement"] = f'{self.role.mention}, your match has been certified. You can join the matchmaking queue again.'
         else:
             self.status = "uncertified"
-            return ""
-            
+        
+        return digest
 
     # Saves the match to an xml file at the given location.
     def saveXML( self, a_filename: str = "" ) -> None:
