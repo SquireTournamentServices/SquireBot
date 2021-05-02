@@ -252,7 +252,7 @@ async def endTournament( ctx, tourn = "" ):
         del( commandsToConfirm[authorIdent] )
 
     commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].endTourn( adminMention, ctx.message.author.mention ) )
-    await ctx.send( f'{adminMention}, in order to end {tourn}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to end {tourn}?' )
+    await ctx.send( f'{adminMention}, in order to end {tourn}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to end {tourn} (!yes/!no)?' )
 
 
 commandSnippets["cancel-tournament"] = "- cancel-tournament : Ends any tournament" 
@@ -277,7 +277,7 @@ async def cancelTournament( ctx, tourn = "" ):
         del( commandsToConfirm[authorIdent] )
 
     commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].cancelTourn( adminMention, ctx.message.author.mention ) )
-    await ctx.send( f'{adminMention}, in order to cancel {tourn}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to cancel {tourn}?' )
+    await ctx.send( f'{adminMention}, in order to cancel {tourn}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to cancel {tourn} (!yes/!no)?' )
 
 
 commandSnippets["set-deck-count"] = "- set-deck-count : Sets the number of decks a player can have after pruning" 
@@ -323,7 +323,7 @@ async def adminPruneDecks( ctx, tourn = "" ):
         del( commandsToConfirm[authorIdent] )
 
     commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].pruneDecks( ctx ) )
-    await ctx.send( f'{adminMention}, in order to prune decks, confirmation is needed. {ctx.message.author.mention}, are you sure you want to prune decks?' )
+    await ctx.send( f'{adminMention}, in order to prune decks, confirmation is needed. {ctx.message.author.mention}, are you sure you want to prune decks (!yes/!no)?' )
 
 
 commandSnippets["prune-players"] = "- prune-players : Drops players that didn't submit a deck" 
@@ -347,7 +347,7 @@ async def adminPruneDecks( ctx, tourn = "" ):
         del( commandsToConfirm[authorIdent] )
 
     commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].prunePlayers( ctx ) )
-    await ctx.send( f'{adminMention}, in order to prune players, confirmation is needed. {ctx.message.author.mention}, are you sure you want to prune players?' )
+    await ctx.send( f'{adminMention}, in order to prune players, confirmation is needed. {ctx.message.author.mention}, are you sure you want to prune players (!yes/!no)?' )
 
 
 commandSnippets["create-match"] = "- create-match : Creates a match" 
@@ -626,7 +626,7 @@ async def adminDropPlayer( ctx, tourn = "", plyr = "" ):
         del( commandsToConfirm[authorIdent] )
 
     commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].dropPlayer( userIdent, ctx.message.author.mention ) )
-    await ctx.send( f'{adminMention}, in order to drop {member.mention}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to drop this player?' )
+    await ctx.send( f'{adminMention}, in order to drop {member.mention}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to drop this player (!yes/!no)?' )
 
 
 commandSnippets["give-bye"] = "- give-bye : Grants a bye to a player" 
@@ -700,7 +700,7 @@ async def adminRemoveMatch( ctx, tourn = "", mtch = "" ):
         del( commandsToConfirm[authorIdent] )
 
     commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].removeMatch( mtch, ctx.message.author.mention ) )
-    await ctx.send( f'{adminMention}, in order to remove match #{mtch}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to remove this match?' )
+    await ctx.send( f'{adminMention}, in order to remove match #{mtch}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to remove this match (!yes/!no)?' )
 
 
 commandSnippets["view-queue"] = "- view-queue : Prints the currect matchmaking queue" 

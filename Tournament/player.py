@@ -201,7 +201,7 @@ class player:
             if match.status != "certified":
                 await match.dropPlayer( self.name )
     
-    async def certifyResult( self ) -> str:
+    async def confirmResult( self ) -> str:
         index = self.findOpenMatchIndex( )
         if index == 1:
             return f'you are not in any open matches.'

@@ -36,26 +36,23 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
         await ctx.send( f'{ctx.message.author.mention}, {plyr} is already registered for {tourn}.' )
         return
 
-    await member.add_roles( tournaments[tourn].role )
-    await tournaments[tourn].addPlayer( member, admin=True )
+    message = await tournaments[tourn].addPlayer( member, admin=True )
     tournaments[tourn].players[userIdent].saveXML( )
-    await tournaments[tourn].players[userIdent].discordUser.send( content=f'You have been registered for {tourn} on the server "{ctx.guild.name}".' )
-    await ctx.send( f'{ctx.message.author.mention}, you have added {member.mention} to {tourn}.' )
+    await ctx.send( message )
 
 
 commandSnippets["admin-add-deck"] = "- admin-add-deck : Registers a deck for a player in a tournament" 
 commandCategories["admin-registration"].append("admin-add-deck")
 @bot.command(name='admin-add-deck')
-async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", *decklist ):
+async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "" ):
     tourn = tourn.strip()
     plyr  =  plyr.strip()
     ident = ident.strip()
-    decklist = " ".join( [ "\n"+card.strip() if isNumber(card) else card.strip() for card in decklist  ] )
     
     if await isPrivateMessage( ctx ): return
 
     if not await isAdmin( ctx ): return
-    if tourn == "" or plyr == "" or ident == "" or decklist == "":
+    if tourn == "" or plyr == "" or ident == "":
         await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, a player, a deck identifier, and a decklist in order to add a deck for someone.' )
         return
     if not await checkTournExists( tourn, ctx ): return
@@ -72,11 +69,22 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "", *decklist ):
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in {tourn}. Make sure they are registered or that they have not dropped.' )
         return
     
-    tournaments[tourn].players[userIdent].addDeck( ident, decklist )
+    index = ctx.message.content.find( ident ) + len(ident)
+    decklist = re.sub( "^[^A-Za-z0-9\w\/]+", "", ctx.message.content[index:].replace('"', "") ).strip() 
+    decklist = re.sub( "[^A-Za-z0-9\w\/]+$", "", decklist )
+    
+    if decklist == "":
+        await ctx.send( f'{ctx.message.author.mention}, not enough information provided: Please provide your deckname and decklist to add a deck.' )
+        return
+    
+    message = ""
+    try:
+        message = tournaments[tourn].addDeck( userIdent, ident, decklist, admin=True )
+    except:
+        await ctx.send( f'{ctx.message.author.mention}, there was an error while processing the deck list. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
+
     tournaments[tourn].players[userIdent].saveXML( )
-    deckHash = str(tournaments[tourn].players[userIdent].decks[ident].deckHash)
-    await ctx.send( f'{ctx.message.author.mention}, decklist that you added for {plyr} has been submitted. The deck hash is "{deckHash}".' )
-    await tournaments[tourn].players[userIdent].discordUser.send( content=f'A decklist has been submitted for {tourn} on the server {ctx.guild.name} on your behalf. The name of the deck is "{ident}" and the deck hash is "{deckHash}". If this deck hash is incorrect or you are not expecting this, please contact tournament staff.' )
+    await ctx.send( message )
 
 
 commandSnippets["admin-remove-deck"] = "- admin-remove-deck : Removes a deck for a player in a tournament" 
@@ -117,7 +125,7 @@ async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
         del( commandsToConfirm[authorIdent] )
 
     commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].players[userIdent].removeDeckCoro( deckName, ctx.message.author.mention ) )
-    await ctx.send( f'{ctx.message.author.mention}, in order to remove the deck {deckName} from {member.mention}, confirmation is needed. Are you sure you want to remove the deck?' )
+    await ctx.send( f'{ctx.message.author.mention}, in order to remove the deck {deckName} from {member.mention}, confirmation is needed. Are you sure you want to remove the deck (!yes/!no)?' )
 
 
 commandSnippets["list-players"] = "- list-players : Lists all player (or the number of players) in a tournament " 
@@ -226,42 +234,9 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
         await ctx.send( f'{ctx.message.author.mention}, {member.mention} is not a player in Match #{mtch}. Double check the match number.' )
         return
         
-    if result == "w" or result == "win" or result == "winner":
-        message = f'{Match.role.mention}, {member.mention} has been recorded as the winner of your match by tournament admin.'
-        if Match.isCertified( ):
-            Match.winner = userIdent
-            await ctx.send( f'{ctx.message.author.mention}, match #{mtch} is already certified. There is no need to recertify the result of this match.' )
-        else:
-            msg = await Match.recordWinner( userIdent )
-            if msg == "":
-                await tournaments[tourn].pairingsChannel.send( f'{message} Please certify this result.' )
-            else:
-                await tournaments[tourn].pairingsChannel.send( msg )
-    elif result == "d" or result == "draw":
-        message = f'{Match.role.mention}, your match has been recorded as a draw by tournament admin.'
-        if Match.isCertified( ):
-            Match.winner = "This match is a draw."
-            await tournaments[tourn].pairingsChannel.send( f'{message} There is no need to recertify the result of this match.' )
-        else:
-            msg  = await Match.recordWinner( "" )
-            msg += await Match.confirmResult( userIdent )
-            if msg == "":
-                await tournaments[tourn].pairingsChannel.send( f'{message} Please certify this result.' )
-            else:
-                await tournaments[tourn].pairingsChannel.send( msg )
-    elif result == "l" or result == "loss" or result == "loser":
-        message = await Match.dropPlayer( userIdent )
-        if message != "":
-            await tournaments[tourn].pairingsChannel.send( message )
-        await tournaments[tourn].players[userIdent].discordUser.send( content=f'You were dropped from Match #{mtch} in {tourn} on the server {ctx.guild.name}. If you believe this was an error, contact tournament admin.' )
-        await ctx.send( f'{ctx.message.author.mention}, you have recorded {plyr} as a loser in match #{mtch}.' )
-    else:
-        await ctx.send( f'{ctx.message.author.mention}, you have provided an incorrect result. The options are "win", "loss", and "draw". Please re-enter the correct result.' )
-        return
-    
-    await ctx.send( f'{ctx.message.author.mention}, the players in match #{mtch} have been notified of this change.' )
-
+    message = await tournaments[tourn].recordMatchResult( userIdent, result, mtch, admin=True )
     Match.saveXML( )
+    await ctx.send( message )
     
 
 commandSnippets["admin-confirm-result"] = "- admin-confirm-result : Confirms the result of a match on a player's behalf" 
@@ -314,12 +289,9 @@ async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
         await ctx.send( f'{ctx.message.author.mention}, match #{mtch} is not certified, but {plyr} has already certified the result. There is no need to do this twice.' )
         return
     
-    await tournaments[tourn].players[userIdent].discordUser.send( content=f'The result of match #{mtch} for {tourn} has been certified by tournament staff on your behalf.' )
-    msg = await Match.confirmResult( userIdent )
+    message = await tournaments[tourn].confirmResult( userIdent, Match.matchNumber )
     Match.saveXML( )
-    if msg != "":
-        await tournaments[tourn].pairingsChannel.send( msg )
-    await ctx.send( f'{ctx.message.author.mention}, you have certified the result of match #{mtch} on behalf of {plyr}.' )
+    await ctx.send( f'{ctx.message.author.mention}, {message}.' )
 
 
 

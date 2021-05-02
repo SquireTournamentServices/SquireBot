@@ -226,16 +226,19 @@ class tournament:
         self.players[plyr].saveXML( )
         return f''
     
-    def addDeck( self, plyr: str, deckName: str, decklist: str ) -> str:
+    def addDeck( self, plyr: str, deckName: str, decklist: str, admin: bool = False ) -> str:
         if not plyr in self.players:
             return f'you are not registered for {self.tournName}. Use the !register {self.tournName} to register for this tournament.'
         if not self.players[plyr].isActive():
             return f'you are registered by are not an active player in {self.tournName}. If you believe this is an error, contact tournament staff.'
-        if not self.regOpen:
+        if not ( admin or self.regOpen ):
             return f'registration for {self.tournName} is closed, so you can not submit a deck. If you believe this is an error, contact tournament staff.'
         self.players[plyr].addDeck( deckName, decklist )
         self.players[plyr].saveXML( )
         deckHash = self.players[plyr].decks[deckName].deckHash
+        if admin:
+            self.players[plyr].discordUser.send( content = f'A decklist has been submitted for {tourn} on your behalf. The name of the deck is "{ident}" and the deck hash is "{deckHash}". Use the command "!decklist {ident}" to see the list. Please contact tournament staff if there is an error.' ) 
+            return f'you have submitted a decklist for {plyr}. The deck hash is {deckHash}.'
         return f'your deck has been successfully registered in {self.tournName}. Your deck name is "{deckName}", and the deck hash is "{deckHash}". Make sure it matches your deck hash in Cockatrice. You can see your decklist by using !decklist "{ident}" or !decklist {deckHash}.'
         
     
@@ -328,7 +331,10 @@ class tournament:
         self.players[ident].addDiscordUser( a_discordUser )
         await self.players[ident].discordUser.add_roles( self.role )
         self.players[ident].saveXML( )
-        return f'you have been {RE}enrolled in {self.tournName}!'
+        if admin:
+            await a_discordUser.send( content=f'You have been registered for {self.tournName}!' )  
+            return f'you have {RE}registered {a_discordUser.mention} for {self.tournName}'
+        return f'you have been {RE}registered in {self.tournName}!'
 
     async def dropPlayer( self, a_plyr: str, author: str = "" ) -> None:
         await self.players[a_plyr].discordUser.remove_roles( self.role )
@@ -339,17 +345,23 @@ class tournament:
             return f'{author}, {self.players[a_plyr].discordUser.mention} has been dropped from the tournament.'
         return f'{self.players[a_plyr].discordUser.mention}, you have been dropped from {self.tournName}.'
     
-    async def playerCertifyResult( self, a_plyr: str ) -> None:
-        if not a_plyr in self.players:
+    async def playerConfirmResult( self, plyr: str, matchNum: int, admin: bool = False ) -> None:
+        if not plyr in self.players:
             return f'you are not registered in {self.tournName}.'
-        message = await self.players[a_plyr].certifyResult( )
+        message = await self.matches[matchNum - 1].confirmResult( plyr )
         if message != "":
             await self.pairingsChannel.send( message )
-            return f'your confirmation has been logged.'
+            return f'you have certified the result of match #{matchNum} on behalf of {plyr}.' if admin else f'your confirmation has been logged.'
+        if admin:
+            await self.players.discordUser.send( f'The result for match #{matchNum} in {self.tournName} has been confirmed on your behalf by tournament staff.' )
         return message
     
-    async def recordMatchResult( self, plyr, result, matchNum ) -> str:
-        message = self.matches[matchNum - 1].recordResult( plyr, result )
+    async def recordMatchResult( self, plyr: str, result: str, matchNum: int, admin: bool = False ) -> str:
+        if admin:
+            message = self.matches[matchNum - 1].recordResultAdmin( plyr, result )
+        else: 
+            message = self.matches[matchNum - 1].recordResult( plyr, result )
+        
         if "announcement" in message:
             await self.pairingsChannel.send( content=message["announcement"] )
         return message["message"]

@@ -162,10 +162,11 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
         await ctx.send( f'{ctx.message.author.mention}, registration for {tourn} is closed. If you believe this is an error, contact tournament staff.' )
         return
     
+    message = ""
     try:
-        message = tournaments[tourn].players[userIdent].addDeck( ident, decklist )
+        message = tournaments[tourn].addDeck( userIdent, ident, decklist )
     except:
-        await ctx.send( f'{ctx.message.author.mention}, there was an error while processing your deck list. Make sure you follow the instructions for submitting a deck. To find them, use !squirebot-help add-deck' )
+        await ctx.send( f'{ctx.message.author.mention}, there was an error while processing your deck list. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
         return
     await ctx.send( f'{ctx.message.author.mention}, {message}' )
     if not private:
@@ -409,7 +410,7 @@ async def confirmMatchResult( ctx, tourn = "" ):
         await ctx.send( f'{ctx.message.author.mention}, you have already confirmed the result of match #{playerMatch.matchNumber}. Your opponents are still confirming.' )
         return
     
-    message = await tournaments[tourn].playerCertifyResult( userIdent )
+    message = await tournaments[tourn].playerConfirmResult( userIdent, playerMatch.matchNumber )
     playerMatch.saveXML( )
     await ctx.send( f'{ctx.message.author.mention}, {message}' )
     
