@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 
 import discord
 
-from typing import List
+from typing import List, Dict
 import threading
 
 from .utils import *
@@ -178,7 +178,7 @@ class match:
     # here.  It is intended that any derived class use this method to handle
     # the recording on results in order to provide a single interface for the
     # tournament classes to use
-    async def recordResult( self, plyr: str, result: str ) -> Dict[str]:
+    async def recordResult( self, plyr: str, result: str ) -> Dict[str, str]:
         digest = { "message": "" }
         if self.isCertified():
             digest["message"] = f'Match #{self.matchNumber} is already certified. Talk to a tournament official to change the result of this match.'
@@ -211,7 +211,7 @@ class match:
         
         return digest
     
-    async def recordResultAdmin( self, plyr: str, result: str ) -> Dict[str]:
+    async def recordResultAdmin( self, plyr: str, result: str ) -> Dict[str, str]:
         digest = { "message": "" }
         
         if "win" == result or "winner" == result:

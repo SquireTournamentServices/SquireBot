@@ -11,6 +11,10 @@ from dotenv import load_dotenv
 from tricebot import TriceBot
 from Tournament import *
 
+
+
+# ---------------- Help Message Methods ---------------- 
+
 commandSnippets = { } 
 commandCategories = { "registration": [ ], "playing": [ ], "misc": [ ],
                       "admin-registration": [ ], "admin-playing": [ ], "admin-misc": [ ],
@@ -74,6 +78,7 @@ async def sendUserHelpMessage( ctx ) -> None:
     await ctx.send( embed=embed )
     return
 
+# ---------------- Command Util Methods ---------------- 
 
 async def isPrivateMessage( ctx, send: bool = True ) -> bool:
     digest = (str(ctx.message.channel.type) == 'private')
@@ -115,7 +120,7 @@ async def correctGuild( tourn, ctx, send: bool = True ) -> bool:
     return digest
 
 async def isTournDead( tourn, ctx, send: bool = True ) -> bool:
-    adminMetnion = getTournamentAdminMention( ctx.message.guild )
+    adminMention = getTournamentAdminMention( ctx.message.guild )
     digest = tournaments[tourn].isDead( )
     if digest and send:
         await ctx.send( f'{ctx.message.author.mention}, {tourn} has ended or been cancelled. Contact {adminMention} if you think this is an error.' )
@@ -268,7 +273,7 @@ def findPlayerTourns( plyr: str, guild_name: str = "" ) -> List[str]:
         for tourn in tournaments.values():
             if plyr in tourn.players:
                 if tourn.players[plyr].isActive():
-                    digest.append( tourn.tournName )
+                    digest.append( tourn.name )
     else:
         for tourn in currentGuildTournaments( guild_name ):
             if plyr in tournaments[tourn].players:
@@ -288,6 +293,8 @@ def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
             digest.append( submsg )
     return digest
     
+
+# ---------------- The Bot Base ---------------- 
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -321,60 +328,17 @@ async def on_ready():
         print( f'This bot is connected to {guild.name} which has {len(guild.members)}!' )    
     print( "" )
     for tourn in savedTournaments:
-        newTourn = tournament( "", "" )
+        newTourn = tournamentSelector( f'{tourn}/tournamentType.xml' )
         newTourn.loop = bot.loop
         newTourn.loadTournament( tourn )
-        if newTourn.tournName != "":
-            tournaments[newTourn.tournName] = newTourn
+        if newTourn.name != "":
+            tournaments[newTourn.name] = newTourn
     for tourn in tournaments:
         guild = bot.get_guild( tournaments[tourn].guildID )
         if not guild is None:
             tournaments[tourn].assignGuild( guild )
             tournaments[tourn].loop = bot.loop
 
-
-@bot.command(name='test')
-async def test( ctx, *args ):
-    if ctx.message.author.id != int( os.getenv( "TYLORDS_ID" ) ):
-        await ctx.send( f'{ctx.message.author.mention}, you do not have permission to use this command. Contact Tylord2894 to learn more.' )
-        return
-    
-    codes = (await ctx.message.attachments[0].read()).decode("utf-8").split( "\n" )
-    
-    await ctx.send( "This is the content of the file (line-by-line)." )
-    for code in codes:
-        if len(code.strip()) != 0:
-            await ctx.send( code )
-
-
-@bot.command(name='send-codes')
-async def sendCodes( ctx, *args ):
-    if ctx.message.author.id != int( os.getenv( "TYLORDS_ID" ) ):
-        await ctx.send( f'{ctx.message.author.mention}, you do not have permission to use this command. Contact Tylord2894 to learn more.' )
-        return
-    
-    if len(args) < 1:
-        await ctx.send( f'{ctx.message.author.mention}, specify a tournament.' )
-        return
-    
-    codes = [ code for code in (await ctx.message.attachments[0].read()).decode("utf-8").split( "\n" ) if len(code.strip()) != 0 ]
-    
-    if len(codes) < len(tournaments[args[0]].players):
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough codes. You provided {len(codes)} codes but there are {len(tournaments[args[0]].players)} players (dropped and active) in {args[0]}.' )
-        return
-    
-    if len(codes) > len(tournaments[args[0]].players):
-        await ctx.send( f'{ctx.message.author.mention}, you provided more than enough codes. You provided {len(codes)} codes but there are {len(tournaments[args[0]].players)} players (dropped and active) in {args[0]}. The codes will be sent, but some will go unused.' )
-    
-    await ctx.send( "Sending codes." )
-    players = list( tournaments[args[0]].players.values() )
-    for i in range(len(players)):
-        try:
-            await players[i].discordUser.send( content=f'Thank you for playing in {args[0]}!! As a thank you, here is a code for an Altar Sleeve, which is redemable [here], {codes[i]}.' )
-        except:
-            await ctx.send( f'There was an issue sending a code to {players[i].name}' )
-    await ctx.send( "All codes have been sent" )
-    
 
 bot.remove_command( "help" )
 @bot.command(name='squirebot-help')
@@ -435,13 +399,6 @@ async def denyCommand( ctx ):
     del( commandsToConfirm[userIdent] )
 
 
-@bot.command(name='scrape')
-async def scrape( ctx ):
-    return
-
-
-commandSnippets["marchesa"] = "- marchesa : Long may she reign" 
-commandCategories["misc"].append( "marchesa" )
 @bot.command(name='marchesa')
 async def scrape( ctx ):
     await ctx.send( f'Long may she reign!' )
