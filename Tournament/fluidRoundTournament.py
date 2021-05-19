@@ -86,7 +86,7 @@ class fluidRoundTournament(tournament):
     def addPlayerToQueue( self, plyr: str ) -> None:
         for lvl in self.queue:
             if plyr in lvl:
-                return "you are already in the matchmaking queue."
+                return "you are already in the matchmaking queue. You will be paired for when more people join the queue."
         if plyr not in self.players:
             return "you are not registered for this tournament."
         if not self.players[plyr].isActive( ):
@@ -239,35 +239,38 @@ class fluidRoundTournament(tournament):
     # ---------------- XML Saving/Loading ---------------- 
     
     def saveTournamentType( self, filename: str = "" ) -> None:
+        print( "Fluid Round tournament type being saved." )
         with open( filename, 'w' ) as xmlfile:
             xmlfile.write( "<?xml version='1.0'?>\n<type>fluidRoundTournament</type>" )
-    
-    def saveoverview( self, filename: str = "" ) -> None:
+   
+    def saveOverview( self, filename: str = "" ) -> None:
+        print( "Fluid Round Overview being saved." )
         if filename == "":
-            filename = f'{self.savelocation}/overview.xml'
+            filename = f'{self.saveLocation}/overview.xml'
         digest  = "<?xml version='1.0'?>\n"
         digest += '<tournament>\n'
-        digest += f'\t<name>{toSafeXML(self.name)}</name>\n'
-        digest += f'\t<guild id="{toSafeXML(self.guild.id if type(self.guild) == discord.guild else str())}">{toSafeXML(self.hostguildname)}</guild>\n'
-        digest += f'\t<role id="{toSafeXML(self.role.id if type(self.role) == discord.role else str())}"/>\n'
-        digest += f'\t<format>{toSafeXML(self.format)}</format>\n'
-        digest += f'\t<regopen>{toSafeXML(self.regopen)}</regopen>\n'
-        digest += f'\t<status started="{toSafeXML(self.tournstarted)}" ended="{self.tournended}" canceled="{toSafeXML(self.tourncancel)}"/>\n'
-        digest += f'\t<deckcount>{toSafeXML(self.deckcount)}</deckcount>\n'
-        digest += f'\t<matchlength>{toSafeXML(self.matchlength)}</matchlength>\n'
-        digest += f'\t<queue size="{toSafeXML(self.playerspermatch)}" threshold="{toSafeXML(self.pairingsthreshold)}">\n'
+        digest += f'\t<name>{self.name}</name>\n'
+        digest += f'\t<guild id="{self.guild.id if type(self.guild) == discord.Guild else str()}">{self.hostGuildName}</guild>\n'
+        print( type(self.role) )
+        digest += f'\t<role id="{self.role.id if type(self.role) == discord.Role else str()}"/>\n'
+        digest += f'\t<format>{self.format}</format>\n'
+        digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
+        digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
+        digest += f'\t<deckCount>{self.deckCount}</deckCount>\n'
+        digest += f'\t<matchLength>{self.matchLength}</matchLength>\n'
+        digest += f'\t<queue size="{self.playersPerMatch}" threshold="{self.pairingsThreshold}">\n'
         for level in range(len(self.queue)):
             for plyr in self.queue[level]:
-                digest += f'\t\t<player name="{toSafeXML(plyr.name)}" priority="{toSafeXML(level)}"/>\n'
+                digest += f'\t\t<player name="{plyr.name}" priority="{level}"/>\n'
         digest += f'\t</queue>\n'
-        digest += f'\t<queueactivity>\n'
-        for act in self.queueactivity:
-            digest += f'\t\t<event player="{toSafeXML(act[0])}" time="{toSafeXML(act[1])}"/>\n'
-        digest += f'\t</queueactivity>\n'
-        digest += '</tournament>'
+        digest += f'\t<queueActivity>\n'
+        for act in self.queueActivity:
+            digest += f'\t\t<event player="{act[0]}" time="{act[1]}"/>\n'
+        digest += f'\t</queueActivity>\n'
+        digest += '</tournament>' 
         
         with open( filename, 'w' ) as xmlfile:
-            xmlfile.write( digest )
+            xmlfile.write( toSafeXML(digest) )
     
     def loadOverview( self, filename: str ) -> None:
         xmlTree = ET.parse( filename )

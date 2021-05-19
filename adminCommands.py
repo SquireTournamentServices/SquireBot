@@ -48,18 +48,17 @@ async def createTournament( ctx, tournName = None, tournType = None, triceBotEna
     tournaments[tourn].saveTournament( f'currentTournaments/{tourn}' )
     await ctx.send( f'{adminMention}, a new tournament called "{tourn}" has been created by {ctx.message.author.mention}.' )
     
-    newTourn = getTournamentType( tournType )
+    newTourn = getTournamentType( tournType, tournName, ctx.guild.name )
     if newTourn is None:
         newLine = "\n\t- "
         await ctx.send( f'{mention}, invalid tournament type of {tournType}. The supported tournament types are:{newLine}{newLine.join(tournamentTypes)}.' )
         return
     
-    await ctx.message.guild.create_role( name=f'{tournName} Player' )
+    newTourn.saveLocation = f'currentTournaments/{tournName}/'
+    await newTourn.addDiscordGuild( ctx.message.guild )
+    newTourn.loop = bot.loop
+    newTourn.saveTournament( f'currentTournaments/{tournName}' )
     tournaments[tournName] = newTourn
-    tournaments[tournName].saveLocation = f'currentTournaments/{tournName}/'
-    tournaments[tournName].addDiscordGuild( ctx.message.guild )
-    tournaments[tournName].loop = bot.loop
-    tournaments[tournName].saveTournament( f'currentTournaments/{tournName}' )
     await ctx.send( f'{adminMention}, a new tournament called "{tournName}" has been created by {ctx.message.author.mention}.' )
     
     if (triceBotFlag):
@@ -257,11 +256,10 @@ async def endTournament( ctx, tourn = None ):
         await ctx.send( f'{ctx.message.author.mention}, {tourn} has already been cancelled. Check with {adminMention} if you think this is an error.' )
         return
 
-    authorIdent = getUserIdent( ctx.message.author )
-    if await hasCommandWaiting( ctx, authorIdent ):
-        del( commandsToConfirm[authorIdent] )
+    if await hasCommandWaiting( ctx, ctx.message.author.id ):
+        del( commandsToConfirm[ctx.message.author.id] )
 
-    commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].endTourn( adminMention, ctx.message.author.mention ) )
+    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].endTourn( adminMention, ctx.message.author.mention ) )
     await ctx.send( f'{adminMention}, in order to end {tourn}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to end {tourn} (!yes/!no)?' )
 
 
@@ -281,11 +279,10 @@ async def cancelTournament( ctx, tourn = None ):
     if await isTournDead( tourn, ctx ): return
     
 
-    authorIdent = getUserIdent( ctx.message.author )
-    if await hasCommandWaiting( ctx, authorIdent ):
-        del( commandsToConfirm[authorIdent] )
+    if await hasCommandWaiting( ctx, ctx.message.author.id ):
+        del( commandsToConfirm[ctx.message.author.id] )
 
-    commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].cancelTourn( adminMention, ctx.message.author.mention ) )
+    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].cancelTourn( adminMention, ctx.message.author.mention ) )
     await ctx.send( f'{adminMention}, in order to cancel {tourn}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to cancel {tourn} (!yes/!no)?' )
 
 
@@ -324,11 +321,10 @@ async def adminPruneDecks( ctx, tourn = None ):
     if not await correctGuild( tourn, ctx ): return
     if await isTournDead( tourn, ctx ): return
     
-    authorIdent = getUserIdent( ctx.message.author )
-    if await hasCommandWaiting( ctx, authorIdent ):
-        del( commandsToConfirm[authorIdent] )
+    if await hasCommandWaiting( ctx, ctx.message.author.id ):
+        del( commandsToConfirm[ctx.message.author.id] )
 
-    commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].pruneDecks( ctx ) )
+    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].pruneDecks( ctx ) )
     await ctx.send( f'{adminMention}, in order to prune decks, confirmation is needed. {ctx.message.author.mention}, are you sure you want to prune decks (!yes/!no)?' )
 
 
@@ -347,11 +343,10 @@ async def adminPruneDecks( ctx, tourn = None ):
     if not await correctGuild( tourn, ctx ): return
     if await isTournDead( tourn, ctx ): return
     
-    authorIdent = getUserIdent( ctx.message.author )
-    if await hasCommandWaiting( ctx, authorIdent ):
-        del( commandsToConfirm[authorIdent] )
+    if await hasCommandWaiting( ctx, ctx.message.author.id ):
+        del( commandsToConfirm[ctx.message.author.id] )
 
-    commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].prunePlayers( ctx ) )
+    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].prunePlayers( ctx ) )
     await ctx.send( f'{adminMention}, in order to prune players, confirmation is needed. {ctx.message.author.mention}, are you sure you want to prune players (!yes/!no)?' )
 
 
@@ -379,11 +374,11 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
         return
     
     for member in members:
-        if not getUserIdent(member) in tournaments[tourn].players:
+        if not member.id in tournaments[tourn].players:
             await ctx.send( f'{ctx.message.author.mention}, a user by "{member.mention}" was found in the player role, but they are not active in {tourn}. Make sure they are registered or that they have not dropped.' )
             return
     
-    await tournaments[tourn].addMatch( [ getUserIdent(member) for member in members ] )
+    await tournaments[tourn].addMatch( [ member.id for member in members ] )
     tournaments[tourn].matches[-1].saveXML( )
     tournaments[tourn].saveOverview( )
     await ctx.send( f'{ctx.message.author.mention}, the players you specified for the match are now paired. Their match number is #{tournaments[tourn].matches[-1].matchNumber}.' )
@@ -605,16 +600,14 @@ async def adminDropPlayer( ctx, tourn = None, plyr = None ):
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
         return
 
-    userIdent = getUserIdent( member )
-    if not userIdent in tournaments[tourn].players:
+    if not member.id in tournaments[tourn].players:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". They may have already dropped from the tournament.' )
         return
 
-    authorIdent = getUserIdent( ctx.message.author )
-    if await hasCommandWaiting( ctx, authorIdent ):
-        del( commandsToConfirm[authorIdent] )
+    if await hasCommandWaiting( ctx, ctx.message.author.id ):
+        del( commandsToConfirm[ctx.message.author.id] )
 
-    commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].dropPlayer( userIdent, ctx.message.author.mention ) )
+    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].dropPlayer( member.id, ctx.message.author.mention ) )
     await ctx.send( f'{adminMention}, in order to drop {member.mention}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to drop this player (!yes/!no)?' )
 
 
@@ -638,19 +631,18 @@ async def adminGiveBye( ctx, tourn = None, plyr = None ):
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
         return
 
-    userIdent = getUserIdent( member )
-    if not userIdent in tournaments[tourn].players:
+    if not member.id in tournaments[tourn].players:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". They may have already dropped from the tournament.' )
         return
     
-    if tournaments[tourn].players[userIdent].hasOpenMatch( ):
+    if tournaments[tourn].players[member.id].hasOpenMatch( ):
         await ctx.send( f'{ctx.message.author.mention}, {plyr} currently has an open match in the tournament. That match needs to be certified before they can be given a bye.' )
         return
     
-    tournaments[tourn].addBye( userIdent )
-    tournaments[tourn].players[userIdent].saveXML( )
+    tournaments[tourn].addBye( member.id )
+    tournaments[tourn].players[member.id].saveXML( )
     await ctx.send( f'{ctx.message.author.mention}, {plyr} has been given a bye.' )
-    await tournaments[tourn].players[userIdent].discordUser.send( content=f'You have been given a bye from the tournament admin for {tourn} on the server {ctx.guild.name}.' )
+    await tournaments[tourn].players[member.id].discordUser.send( content=f'You have been given a bye from the tournament admin for {tourn} on the server {ctx.guild.name}.' )
 
 
 commandSnippets["remove-match"] = "- remove-match : Removes a match" 
@@ -678,11 +670,10 @@ async def adminRemoveMatch( ctx, tourn = None, mtch = None ):
         await ctx.send( f'{ctx.message.author.mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
         
-    authorIdent = getUserIdent( ctx.message.author )
-    if await hasCommandWaiting( ctx, authorIdent ):
-        del( commandsToConfirm[authorIdent] )
+    if await hasCommandWaiting( ctx, ctx.message.author.id ):
+        del( commandsToConfirm[ctx.message.author.id] )
 
-    commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].removeMatch( mtch, ctx.message.author.mention ) )
+    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].removeMatch( mtch, ctx.message.author.mention ) )
     await ctx.send( f'{adminMention}, in order to remove match #{mtch}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to remove this match (!yes/!no)?' )
 
 

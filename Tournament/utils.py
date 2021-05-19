@@ -43,9 +43,9 @@ def timeDiff( t_1: str, t_2: str ) -> float:
     digest = t_diff.days*24*60*60 + t_diff.seconds + t_diff.microseconds*10**-6
     return abs(digest)
 
-def getUserIdent( a_user: discord.Member ) -> str:
-    l_name = a_user.name.replace("/", "_").replace("\"", "_").replace("\'", "_")
-    return f'{l_name}#{a_user.discriminator}'
+#def getUserIdent( a_user: discord.Member ) -> str:
+#    l_name = a_user.name.replace("/", "_").replace("\"", "_").replace("\'", "_")
+#    return f'{l_name}#{a_user.discriminator}'
 
 def getAdminRole( a_guild: discord.Guild ):
     ret = ""
@@ -72,9 +72,16 @@ problem_chars = { '"': "&quot",
 
 def isPathSafeName(name: str) -> bool:
     #bad chars are xml chars, "~", and "../" as it is a directory buggerer
-    digest = ("~" in name) or ("../" in name)
+    digest = ("~" in name) or ("/" in name)
     for c in problem_chars:
         digest |= (c in name)
+    return digest
+
+def toPathSafe(name: str) -> bool:
+    #bad chars are xml chars, "~", and "../" as it is a directory buggerer
+    digest = name.replace("~", "_").replace("/", "_")
+    for c in problem_chars:
+        digest = digest.replace(c, "_")
     return digest
 
 def toSafeXML( input_XML: str ) -> str:

@@ -156,21 +156,20 @@ async def hasOpenMatch( tourn, plyr, ctx, send: bool = True ) -> bool:
         await ctx.send( f'{ctx.message.author.mention}, you are not an active player in a match. You do not need to do anything.' )
     return digest
 
-async def hasCommandWaiting( ctx, a_user: str, send: bool = True ) -> bool:
-    digest = a_user in commandsToConfirm
+async def hasCommandWaiting( ctx, user: int, send: bool = True ) -> bool:
+    digest = user in commandsToConfirm
     if send and digest:
         await ctx.send( f'{ctx.message.author.mention}, you have a command waiting for your confirmation. That confirmation request is being overwriten by this one.' )
     return digest
 
 async def createMisfortune( ctx ) -> None:
-    userIdent = getUserIdent( ctx.message.author )
     playerMatch = ""
     tourns = currentGuildTournaments( ctx.message.guild.name )
     for tourn in tourns.values():
-        if not userIdent in tourn.players:
+        if not ctx.message.author.id in tourn.players:
             continue
-        if tourn.players[userIdent].hasOpenMatch():
-            playerMatch = tourn.players[userIdent].findOpenMatch()
+        if tourn.players[ctx.message.author.id].hasOpenMatch():
+            playerMatch = tourn.players[ctx.message.author.id].findOpenMatch()
             break
     if playerMatch == "":
         await ctx.send( f'{ctx.message.author.mention}, you are not in an open match, so you can not create any misfortune.' )
@@ -183,15 +182,14 @@ async def createMisfortune( ctx ) -> None:
     listOfMisfortunes.append( (ctx, playerMatch) )
 
 async def recordMisfortune( ctx, misfortune, num: int ) -> bool:
-    userIdent = getUserIdent( ctx.message.author )
-    misfortune[1].misfortunes[userIdent] = num
+    misfortune[1].misfortunes[ctx.message.author.id] = num
     await ctx.send( f'{ctx.message.author.mention}, your response to this misfortune has been recorded!' )
     if len( misfortune[1].misfortunes ) == len( misfortune[1].activePlayers ):
         tourns = currentGuildTournaments( misfortune[0].message.guild.name )
         for tourn in tourns.values():
-            if not userIdent in tourn.players:
+            if not ctx.message.author.id in tourn.players:
                 continue
-            if tourn.players[userIdent].hasOpenMatch():
+            if tourn.players[ctx.message.author.id].hasOpenMatch():
                 break
         newLine = "\n\t"
         printout = newLine.join( [ f'{tourn.players[plyr].discordUser.mention}: {misfortune[1].misfortunes[plyr]}' for plyr in misfortune[1].misfortunes ] )
@@ -356,18 +354,17 @@ async def printHelp( ctx ):
 
 @bot.command(name='yes')
 async def confirmCommand( ctx ):
-    userIdent = getUserIdent( ctx.message.author )
-    if not userIdent in commandsToConfirm:
+    if not ctx.message.author.id in commandsToConfirm:
         await ctx.send( f'{ctx.message.author.mention}, there are no commands needing your confirmation.' )
         return
     
-    if commandsToConfirm[userIdent][1] <= timeDiff( commandsToConfirm[userIdent][0], getTime() ):
+    if commandsToConfirm[ctx.message.author.id][1] <= timeDiff( commandsToConfirm[ctx.message.author.id][0], getTime() ):
         await ctx.send( f'{ctx.message.author.mention}, you waited too long to confirm. If you still wish to confirm, run your prior command and then confirm.' )
-        del( commandsToConfirm[userIdent] )
+        del( commandsToConfirm[ctx.message.author.id] )
         return
     
-    message = await commandsToConfirm[userIdent][2]
-    del( commandsToConfirm[userIdent] )
+    message = await commandsToConfirm[ctx.message.author.id][2]
+    del( commandsToConfirm[ctx.message.author.id] )
     
     if type(message) is discord.Embed:
         await ctx.send( embed=message )
@@ -389,14 +386,13 @@ async def confirmCommand( ctx ):
 @bot.command(name='no')
 async def denyCommand( ctx ):
     print( commandsToConfirm )
-    userIdent = getUserIdent( ctx.message.author )
-    if not userIdent in commandsToConfirm:
+    if not ctx.message.author.id in commandsToConfirm:
         await ctx.send( f'{ctx.message.author.mention}, there are no commands needing your confirmation.' )
         return
     
     await ctx.send( f'{ctx.message.author.mention}, your request has been cancelled.' )
 
-    del( commandsToConfirm[userIdent] )
+    del( commandsToConfirm[ctx.message.author.id] )
 
 
 @bot.command(name='marchesa')

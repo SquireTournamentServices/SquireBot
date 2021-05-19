@@ -16,7 +16,7 @@ def getTournamentType( tournType: str, tournName: str = "", guildName: str = "" 
     
 
 def tournamentSelector( typeFile: str, tournName: str = "", guildName: str = "" ):
-    tournType = ET.parse( typeFile ).find("type").text
+    tournType = ET.parse( typeFile ).getroot().text
     if tournType == "fluidRoundTournament":
         return fluidRoundTournament( tournName, guildName )
     else:

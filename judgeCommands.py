@@ -30,14 +30,13 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
     if member == "":
         await ctx.send( f'{ctx.message.author.mention}, there is not a member of this server whose name nor mention is "{plyr}".' )
         return
-    userIdent = getUserIdent( member )
     
-    if userIdent in tournaments[tourn].players:
+    if member.id in tournaments[tourn].players:
         await ctx.send( f'{ctx.message.author.mention}, {plyr} is already registered for {tourn}.' )
         return
 
     message = await tournaments[tourn].addPlayer( member, admin=True )
-    tournaments[tourn].players[userIdent].saveXML( )
+    tournaments[tourn].players[member.id].saveXML( )
     await ctx.send( message )
 
 
@@ -64,8 +63,7 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "" ):
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
         return
     
-    userIdent = getUserIdent( member )
-    if not userIdent in tournaments[tourn].players:
+    if not member.id in tournaments[tourn].players:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in {tourn}. Make sure they are registered or that they have not dropped.' )
         return
     
@@ -79,11 +77,11 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "" ):
     
     message = ""
     try:
-        message = tournaments[tourn].addDeck( userIdent, ident, decklist, admin=True )
+        message = tournaments[tourn].addDeck( member.id, ident, decklist, admin=True )
     except:
         await ctx.send( f'{ctx.message.author.mention}, there was an error while processing the deck list. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
 
-    tournaments[tourn].players[userIdent].saveXML( )
+    tournaments[tourn].players[member.id].saveXML( )
     await ctx.send( message )
 
 
@@ -110,21 +108,19 @@ async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
         return
 
-    userIdent = getUserIdent( member )
-    if not userIdent in tournaments[tourn].players:
+    if not member.id in tournaments[tourn].players:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
-    deckName = tournaments[tourn].players[userIdent].getDeckIdent( ident )
+    deckName = tournaments[tourn].players[member.id].getDeckIdent( ident )
     if deckName == "":
         await ctx.send( f'{ctx.message.author.mention}, it appears that {plyr} does not have a deck whose name nor hash is "{ident}" registered for {tourn}.' )
         return
         
-    authorIdent = getUserIdent( ctx.message.author )
-    if await hasCommandWaiting( ctx, authorIdent ):
-        del( commandsToConfirm[authorIdent] )
+    if await hasCommandWaiting( ctx, ctx.message.author.id ):
+        del( commandsToConfirm[ctx.message.author.id] )
 
-    commandsToConfirm[authorIdent] = ( getTime(), 30, tournaments[tourn].players[userIdent].removeDeckCoro( deckName, ctx.message.author.mention ) )
+    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].players[member.id].removeDeckCoro( deckName, ctx.message.author.mention ) )
     await ctx.send( f'{ctx.message.author.mention}, in order to remove the deck {deckName} from {member.mention}, confirmation is needed. Are you sure you want to remove the deck (!yes/!no)?' )
 
 
@@ -181,13 +177,11 @@ async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role "{tourn} Player". Please verify that they have registered.' )
         return
 
-    userIdent = getUserIdent( member )
-    if not userIdent in tournaments[tourn].players:
+    if not member.id in tournaments[tourn].players:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
-    #await ctx.send( f'{ctx.message.author.mention}, the following is the profile for the player "{plyr}":\n{tournaments[tourn].players[userIdent]}' )
-    await ctx.send( content=f'{ctx.message.author.mention}, the following is the profile for {plyr}:', embed=tournaments[tourn].getPlayerProfileEmbed(userIdent) )
+    await ctx.send( content=f'{ctx.message.author.mention}, the following is the profile for {plyr}:', embed=tournaments[tourn].getPlayerProfileEmbed(member.id) )
 
 
 commandSnippets["admin-match-result"] = "- admin-match-result : Record the result of a match for a player" 
@@ -214,8 +208,7 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role "{tourn} Player". Please verify that they have registered.' )
         return
     
-    userIdent = getUserIdent( member )
-    if not userIdent in tournaments[tourn].players:
+    if not member.id in tournaments[tourn].players:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
@@ -229,12 +222,12 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
         await ctx.send( f'{ctx.message.author.mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
         
-    Match = tournaments[tourn].players[userIdent].getMatch( mtch )
+    Match = tournaments[tourn].players[member.id].getMatch( mtch )
     if Match.matchNumber == -1:
         await ctx.send( f'{ctx.message.author.mention}, {member.mention} is not a player in Match #{mtch}. Double check the match number.' )
         return
         
-    message = await tournaments[tourn].recordMatchResult( userIdent, result, mtch, admin=True )
+    message = await tournaments[tourn].recordMatchResult( member.id, result, mtch, admin=True )
     Match.saveXML( )
     await ctx.send( message )
     
@@ -262,8 +255,7 @@ async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role "{tourn} Player". Please verify that they have registered.' )
         return
     
-    userIdent = getUserIdent( member )
-    if not userIdent in tournaments[tourn].players:
+    if not member.id in tournaments[tourn].players:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
@@ -277,7 +269,7 @@ async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
         await ctx.send( f'{ctx.message.author.mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
         
-    Match = tournaments[tourn].players[userIdent].getMatch( mtch )
+    Match = tournaments[tourn].players[member.id].getMatch( mtch )
     if Match.matchNumber == -1:
         await ctx.send( f'{ctx.message.author.mention}, {member.mention} is not a player in Match #{mtch}. Double check the match number.' )
         return
@@ -285,11 +277,11 @@ async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
     if Match.isCertified( ):
         await ctx.send( f'{ctx.message.author.mention}, match #{mtch} is already certified. There is no need confirm the result again.' )
         return
-    if userIdent in Match.confirmedPlayers:
+    if member.id in Match.confirmedPlayers:
         await ctx.send( f'{ctx.message.author.mention}, match #{mtch} is not certified, but {plyr} has already certified the result. There is no need to do this twice.' )
         return
     
-    message = await tournaments[tourn].confirmResult( userIdent, Match.matchNumber )
+    message = await tournaments[tourn].confirmResult( member.id, Match.matchNumber )
     Match.saveXML( )
     await ctx.send( f'{ctx.message.author.mention}, {message}.' )
 
@@ -368,17 +360,16 @@ async def adminPrintDecklist( ctx, tourn = "", plyr = "", ident = "" ):
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
         return
 
-    userIdent = getUserIdent( member )
-    if not userIdent in tournaments[tourn].players:
+    if not member.id in tournaments[tourn].players:
         await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". Make sure they are registered or that they have not dropped.' )
         return
     
-    deckName = tournaments[tourn].players[userIdent].getDeckIdent( ident )
+    deckName = tournaments[tourn].players[member.id].getDeckIdent( ident )
     if deckName == "":
         await ctx.send( f'{ctx.message.author.mention}, {plyr} does not have any decks registered for {tourn}.' )
         return
 
-    await ctx.send( embed = await tournaments[tourn].players[userIdent].getDeckEmbed( deckName ) )
+    await ctx.send( embed = await tournaments[tourn].players[member.id].getDeckEmbed( deckName ) )
 
 
 commandSnippets["match-status"] = "- match-status : View the currect status of a match" 

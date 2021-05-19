@@ -187,11 +187,11 @@ class match:
         if "win" == result or "winner" == result:
             self.winner = plyr
             self.confirmedPlayers = [ plyr ]
-            digest["message"] = f'<@{plyr}> has recorded themself as the winner of match #{self.matchNumber}. {self.getMention}, please confirm with "!confirm-result".'
+            digest["message"] = f'<@{plyr}> has recorded themself as the winner of match #{self.matchNumber}. {self.getMention()}, please confirm with "!confirm-result".'
         elif "draw" == result:
             self.winner = "This match is a draw."
             self.confirmedPlayers = [ plyr ]
-            digest["message"] = f'<@{plyr}> has recorded match #{self.matchNumber} as a draw. {self.getMention}, please confirm with "!confirm-result".'
+            digest["message"] = f'<@{plyr}> has recorded match #{self.matchNumber} as a draw. {self.getMention()}, please confirm with "!confirm-result".'
         elif "loss" == result or "loser" == result:
             self.droppedPlayers.append( plyr )
             del( self.activePlayers[ self.activePlayers.index(plyr) ] )

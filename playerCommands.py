@@ -99,9 +99,8 @@ async def addTriceName( ctx, tourn = "", name = "" ):
         name = tourn
         tourn = ""
 
-    userIdent = getUserIdent( ctx.message.author )
     if tourn == "":
-        tourns = findPlayerTourns(userIdent, ctx.message.guild.name )
+        tourns = findPlayerTourns(ctx.message.author.id, ctx.message.guild.name )
         if len( tourns ) < 1:
             await ctx.send( f'{ctx.message.author.mention}, you are not registered for any tournaments on this server. Please register for a tournament first. Use the !tournaments command to see what tournaments there are.' )
             return
@@ -114,7 +113,7 @@ async def addTriceName( ctx, tourn = "", name = "" ):
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
     
-    message = tournaments[tourn].setPlayerTriceName( userIdent, name )
+    message = tournaments[tourn].setPlayerTriceName( ctx.message.author.id, name )
     await ctx.send( f'{ctx.message.author.mention}, {message}' )
 
 
@@ -131,9 +130,8 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
 
     private = await isPrivateMessage( ctx, send=False )
 
-    userIdent = getUserIdent( ctx.message.author )
     if tourn not in tournaments:
-        tourns = findPlayerTourns( userIdent, "" if private else ctx.message.guild.name )
+        tourns = findPlayerTourns( ctx.message.author.id, "" if private else ctx.message.guild.name )
         if len( tourns ) > 1:
             await ctx.send( f'{ctx.message.author.mention}, you are registered for multiple tournaments{"" if private else " in this server"}. Please specify a tournament before your deck name.' )
             return
@@ -156,15 +154,15 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
     if not private:
         if not await correctGuild( tourn, ctx ): return
 
-    if not await hasRegistered( tourn, userIdent, ctx ): return
-    if not await isActivePlayer( tourn, userIdent, ctx ): return
+    if not await hasRegistered( tourn, ctx.message.author.id, ctx ): return
+    if not await isActivePlayer( tourn, ctx.message.author.id, ctx ): return
     if not tournaments[tourn].regOpen:
         await ctx.send( f'{ctx.message.author.mention}, registration for {tourn} is closed. If you believe this is an error, contact tournament staff.' )
         return
     
     message = ""
     try:
-        message = tournaments[tourn].addDeck( userIdent, ident, decklist )
+        message = tournaments[tourn].addDeck( ctx.message.author.id, ident, decklist )
     except:
         await ctx.send( f'{ctx.message.author.mention}, there was an error while processing your deck list. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
         return
@@ -186,9 +184,8 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
 
     private = await isPrivateMessage( ctx, send=False )
 
-    userIdent = getUserIdent( ctx.message.author )
     if ident == "":
-        tourns = findPlayerTourns( userIdent, "" if private else ctx.message.guild.name )
+        tourns = findPlayerTourns( ctx.message.author.id, "" if private else ctx.message.guild.name )
         if len( tourns ) > 1:
             await ctx.send( f'{ctx.message.author.mention}, you are registered for multiple tournaments{"" if private else " in this server"}. Please specify a tournament.' )
             return
@@ -203,19 +200,19 @@ async def removeDecklist( ctx, tourn = "", ident = "" ):
     if not private:
         if not await correctGuild( tourn, ctx ): return
     
-    deckName = tournaments[tourn].players[userIdent].getDeckIdent( ident )
+    deckName = tournaments[tourn].players[ctx.message.author.id].getDeckIdent( ident )
     if deckName == "":
-        decks = tournaments[tourn].players[userIdent].decks
+        decks = tournaments[tourn].players[ctx.message.author.id].decks
         if len( decks ) < 1:
             await ctx.send( f'{ctx.message.author.mention}, you do not have any decks registered for {tourn}.' )
         else:
             await ctx.send( f'{ctx.message.author.mention}, you do not have a deck whose name or hash is "{ident}". To see the decks you have registered, use !profile {tourn}' )
         return
 
-    if await hasCommandWaiting( ctx, userIdent ):
-        del( commandsToConfirm[userIdent] )
+    if await hasCommandWaiting( ctx, ctx.message.author.id ):
+        del( commandsToConfirm[ctx.message.author.id] )
 
-    commandsToConfirm[userIdent] = ( getTime(), 30, tournaments[tourn].players[userIdent].removeDeckCoro( deckName ) )
+    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].players[ctx.message.author.id].removeDeckCoro( deckName ) )
     await ctx.send( f'{ctx.message.author.mention}, in order to remove your deck, you need to confirm your request. Are you sure you want to remove it? (!yes/!no)' )
     
 
@@ -227,9 +224,8 @@ async def listDeck( ctx, tourn = "" ):
 
     private = await isPrivateMessage( ctx, send=False )
 
-    userIdent = getUserIdent( ctx.message.author )
     if tourn == "":
-        tourns = findPlayerTourns( userIdent, "" if private else ctx.message.guild.name )
+        tourns = findPlayerTourns( ctx.message.author.id, "" if private else ctx.message.guild.name )
         if len( tourns ) > 1:
             await ctx.send( f'{ctx.message.author.mention}, you are registered for multiple tournaments{"" if private else " in this server"}. Please specify a tournament.' )
             return
@@ -243,15 +239,15 @@ async def listDeck( ctx, tourn = "" ):
     if not private:
         if not await correctGuild( tourn, ctx ): return
     
-    if not await hasRegistered( tourn, userIdent, ctx ): return
-    if not await isActivePlayer( tourn, userIdent, ctx ): return
+    if not await hasRegistered( tourn, ctx.message.author.id, ctx ): return
+    if not await isActivePlayer( tourn, ctx.message.author.id, ctx ): return
 
-    if len( tournaments[tourn].players[userIdent].decks ) == 0:
+    if len( tournaments[tourn].players[ctx.message.author.id].decks ) == 0:
         await ctx.send( f'{ctx.message.author.mention}, you have not registered any decks for {tourn}.' )
         return
     
-    names  = [ deck for deck in tournaments[tourn].players[userIdent].decks ]
-    hashes = [ str(deck.deckHash) for deck in tournaments[tourn].players[userIdent].decks.values() ]
+    names  = [ deck for deck in tournaments[tourn].players[ctx.message.author.id].decks ]
+    hashes = [ str(deck.deckHash) for deck in tournaments[tourn].players[ctx.message.author.id].decks.values() ]
     embed = discord.Embed( )
     embed.add_field( name="Deck Names", value="\n".join(names) )
     embed.add_field( name="Deck Hashes", value="\n".join(hashes) )
@@ -280,14 +276,13 @@ async def dropTournament( ctx, tourn = "" ):
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
 
-    userIdent = getUserIdent(ctx.message.author) 
-    if not await hasRegistered( tourn, userIdent, ctx ): return
-    if not await isActivePlayer( tourn, userIdent, ctx ): return
+    if not await hasRegistered( tourn, ctx.message.author.id, ctx ): return
+    if not await isActivePlayer( tourn, ctx.message.author.id, ctx ): return
     
-    if await hasCommandWaiting( ctx, userIdent ):
-        del( commandsToConfirm[userIdent] )
+    if await hasCommandWaiting( ctx, ctx.message.author.id ):
+        del( commandsToConfirm[ctx.message.author.id] )
 
-    commandsToConfirm[userIdent] = (getTime(), 30, tournaments[tourn].dropPlayer( userIdent ) )
+    commandsToConfirm[ctx.message.author.id] = (getTime(), 30, tournaments[tourn].dropPlayer( ctx.message.author.id ) )
     await ctx.send( f'{ctx.message.author.mention}, in order to drop from {tourn}, you need to confirm your request. Are you sure you want to drop? (!yes/!no)' )
 
 
@@ -314,25 +309,17 @@ async def queuePlayer( ctx, tourn = "" ):
 
     if not await isTournRunning( tourn, ctx ): return
 
-    userIdent = getUserIdent( ctx.message.author )
-    if not await hasRegistered( tourn, userIdent, ctx ): return
-    if not await isActivePlayer( tourn, userIdent, ctx ): return
-    if tournaments[tourn].players[userIdent].hasOpenMatch( ):
+    if not await hasRegistered( tourn, ctx.message.author.id, ctx ): return
+    if not await isActivePlayer( tourn, ctx.message.author.id, ctx ): return
+    if tournaments[tourn].players[ctx.message.author.id].hasOpenMatch( ):
         await ctx.send( f'{ctx.message.author.mention}, you are in a match that is not certified. Make sure that everone in your last match has certified the result with !confirm-result.' )
         return
     
-    if len(tournaments[tourn].players[userIdent].decks) == 0:
+    if len(tournaments[tourn].players[ctx.message.author.id].decks) == 0:
         await ctx.send( f'{ctx.message.author.mention}, you have failed to submit a deck. As such, you can not play in this tournament. If you believe this is an error, talk to tournament staff.' )
         return
         
-    
-    for lvl in tournaments[tourn].queue:
-        for plyr in lvl:
-            if plyr.name == userIdent:
-                await ctx.send( f'{ctx.message.author.mention}, you are already in the queue. You will be paired for a match when more people join the queue.' )
-                return
-    
-    message = tournaments[tourn].addPlayerToQueue( userIdent )
+    message = tournaments[tourn].addPlayerToQueue( ctx.message.author.id )
     tournaments[tourn].saveOverview( )
     await ctx.send( f'{ctx.message.author.mention}, {message}.' )
 
@@ -364,14 +351,13 @@ async def matchResult( ctx, tourn = "", result = "" ):
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
         
-    userIdent = getUserIdent( ctx.message.author )
-    if not await hasRegistered( tourn, userIdent, ctx ): return
-    if not await isActivePlayer( tourn, userIdent, ctx ): return
-    if not await hasOpenMatch( tourn, userIdent, ctx ): return
+    if not await hasRegistered( tourn, ctx.message.author.id, ctx ): return
+    if not await isActivePlayer( tourn, ctx.message.author.id, ctx ): return
+    if not await hasOpenMatch( tourn, ctx.message.author.id, ctx ): return
     
-    playerMatch = tournaments[tourn].players[userIdent].findOpenMatch()
-    message = await tournaments[tourn].recordMatchResult( userIdent, result, playerMatch.matchNumber )
-    ctx.send( message )
+    playerMatch = tournaments[tourn].players[ctx.message.author.id].findOpenMatch()
+    message = await tournaments[tourn].recordMatchResult( ctx.message.author.id, result, playerMatch.matchNumber )
+    await ctx.send( message )
     
     playerMatch.saveXML( )
 
@@ -397,20 +383,19 @@ async def confirmMatchResult( ctx, tourn = "" ):
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
 
-    userIdent = getUserIdent( ctx.message.author )
-    if not await hasRegistered( tourn, userIdent, ctx ): return
-    if not await isActivePlayer( tourn, userIdent, ctx ): return
-    if not await hasOpenMatch( tourn, userIdent, ctx ): return
+    if not await hasRegistered( tourn, ctx.message.author.id, ctx ): return
+    if not await isActivePlayer( tourn, ctx.message.author.id, ctx ): return
+    if not await hasOpenMatch( tourn, ctx.message.author.id, ctx ): return
     
-    playerMatch = tournaments[tourn].players[userIdent].findOpenMatch( )
+    playerMatch = tournaments[tourn].players[ctx.message.author.id].findOpenMatch( )
     if playerMatch.status == "open":
         await ctx.send( f'{ctx.message.author.mention}, match #{playerMatch.matchNumber} is still open, no result has been recorded yet, so there is nothing to confirm.' )
         return
-    if userIdent in playerMatch.confirmedPlayers:
+    if ctx.message.author.id in playerMatch.confirmedPlayers:
         await ctx.send( f'{ctx.message.author.mention}, you have already confirmed the result of match #{playerMatch.matchNumber}. Your opponents are still confirming.' )
         return
     
-    message = await tournaments[tourn].playerConfirmResult( userIdent, playerMatch.matchNumber )
+    message = await tournaments[tourn].playerConfirmResult( ctx.message.author.id, playerMatch.matchNumber )
     playerMatch.saveXML( )
     await ctx.send( f'{ctx.message.author.mention}, {message}' )
     
@@ -454,7 +439,7 @@ async def standings( ctx, tourn = "", printAll = "" ):
         return
     
     standings = tournaments[tourn].getStandings( )
-    name = tournaments[tourn].players[getUserIdent(ctx.message.author)].getDisplayName()
+    name = tournaments[tourn].players[ctx.message.author.id].getDisplayName()
     
     if name in standings[1] and not printAll:
         index = standings[1].index(name)
@@ -477,13 +462,12 @@ commandCategories["misc"].append( "misfortune" )
 async def misfortune( ctx, num = "" ):
     num = num.strip()
     
-    userIdent = getUserIdent( ctx.message.author )
     
     playerMatch = ""
     count = 0
 
     for mtch in listOfMisfortunes:
-        if userIdent in mtch[1].activePlayers:
+        if ctx.message.author.id in mtch[1].activePlayers:
             playerMatch = mtch[1]
             break
         count += 1
@@ -563,9 +547,8 @@ async def printDecklist( ctx, tourn = "", ident = "" ):
         await ctx.send( f'{ctx.message.author.mention}, not enough information provided: Please provide your deckname or deck hash to list your deck.' )
         return
 
-    userIdent = getUserIdent( ctx.message.author )
     if ident == "":
-        tourns = findPlayerTourns( userIdent, "" if private else ctx.message.guild.name )
+        tourns = findPlayerTourns( ctx.message.author.id, "" if private else ctx.message.guild.name )
         if len( tourns ) > 1:
             await ctx.send( f'{ctx.message.author.mention}, you are registered for multiple tournaments{"" if private else " in this server"}. Please specify a tournament.' )
             return
@@ -580,23 +563,23 @@ async def printDecklist( ctx, tourn = "", ident = "" ):
     if not private:
         if not await correctGuild( tourn, ctx ): return
     
-    if not await hasRegistered( tourn, userIdent, ctx ): return
-    if not await isActivePlayer( tourn, userIdent, ctx ): return
+    if not await hasRegistered( tourn, ctx.message.author.id, ctx ): return
+    if not await isActivePlayer( tourn, ctx.message.author.id, ctx ): return
     
-    deckName = tournaments[tourn].players[userIdent].getDeckIdent( ident )
+    deckName = tournaments[tourn].players[ctx.message.author.id].getDeckIdent( ident )
     if deckName == "":
-        if len(tournaments[tourn].players[userIdent].decks) == 0:
+        if len(tournaments[tourn].players[ctx.message.author.id].decks) == 0:
             await ctx.send( f'{ctx.message.author.mention}, you do not have any decks registered for {tourn}.' )
         else:
             await ctx.send( f'{ctx.message.author.mention}, you do not have a deck registered for {tourn} whose name/hash is "{ident}".' )
         return
 
     if await isPrivateMessage( ctx, send=False ):
-        await ctx.send( embed = await tournaments[tourn].players[userIdent].getDeckEmbed( deckName ) )
+        await ctx.send( embed = await tournaments[tourn].players[ctx.message.author.id].getDeckEmbed( deckName ) )
     else:
-        if await hasCommandWaiting( ctx, userIdent ):
-            del( commandsToConfirm[userIdent] )
-        commandsToConfirm[userIdent] = ( getTime(), 30, tournaments[tourn].players[userIdent].getDeckEmbed( deckName ) )
+        if await hasCommandWaiting( ctx, ctx.message.author.id ):
+            del( commandsToConfirm[ctx.message.author.id] )
+        commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].players[ctx.message.author.id].getDeckEmbed( deckName ) )
         await ctx.send( f'{ctx.message.author.mention}, since you are about to post your decklist publicly, you need to confirm your request. Are you sure you want to post it? (!yes/!no)' )
 
 

@@ -33,16 +33,16 @@ from .match import match
 
 class player:
     # The class constructor
-    def __init__( self, a_name: str = "" ):
-        self.saveLocation = f'{a_name}.xml'
+    def __init__( self, name: str = "", discordID: str = "" ):
+        self.saveLocation = f'{name}.xml'
         self.discordUser = ""
-        self.discordID   = ""
-        self.name  = a_name
+        self.discordID   = discordID
+        self.name  = name
         self.triceName   = ""
         self.status  = "active"
         self.decks   = { }
         self.matches = [ ]
-        self.opponents = [ ]
+        self.opponents = set( )
     
     def __str__( self ):
         newLine = "\n\t- "
@@ -129,12 +129,8 @@ class player:
         return digest
     
     def removeOpponent( self, a_plyr ) -> None:
-        if a_plyr == self.name:
-            return
-        for i in range(len(self.opponents)):
-            if a_plyr == self.opponents[i]:
-                del( self.opponents[i] )
-                return
+        if a_plyr in self.opponents:
+            self.opponents.remove( a_plyr )
     
     async def removeMatch( self, a_matchNum: int ) -> None:
         index = -1
@@ -156,13 +152,11 @@ class player:
         for plyr in a_mtch.activePlayers:
             if plyr == self.name:
                 continue
-            if not plyr in self.opponents:
-                self.opponents.append( plyr )
+            self.opponents.add( plyr )
         for plyr in a_mtch.droppedPlayers:
             if plyr == self.name:
                 continue
-            if not plyr in self.opponents:
-                self.opponents.append( plyr )
+            self.opponents.add( plyr )
     
     def getMatch( self, a_matchNum: int ) -> match:
         for mtch in self.matches:

@@ -92,20 +92,24 @@ class tournament:
     
     # ---------------- Universally Defined Methods ---------------- 
     
-    def addDiscordGuild( self, guild ) -> str:
+    async def addDiscordGuild( self, guild: discord.Guild ) -> str:
         self.guild = guild
         self.hostGuildName = guild.name
         self.guildID = self.guild.id
-        if self.roleID != "":
-            self.role = guild.get_role( self.roleID )
-        else:
-            self.role = discord.utils.get( guild.roles, name=f'{self.name} Player' )
+        self.role = await guild.create_role( name=f'{self.name} Player' )
+        print( self.role, type(self.role), self.role is discord.Role )
+        self.roleID = self.role.id
         self.pairingsChannel = discord.utils.get( guild.channels, name="match-pairings" )
     
-    def assignGuild( self, guild ) -> str:
+    def assignGuild( self, guild: discord.Guild ) -> str:
         print( f'The guild "{guild}" is being assigned to {self.name}.' )
         print( f'There are {len(self.players)} players in this tournament!\n' )
-        self.addDiscordGuild( guild )
+        self.guild = guild
+        self.guildID = guild.id
+        self.hostGuildName = guild.name
+        self.pairingsChannel = discord.utils.get( guild.channels, name="match-pairings" )
+        if self.roleID != "":
+            self.role = guild.get_role( self.roleID )
         for player in self.players:
             ID = self.players[player].discordID
             if ID != "":
@@ -171,7 +175,7 @@ class tournament:
 
 
     # ---------------- Embed Generators ---------------- 
-    def getPlayerProfileEmbed( self, plyr ) -> discord.Embed:
+    def getPlayerProfileEmbed( self, plyr: int ) -> discord.Embed:
         digest = discord.Embed()
         deckPairs = [ f'{d}: {self.players[plyr].decks[d].deckHash}' for d in self.players[plyr].decks ]
         digest.add_field( name="Decks:", value=("\u200b" + "\n".join(deckPairs)) )
@@ -303,7 +307,7 @@ class tournament:
         for plyr in self.players:
             if len(self.players[plyr].decks) == 0:
                 await self.dropPlayer( plyr ) 
-                await ctx.send( f'{self.players[plyr].discordUser.mention} has been pruned.' )
+                await ctx.send( f'{self.players[plyr].getMention()} has been pruned.' )
                 await self.players[plyr].discordUser.send( content=f'You have been dropped from the tournament {self.name} on {ctx.guild.name} by tournament staff for not submitting a deck. If you believe this is an error, contact them immediately.' )
                 self.players[plyr].saveXML( )
         return f'All players that did not submit a deck have been pruned.'
@@ -315,18 +319,17 @@ class tournament:
             return "this tournament has already ended. If you believe this to be incorrect, please contact the tournament staff."
         if not ( admin or self.regOpen ):
             return "registration for the tounament is closed. If you believe this to be incorrect, please contact the tournament staff."
-        ident = getUserIdent( discordUser )
         RE = ""
-        if ident in self.players:
-            self.players[ident].status = "active"
+        if discordUser.id in self.players:
+            self.players[discordUser.id].status = "active"
             RE = "re-"
         else:
-            self.players[ident] = player( ident )
+            self.players[discordUser.id] = player( discordUser.display_name, discordUser.id )
 
-        self.players[ident].saveLocation = f'{self.saveLocation}/players/{ident}.xml'
-        self.players[ident].addDiscordUser( discordUser )
-        await self.players[ident].discordUser.add_roles( self.role )
-        self.players[ident].saveXML( )
+        self.players[discordUser.id].saveLocation = f'{self.saveLocation}/players/{toPathSafe(discordUser.display_name)}.xml'
+        self.players[discordUser.id].addDiscordUser( discordUser )
+        await self.players[discordUser.id].discordUser.add_roles( self.role )
+        self.players[discordUser.id].saveXML( )
         if admin:
             await discordUser.send( content=f'You have been registered for {self.name}!' )  
             return f'you have {RE}registered {discordUser.mention} for {self.name}'
@@ -354,9 +357,9 @@ class tournament:
     
     async def recordMatchResult( self, plyr: str, result: str, matchNum: int, admin: bool = False ) -> str:
         if admin:
-            message = self.matches[matchNum - 1].recordResultAdmin( plyr, result )
+            message = await self.matches[matchNum - 1].recordResultAdmin( plyr, result )
         else: 
-            message = self.matches[matchNum - 1].recordResult( plyr, result )
+            message = await self.matches[matchNum - 1].recordResult( plyr, result )
         
         if "announcement" in message:
             await self.pairingsChannel.send( content=message["announcement"] )
@@ -555,9 +558,11 @@ class tournament:
         self.savePlayers( dirName )
     
     def saveTournamentType( self, filename: str = "" ):
+        print( "No tournament type being saved." )
         return None
     
     def saveOverview( self, filename: str = "" ):
+        print( "No overview being saved." )
         return None
     
     def savePlayers( self, dirName: str = "" ) -> None:
@@ -567,7 +572,7 @@ class tournament:
            os.mkdir( f'{dirName}/players/' ) 
 
         for player in self.players:
-            self.players[player].saveXML( f'{dirName}/players/{self.players[player].name}.xml' )
+            self.players[player].saveXML( f'{dirName}/players/{toPathSafe(self.players[player].name)}.xml' )
 
     def saveMatches( self, dirName: str = "" ) -> None:
         if dirName == "":
@@ -594,7 +599,7 @@ class tournament:
             newPlayer = player( "" )
             newPlayer.saveLocation = playerFile
             newPlayer.loadXML( playerFile )
-            self.players[newPlayer.name] = newPlayer
+            self.players[newPlayer.discordID] = newPlayer
     
     def loadMatches( self, dirName: str ) -> None:
         matchFiles = [ f'{dirName}/{f}' for f in os.listdir(dirName) if os.path.isfile( f'{dirName}/{f}' ) ]
