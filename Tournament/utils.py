@@ -63,6 +63,36 @@ def getJudgeRole( a_guild: discord.Guild ):
             break
     return digest
 
+
+
+# A list of universe tournament properties
+# This will be expanded on by each tournament class similar to how the command snippets work
+tournamentProperties = [ "format", "match-length", "match-size",
+                         "tricebot-enabled", "spectators-allowed", "spectators-need-password",
+                         "spectators-can-chat", "spectators-can-see-hands", "only-registered"  ]
+
+# Takes in any number of arguments (likely from a command call) and returns a dict
+# The keys of the dict are tournament properties (other key/value pairs are discarded)
+# The delimiter between properties and values is an equal sign.
+#   - example input: match-size= 1 hello = foo bar tricebot-enabled = true Format =EDH
+#             output: { "match-size": "1", tricebot-enabled: "true", "format": "EDH"}
+def generateTournProps( *args ):
+    args = [ segment.strip().lower() for segment in " ".join(args).split("=") ]
+    digest: dict = { }
+    pastSegement = [ args[0] ]
+    for i in range(1,len(args)):
+        segment = args[i].rsplit( " " )
+        digest[pastSegement[-1].strip()] = segment[0].strip()
+        pastSegement = segment
+    toDelete = [ ]
+    for key in digest.keys():
+        if not key in tournamentProperties:
+            toDelete.append( key )
+    for key in toDelete:
+        del( digest[key] )
+    return digest
+        
+
 problem_chars = { '"': "&quot",
                   "'": "&apos",
                   "<": "&lt",

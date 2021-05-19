@@ -8,19 +8,19 @@ from .fluidRoundTournament import *
 
 tournamentTypes = [ "fluidRoundTournament" ]
 
-def getTournamentType( tournType: str, tournName: str = "", guildName: str = "" ):
+def getTournamentType( tournType: str, tournName: str = "", guildName: str = "", tournProps: dict = { } ):
     if tournType == "fluidRoundTournament":
-        return fluidRoundTournament( tournName, guildName )
+        return fluidRoundTournament( tournName, guildName, tournProps )
     else:
         return None
     
 
-def tournamentSelector( typeFile: str, tournName: str = "", guildName: str = "" ):
+def tournamentSelector( typeFile: str, tournName: str = "", guildName: str = "", tournProps: dict = { } ):
     tournType = ET.parse( typeFile ).getroot().text
-    if tournType == "fluidRoundTournament":
-        return fluidRoundTournament( tournName, guildName )
-    else:
+    digest = getTournamentType( tournName, guildName, tournProps )
+    if digest is None:
         raise NotImplementedError( f'{tournType} is not a supported tournament type' )
+    return digest
 
 
 

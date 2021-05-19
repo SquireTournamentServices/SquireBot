@@ -23,10 +23,10 @@ from .deck import deck
     It also holds certain metadata about the tournament, such as the tournament's name and host guild's name.
 """
 class fluidRoundTournament(tournament):
-    def __init__( self, name: str, hostGuildName: str, Format: str = "EDH", trice_enabled: bool = False, spectators_allowed: bool = True, spectators_need_password: bool = False, spectators_can_chat : bool = False, spectators_can_see_hands: bool = False, only_registered: bool = True):     
+    def __init__( self, name: str, hostGuildName: str, props: dict = { } ):     
         self.name = name.replace("\.\./", "")
         self.hostGuildName = hostGuildName
-        self.format    = Format
+        self.format    = props["format"] if "format" in props else "Pioneer"
         
         self.saveLocation = f'currentTournaments/{self.name}'
 
@@ -44,12 +44,13 @@ class fluidRoundTournament(tournament):
         self.loop = asyncio.new_event_loop( )
         self.fail_count = 0
         
+        self.playersPerMatch   = int(props["match-size"]) if "match-size" in props else 2
+        self.matchLength       = int(props["match-length"])*60 if "match-length" in props else 60*60 # Length of matches in seconds
+        
         self.queue             = [ [] ]
-        self.playersPerMatch   = 2
         self.pairingsThreshold = self.playersPerMatch * 2 # + 3
         self.pairingWaitTime   = 5
         self.queueActivity     = [ ]
-        self.matchLength       = 60*60 # Length of matches in seconds
         self.highestPriority   = 0
         self.pairingsThread    = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
         
@@ -60,12 +61,12 @@ class fluidRoundTournament(tournament):
         self.matches = []
         
         #Create bot class and store the game creation settings
-        self.triceBotEnabled = trice_enabled
-        self.spectators_allowed = spectators_allowed
-        self.spectators_need_password = spectators_need_password 
-        self.spectators_can_chat = spectators_can_chat 
-        self.spectators_can_see_hands = spectators_can_see_hands 
-        self.only_registered = only_registered
+        self.triceBotEnabled = props["trice-enabled"] if "trice-enabled" in props else False
+        self.spectators_allowed = props["spectators-allowed"] if "spectators-allowed" in props else False
+        self.spectators_need_password = props["spectators-need-password"] if "spectators-need-password" in props else False 
+        self.spectators_can_chat = props["spectators-can-chat"] if "spectators-can-chat" in props else False 
+        self.spectators_can_see_hands = props["spectators-can-see-hands"] if "spectators-can-see-hands" in props else False 
+        self.only_registered = props["only-registered"] if "only-registered" in props else False
         
     
     # ---------------- Property Accessors ---------------- 

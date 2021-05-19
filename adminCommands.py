@@ -11,11 +11,17 @@ from Tournament import *
 commandSnippets["create-tournament"] = "- create-tournament : Creates a tournament and has a toggle to enable tricebot." 
 commandCategories["management"].append("create-tournament")
 @bot.command(name='create-tournament')
-async def createTournament( ctx, tournName = None, tournType = None, triceBotEnabledIn = None ):
+async def createTournament( ctx, tournName = None, tournType = None, *args ):
     mention = ctx.message.author.mention
     if await isPrivateMessage( ctx ): return
 
     if not await isTournamentAdmin( ctx ): return
+    
+    tournProps = generateTournProps( *args )
+    if len(tournProps) != "".join(args).count("="):
+        print( tournProps )
+        await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
+        return
     
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if tournName is None or tournType is None:
@@ -30,17 +36,16 @@ async def createTournament( ctx, tournName = None, tournType = None, triceBotEna
         return
     
     triceBotFlag = False
-    if not triceBotEnabledIn is None:
-        triceBotEnabledIn = triceBotEnabledIn.lower()
-        if triceBotEnabledIn == "true":
-            triceBotFlag = True
-        elif triceBotEnabledIn == "false":
-            triceBotFlag = False
+    if "tricebot-enabled" in tournProps:
+        if tournProps["tricebot-enabled"] == "true":
+            tournProps["tricebot-enabled"] = True
+        elif tournProps["tricebot-enabled"] == "false":
+            tournProps["tricebot-enabled"] = False
         else:
             await ctx.send( f'{ctx.message.author.mention}, please enter either true or false for the tricebot toggle.' )
             return 
     
-    newTourn = getTournamentType( tournType, tournName, ctx.guild.name )
+    newTourn = getTournamentType( tournType, tournName, ctx.guild.name, tournProps )
     if newTourn is None:
         newLine = "\n\t- "
         await ctx.send( f'{mention}, invalid tournament type of {tournType}. The supported tournament types are:{newLine}{newLine.join(tournamentTypes)}.' )
