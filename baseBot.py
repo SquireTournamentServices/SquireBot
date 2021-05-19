@@ -8,7 +8,6 @@ from discord import Activity, ActivityType
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from tricebot import TriceBot
 from Tournament import *
 
 

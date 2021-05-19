@@ -23,10 +23,10 @@ from .deck import deck
     It also holds certain metadata about the tournament, such as the tournament's name and host guild's name.
 """
 class fluidRoundTournament(tournament):
-    def __init__( self, name: str, hostGuildName: str, format: str = "EDH" ):
-        self.name = name
+    def __init__( self, name: str, hostGuildName: str, Format: str = "EDH", trice_enabled: bool = False, spectators_allowed: bool = True, spectators_need_password: bool = False, spectators_can_chat : bool = False, spectators_can_see_hands: bool = False, only_registered: bool = True):     
+        self.name = name.replace("\.\./", "")
         self.hostGuildName = hostGuildName
-        self.format    = format
+        self.format    = Format
         
         self.saveLocation = f'currentTournaments/{self.name}'
 
@@ -58,6 +58,15 @@ class fluidRoundTournament(tournament):
         self.players  = {}
         
         self.matches = []
+        
+        #Create bot class and store the game creation settings
+        self.triceBotEnabled = trice_enabled
+        self.spectators_allowed = spectators_allowed
+        self.spectators_need_password = spectators_need_password 
+        self.spectators_can_chat = spectators_can_chat 
+        self.spectators_can_see_hands = spectators_can_see_hands 
+        self.only_registered = only_registered
+        
     
     # ---------------- Property Accessors ---------------- 
 

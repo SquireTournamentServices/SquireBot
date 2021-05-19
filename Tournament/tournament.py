@@ -8,15 +8,15 @@ import discord
 import asyncio
 import warnings
 
-from tricebot import TriceBot
-
 from typing import List
 from typing import Tuple
 
+from .tricebot import TriceBot
 from .utils import *
 from .match import match
 from .player import player
 from .deck import deck
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -43,10 +43,10 @@ trice_bot = TriceBot(TRICE_BOT_AUTH_TOKEN, apiURL=API_URL, externURL=EXTERN_URL)
     Or something akin to that.
 """
 class tournament:
-    def __init__( self, a_tournName: str, a_hostGuildName: str, Format: str = "EDH", trice_enabled: bool = False, spectators_allowed: bool = True, spectators_need_password: bool = False, spectators_can_chat : bool = False, spectators_can_see_hands: bool = False, only_registered: bool = True):     
+    def __init__( self, name: str, hostGuildName: str, Format: str = "EDH", trice_enabled: bool = False, spectators_allowed: bool = True, spectators_need_password: bool = False, spectators_can_chat : bool = False, spectators_can_see_hands: bool = False, only_registered: bool = True):     
         self.name = name.replace("\.\./", "")
         self.hostGuildName = hostGuildName
-        self.Format    = Format
+        self.format    = Format
         
         self.saveLocation = f'currentTournaments/{self.name}'
 
@@ -394,12 +394,12 @@ class tournament:
         
         while mtch.getTimeLeft() > 0 and not mtch.stopTimer:
             time.sleep( 1 )
-            if mtch.getTimeLeft() <= 60 and not mtch.sentOneMinWarning:
+            if mtch.getTimeLeft() <= 60 and not mtch.sentOneMinWarning and not mtch.stopTimer:
                     task = threading.Thread( target=self._launch_match_warning, args=(f'{mtch.role.mention}, you have one minute left in your match.',) )
                     task.start( )
                     mtch.sentOneMinWarning = True
                     mtch.saveXML( )
-            elif mtch.getTimeLeft() <= 300 and not mtch.sentFiveMinWarning:
+            elif mtch.getTimeLeft() <= 300 and not mtch.sentFiveMinWarning and not mtch.stopTimer:
                     task = threading.Thread( target=self._launch_match_warning, args=(f'{mtch.role.mention}, you have five minutes left in your match.',) )
                     task.start( )
                     mtch.sentFiveMinWarning = True
@@ -435,14 +435,12 @@ class tournament:
             
             newMatch.VC    = await matchCategory.create_voice_channel( name=game_name, overwrites=overwrites ) 
             newMatch.role  = matchRole
-            newMatch.timer = threading.Thread( target=self.matchTimer, args=(newMatch,) )
-            newMatch.timer.start( )
-            newMatch.saveXML()
+            newMatch.timer = threading.Thread( target=self._matchTimer, args=(newMatch,) )
             
             message = f'\n{matchRole.mention} of {self.name}, you have been paired. A voice channel has been created for you. Below is information about your opponents.\n'
             embed   = discord.Embed( )
             
-            if(self.triceBotEnabled):                        
+            if self.triceBotEnabled:
                 #Try to create the game
                 creation_success: bool = False
                 replay_download_link: str = ""
@@ -454,7 +452,7 @@ class tournament:
                 
                 #Try up to three times
                 while not creation_success and tries < max_tries:
-                    game_made = trice_bot.createGame(game_name, game_password, len(a_plyrs), self.spectators_allowed, self.spectators_need_password, self.spectators_can_chat, self.spectators_can_see_hands, self.only_registered)
+                    game_made = trice_bot.createGame(game_name, game_password, len(plyrs), self.spectators_allowed, self.spectators_need_password, self.spectators_can_chat, self.spectators_can_see_hands, self.only_registered)
                     
                     creation_success = game_made.success
                     replay_download_link = trice_bot.getDownloadLink(game_made.replayName)

@@ -30,23 +30,15 @@ async def createTournament( ctx, tournName = None, tournType = None, triceBotEna
         return
     
     triceBotFlag = False
-    triceBotEnabledIn = triceBotEnabledIn.lower()
-    if triceBotEnabledIn is None:
+    if not triceBotEnabledIn is None:
+        triceBotEnabledIn = triceBotEnabledIn.lower()
         if triceBotEnabledIn == "true":
             triceBotFlag = True
         elif triceBotEnabledIn == "false":
             triceBotFlag = False
         else:
-            await ctx.send( f'{ctx.message.author.mention}, Please enter either true or false for the tricebot toggle. i.e: !create-tournament "Tournament with trice bot" "true"' )
+            await ctx.send( f'{ctx.message.author.mention}, please enter either true or false for the tricebot toggle.' )
             return 
-    
-    await ctx.message.guild.create_role( name=f'{tourn} Player' )
-    tournaments[tourn] = tournament( tourn, ctx.message.guild.name, trice_enabled = triceBotFlag )
-    tournaments[tourn].saveLocation = f'currentTournaments/{tourn}/'
-    tournaments[tourn].addDiscordGuild( ctx.message.guild )
-    tournaments[tourn].loop = bot.loop
-    tournaments[tourn].saveTournament( f'currentTournaments/{tourn}' )
-    await ctx.send( f'{adminMention}, a new tournament called "{tourn}" has been created by {ctx.message.author.mention}.' )
     
     newTourn = getTournamentType( tournType, tournName, ctx.guild.name )
     if newTourn is None:
@@ -61,8 +53,8 @@ async def createTournament( ctx, tournName = None, tournType = None, triceBotEna
     tournaments[tournName] = newTourn
     await ctx.send( f'{adminMention}, a new tournament called "{tournName}" has been created by {ctx.message.author.mention}.' )
     
-    if (triceBotFlag):
-        await ctx.send( f'{adminMention}, tricebot has been enabled for "{tourn}" by {ctx.message.author.mention}. It is using the default settings (spectators are allowed, do not need a password, cannot chat, cannot see hands and, players must be registered).' )
+    if triceBotFlag:
+        await ctx.send( f'{adminMention}, tricebot has been enabled for "{tournName}" by {ctx.message.author.mention}. It is using the default settings (spectators are allowed, do not need a password, cannot chat, cannot see hands and, players must be registered).' )
 
 commandSnippets["update-tricebot"] = "- update-tricebot : Updates whether tricebot is enabled for a tounament" 
 commandCategories["management"].append("update-tricebot")

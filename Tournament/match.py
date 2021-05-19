@@ -55,16 +55,14 @@ class match:
         self.startTime = getTime( )        
         self.endTime   = ""
         
-<<<<<<< HEAD
         # Only changed if it is a trice match
         self.triceMatch = False
         self.gameID = -1
         self.replayURL = ""
-=======
+        
         self.sentOneMinWarning  = False
         self.sentFiveMinWarning = False
         self.sentFinalWarning   = False
->>>>>>> 0e869ac... Matches track information about their timers
         
         self.stopTimer = False
     
