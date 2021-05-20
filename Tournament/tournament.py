@@ -239,9 +239,9 @@ class tournament:
         self.players[plyr].saveXML( )
         deckHash = self.players[plyr].decks[deckName].deckHash
         if admin:
-            self.players[plyr].discordUser.send( content = f'A decklist has been submitted for {tourn} on your behalf. The name of the deck is "{ident}" and the deck hash is "{deckHash}". Use the command "!decklist {ident}" to see the list. Please contact tournament staff if there is an error.' ) 
+            self.players[plyr].discordUser.send( content = f'A decklist has been submitted for {tourn} on your behalf. The name of the deck is "{deckName}" and the deck hash is "{deckHash}". Use the command "!decklist {deckName}" to see the list. Please contact tournament staff if there is an error.' ) 
             return f'you have submitted a decklist for {plyr}. The deck hash is {deckHash}.'
-        return f'your deck has been successfully registered in {self.name}. Your deck name is "{deckName}", and the deck hash is "{deckHash}". Make sure it matches your deck hash in Cockatrice. You can see your decklist by using !decklist "{ident}" or !decklist {deckHash}.'
+        return f'your deck has been successfully registered in {self.name}. Your deck name is "{deckName}", and the deck hash is "{deckHash}". Make sure it matches your deck hash in Cockatrice. You can see your decklist by using !decklist "{deckName}" or !decklist {deckHash}.'
         
     
     # ---------------- Tournament Status ---------------- 

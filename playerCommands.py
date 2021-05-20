@@ -163,7 +163,8 @@ async def submitDecklist( ctx, tourn = "", ident = "" ):
     message = ""
     try:
         message = tournaments[tourn].addDeck( ctx.message.author.id, ident, decklist )
-    except:
+    except Exception as e:
+        print(e) #Print the stacktrace for debugging
         await ctx.send( f'{ctx.message.author.mention}, there was an error while processing your deck list. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
         return
     await ctx.send( f'{ctx.message.author.mention}, {message}' )

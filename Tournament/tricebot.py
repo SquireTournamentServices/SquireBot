@@ -1,7 +1,7 @@
 import requests
 
 class GameMade:
-    def __init__(self, success: str, gameID: int, replayName: str):
+    def __init__(self, success: bool, gameID: int, replayName: str):
         self.success = success
         self.gameID = gameID
         self.replayName = replayName
@@ -34,7 +34,7 @@ class TriceBot:
     def kickPlayer(self, gameID: int, name: str) -> int:
         body  = f'authtoken={self.authToken}\n'
         body += f'gameid={gameID}\n'
-        body += f'target{name}'        
+        body += f'target={name}'        
         
         try:
             message = self.req("api/kickplayer", body)   
@@ -63,15 +63,15 @@ class TriceBot:
         body += f'password={password}\n'
         body += f'playerCount={playercount}\n'
         
-        body += "spectatorsAllowed={int(spectatorsallowed)}\n"
+        body += f'spectatorsAllowed={int(spectatorsallowed)}\n'
             
-        body += "spectatorsNeedPassword={int(spectatorsneedpassword)}\n"
+        body += f'spectatorsNeedPassword={int(spectatorsneedpassword)}\n'
         
-        body += "spectatorsCanChat={int(spectatorscanchat)}\n"
+        body += f'spectatorsCanChat={int(spectatorscanchat)}\n'
         
-        body += "spectatorsCanSeeHands={int(spectatorscanseehands}\n"
+        body += f'spectatorsCanSeeHands={int(spectatorscanseehands)}\n'
         
-        body += "onlyRegistered={int(onlyregistered)}"
+        body += f'onlyRegistered={int(onlyregistered)}'
             
         try:
             message = self.req("api/creategame", body)   
@@ -99,7 +99,11 @@ class TriceBot:
             #Check length
             if len(parts) >= 2 :            
                 tag = parts[0]
-                value = parts[1] + "".join( f'{p}=' for p in parts[1:] )
+                value = ""
+                for i in range(1, len(parts)):
+                    value += parts[i]
+                    if i != len(parts) - 1:
+                        value += "="
                     
                 if tag == "gameid":
                     #There has to be a better way to do this
@@ -115,8 +119,5 @@ class TriceBot:
         
         #Check if there was an error
         success = (gameID != -1) and (replayName != "")
+        print(success)
         return GameMade(success, gameID, replayName)
-
-
-
-
