@@ -248,20 +248,16 @@ def isFolderSafe(name: str) -> bool:
         return False
     return True
 
-def findPlayer( a_guild: discord.Guild, a_tourn: str, a_memberName: str ):
+def findPlayer( a_guild: discord.Guild, a_tourn: str, a_memberName: str ) -> discord.Member:
     role = discord.utils.get( a_guild.roles, name=f'{a_tourn} Player' )
     if type( role ) != discord.Role:
-        return ""
+        return None
     for member in role.members:
         if member.display_name == a_memberName:
             return member
-        if member.mention == a_memberName:
+        if str(member.id) == discordID_from_mention(a_memberName):
             return member
-        if f'<@!{member.id}>' == a_memberName:
-            return member
-        if f'<@{member.id}>' == a_memberName:
-            return member
-    return ""
+    return None
 
 def findPlayerTourns( plyr: str, guild_name: str = "" ) -> List[str]: 
     digest = [ ]

@@ -18,7 +18,7 @@ async def createTournament( ctx, tournName = None, tournType = None, *args ):
     if not await isTournamentAdmin( ctx ): return
     
     tournProps = generateTournProps( *args )
-    if len(tournProps) != "".join(args).count("="):
+    if len(tournProps) != "".join(args).count("=") or len(tournProps) == 0:
         print( tournProps )
         await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
         return
@@ -61,42 +61,35 @@ async def createTournament( ctx, tournName = None, tournType = None, *args ):
     if triceBotFlag:
         await ctx.send( f'{adminMention}, tricebot has been enabled for "{tournName}" by {ctx.message.author.mention}. It is using the default settings (spectators are allowed, do not need a password, cannot chat, cannot see hands and, players must be registered).' )
 
-commandSnippets["update-tricebot"] = "- update-tricebot : Updates whether tricebot is enabled for a tounament" 
-commandCategories["management"].append("update-tricebot")
-@bot.command(name='update-tricebot')
-async def enableTriceBot( ctx, tourn = "", value = "" ):  
-    tourn = tourn.strip()
-    value = value.strip()
-    
-    if await isPrivateMessage( ctx ): return
 
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
+commandSnippets["update-properties"] = "- update-properties : Sets the number of players needed for a match" 
+commandCategories["properties"].append("update-properties")
+@bot.command(name='update-properties')
+async def updateTournProperties( ctx, tournName = None, *args ):
+    mention = ctx.message.author.mention
+    if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
-    if tourn == "":
-        await ctx.send( f'{ctx.message.author.mention}, you need to specify what you want the tournament to be called.' )
+    if tournName is None:
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a number of players for a match.' )
         return
-    
-    value = str_to_bool(value)
-    if (tournaments[tourn].triceBotEnabled and value):
-        await ctx.send( f'{ctx.message.author.mention}, tricebot is already enabled.' )
-        return
-    
-    if (not tournaments[tourn].triceBotEnabled and not value):
-        await ctx.send( f'{ctx.message.author.mention}, tricebot is already disabled.' )
-        return
-    
-    tournaments[tourn].triceBotEnabled = value
-    tournaments[tourn].saveOverview( ) 
-    
-    if (value):
-        await ctx.send( f'{adminMention}, tricebot has been enabled for "{tourn}" by {ctx.message.author.mention}.' )
-    else:
-        await ctx.send( f'{adminMention}, tricebot has been disabled for "{tourn}" by {ctx.message.author.mention}.' )
 
+    if not await checkTournExists( tournName, ctx ): return
+    if not await correctGuild( tournName, ctx ): return
+    if await isTournDead( tournName, ctx ): return
     
+    tournProps = generateTournProps( *args )
+    if len(tournProps) != "".join(args).count("=") or len(tournProps) == 0:
+        print( tournProps )
+        await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
+        return
+
+    message = tournaments[tournName].setProperties( tournProps )
+    tournaments[tournName].saveOverview( )
+    await ctx.send( f'{adminMention}, {mention} has updated the properties of {tournName}.\n{message}' )
+
+
 commandSnippets["tricebot-status"] = "- tricebot-status : Displays the status of tricebot for a tournament" 
 commandCategories["management"].append("tricebot-status")
 @bot.command(name='tricebot-status')
@@ -125,69 +118,6 @@ async def triceBotStatus( ctx, tourn = "" ):
     else:
         await ctx.send( f'{adminMention}, tricebot is not enabled for "{tourn}.' )
 
-commandSnippets["change-tricebot"] = "- change-tricebot : Changes tricebot settings for a tournament."
-commandCategories["management"].append("change-tricebot")
-@bot.command(name='change-tricebot')
-async def triceBotStatus( ctx, tourn = "", verb = "", value = "" ):  
-    tourn = tourn.strip()
-    
-    if await isPrivateMessage( ctx ): return
-
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-
-    adminMention = getTournamentAdminMention( ctx.message.guild )
-    if not await isTournamentAdmin( ctx ): return
-    if tourn == "":
-        await ctx.send( f'{ctx.message.author.mention}, you need to specify what you want the tournament to be called.' )
-        return
-    
-    verb = verb.strip().lower()
-    value = value.strip().lower()
-    
-    usage =  """Usage: !change-tricebot <VERB> <VALUE>
-Verbs:
-```
- spectators-allowed
- spectators-need-password
- spectators-can-chat
- spectators-can-see-hands
- only-registered
-```
-All values are true/false.
-i.e: `!change-tricebot tournament spectators-allowed true`"""
-    if (verb == "" or value == ""):
-        await ctx.send( f'{ctx.message.author.mention}, Incorrect command usage.  {usage}.' )
-        return
-    
-    value_bool: bool = str_to_bool(value)
-    original_value: bool = False
-    if verb == "spectators-allowed":
-        original_value = tournaments[tourn].spectators_allowed
-        tournaments[tourn].spectators_allowed = value_bool
-        
-    elif verb == "spectators-need-password":
-        original_value = tournaments[tourn].spectators_need_password
-        tournaments[tourn].spectators_need_password = value_bool
-        
-    elif verb == "spectators-can-chat":
-        original_value = tournaments[tourn].spectators_can_chat
-        tournaments[tourn].spectators_can_chat = value_bool
-        
-    elif verb == "spectators-can-see-hands":
-        original_value = tournaments[tourn].spectators_can_see_hands
-        tournaments[tourn].spectators_can_see_hands = value_bool
-        
-    elif verb == "only-registered":
-        original_value = tournaments[tourn].only_registered
-        tournaments[tourn].only_registered = value_bool
-    
-    else:
-        await ctx.send( f'{ctx.message.author.mention}, Incorrect command usage.  {usage}.' )
-        return
-    
-    await ctx.send( f'{adminMention}, the tricebot setting {verb} was changed to {value_bool} from {original_value} by {ctx.message.author.mention}.' )     
-    tournaments[tourn].saveOverview( )
     
 commandSnippets["update-reg"] = "- update-reg : Opens or closes registration" 
 commandCategories["management"].append("update-reg")
@@ -283,26 +213,6 @@ async def cancelTournament( ctx, tourn = None ):
     await ctx.send( f'{adminMention}, in order to cancel {tourn}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to cancel {tourn} (!yes/!no)?' )
 
 
-commandSnippets["set-deck-count"] = "- set-deck-count : Sets the number of decks a player can have after pruning" 
-commandCategories["properties"].append("set-deck-count")
-@bot.command(name='set-deck-count')
-async def setDeckCount( ctx, tourn = None, count = None ):
-    if await isPrivateMessage( ctx ): return
-
-    adminMention = getTournamentAdminMention( ctx.message.guild )
-    if not await isTournamentAdmin( ctx ): return
-    if tourn is None or count is None :
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a max number of decks.' )
-        return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
-    
-    tournaments[tourn].deckCount = int( count )
-    tournaments[tourn].saveOverview( )
-    await ctx.send( f'{adminMention}, the deck count for tournament called "{tourn}" has been changed to {count} by {ctx.message.author.mention}.' )
-
-
 commandSnippets["prune-decks"] = "- prune-decks : Removes decks from players until they have the max number" 
 commandCategories["day-of"].append("prune-decks")
 @bot.command(name='prune-decks')
@@ -366,7 +276,7 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
         return
         
     members = [ findPlayer( ctx.guild, tourn, plyr ) for plyr in plyrs ]
-    if "" in members:
+    if None in members:
         await ctx.send( f'{ctx.message.author.mention}, at least one of the members that you specified is not a part of the tournament. Verify that they have the "{tourn} Player" role.' )
         return
     
@@ -523,58 +433,6 @@ async def pairingsThreshold( ctx, tourn = None, num = None ):
     tournaments[tourn].updatePairingsThreshold( num )
     tournaments[tourn].saveOverview( )
     await ctx.send( f'{adminMention}, the pairings threshold for {tourn} was changed to {num} by {ctx.message.author.mention}.' )
-
-
-commandSnippets["set-match-size"] = "- set-match-size : Sets the number of players needed for a match" 
-commandCategories["properties"].append("set-match-size")
-@bot.command(name='set-match-size')
-async def playersPerMatch( ctx, tourn = None, num = None ):
-    if await isPrivateMessage( ctx ): return
-
-    adminMention = getTournamentAdminMention( ctx.message.guild )
-    if not await isTournamentAdmin( ctx ): return
-    if tourn is None or num is None:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a number of players for a match.' )
-        return
-    try:
-        num = int(num)
-    except:
-        await ctx.send( f'{ctx.message.author.mention}, "{num}" could not be converted to a number. Please make sure you only use digits.' )
-        return
-
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
-    
-    tournaments[tourn].playersPerMatch = num
-    tournaments[tourn].saveOverview( )
-    await ctx.send( f'{adminMention}, the number of players per match for {tourn} was changed to {num} by {ctx.message.author.mention}.' )
-
-
-commandSnippets["set-match-length"] = "- set-match-length : Sets the amount of time for a match (in minutes)" 
-commandCategories["properties"].append("set-match-length")
-@bot.command(name='set-match-length')
-async def setMatchLength( ctx, tourn = None, num = None ):
-    if await isPrivateMessage( ctx ): return
-
-    adminMention = getTournamentAdminMention( ctx.message.guild )
-    if not await isTournamentAdmin( ctx ): return
-    if tourn is None or num is None:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a length in minutes.' )
-        return
-    try:
-        num = int(num)
-    except:
-        await ctx.send( f'{ctx.message.author.mention}, "{num}" could not be converted to a number. Please make sure you only use digits.' )
-        return
-
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
-    
-    tournaments[tourn].matchLength = num*60
-    tournaments[tourn].saveOverview( )
-    await ctx.send( f'{adminMention}, the length of a match for {tourn} was changed to {num} minutes by {ctx.message.author.mention}.' )
 
 
 commandSnippets["admin-drop"] = "- admin-drop : Removes a player for a tournament" 

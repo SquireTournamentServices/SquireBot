@@ -1,5 +1,6 @@
 import string
 import discord
+import re
 
 from datetime import datetime
 
@@ -22,9 +23,11 @@ def number_to_base(n: int, b: int) -> int:
 
 def str_to_bool( s: str ) -> bool:
     s = s.lower()
-    if s == "t" or s == "true":
+    if s == "t" or s == "true" or s == "1":
         return True
-    return False
+    elif s == "f" or s == "false" or s == "0":
+        return False
+    return None
 
 def trunk( score ) -> str:
     if type(score) != str:
@@ -64,10 +67,12 @@ def getJudgeRole( a_guild: discord.Guild ):
     return digest
 
 
+def discordID_from_mention( s: str ) -> str:
+    return re.sub( "[^0-9]", "", s )
 
 # A list of universe tournament properties
 # This will be expanded on by each tournament class similar to how the command snippets work
-tournamentProperties = [ "format", "match-length", "match-size",
+tournamentProperties = [ "format", "deck-count", "match-length", "match-size", "pairings-channel",
                          "tricebot-enabled", "spectators-allowed", "spectators-need-password",
                          "spectators-can-chat", "spectators-can-see-hands", "only-registered"  ]
 
@@ -75,11 +80,11 @@ tournamentProperties = [ "format", "match-length", "match-size",
 # The keys of the dict are tournament properties (other key/value pairs are discarded)
 # The delimiter between properties and values is an equal sign.
 #   - example input: match-size= 1 hello = foo bar tricebot-enabled = true Format =EDH
-#             output: { "match-size": "1", tricebot-enabled: "true", "format": "EDH"}
+#             output: { "match-size": "1", "tricebot-enabled": "true", "format": "EDH"}
 def generateTournProps( *args ):
-    args = [ segment.strip().lower() for segment in " ".join(args).split("=") ]
+    args: list = [ segment.strip().lower() for segment in " ".join(args).split("=") ]
     digest: dict = { }
-    pastSegement = [ args[0] ]
+    pastSegement: list = [ args[0] ]
     for i in range(1,len(args)):
         segment = args[i].rsplit( " " )
         digest[pastSegement[-1].strip()] = segment[0].strip()

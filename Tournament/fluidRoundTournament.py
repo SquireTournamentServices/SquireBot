@@ -30,11 +30,12 @@ class fluidRoundTournament(tournament):
         
         self.saveLocation = f'currentTournaments/{self.name}'
 
-        self.guild   = ""
+        self.guild   = None
         self.guildID = ""
-        self.role    = ""
+        self.role    = None
         self.roleID  = ""
-        self.pairingsChannel = ""
+        self.pairingsChannel = None
+        self.pairingsChannelID = ""
         
         self.regOpen      = True
         self.tournStarted = False
@@ -261,13 +262,19 @@ class fluidRoundTournament(tournament):
         digest += '<tournament>\n'
         digest += f'\t<name>{self.name}</name>\n'
         digest += f'\t<guild id="{self.guild.id if type(self.guild) == discord.Guild else str()}">{self.hostGuildName}</guild>\n'
-        print( type(self.role) )
         digest += f'\t<role id="{self.role.id if type(self.role) == discord.Role else str()}"/>\n'
+        digest += f'\t<pairingsChannel id="{self.pairingsChannelID}">\n'
         digest += f'\t<format>{self.format}</format>\n'
         digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
         digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
         digest += f'\t<deckCount>{self.deckCount}</deckCount>\n'
         digest += f'\t<matchLength>{self.matchLength}</matchLength>\n'
+        digest += f'\t<triceBotEnabled>{self.triceBotEnabled}</triceBotEnabled>\n'
+        digest += f'\t<spectatorsAllowed>{self.spectators_allowed}</spectatorsAllowed>\n'
+        digest += f'\t<spectatorsNeedPassword>{self.spectators_need_password}</spectatorsNeedPassword>\n'
+        digest += f'\t<spectatorsCanChat>{self.spectators_can_chat}</spectatorsCanChat>\n'
+        digest += f'\t<spectatorsCanSeeHands>{self.spectators_can_see_hands}</spectatorsCanSeeHands>\n'
+        digest += f'\t<onlyRegistered>{self.only_registered}</onlyRegistered>\n'
         digest += f'\t<queue size="{self.playersPerMatch}" threshold="{self.pairingsThreshold}">\n'
         for level in range(len(self.queue)):
             for plyr in self.queue[level]:
@@ -288,6 +295,8 @@ class fluidRoundTournament(tournament):
         self.name = fromXML(tournRoot.find( 'name' ).text)
         self.guildID   = int( fromXML(tournRoot.find( 'guild' ).attrib["id"]) )
         self.roleID    = int( fromXML(tournRoot.find( 'role' ).attrib["id"]) )
+        self.pairingsChannelID = int( fromXML(tournRoot.find( 'pairingsChannel' ).attrib["id"]) )
+
         self.format    = fromXML(tournRoot.find( 'format' ).text)
         self.deckCount = int( fromXML(tournRoot.find( 'deckCount' ).text) )
 
@@ -299,6 +308,13 @@ class fluidRoundTournament(tournament):
         self.playersPerMatch = int( fromXML(tournRoot.find( 'queue' ).attrib['size'] ))
         self.pairingsThreshold = int( fromXML(tournRoot.find( 'queue' ).attrib['threshold'] ))
         self.matchLength     = int( fromXML(tournRoot.find( 'matchLength' ).text ))
+        
+        self.triceBotEnabled = str_to_bool( fromXML(tournRoot.find( "triceBotEnabled" ) ) )
+        self.spectators_allowed = str_to_bool( fromXML(tournRoot.find( "spectatorsAllowed" ) ) )
+        self.spectators_need_password = str_to_bool( fromXML(tournRoot.find( "spectatorsNeedPassword" ) ) )
+        self.spectators_can_chat = str_to_bool( fromXML(tournRoot.find( "spectatorsCanChat" ) ) )
+        self.spectators_can_see_hands = str_to_bool( fromXML(tournRoot.find( "spectatorsCanSeeHands" ) ) )
+        self.only_registered = str_to_bool( fromXML(tournRoot.find( "onlyRegistered" ) ) )
         
         acts    = tournRoot.find( 'queueActivity' ).findall( 'event' )
         for act in acts:

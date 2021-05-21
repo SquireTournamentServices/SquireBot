@@ -27,7 +27,7 @@ async def adminAddPlayer( ctx, tourn = "", plyr = "" ):
     if await isTournDead( tourn, ctx ): return
     
     member = findGuildMember( ctx.guild, plyr )
-    if member == "":
+    if member is None:
         await ctx.send( f'{ctx.message.author.mention}, there is not a member of this server whose name nor mention is "{plyr}".' )
         return
     
@@ -59,7 +59,7 @@ async def adminAddDeck( ctx, tourn = "", plyr = "", ident = "" ):
     if await isTournDead( tourn, ctx ): return
     
     member = findPlayer( ctx.guild, tourn, plyr )
-    if member == "":
+    if member is None:
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
         return
     
@@ -104,7 +104,7 @@ async def adminRemoveDeck( ctx, tourn = "", plyr = "", ident = "" ):
     if await isTournDead( tourn, ctx ): return
     
     member = findPlayer( ctx.guild, tourn, plyr )
-    if member == "":
+    if member is None:
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
         return
 
@@ -173,7 +173,7 @@ async def adminPlayerProfile( ctx, tourn = "", plyr = "" ):
     if await isTournDead( tourn, ctx ): return
     
     member = findPlayer( ctx.guild, tourn, plyr )
-    if member == "":
+    if member is None:
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role "{tourn} Player". Please verify that they have registered.' )
         return
 
@@ -204,7 +204,7 @@ async def adminMatchResult( ctx, tourn = "", plyr = "", mtch = "", result = "" )
     if await isTournDead( tourn, ctx ): return
     
     member = findPlayer( ctx.guild, tourn, plyr )
-    if member == "":
+    if member is None:
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role "{tourn} Player". Please verify that they have registered.' )
         return
     
@@ -251,7 +251,7 @@ async def adminConfirmResult( ctx, tourn = "", plyr = "", mtch = "" ):
     if await isTournDead( tourn, ctx ): return
     
     member = findPlayer( ctx.guild, tourn, plyr )
-    if member == "":
+    if member is None:
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role "{tourn} Player". Please verify that they have registered.' )
         return
     
@@ -356,7 +356,7 @@ async def adminPrintDecklist( ctx, tourn = "", plyr = "", ident = "" ):
     if await isTournDead( tourn, ctx ): return
     
     member = findPlayer( ctx.guild, tourn, plyr )
-    if member == "":
+    if member is None:
         await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
         return
 
