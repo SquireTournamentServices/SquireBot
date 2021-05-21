@@ -532,7 +532,6 @@ class tournament:
             if len(matchCategory.channels) >= 50:
                 matchCategory = category=discord.utils.get( self.guild.categories, name="More Matches" ) 
                 
-            #Save replay into a folder on the bot end
             game_name: str = f'{self.name} Match {newMatch.matchNumber}'
             
             newMatch.VC    = await matchCategory.create_voice_channel( name=game_name, overwrites=overwrites ) 
@@ -543,6 +542,9 @@ class tournament:
             embed   = discord.Embed( )
             
             if self.triceBotEnabled:
+                #This causes the replay to get saved into a folder
+                game_name: str = f'{self.name}/Match {newMatch.matchNumber}'
+                
                 #Try to create the game
                 creation_success: bool = False
                 replay_download_link: str = ""
@@ -559,7 +561,7 @@ class tournament:
                     creation_success = game_made.success
                     replay_download_link = trice_bot.getDownloadLink(game_made.replayName)
                     game_id = game_made.gameID
-                    tries+=1
+                    tries += 1
                     
                 if creation_success:
                     #Game was made
