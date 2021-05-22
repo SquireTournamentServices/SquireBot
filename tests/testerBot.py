@@ -15,44 +15,45 @@ SquireBotID = int(os.getenv('SquireBotID'))
 PrototypeBotID = int(os.getenv('PrototypeBotID'))
 botIDs = [ SquireBotID, PrototypeBotID ]
 
-testFiles = [ f'tests/{f}' for f in os.listdir( "tests" ) if os.path.isfile( f'tests/{f}' ) ]
+testFiles = [ f'testCases/{f}' for f in os.listdir( "testCases" ) if os.path.isfile( f'testCases/{f}' ) ]
 tests = [ ]
 for testFile in testFiles:
     with open( testFile ) as testData:
-        tests.append( testData.strip().split("\n") )
+        tests.append( [ f'!{cmd.strip()}' for cmd in testData.read().strip().split("!")[1:] ] )
 
-currentTest    = 0
-currentCommand = 0
+position = [ 0, 0 ]
+status = [False, False]
 
-finished = False
-
-async def sendCommand( ctx ) -> None:
-    if finished:
+async def sendCommand( msg ) -> None:
+    if status[1] or not status[0]:
         return None
-    ctx.send( content=tests[currentTest][currentCommand] )
-    currentCommand += 1
-    if currentCommand == len(tests[currentTest]):
-        currentCommand = 0
-        currentTest += 1
-        if currentTest == len(tests):
-            finished = True
-    
+    await msg.channel.send( content=tests[position[1]][position[0]] )
+    position[0] += 1
+    if position[0] == len(tests[position[1]]):
+        await msg.channel.send( "Moving on to the next test" )
+        position[0] = 0
+        position[1] += 1
+        if position[1] == len(tests):
+            await msg.channel.send( "Last test command sent" )
+            status[1] = True
 
-intents = discord.Intents.all()
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix='!')
 
 
 @bot.event
-async def on_message():
-    if message.author.id in botIDs:
-        sendCommand( ctx )
-        
+async def on_ready( ):
+    print( f'Ready to run {len(tests)} test{"" if len(tests) == 1 else "s"}' )
 
-bot.remove_command( "run-tests" )
-@bot.command(name='run-tests')
-async def printHelp( ctx ):
-    sendCommand( ctx )
-    return
+@bot.event
+async def on_message( msg ):
+    if msg.author == bot.user:
+        return
+    if msg.content.strip() == "!run-tests":
+        print( "Starting tests..." )
+        status[0] = True
+        await sendCommand( msg )
+    elif msg.author.id in botIDs:
+        await sendCommand( msg )
 
 
 bot.run(TOKEN)

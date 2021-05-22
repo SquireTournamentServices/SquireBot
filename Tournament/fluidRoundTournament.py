@@ -263,7 +263,7 @@ class fluidRoundTournament(tournament):
         digest += f'\t<name>{self.name}</name>\n'
         digest += f'\t<guild id="{self.guild.id if type(self.guild) == discord.Guild else str()}">{self.hostGuildName}</guild>\n'
         digest += f'\t<role id="{self.role.id if type(self.role) == discord.Role else str()}"/>\n'
-        digest += f'\t<pairingsChannel id="{self.pairingsChannelID}">\n'
+        digest += f'\t<pairingsChannel id="{self.pairingsChannelID}"/>\n'
         digest += f'\t<format>{self.format}</format>\n'
         digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
         digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
