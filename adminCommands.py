@@ -18,7 +18,7 @@ async def createTournament( ctx, tournName = None, tournType = None, *args ):
     if not await isTournamentAdmin( ctx ): return
     
     tournProps = generateTournProps( *args )
-    if len(tournProps) != "".join(args).count("=") or len(tournProps) == 0:
+    if len(tournProps) != "".join(args).count("="):
         print( tournProps )
         await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
         return
@@ -62,7 +62,7 @@ async def createTournament( ctx, tournName = None, tournType = None, *args ):
         await ctx.send( f'{adminMention}, tricebot has been enabled for "{tournName}" by {ctx.message.author.mention}. It is using the default settings (spectators are allowed, do not need a password, cannot chat, cannot see hands and, players must be registered).' )
 
 
-commandSnippets["update-properties"] = "- update-properties : Sets the number of players needed for a match" 
+commandSnippets["update-properties"] = "- update-properties : Changes the properties of a tournament." 
 commandCategories["properties"].append("update-properties")
 @bot.command(name='update-properties')
 async def updateTournProperties( ctx, tournName = None, *args ):

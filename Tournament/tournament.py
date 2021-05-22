@@ -132,27 +132,36 @@ class tournament:
         failures  = [ ]
         undefined = [  ]
         for prop in props:
-            if prop == "format":
+            # This flag is True if the value is a number and greater than 0
+            isValidNumber = props[prop].isnumeric
+            if isValidNumber:
+                number = int(props[prop])
+                isValidNumber = number > 0
+                
+            # Check for empty strings
+            if props[prop] == "":                
+                successes.append( prop )
+            elif prop == "format":
                 # Not really sure what TODO here
                 self.format = props[prop]
                 successes.append( prop )
             elif prop == "deck-count":
-                if props[prop].isnumeric:
-                    self.deckCount = int(props[prop])
+                if isValidNumber:
+                    self.deckCount = number
                     successes.append( prop )
                 else:
                     failures.append( prop )
             elif prop == "match-length":
                 # The length of a match needs to be an int
-                if props[prop].isnumeric():
-                    self.matchLength = int(props[prop])*60
+                if isValidNumber:
+                    self.matchLength = number * 60
                     successes.append( prop )
                 else:
                     failures.append( prop )
             elif prop == "match-size":
                 # The number of people in a match needs to be an int
-                if props[prop].isnumeric():
-                    self.matchSize = int(props[prop])
+                if isValidNumber:
+                    self.matchSize = number
                     successes.append( prop )
                 else:
                     failures.append( prop )
@@ -238,6 +247,7 @@ class tournament:
                 return mtch
     
     # ---------------- Misc ---------------- 
+    
     def getStandings( self ) -> List[List]:
         rough = [ ]
         for plyr in self.players.values():
