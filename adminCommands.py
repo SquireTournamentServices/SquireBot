@@ -35,14 +35,10 @@ async def createTournament( ctx, tournName = None, tournType = None, *args ):
         await ctx.send( f'{mention}, there is already a tournament call {tournName} either on this server or another. Pick a different name.' )
         return
     
-    triceBotFlag = False
     if "tricebot-enabled" in tournProps:
-        if tournProps["tricebot-enabled"] == "true":
-            tournProps["tricebot-enabled"] = True
-        elif tournProps["tricebot-enabled"] == "false":
-            tournProps["tricebot-enabled"] = False
-        else:
-            await ctx.send( f'{ctx.message.author.mention}, please enter either true or false for the tricebot toggle.' )
+        tournProps["tricebot-enabled"] = str_to_bool( tournProps["tricebot-enabled"] )
+        if tournProps["tricebot-enabled"] is None:
+            await ctx.send( f'{mention}, please enter either true or false for the tricebot toggle.' )
             return 
     
     newTourn = getTournamentType( tournType, tournName, ctx.guild.name, tournProps )
@@ -56,10 +52,11 @@ async def createTournament( ctx, tournName = None, tournType = None, *args ):
     newTourn.loop = bot.loop
     newTourn.saveTournament( f'currentTournaments/{tournName}' )
     tournaments[tournName] = newTourn
-    await ctx.send( f'{adminMention}, a new tournament called "{tournName}" has been created by {ctx.message.author.mention}.' )
+    await ctx.send( f'{adminMention}, a new tournament called "{tournName}" has been created by {mention}.' )
     
-    if triceBotFlag:
-        await ctx.send( f'{adminMention}, tricebot has been enabled for "{tournName}" by {ctx.message.author.mention}. It is using the default settings (spectators are allowed, do not need a password, cannot chat, cannot see hands and, players must be registered).' )
+    # Was tricebot specified and was it specified to be True?
+    if "tricebot-enabled" in tournProps and tournProps["tricebot-enabled"]:
+        await ctx.send( f'{adminMention}, tricebot has been enabled for "{tournName}" by {mention}. It is using the default settings (spectators are allowed, do not need a password, cannot chat, cannot see hands and, players must be registered).' )
 
 
 commandSnippets["update-properties"] = "- update-properties : Changes the properties of a tournament." 
@@ -94,6 +91,7 @@ commandSnippets["tricebot-status"] = "- tricebot-status : Displays the status of
 commandCategories["management"].append("tricebot-status")
 @bot.command(name='tricebot-status')
 async def triceBotStatus( ctx, tourn = "" ):  
+    mention = ctx.message.author.mention
     tourn = tourn.strip()
     
     if await isPrivateMessage( ctx ): return
@@ -104,7 +102,7 @@ async def triceBotStatus( ctx, tourn = "" ):
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn == "":
-        await ctx.send( f'{ctx.message.author.mention}, you need to specify what you want the tournament to be called.' )
+        await ctx.send( f'{mention}, you need to specify what you want the tournament to be called.' )
         return
         
     if (tournaments[tourn].triceBotEnabled):  
@@ -123,12 +121,13 @@ commandSnippets["update-reg"] = "- update-reg : Opens or closes registration"
 commandCategories["management"].append("update-reg")
 @bot.command(name='update-reg')
 async def updateReg( ctx, tourn = None, status = None ):
+    mention = ctx.message.author.mention
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None or status is None:
-        await ctx.send( f'{ctx.message.author.mention}, it appears that you did not give enough information. You need to first state the tournament name and then "true" or "false".' )
+        await ctx.send( f'{mention}, it appears that you did not give enough information. You need to first state the tournament name and then "true" or "false".' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
@@ -138,68 +137,71 @@ async def updateReg( ctx, tourn = None, status = None ):
 
     tournaments[tourn].setRegStatus( str_to_bool(status) )
     tournaments[tourn].saveOverview( )
-    await ctx.send( f'{adminMention}, registration for the "{tourn}" tournament has been {("opened" if str_to_bool(status) else "closed")} by {ctx.message.author.mention}.' ) 
+    await ctx.send( f'{adminMention}, registration for the "{tourn}" tournament has been {("opened" if str_to_bool(status) else "closed")} by {mention}.' ) 
 
 
 commandSnippets["start-tournament"] = "- start-tournament : Starts the tournament, which closes registration and let's players LFG" 
 commandCategories["management"].append("start-tournament")
 @bot.command(name='start-tournament')
 async def startTournament( ctx, tourn = None ):
+    mention = ctx.message.author.mention
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None:
-        await ctx.send( f'{ctx.message.author.mention}, you need to specify what tournament you want to start.' )
+        await ctx.send( f'{mention}, you need to specify what tournament you want to start.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
     if tournaments[tourn].tournStarted:
-        await ctx.send( f'{ctx.message.author.mention}, {tourn} has already been started.' )
+        await ctx.send( f'{mention}, {tourn} has already been started.' )
         return
 
     tournaments[tourn].startTourn()
     tournaments[tourn].saveOverview( )
-    await ctx.send( f'{adminMention}, {tourn} has been started by {ctx.message.author.mention}.' )
+    await ctx.send( f'{adminMention}, {tourn} has been started by {mention}.' )
     
 
 commandSnippets["end-tournament"] = "- end-tournament : Ends a tournament that's been started" 
 commandCategories["management"].append("end-tournament")
 @bot.command(name='end-tournament')
 async def endTournament( ctx, tourn = None ):
+    mention = ctx.message.author.mention
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None:
-        await ctx.send( f'{ctx.message.author.mention}, you need to specify what tournament you want to end.' )
+        await ctx.send( f'{mention}, you need to specify what tournament you want to end.' )
         return
     if not tourn in tournaments:
-        await ctx.send( f'{ctx.message.author.mention}, there is no tournament called "{tourn}" for this server.' )
+        await ctx.send( f'{mention}, there is no tournament called "{tourn}" for this server.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
     if tournaments[tourn].tournCancel:
-        await ctx.send( f'{ctx.message.author.mention}, {tourn} has already been cancelled. Check with {adminMention} if you think this is an error.' )
+        await ctx.send( f'{mention}, {tourn} has already been cancelled. Check with {adminMention} if you think this is an error.' )
         return
 
     if await hasCommandWaiting( ctx, ctx.message.author.id ):
         del( commandsToConfirm[ctx.message.author.id] )
 
-    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].endTourn( adminMention, ctx.message.author.mention ) )
-    await ctx.send( f'{adminMention}, in order to end {tourn}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to end {tourn} (!yes/!no)?' )
+    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].endTourn( adminMention, mention ) )
+    await ctx.send( f'{adminMention}, in order to end {tourn}, confirmation is needed. {mention}, are you sure you want to end {tourn} (!yes/!no)?' )
 
 
 commandSnippets["cancel-tournament"] = "- cancel-tournament : Ends any tournament" 
 commandCategories["management"].append("cancel-tournament")
 @bot.command(name='cancel-tournament')
 async def cancelTournament( ctx, tourn = None ):
+    mention = ctx.message.author.mention
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None:
-        await ctx.send( f'{ctx.message.author.mention}, you need to specify what tournament you want to cancel.' )
+        await ctx.send( f'{mention}, you need to specify what tournament you want to cancel.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
@@ -209,20 +211,21 @@ async def cancelTournament( ctx, tourn = None ):
     if await hasCommandWaiting( ctx, ctx.message.author.id ):
         del( commandsToConfirm[ctx.message.author.id] )
 
-    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].cancelTourn( adminMention, ctx.message.author.mention ) )
-    await ctx.send( f'{adminMention}, in order to cancel {tourn}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to cancel {tourn} (!yes/!no)?' )
+    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].cancelTourn( adminMention, mention ) )
+    await ctx.send( f'{adminMention}, in order to cancel {tourn}, confirmation is needed. {mention}, are you sure you want to cancel {tourn} (!yes/!no)?' )
 
 
 commandSnippets["prune-decks"] = "- prune-decks : Removes decks from players until they have the max number" 
 commandCategories["day-of"].append("prune-decks")
 @bot.command(name='prune-decks')
 async def adminPruneDecks( ctx, tourn = None ):
+    mention = ctx.message.author.mention
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx, tourn ): return
     if tourn is None:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament.' )
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
@@ -232,19 +235,20 @@ async def adminPruneDecks( ctx, tourn = None ):
         del( commandsToConfirm[ctx.message.author.id] )
 
     commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].pruneDecks( ctx ) )
-    await ctx.send( f'{adminMention}, in order to prune decks, confirmation is needed. {ctx.message.author.mention}, are you sure you want to prune decks (!yes/!no)?' )
+    await ctx.send( f'{adminMention}, in order to prune decks, confirmation is needed. {mention}, are you sure you want to prune decks (!yes/!no)?' )
 
 
 commandSnippets["prune-players"] = "- prune-players : Drops players that didn't submit a deck" 
 commandCategories["day-of"].append("prune-players")
 @bot.command(name='prune-players')
 async def adminPruneDecks( ctx, tourn = None ):
+    mention = ctx.message.author.mention
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament.' )
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
@@ -254,54 +258,56 @@ async def adminPruneDecks( ctx, tourn = None ):
         del( commandsToConfirm[ctx.message.author.id] )
 
     commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].prunePlayers( ctx ) )
-    await ctx.send( f'{adminMention}, in order to prune players, confirmation is needed. {ctx.message.author.mention}, are you sure you want to prune players (!yes/!no)?' )
+    await ctx.send( f'{adminMention}, in order to prune players, confirmation is needed. {mention}, are you sure you want to prune players (!yes/!no)?' )
 
 
 commandSnippets["create-match"] = "- create-match : Creates a match" 
 commandCategories["day-of"].append("create-match")
 @bot.command(name='create-match')
 async def adminCreatePairing( ctx, tourn = None, *plyrs ):
+    mention = ctx.message.author.mention
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, match number, player, and result in order to remove a player from a match.' )
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament, match number, player, and result in order to remove a player from a match.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
     if await isTournDead( tourn, ctx ): return
     if len(plyrs) != tournaments[tourn].playersPerMatch:
-        await ctx.send( f'{ctx.message.author.mention}, {tourn} requires {tournaments[tourn].playersPerMatch} be in a match, but you specified {len(plyrs)} players.' )
+        await ctx.send( f'{mention}, {tourn} requires {tournaments[tourn].playersPerMatch} be in a match, but you specified {len(plyrs)} players.' )
         return
         
     members = [ findPlayer( ctx.guild, tourn, plyr ) for plyr in plyrs ]
     if None in members:
-        await ctx.send( f'{ctx.message.author.mention}, at least one of the members that you specified is not a part of the tournament. Verify that they have the "{tourn} Player" role.' )
+        await ctx.send( f'{mention}, at least one of the members that you specified is not a part of the tournament. Verify that they have the "{tourn} Player" role.' )
         return
     
     for member in members:
         if not member.id in tournaments[tourn].players:
-            await ctx.send( f'{ctx.message.author.mention}, a user by "{member.mention}" was found in the player role, but they are not active in {tourn}. Make sure they are registered or that they have not dropped.' )
+            await ctx.send( f'{mention}, a user by "{member.mention}" was found in the player role, but they are not active in {tourn}. Make sure they are registered or that they have not dropped.' )
             return
     
     await tournaments[tourn].addMatch( [ member.id for member in members ] )
     tournaments[tourn].matches[-1].saveXML( )
     tournaments[tourn].saveOverview( )
-    await ctx.send( f'{ctx.message.author.mention}, the players you specified for the match are now paired. Their match number is #{tournaments[tourn].matches[-1].matchNumber}.' )
+    await ctx.send( f'{mention}, the players you specified for the match are now paired. Their match number is #{tournaments[tourn].matches[-1].matchNumber}.' )
 
 
 commandSnippets["create-pairings-list"] = "- create-pairings-list : Creates a list of possible match pairings (unweighted)" 
 commandCategories["day-of"].append("create-pairings-list")
 @bot.command(name='create-pairings-list')
 async def createPairingsList( ctx, tourn = None ):
+    mention = ctx.message.author.mention
     
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament, match number, player, and result in order to remove a player from a match.' )
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament, match number, player, and result in order to remove a player from a match.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
@@ -392,10 +398,10 @@ async def createPairingsList( ctx, tourn = None ):
  
     newLine = "\n- "
     if sum( [ len(lvl) for lvl in newQueue ] ) == 0:
-        await ctx.send( f'{ctx.message.author.mention}, here is a list of possible pairings. There would be no players left unmatched.' )
+        await ctx.send( f'{mention}, here is a list of possible pairings. There would be no players left unmatched.' )
     else:
         plyrs = [ f'"{plyr.discordUser.display_name}"' for lvl in newQueue for plyr in lvl ]
-        message = f'{ctx.message.author.mention}, here is a list of possible pairings. These players would be left unmatched:{newLine}{newLine.join(plyrs)}'
+        message = f'{mention}, here is a list of possible pairings. These players would be left unmatched:{newLine}{newLine.join(plyrs)}'
         for msg in splitMessage( message ):
             if msg == "":
                 break
@@ -413,17 +419,18 @@ commandSnippets["set-pairing-threshold"] = "- set-pairing-threshold : Sets the n
 commandCategories["properties"].append("set-pairing-threshold")
 @bot.command(name='set-pairing-threshold')
 async def pairingsThreshold( ctx, tourn = None, num = None ):
+    mention = ctx.message.author.mention
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None or num is None:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a number of players for a match.' )
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a number of players for a match.' )
         return
     try:
         num = int(num)
     except:
-        await ctx.send( f'{ctx.message.author.mention}, "{num}" could not be converted to a number. Please make sure you only use digits.' )
+        await ctx.send( f'{mention}, "{num}" could not be converted to a number. Please make sure you only use digits.' )
         return
 
     if not await checkTournExists( tourn, ctx ): return
@@ -432,19 +439,20 @@ async def pairingsThreshold( ctx, tourn = None, num = None ):
     
     tournaments[tourn].updatePairingsThreshold( num )
     tournaments[tourn].saveOverview( )
-    await ctx.send( f'{adminMention}, the pairings threshold for {tourn} was changed to {num} by {ctx.message.author.mention}.' )
+    await ctx.send( f'{adminMention}, the pairings threshold for {tourn} was changed to {num} by {mention}.' )
 
 
 commandSnippets["admin-drop"] = "- admin-drop : Removes a player for a tournament" 
 commandCategories["day-of"].append("admin-drop")
 @bot.command(name='admin-drop')
 async def adminDropPlayer( ctx, tourn = None, plyr = None ):
+    mention = ctx.message.author.mention
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None or plyr is None:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a player.' )
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
@@ -452,30 +460,31 @@ async def adminDropPlayer( ctx, tourn = None, plyr = None ):
     
     member = findPlayer( ctx.guild, tourn, plyr )
     if member is None:
-        await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
+        await ctx.send( f'{mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
         return
 
     if not member.id in tournaments[tourn].players:
-        await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". They may have already dropped from the tournament.' )
+        await ctx.send( f'{mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". They may have already dropped from the tournament.' )
         return
 
     if await hasCommandWaiting( ctx, ctx.message.author.id ):
         del( commandsToConfirm[ctx.message.author.id] )
 
-    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].dropPlayer( member.id, ctx.message.author.mention ) )
-    await ctx.send( f'{adminMention}, in order to drop {member.mention}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to drop this player (!yes/!no)?' )
+    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].dropPlayer( member.id, mention ) )
+    await ctx.send( f'{adminMention}, in order to drop {member.mention}, confirmation is needed. {mention}, are you sure you want to drop this player (!yes/!no)?' )
 
 
 commandSnippets["give-bye"] = "- give-bye : Grants a bye to a player" 
 commandCategories["day-of"].append("give-bye")
 @bot.command(name='give-bye')
 async def adminGiveBye( ctx, tourn = None, plyr = None ):
+    mention = ctx.message.author.mention
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None or plyr is None:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a player.' )
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
@@ -483,20 +492,20 @@ async def adminGiveBye( ctx, tourn = None, plyr = None ):
     
     member = findPlayer( ctx.guild, tourn, plyr )
     if member is None:
-        await ctx.send( f'{ctx.message.author.mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
+        await ctx.send( f'{mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
         return
 
     if not member.id in tournaments[tourn].players:
-        await ctx.send( f'{ctx.message.author.mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". They may have already dropped from the tournament.' )
+        await ctx.send( f'{mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". They may have already dropped from the tournament.' )
         return
     
     if tournaments[tourn].players[member.id].hasOpenMatch( ):
-        await ctx.send( f'{ctx.message.author.mention}, {plyr} currently has an open match in the tournament. That match needs to be certified before they can be given a bye.' )
+        await ctx.send( f'{mention}, {plyr} currently has an open match in the tournament. That match needs to be certified before they can be given a bye.' )
         return
     
     tournaments[tourn].addBye( member.id )
     tournaments[tourn].players[member.id].saveXML( )
-    await ctx.send( f'{ctx.message.author.mention}, {plyr} has been given a bye.' )
+    await ctx.send( f'{mention}, {plyr} has been given a bye.' )
     await tournaments[tourn].players[member.id].discordUser.send( content=f'You have been given a bye from the tournament admin for {tourn} on the server {ctx.guild.name}.' )
 
 
@@ -504,12 +513,13 @@ commandSnippets["remove-match"] = "- remove-match : Removes a match"
 commandCategories["day-of"].append("remove-match")
 @bot.command(name='remove-match')
 async def adminRemoveMatch( ctx, tourn = None, mtch = None ):
+    mention = ctx.message.author.mention
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None or mtch is None:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a player.' )
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
@@ -518,37 +528,38 @@ async def adminRemoveMatch( ctx, tourn = None, mtch = None ):
     try:
         mtch = int( mtch )
     except:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide a match number. Please specify a match number using digits.' )
+        await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
         return
     
     if mtch > len(tournaments[tourn].matches):
-        await ctx.send( f'{ctx.message.author.mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
+        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
         
     if await hasCommandWaiting( ctx, ctx.message.author.id ):
         del( commandsToConfirm[ctx.message.author.id] )
 
-    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].removeMatch( mtch, ctx.message.author.mention ) )
-    await ctx.send( f'{adminMention}, in order to remove match #{mtch}, confirmation is needed. {ctx.message.author.mention}, are you sure you want to remove this match (!yes/!no)?' )
+    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].removeMatch( mtch, mention ) )
+    await ctx.send( f'{adminMention}, in order to remove match #{mtch}, confirmation is needed. {mention}, are you sure you want to remove this match (!yes/!no)?' )
 
 
 commandSnippets["view-queue"] = "- view-queue : Prints the currect matchmaking queue" 
 commandCategories["day-of"].append("view-queue")
 @bot.command(name='view-queue')
 async def viewQueue( ctx, tourn = None ):
+    mention = ctx.message.author.mention
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament to view the queue.' )
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament to view the queue.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
     if await isTournDead( tourn, ctx ): return
     
     if sum( [ len(lvl) for lvl in tournaments[tourn].queue ] ) == 0:
-        await ctx.send( f'{ctx.message.author.mention}, the current matchmaking queue for {tourn} is empty:' )
+        await ctx.send( f'{mention}, the current matchmaking queue for {tourn} is empty:' )
         return
     
     embed = discord.Embed( )
@@ -565,13 +576,14 @@ async def viewQueue( ctx, tourn = None ):
     if value != "":
         embed.add_field( name = f'{tourn} Queue' if count == 0 else "\u200b", value = value, inline=False )
         
-    await ctx.send( f'{ctx.message.author.mention}, here is the current matchmaking queue for {tourn}:', embed=embed )
+    await ctx.send( f'{mention}, here is the current matchmaking queue for {tourn}:', embed=embed )
 
 
 commandSnippets["tricebot-kick-player"] = "- tricebot-kick-player : Kicks a player from a cockatrice match when tricebot is enabled for that match" 
 commandCategories["day-of"].append("tricebot-kick-player")
 @bot.command(name='tricebot-kick-player')
 async def tricebotKickPlayer( ctx, tourn = "", mtch = "", playerName = "" ):
+    mention = ctx.message.author.mention
     tourn = tourn.strip()
     mtch  =  mtch.strip()
     playerName = playerName.strip()
@@ -581,7 +593,7 @@ async def tricebotKickPlayer( ctx, tourn = "", mtch = "", playerName = "" ):
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn == "" or mtch == "":
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide enough information. You need to specify a tournament and a player.' )
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
         return
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
@@ -590,15 +602,15 @@ async def tricebotKickPlayer( ctx, tourn = "", mtch = "", playerName = "" ):
     try:
         mtch = int( mtch )
     except:
-        await ctx.send( f'{ctx.message.author.mention}, you did not provide a match number. Please specify a match number using digits.' )
+        await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
         return
     
     if mtch > len(tournaments[tourn].matches):
-        await ctx.send( f'{ctx.message.author.mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
+        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
     
     if not tournaments[tourn].matches[mtch - 1].triceMatch:
-        await ctx.send( f'{ctx.message.author.mention}, that match is not a match with tricebot enabled.' )
+        await ctx.send( f'{mention}, that match is not a match with tricebot enabled.' )
         return
     
     result = tournaments[tourn].kickTricePlayer(mtch, playerName)    
@@ -609,11 +621,11 @@ async def tricebotKickPlayer( ctx, tourn = "", mtch = "", playerName = "" ):
     # -2 an unknown error occurred
     
     if result == 1:
-        await ctx.send( f'{ctx.message.author.mention}, "{playerName}" was kicked from match {mtch}.' )
+        await ctx.send( f'{mention}, "{playerName}" was kicked from match {mtch}.' )
     elif result == -1:
-        await ctx.send( f'{ctx.message.author.mention}, "{playerName}" was not found in match {mtch}.' )
+        await ctx.send( f'{mention}, "{playerName}" was not found in match {mtch}.' )
     else:
-        await ctx.send( f'{ctx.message.author.mention}, An error has occured whilst kicking "{playerName}" from match {mtch}.' )        
+        await ctx.send( f'{mention}, An error has occured whilst kicking "{playerName}" from match {mtch}.' )        
         
         
 """
