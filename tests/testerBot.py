@@ -106,12 +106,24 @@ async def runTests( msg, *args ):
     print( "Starting test(s)" )
     if len(args) == 0:
         args = list(tests.keys())
+    sendWarning = False
     for test in args:
         if test in tests:
             tests[test].reset( )
             queue.append( tests[test] )
+        else:
+            sendWarning = True
+    if sendWarning:
+        await msg.channel.send( content = "One or more of the tests you specified aren't valid test names. Use the !view-tests command to see what tests are available." )
     await sendCommand( msg )
 
+
+@bot.command( name = "view-tests" )
+async def viewTests( msg ):
+    digest = "Below are the names of all available tests and the number of commands that test have:"
+    for test in tests:
+        digest += f'\n\t- {test} : {len(tests[test].commands)} commands'
+    await msg.channel.send( content = digest )
 
 
 bot.run(TOKEN)
