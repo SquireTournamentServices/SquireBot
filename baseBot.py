@@ -82,7 +82,7 @@ async def sendUserHelpMessage( ctx ) -> None:
 async def isPrivateMessage( ctx, send: bool = True ) -> bool:
     digest = (str(ctx.message.channel.type) == 'private')
     if digest and send:
-        await ctx.send( f'You are not allowed to send commands via DM other than "!add-deck". Please send your command in the Discord server that is hosting your tournament.' )
+        await ctx.send( f'You are not allowed to send most commands via DM. To see what commands you can send via DM, use the !squirebot-help command.' )
     return digest
 
 async def isAdmin( ctx, send: bool = True ) -> bool:
@@ -198,13 +198,6 @@ async def recordMisfortune( ctx, misfortune, num: int ) -> bool:
     return False
      
 
-def isNumber( s: str ) -> bool:
-    try:
-        s = int(s)
-    except:
-        return False
-    return True
-
 def getJudgeMention( a_guild ) -> str:
     digest = ""
     for role in a_guild.roles:
@@ -241,12 +234,6 @@ def findGuildMember( a_guild: discord.Guild, a_memberName: str ):
         if member.mention.replace("!", "") == a_memberName.replace("!", ""):
             return member
     return ""
-    
-def isFolderSafe(name: str) -> bool:
-    #bad chars are xml chars and "../" as it is a directory buggerer
-    if (name.replace("/", "") != name):
-        return False
-    return True
 
 def findPlayer( a_guild: discord.Guild, a_tourn: str, a_memberName: str ) -> discord.Member:
     role = discord.utils.get( a_guild.roles, name=f'{a_tourn} Player' )
@@ -255,7 +242,7 @@ def findPlayer( a_guild: discord.Guild, a_tourn: str, a_memberName: str ) -> dis
     for member in role.members:
         if member.display_name == a_memberName:
             return member
-        if str(member.id) == discordID_from_mention(a_memberName):
+        if str(member.id) == get_ID_from_mention(a_memberName):
             return member
     return None
 

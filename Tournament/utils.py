@@ -67,7 +67,7 @@ def getJudgeRole( a_guild: discord.Guild ):
     return digest
 
 
-def discordID_from_mention( s: str ) -> str:
+def get_ID_from_mention( s: str ) -> str:
     return re.sub( "[^0-9]", "", s )
 
 # A list of universe tournament properties

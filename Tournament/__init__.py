@@ -7,3 +7,4 @@ from .tournament import *
 from .fluidRoundTournament import *
 from .utils import *
 from .tournamentSelector import *
+from .guildSettings import *

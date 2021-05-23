@@ -226,10 +226,10 @@ class tournament:
             digest += f'The following propert{"y was" if len(successes) == 1 else "ies were"} successfully updated:\n\t-'
             digest += "\n\t-".join( [ f'{p}: {props[p]}' for p in successes ] )
         if len(failures) > 0:
-            digest += f'\n\nThere were errors in updating the following propert{"y was" if len(failures) == 1 else "ies were"}:\n\t-'
+            digest += f'\n\nThere were errors in updating the following propert{"y was" if len(failures) == 1 else "ies"}:\n\t-'
             digest += "\n\t-".join( [ f'{p}: {props[p]}' for p in failures ] )
         if len(undefined) > 0:
-            digest += f'\n\n{self.name} does not have the following propert{"y was" if len(failures) == 1 else "ies were"}:\n\t-'
+            digest += f'\n\n{self.name} does not have the following propert{"y" if len(failures) == 1 else "ies"}:\n\t-'
             digest += "\n\t-".join( [ f'{p}: {props[p]}' for p in undefined ] )
 
         return digest
