@@ -1,4 +1,4 @@
-# SquireBot Judge Commands
+# SquireBot Admin Commands
 ## Intro:
 Unlike user commands, the bot will not automatically interpet what tournament you want. You must always specify a tournament’s name. Explicatively when managing a tournament is important. As such, optional arguments to commands are very few and far between. Similar to the user commands, none of these commands will work via direct message. If sensitive information, such as a deck list, would be given as either an input or an output of a command, make sure you are in a channel that regular users can not access.
 
