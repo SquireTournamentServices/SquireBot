@@ -25,6 +25,19 @@ TOKEN = os.getenv( "TESTING_TOKEN" )
 reCommand = re.compile( "^!" )
 
 
+# A simple print command used to communicate extra info during unit tests
+@bot.command( name = "comment" )
+async def echoComment( msg, *args ):
+    await msg.channel.send( content = " ".join( args ) )
+
+
+# A simple sleep command for more control during unit tests
+@bot.command( name = "sleep" )
+async def sleep( msg, t ):
+    time.sleep( int(t) )
+    await msg.channel.send( "I am done sleeping." )
+
+
 @bot.event
 async def on_message( msg ):
     if msg.author == bot.user:
