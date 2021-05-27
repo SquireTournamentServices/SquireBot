@@ -74,7 +74,7 @@ def get_ID_from_mention( s: str ) -> str:
 # This will be expanded on by each tournament class similar to how the command snippets work
 tournamentProperties = [ "format", "deck-count", "match-length", "match-size", "pairings-channel",
                          "tricebot-enabled", "spectators-allowed", "spectators-need-password",
-                         "spectators-can-chat", "spectators-can-see-hands", "only-registered"  ]
+                         "spectators-can-chat", "spectators-can-see-hands", "only-registered" , "player-deck-verification" ]
 
 # Takes in any number of arguments (likely from a command call) and returns a dict
 # The keys of the dict are tournament properties (other key/value pairs are discarded)

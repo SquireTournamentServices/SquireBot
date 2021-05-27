@@ -87,7 +87,7 @@ async def updateTournProperties( ctx, tournName = None, *args ):
     await ctx.send( f'{adminMention}, {mention} has updated the properties of {tournName}.\n{message}' )
 
 
-commandSnippets["tricebot-status"] = "- tricebot-status : Displays the status of tricebot for a tournament" 
+commandSnippets["tricebot-status"] = "- tricebot-status : Displays the status and settings of tricebot for a tournament" 
 commandCategories["management"].append("tricebot-status")
 @bot.command(name='tricebot-status')
 async def triceBotStatus( ctx, tourn = "" ):  
@@ -102,7 +102,7 @@ async def triceBotStatus( ctx, tourn = "" ):
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn == "":
-        await ctx.send( f'{mention}, you need to specify what you want the tournament to be called.' )
+        await ctx.send( f'{mention}, you need to specify what tournament you want to know the settings for.' )
         return
         
     if (tournaments[tourn].triceBotEnabled):  
@@ -111,10 +111,11 @@ async def triceBotStatus( ctx, tourn = "" ):
         settings_str += "\nSpectator can chat: " + str(tournaments[tourn].spectators_can_chat)
         settings_str += "\nSpectator can see hands: " + str(tournaments[tourn].spectators_can_see_hands)
         settings_str += "\nOnly allow registered users: " + str(tournaments[tourn].only_registered)
+        settings_str += "\nPlayer deck verification: " + str(tournaments[tourn].player_deck_verification)
         
-        await ctx.send( f'{adminMention}, tricebot is enabled for "{tourn} and has the follwing settings:\n```{settings_str}```' )
+        await ctx.send( f'{adminMention}, tricebot is enabled for "{tourn}" and has the following settings:\n```{settings_str}```' )
     else:
-        await ctx.send( f'{adminMention}, tricebot is not enabled for "{tourn}.' )
+        await ctx.send( f'{adminMention}, tricebot is not enabled for "{tourn}."' )
 
     
 commandSnippets["update-reg"] = "- update-reg : Opens or closes registration" 

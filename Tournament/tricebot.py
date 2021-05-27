@@ -57,22 +57,33 @@ class TriceBot:
         
         return -2
     
-    def createGame(self, gamename: str, password: str, playercount: int, spectatorsallowed: bool, spectatorsneedpassword: bool, spectatorscanchat: bool, spectatorscanseehands: bool, onlyregistered: bool):
+    def createGame(self, gamename: str, password: str, playercount: int, spectatorsallowed: bool, spectatorsneedpassword: bool, spectatorscanchat: bool, spectatorscanseehands: bool, onlyregistered: bool, playerdeckverification: bool, playernames, deckHashes):
+        if len(playernames) != len(deckHashes):
+            GameMade(False, -1, -1) # They must the same length dummy!
+            
         body  = f'authtoken={self.authToken}\n'
         body += f'gamename={gamename}\n'
         body += f'password={password}\n'
-        body += f'playerCount={playercount}\n'
+        body += f'playerCount={playercount}\n'        
+        body += f'spectatorsAllowed={int(spectatorsallowed)}\n'            
+        body += f'spectatorsNeedPassword={int(spectatorsneedpassword)}\n'        
+        body += f'spectatorsCanChat={int(spectatorscanchat)}\n'        
+        body += f'spectatorsCanSeeHands={int(spectatorscanseehands)}\n'        
+        body += f'onlyRegistered={int(onlyregistered)}\n'   
+        body += f'playerDeckVerification={int(playerdeckverification)}\n'
         
-        body += f'spectatorsAllowed={int(spectatorsallowed)}\n'
-            
-        body += f'spectatorsNeedPassword={int(spectatorsneedpassword)}\n'
+        if playerdeckverification:
+            for i in range(0, len(playernames)):
+                if playernames[i] == "": # No name
+                    body += f'playerName=*\n'
+                else:
+                    body += f'playerName={playernames[i]}\n'
+                    if len(deckHashes[i]) == 0:
+                        body += f'deckHash=*\n'
+                    else:
+                        for deckHash in deckHashes[i]:
+                            body += f'deckHash={deckHash}\n'
         
-        body += f'spectatorsCanChat={int(spectatorscanchat)}\n'
-        
-        body += f'spectatorsCanSeeHands={int(spectatorscanseehands)}\n'
-        
-        body += f'onlyRegistered={int(onlyregistered)}'
-            
         try:
             message = self.req("api/creategame", body)   
             print(message)

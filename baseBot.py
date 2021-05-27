@@ -1,4 +1,5 @@
 import os
+import traceback
 
 import discord
 import random
@@ -308,11 +309,16 @@ async def on_ready():
         print( f'This bot is connected to {guild.name} which has {len(guild.members)}!' )    
     print( "" )
     for tourn in savedTournaments:
-        newTourn = tournamentSelector( f'{tourn}/tournamentType.xml' )
-        newTourn.loop = bot.loop
-        newTourn.loadTournament( tourn )
-        if newTourn.name != "":
-            tournaments[newTourn.name] = newTourn
+        try:
+            newTourn = tournamentSelector( f'{tourn}/tournamentType.xml' )
+            newTourn.loop = bot.loop
+            newTourn.loadTournament( tourn )
+            if newTourn.name != "":
+                tournaments[newTourn.name] = newTourn
+        except Exception as ex:
+            print("Error loading tournament.")
+            print(ex)
+            traceback.print_exception(type(ex), ex, ex.__traceback__)
     for tourn in tournaments:
         guild = bot.get_guild( tournaments[tourn].guildID )
         if not guild is None:

@@ -281,7 +281,7 @@ class match:
             digest += f'\t\t<player name="{player}"/>\n'
         digest += '\t</confirmedPlayers>\n'
         digest += '</match>'
-        with open( a_filename, "w" ) as savefile:
+        with open( a_filename, "w+" ) as savefile:
             savefile.write( toSafeXML(digest) )
     
     # Loads a match from an xml file saved with this class
