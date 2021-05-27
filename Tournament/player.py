@@ -232,7 +232,7 @@ class player:
             return f'{author}, the deck {a_ident} has been removed from {self.discordUser.mention}.' 
         return f'{self.discordUser.mention}, your decklist whose name or deck hash was "{a_ident}" has been deleted.'
     
-    def getDeckName( self, ident: str = "" ) -> str:
+    def getDeckIdent( self, ident: str = "" ) -> str:
         if ident in self.decks:
             return ident
         for name in self.decks:
