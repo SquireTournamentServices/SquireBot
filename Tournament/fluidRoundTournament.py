@@ -26,7 +26,7 @@ class fluidRoundTournament(tournament):
     def __init__( self, name: str, hostGuildName: str, props: dict = { } ):     
         self.name = name.replace("\.\./", "")
         self.hostGuildName = hostGuildName
-        self.format    = props["format"] if "format" in props else "Pioneer"
+        self.format    = "Pioneer"
         
         self.saveLocation = f'currentTournaments/{self.name}'
 
@@ -45,8 +45,8 @@ class fluidRoundTournament(tournament):
         self.loop = asyncio.new_event_loop( )
         self.fail_count = 0
         
-        self.playersPerMatch   = int(props["match-size"]) if "match-size" in props else 2
-        self.matchLength       = int(props["match-length"])*60 if "match-length" in props else 60*60 # Length of matches in seconds
+        self.playersPerMatch   = 2
+        self.matchLength       = 60*60 # Length of matches in seconds
         
         self.queue             = [ [] ]
         self.pairingsThreshold = self.playersPerMatch * 2 # + 3
@@ -62,14 +62,16 @@ class fluidRoundTournament(tournament):
         self.matches = []
         
         #Create bot class and store the game creation settings
-        self.triceBotEnabled = props["trice-enabled"] if "trice-enabled" in props else False
-        self.spectators_allowed = props["spectators-allowed"] if "spectators-allowed" in props else False
-        self.spectators_need_password = props["spectators-need-password"] if "spectators-need-password" in props else False 
-        self.spectators_can_chat = props["spectators-can-chat"] if "spectators-can-chat" in props else False 
-        self.spectators_can_see_hands = props["spectators-can-see-hands"] if "spectators-can-see-hands" in props else False 
-        self.only_registered = props["only-registered"] if "only-registered" in props else False
-        self.player_deck_verification = props["player-deck-verification"] if "player-deck-verification" in props else False
-    
+        self.triceBotEnabled = False
+        self.spectators_allowed = False
+        self.spectators_need_password = False 
+        self.spectators_can_chat = False 
+        self.spectators_can_see_hands = False 
+        self.only_registered = False
+        self.player_deck_verification = False
+                
+        if len(props) != 0:
+            self.setProperties(props)
     
     # ---------------- Property Accessors ---------------- 
 
