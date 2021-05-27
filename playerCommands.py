@@ -116,6 +116,10 @@ async def addTriceName( ctx, tourn = "", name = "" ):
     if not await checkTournExists( tourn, ctx ): return
     if not await correctGuild( tourn, ctx ): return
     
+    if len(name) > 255:
+        await ctx.send( f'{mention}, that name is too long.' )
+        return
+    
     message = tournaments[tourn].setPlayerTriceName( ctx.message.author.id, name )
     await ctx.send( f'{mention}, {message}' )
 
