@@ -68,8 +68,8 @@ class tournament:
         self.loop = asyncio.new_event_loop( )
         self.fail_count = 0
         
-        self.playersPerMatch = int(props["match-size"]) if "match-size" in props else 2
-        self.matchLength     = int(props["match-length"])*60 if "match-length" in props else 60*60 # Length of matches in seconds
+        self.playersPerMatch = 2
+        self.matchLength     = 60*60 # Length of matches in seconds
         
         self.deckCount = 1
 
@@ -80,9 +80,9 @@ class tournament:
         #Create bot class and store the game creation settings
         self.triceBotEnabled = False
         self.spectators_allowed = False
-        self.spectators_need_password = False
-        self.spectators_can_chat = Fals
-        self.spectators_can_see_hands = False
+        self.spectators_need_password = False 
+        self.spectators_can_chat = False 
+        self.spectators_can_see_hands = False 
         self.only_registered = False
         self.player_deck_verification = False
         
