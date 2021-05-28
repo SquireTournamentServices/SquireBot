@@ -349,7 +349,7 @@ class tournament:
             return f'you are registered by are not an active player in {self.name}. If you believe this is an error, contact tournament staff.'
         self.players[plyr].triceName = name
         self.players[plyr].saveXML( )
-        return f''
+        return f'Your cockatrice name was set to {name} successfully.'
     
     def addDeck( self, plyr: str, deckName: str, decklist: str, admin: bool = False ) -> str:
         if not plyr in self.players:
