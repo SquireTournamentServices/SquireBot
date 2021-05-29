@@ -57,6 +57,7 @@ class match:
         
         # Only changed if it is a trice match
         self.triceMatch = False
+        self.playerDeckVerification = False
         self.gameID = -1
         self.replayURL = ""
         
@@ -265,6 +266,7 @@ class match:
         digest += f'\t<sentWarnings oneMin="{self.sentOneMinWarning}" fiveMin="{self.sentFiveMinWarning}" final="{self.sentFinalWarning}"/>\n'
         digest += f'\t<status>{self.status}</status>\n'
         digest += f'\t<triceMatch>{self.triceMatch}</triceMatch>\n'
+        digest += f'\t<playerDeckVerification>{self.playerDeckVerification}</playerDeckVerification>\n'
         digest += f'\t<gameID>{self.gameID}</gameID>\n'
         digest += f'\t<replayURL>{self.replayURL}</replayURL>\n'
         digest += f'\t<winner name="{self.winner}"/>\n'
@@ -303,6 +305,7 @@ class match:
         self.endTime = fromXML( matchRoot.find( "endTime" ).text )
         self.status = fromXML( matchRoot.find( "status" ).text )                
         self.triceMatch = str_to_bool( fromXML( matchRoot.find(  "triceMatch" ).text ) )
+        self.playerDeckVerification = str_to_bool( fromXML ( matchRoot.find( "playerDeckVerification" ).text ) )
         self.gameID = int( fromXML( matchRoot.find( "gameID" ).text ) )
         self.replayURL = fromXML( matchRoot.find( "replayURL" ).text )
         self.sentOneMinWarning  = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["oneMin" ] ) )

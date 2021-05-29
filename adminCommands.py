@@ -18,10 +18,10 @@ async def createTournament( ctx, tournName = None, tournType = None, *args ):
     if not await isTournamentAdmin( ctx ): return
     
     tournProps = generateTournProps( *args )
-    if len(tournProps) != "".join(args).count("="):
-        print( tournProps )
-        await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
-        return
+    #if len(tournProps) != "".join(args).count("="):
+    #    print( tournProps )
+    #    await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
+    #    return
     
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if tournName is None or tournType is None:
@@ -34,18 +34,15 @@ async def createTournament( ctx, tournName = None, tournType = None, *args ):
     if tournName in tournaments:
         await ctx.send( f'{mention}, there is already a tournament call {tournName} either on this server or another. Pick a different name.' )
         return
-    
-    if "tricebot-enabled" in tournProps:
-        tournProps["tricebot-enabled"] = str_to_bool( tournProps["tricebot-enabled"] )
-        if tournProps["tricebot-enabled"] is None:
-            await ctx.send( f'{mention}, please enter either true or false for the tricebot toggle.' )
-            return 
-    
+        
     newTourn = getTournamentType( tournType, tournName, ctx.guild.name, tournProps )
     if newTourn is None:
         newLine = "\n\t- "
         await ctx.send( f'{mention}, invalid tournament type of {tournType}. The supported tournament types are:{newLine}{newLine.join(tournamentTypes)}.' )
         return
+    
+    # Set properties
+    await ctx.send(newTourn.setProperties(tournProps))
     
     newTourn.saveLocation = f'currentTournaments/{tournName}/'
     await newTourn.addDiscordGuild( ctx.message.guild )
@@ -56,7 +53,7 @@ async def createTournament( ctx, tournName = None, tournType = None, *args ):
     
     # Was tricebot specified and was it specified to be True?
     if "tricebot-enabled" in tournProps and tournProps["tricebot-enabled"]:
-        await ctx.send( f'{adminMention}, tricebot has been enabled for "{tournName}" by {mention}. It is using the default settings (spectators are allowed, do not need a password, cannot chat, cannot see hands and, players must be registered).' )
+        await ctx.send( f'{adminMention}, tricebot has been enabled for "{tournName}".' )
 
 
 commandSnippets["update-properties"] = "- update-properties : Changes the properties of a tournament." 
@@ -77,10 +74,10 @@ async def updateTournProperties( ctx, tournName = None, *args ):
     if await isTournDead( tournName, ctx ): return
     
     tournProps = generateTournProps( *args )
-    if len(tournProps) != "".join(args).count("=") or len(tournProps) == 0:
-        print( tournProps )
-        await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
-        return
+    #if len(tournProps) != "".join(args).count("=") or len(tournProps) == 0:
+    #    print( tournProps )
+    #    await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
+    #    return
 
     message = tournaments[tournName].setProperties( tournProps )
     tournaments[tournName].saveOverview( )
@@ -610,11 +607,14 @@ async def tricebotKickPlayer( ctx, tourn = "", mtch = "", playerName = "" ):
         await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
     
-    if not tournaments[tourn].matches[mtch - 1].triceMatch:
+    
+    match = tournaments[tourn].matches[mtch - 1]
+    
+    if not match.triceMatch:
         await ctx.send( f'{mention}, that match is not a match with tricebot enabled.' )
         return
     
-    result = tournaments[tourn].kickTricePlayer(tournaments[tourn].matches[mtch - 1].gameID, playerName)    
+    result = tournaments[tourn].kickTricePlayer(match.gameID, playerName)    
     
     #  1 success
     #  0 auth token is bad or error404 or network issue

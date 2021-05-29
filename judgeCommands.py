@@ -1,6 +1,7 @@
 import os
 import shutil
 import random
+import re
 
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -411,5 +412,77 @@ async def matchStatus( ctx, tourn = "", mtch = "" ):
     
     await ctx.send( f'{mention}, here is the status of match #{mtch}:', embed=tournaments[tourn].getMatchEmbed( mtch-1 ) )
 
+commandSnippets["tricebot-update-player"] = "- tricebot-update-player : Updates the cockatrice username for a player, for a game that is ongoing." 
+commandCategories["day-of"].append("tricebot-update-player")
+@bot.command(name='tricebot-update-player')
+async def triceBotUpdatePlayer( ctx, tourn = "", mtch = "", oldPlyrName = "", newTriceName = "" ):
+    mention = ctx.message.author.mention
+    tourn = tourn.strip()
+    mtch  =  mtch.strip()
+    oldPlyrName = oldPlyrName.strip()
+    newTriceName = newTriceName.strip()
+        
+    if await isPrivateMessage( ctx ): return
 
-
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "" or mtch == "" or oldPlyrName == "" or newTriceName == "":
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
+        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    # Get match
+    try:
+        mtch = int( mtch )
+    except:
+        await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
+        return
+    
+    if mtch > len(tournaments[tourn].matches):
+        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
+        return
+    
+    match = tournaments[tourn].matches[mtch - 1]
+    
+    if not match.triceMatch:
+        await ctx.send( f'{mention}, that match is not a match with tricebot enabled.' )
+        return
+    if not match.playerDeckVerification:    
+        await ctx.send( f'{mention}, that match is not a match with player deck verification enabled.' )
+        return
+    
+    # Get player
+    nameNeedsUpdating: bool = False
+    if re.match("<(@|!)&?[0-9]*>", oldPlyrName):
+        member = findGuildMember( ctx.guild, oldPlyrName )
+        
+        # Check if player is a mention or a trice name
+        if not member is None:
+            if member.id in tournaments[tourn].players:
+                # Get old trice name
+                oldPlyrName = tournaments[tourn].players[member.id].triceName
+                nameNeedsUpdating = True
+            else:
+                # Error state - this mention is dumb!
+                await ctx.send( f'Player {mention} cannot be found in this tournament.' )
+                return
+        else:
+            await ctx.send( f'{mention}, there is not a member of this server whose name nor mention is "{oldPlyrName}", the bot will now assume this is their cockatrice username.' )
+    
+    # Send update command
+    result = trice_bot.changePlayerInfo(match.gameID, oldPlyrName, newTriceName)
+    
+    # Handle result
+    if result.error:
+        await ctx.send( f'{mention}, there was a server-side error.' )    
+    elif result.success:
+        await ctx.send( f'{mention}, the player-deck information was successfully updated.' )
+        if nameNeedsUpdating:            
+            # Set new trice name
+            tournaments[tourn].setPlayerTriceName( member.id, newTriceName )
+    elif not result.gameFound:
+        await ctx.send( f'{mention}, the game was not found and the player deck information was not updated, no action was taken.' )
+    elif not result.playerFound:
+        await ctx.send( f'{mention}, the player was not found in the player deck information, no action was taken. If there are multiple players with no cockatrice names then you can ignore this error as they are still able to join.' )

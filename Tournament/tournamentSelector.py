@@ -10,10 +10,11 @@ tournamentTypes = [ "fluidRoundTournament" ]
 
 def getTournamentType( tournType: str, tournName: str = "", guildName: str = "", tournProps: dict = { } ):
     tournType = tournType.strip().lower()
+    t = None
     if tournType == "fluidroundtournament":
-        return fluidRoundTournament( tournName, guildName, tournProps )
-    else:
-        return None
+        t = fluidRoundTournament( tournName, guildName, tournProps )
+    
+    return t
     
 
 def tournamentSelector( typeFile: str, tournName: str = "", guildName: str = "", tournProps: dict = { } ):

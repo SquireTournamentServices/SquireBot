@@ -83,9 +83,6 @@ class tournament:
         self.spectators_can_see_hands = False 
         self.only_registered = False
         self.player_deck_verification = False
-        
-        if len(props) != 0:
-            self.setProperties(props)
             
     def isPlanned( self ) -> bool:
         return not ( self.tournStarted or self.tournEnded or self.tournCancel )
@@ -106,6 +103,7 @@ class tournament:
         print( self.role, type(self.role), self.role is discord.Role )
         self.roleID = self.role.id
         self.pairingsChannel = discord.utils.get( guild.channels, name="match-pairings" )
+        self.pairingsChannelID = self.pairingsChannel.id
     
     def assignGuild( self, guild: discord.Guild ) -> str:
         print( f'The guild "{guild}" is being assigned to {self.name}.' )
@@ -604,6 +602,9 @@ class tournament:
                     newMatch.triceMatch = True
                     newMatch.gameID = game_id
                     newMatch.replayURL = replay_download_link
+                    
+                    if self.player_deck_verification:
+                        newMatch.playerDeckVerification = True
                     
                     message += f'A cockatrice game was automatically made for you it is called {game_name }'
                     message += f' and has a password of `"{game_password}"`\n'

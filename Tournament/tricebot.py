@@ -6,6 +6,13 @@ class GameMade:
         self.gameID = gameID
         self.replayName = replayName
 
+class ChangePlayerInfo:
+    def __init__(self, success: bool, playerFound: bool=True, gameFound: bool=True, error: bool=False):
+        self.success = success
+        self.playerFound = playerFound
+        self.gameFound = gameFound
+        self.error = error
+        
 class TriceBot:    
     #Set externURL to the domain address and apiURL to the loopback address in LAN configs
     def __init__(self, authToken: str, apiURL: str="https://0.0.0.0:8000", externURL: str=""):
@@ -18,15 +25,42 @@ class TriceBot:
             self.externURL = externURL
         
     # verify = false as self signed ssl certificates will cause errors here
-    def req(self, urlpostfix: str, data: str):
-        return requests.get(f'{self.apiURL}/{urlpostfix}', timeout=7.0, data=data,  verify=False).text
+    def req(self, urlpostfix: str, data: str) -> str:
+        print(data)
+        resp = requests.get(f'{self.apiURL}/{urlpostfix}', timeout=7.0, data=data,  verify=False).text
+        print(resp)
+        return resp
         
     def checkauthkey(self):
         return self.req("api/checkauthkey", self.authToken) == "1"
     
-    def getDownloadLink(self, replayName):
+    def getDownloadLink(self, replayName: str) -> str:
         return f'{self.externURL}/{replayName}'
+    
+    # Returns a ChangePlayerInfo object that contains the state of the request
+    def changePlayerInfo(self, gameID: int, oldPlayerName: str, newPlayerName: str) -> str:
+        body  = f'authtoken={self.authToken}\n'
+        body += f'oldplayername={oldPlayerName}\n'
+        body += f'newplayername={newPlayerName}\n'
+        body += f'gameid={gameID}'
+        
+        res = ""
+        try:
+            res = self.req("api/updateplayerinfo", body)
+        except OSError as exc:
+            #Network issues
+            print("[TRICEBOT ERROR]: Netty error")
+            res = "network error"
             
+        if res == "success":
+            return ChangePlayerInfo(True)
+        elif res == "error game not found":
+            return ChangePlayerInfo(False, False, False)
+        elif res == "error player not found":
+            return ChangePlayerInfo(False, False, True)
+        else:
+            return ChangePlayerInfo(False, False, False, True)
+    
     #  1 if success
     #  0 auth token is bad or error404 or network issue
     # -1 if player not found

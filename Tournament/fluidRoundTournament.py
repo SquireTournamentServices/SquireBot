@@ -69,10 +69,7 @@ class fluidRoundTournament(tournament):
         self.spectators_can_see_hands = False 
         self.only_registered = False
         self.player_deck_verification = False
-                
-        if len(props) != 0:
-            self.setProperties(props)
-        
+    
     
     # ---------------- Property Accessors ---------------- 
 
@@ -314,13 +311,13 @@ class fluidRoundTournament(tournament):
         self.pairingsThreshold = int( fromXML(tournRoot.find( 'queue' ).attrib['threshold'] ))
         self.matchLength     = int( fromXML(tournRoot.find( 'matchLength' ).text ))
         
-        self.triceBotEnabled = str_to_bool( fromXML(tournRoot.find( "triceBotEnabled" ) ) )
-        self.spectators_allowed = str_to_bool( fromXML(tournRoot.find( "spectatorsAllowed" ) ) )
-        self.spectators_need_password = str_to_bool( fromXML(tournRoot.find( "spectatorsNeedPassword" ) ) )
-        self.spectators_can_chat = str_to_bool( fromXML(tournRoot.find( "spectatorsCanChat" ) ) )
-        self.spectators_can_see_hands = str_to_bool( fromXML(tournRoot.find( "spectatorsCanSeeHands" ) ) )
-        self.only_registered = str_to_bool( fromXML(tournRoot.find( "onlyRegistered" ) ) )
-        self.player_deck_verification = str_to_bool( fromXML(tournRoot.find( "playerDeckVerification" ) ) )
+        self.triceBotEnabled = str_to_bool( fromXML(tournRoot.find( "triceBotEnabled" ).text ) )
+        self.spectators_allowed = str_to_bool( fromXML(tournRoot.find( "spectatorsAllowed" ).text ) )
+        self.spectators_need_password = str_to_bool( fromXML(tournRoot.find( "spectatorsNeedPassword" ).text ) )
+        self.spectators_can_chat = str_to_bool( fromXML(tournRoot.find( "spectatorsCanChat" ).text ) )
+        self.spectators_can_see_hands = str_to_bool( fromXML(tournRoot.find( "spectatorsCanSeeHands" ).text ) )
+        self.only_registered = str_to_bool( fromXML(tournRoot.find( "onlyRegistered" ).text ) )
+        self.player_deck_verification = str_to_bool( fromXML(tournRoot.find( "playerDeckVerification" ).text ) )
         
         acts    = tournRoot.find( 'queueActivity' ).findall( 'event' )
         for act in acts:

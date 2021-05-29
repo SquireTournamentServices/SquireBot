@@ -36,9 +36,9 @@ class player:
     def __init__( self, name: str = "", discordID: str = "" ):
         self.saveLocation = f'{name}.xml'
         self.discordUser = ""
-        self.discordID   = discordID
-        self.name  = name
-        self.triceName   = ""
+        self.discordID = discordID
+        self.name = name
+        self.triceName = ""
         self.status  = "active"
         self.decks   = { }
         self.matches = [ ]
