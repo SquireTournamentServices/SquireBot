@@ -412,6 +412,17 @@ async def matchStatus( ctx, tourn = "", mtch = "" ):
     
     await ctx.send( f'{mention}, here is the status of match #{mtch}:', embed=tournaments[tourn].getMatchEmbed( mtch-1 ) )
 
+commandSnippets["tricebot-update-player"] = "- tricebot-update-player : Updates the cockatrice username for a player, for a game that is ongoing." 
+commandCategories["day-of"].append("tricebot-update-player")
+@bot.command(name='tricebot-update-player')
+async def triceBotUpdatePlayer( ctx, tourn = "", mtch = "", oldPlyrName = "", newTriceName = "" ):
+    mention = ctx.message.author.mention
+    tourn = tourn.strip()
+    mtch  =  mtch.strip()
+    oldPlyrName = oldPlyrName.strip()
+    newTriceName = newTriceName.strip()
+        
+    if await isPrivateMessage( ctx ): return
 
 commandSnippets["tricebot-disable-pdi"] = "- tricebot-disable-pdi : Disables player deck verification." 
 commandCategories["day-of"].append("tricebot-disable-pdi")

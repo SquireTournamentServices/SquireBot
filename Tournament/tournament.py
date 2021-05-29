@@ -83,9 +83,6 @@ class tournament:
         self.spectators_can_see_hands = False 
         self.only_registered = False
         self.player_deck_verification = False
-        
-        if len(props) != 0:
-            self.setProperties(props)
             
     def isPlanned( self ) -> bool:
         return not ( self.tournStarted or self.tournEnded or self.tournCancel )
