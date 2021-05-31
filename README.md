@@ -21,7 +21,7 @@ Moreover, combining these styles in layers will also be allowed.
 This is something most commonly done with the Mythic Qualifiers that WotC hosts (Day 1 get a 7-2 or better record, Day 2 Swiss).
 
 
-#Setup
+# Setup
 
 To get this bot working on your server, you to only do a few things.
 First, add the bot to your server [here]("https://discord.com/api/oauth2/authorize?client_id=784967512106074183&permissions=268634192&scope=bot").
@@ -58,17 +58,17 @@ EXTERN_URL=tricebot WAN address
 ```
 You should set each tag to the value that you want.
 
-##Trice Bot Setup
+## Trice Bot Setup
 Go to https://github.com/djpiper28/CockatriceTournamentBot for the README to setup the tricebot.
 The auth token for the trice bot should be put into .env under the `TRICE_BOT_AUTH_TOKEN` tag,
 the trice bot should be ran on the same machine on `https://127.0.0.1:8000` with SSL enabled.
 It is recommended to use nginx to expose the tricebot replay downloads to the WAN (proxy http 
 to API_URL).
 
-#Additional Resources
+# Additional Resources
 
 
-#Future Plans
+# Future Plans
 
 
 
