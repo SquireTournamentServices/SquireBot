@@ -118,12 +118,19 @@ async def runTests( msg, *args ):
     await sendCommand( msg )
 
 
+
 @bot.command( name = "view-tests" )
 async def viewTests( msg ):
     digest = "Below are the names of all available tests and the number of commands that test have:"
     for test in tests:
         digest += f'\n\t- {test} : {len(tests[test].commands)} commands'
     await msg.channel.send( content = digest )
+
+
+# This command does nothing. Likely to be used when SquireBot would send two messages per command
+@bot.command( name = "pass" )
+async def doNothing( msg ):
+    return
 
 
 bot.run(TOKEN)
