@@ -412,6 +412,54 @@ async def matchStatus( ctx, tourn = "", mtch = "" ):
     
     await ctx.send( f'{mention}, here is the status of match #{mtch}:', embed=tournaments[tourn].getMatchEmbed( mtch-1 ) )
 
+
+commandSnippets["tricebot-disable-pdi"] = "- tricebot-disable-pdi : Disables player deck verification." 
+commandCategories["day-of"].append("tricebot-disable-pdi")
+@bot.command(name='tricebot-disable-pdi')
+async def triceBotUpdatePlayer( ctx, tourn = "", mtch = "" ):
+    mention = ctx.message.author.mention
+    tourn = tourn.strip()
+    mtch  =  mtch.strip()
+        
+    if await isPrivateMessage( ctx ): return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn == "" or mtch == "":
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
+        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+    
+    # Get match
+    try:
+        mtch = int( mtch )
+    except:
+        await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
+        return
+    
+    if mtch > len(tournaments[tourn].matches):
+        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
+        return
+    
+    match = tournaments[tourn].matches[mtch - 1]
+    
+    if not match.triceMatch:
+        await ctx.send( f'{mention}, that match is not a match with tricebot enabled.' )
+        return
+    if not match.playerDeckVerification:    
+        await ctx.send( f'{mention}, that match is not a match with player deck verification enabled.' )
+        return
+    
+    # Send update command
+    result = trice_bot.disablePlayerDeckVerificatoin(match.gameID)
+    if result == 1:
+        match.playerDeckVerification = False
+        await ctx.send( f'{mention}, player deck verification was disabled.' )
+    else:
+        await ctx.send( f'{mention}, an error occurred.' )
+
 commandSnippets["tricebot-update-player"] = "- tricebot-update-player : Updates the cockatrice username for a player, for a game that is ongoing." 
 commandCategories["day-of"].append("tricebot-update-player")
 @bot.command(name='tricebot-update-player')
