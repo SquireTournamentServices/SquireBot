@@ -26,7 +26,7 @@ class fluidRoundTournament(tournament):
     def __init__( self, name: str, hostGuildName: str, props: dict = { } ):     
         self.name = name.replace("\.\./", "")
         self.hostGuildName = hostGuildName
-        self.format    = "Pioneer"
+        self.format    = props["format"] if "format" in props else "Pioneer"
         
         self.saveLocation = f'currentTournaments/{self.name}'
 
@@ -45,8 +45,8 @@ class fluidRoundTournament(tournament):
         self.loop = asyncio.new_event_loop( )
         self.fail_count = 0
         
-        self.playersPerMatch   = 2
-        self.matchLength       = 60*60 # Length of matches in seconds
+        self.playersPerMatch   = int(props["match-size"]) if "match-size" in props else 2
+        self.matchLength       = int(props["match-length"])*60 if "match-length" in props else 60*60 # Length of matches in seconds
         
         self.queue             = [ [] ]
         self.pairingsThreshold = self.playersPerMatch * 2 # + 3
