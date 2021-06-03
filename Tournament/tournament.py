@@ -66,8 +66,8 @@ class tournament:
         self.loop = asyncio.new_event_loop( )
         self.fail_count = 0
         
-        self.playersPerMatch = 2
-        self.matchLength     = 60*60 # Length of matches in seconds
+        self.playersPerMatch = int(props["match-size"]) if "match-size" in props else 2
+        self.matchLength     = int(props["match-length"])*60 if "match-length" in props else 60*60 # Length of matches in seconds
         
         self.deckCount = 1
 
@@ -76,13 +76,13 @@ class tournament:
         self.matches = []
         
         #Create bot class and store the game creation settings
-        self.triceBotEnabled = False
-        self.spectators_allowed = False
-        self.spectators_need_password = False 
-        self.spectators_can_chat = False 
-        self.spectators_can_see_hands = False 
-        self.only_registered = False
-        self.player_deck_verification = False
+        self.triceBotEnabled = props["trice-enabled"] if "trice-enabled" in props else False
+        self.spectators_allowed = props["spectators-allowed"] if "spectators-allowed" in props else False
+        self.spectators_need_password = props["spectators-need-password"] if "spectators-need-password" in props else False 
+        self.spectators_can_chat = props["spectators-can-chat"] if "spectators-can-chat" in props else False 
+        self.spectators_can_see_hands = props["spectators-can-see-hands"] if "spectators-can-see-hands" in props else False 
+        self.only_registered = props["only-registered"] if "only-registered" in props else False
+        self.player_deck_verification = props["player-deck-verification"] if "player-deck-verification" in props else False 
             
     def isPlanned( self ) -> bool:
         return not ( self.tournStarted or self.tournEnded or self.tournCancel )
@@ -574,22 +574,18 @@ class tournament:
                 
                 game_password: str = "game-" + str(newMatch.matchNumber)
                 
+                playerNames = []
+                deckHashes = []
+                if self.player_deck_verification:
+                    for plyr in plyrs:
+                        name = self.players[plyr].triceName
+                        if name == "":
+                            name = "*"
+                        playerNames.append(name)
+                        deckHashes.append( [dck.deckHash for dck in self.players[plyr].decks.values()] )
+
                 #Try up to three times
                 while not creation_success and tries < max_tries:
-                    playerNames = []
-                    deckHashes = []
-                    i: int = 0
-                    if self.player_deck_verification:
-                        for plyr in plyrs:
-                            name = self.players[plyr].triceName
-                            if name == "":
-                                name = "*"
-                            playerNames.append(name)
-                            deckHashes.append([])
-                            for deck in self.players[plyr].decks:
-                                deckHashes[i].append(self.players[plyr].decks[deck].deckHash)
-                            i+=1
-                    
                     game_made = trice_bot.createGame(game_name, game_password, len(plyrs), self.spectators_allowed, self.spectators_need_password, self.spectators_can_chat, self.spectators_can_see_hands, self.only_registered, self.player_deck_verification, playerNames, deckHashes)
                     
                     creation_success = game_made.success

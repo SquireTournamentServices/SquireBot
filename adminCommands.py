@@ -74,10 +74,10 @@ async def updateTournProperties( ctx, tournName = None, *args ):
     if await isTournDead( tournName, ctx ): return
     
     tournProps = generateTournProps( *args )
-    #if len(tournProps) != "".join(args).count("=") or len(tournProps) == 0:
-    #    print( tournProps )
-    #    await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
-    #    return
+    if len(tournProps) != "".join(args).count("="):
+        print( tournProps )
+        await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
+        return
 
     message = tournaments[tournName].setProperties( tournProps )
     tournaments[tournName].saveOverview( )
@@ -608,13 +608,13 @@ async def tricebotKickPlayer( ctx, tourn = "", mtch = "", playerName = "" ):
         return
     
     
-    match = tournaments[tourn].matches[mtch - 1]
+    Match = tournaments[tourn].matches[mtch - 1]
     
-    if not match.triceMatch:
+    if not Match.triceMatch:
         await ctx.send( f'{mention}, that match is not a match with tricebot enabled.' )
         return
     
-    result = tournaments[tourn].kickTricePlayer(match.gameID, playerName)    
+    result = tournaments[tourn].kickTricePlayer(Match.gameID, playerName)    
     
     #  1 success
     #  0 auth token is bad or error404 or network issue
