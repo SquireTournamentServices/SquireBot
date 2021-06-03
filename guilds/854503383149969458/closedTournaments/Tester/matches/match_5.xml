@@ -1,0 +1,23 @@
+<?xml version='1.0'?>
+<match roleID="" VC_ID="">
+	<number>5</number>
+	<matchLength>3600</matchLength>
+	<timeExtension>0</timeExtension>
+	<stopTimer>True</stopTimer>
+	<startTime>2021-06-18 01:28:08.322298</startTime>
+	<endTime>2021-06-18 01:28:08.322326</endTime>
+	<sentWarnings oneMin="False" fiveMin="False" final="False"/>
+	<status>certified</status>
+	<triceMatch>False</triceMatch>
+	<playerDeckVerification>False</playerDeckVerification>
+	<gameID>-1</gameID>
+	<replayURL>None</replayURL>
+	<winner name="This match is a bye."/>
+	<activePlayers>
+		<player name="452580294331990027"/>
+	</activePlayers>
+	<droppedPlayers>
+	</droppedPlayers>
+	<confirmedPlayers>
+	</confirmedPlayers>
+</match>

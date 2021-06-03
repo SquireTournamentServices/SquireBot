@@ -77,9 +77,10 @@ async def updateTournProperties( ctx, tournName = None, *args ):
         await ctx.send( f'{mention}, there is not tournament called "{tournName}" on this server.' )
         return
     
-    tournProps = generatePropsDict( *args )
+    tournProps = generateTournProps( *args )
     if len(tournProps) != "".join(args).count("="):
-        await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check that you entered them correctly and consult the "!squirebot-help" command for more help' )
+        print( tournProps )
+        await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
         return
 
     message = tourn.setProperties( tournProps )
@@ -673,11 +674,20 @@ async def tricebotKickPlayer( ctx, tourn = None, mtch = None, playerName = None 
     
     Match = tournObj.matches[mtch - 1]
     
+<<<<<<< HEAD
+=======
+    Match = tournaments[tourn].matches[mtch - 1]
+    
+>>>>>>> 5b0e0c3... Merged Joking's docs and current changes on the 51-merge branch
     if not Match.triceMatch:
         await ctx.send( f'{mention}, that match is not a match with tricebot enabled.' )
         return
     
+<<<<<<< HEAD
     result = tournObj.kickTricePlayer(Match.gameID, playerName)    
+=======
+    result = tournaments[tourn].kickTricePlayer(Match.gameID, playerName)    
+>>>>>>> 5b0e0c3... Merged Joking's docs and current changes on the 51-merge branch
     
     #  1 success
     #  0 auth token is bad or error404 or network issue
