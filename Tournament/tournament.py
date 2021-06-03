@@ -599,7 +599,6 @@ class tournament:
                             for deck in self.players[plyr].decks:
                                 deckHashes[i].append(self.players[plyr].decks[deck].deckHash)
                             i+=1
-                    
                     game_made = trice_bot.createGame(game_name, game_password, len(plyrs), self.spectators_allowed, self.spectators_need_password, self.spectators_can_chat, self.spectators_can_see_hands, self.only_registered, self.player_deck_verification, playerNames, deckHashes)
                     
                     creation_success = game_made.success
