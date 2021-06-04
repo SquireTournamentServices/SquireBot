@@ -606,7 +606,7 @@ class tournament:
                     message += f' and has a password of `"{game_password}"`\n'
                 
                     #TODO: move replay download link?
-                    message += f'Replay download link {replay_download_link} (available on game end)\n.'
+                    message += f'Replay download link {replay_download_link} (available on game end).\n'
                 else:
                     #Game was not made
                     message += "A cockatrice game was not automatically made for you.\n"
