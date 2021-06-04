@@ -59,3 +59,18 @@ Confirms the result of the match on the player’s behalf.
 Prints out a player’s deck list.
 
 - Ex. !admin-decklist “Marchesa 2021” @Tylord2894 “Izzet Ponza”
+
+
+### tricebot-disable-pdi (tournament) (match number)
+
+Disables player deck verification for a match; see [Player Deck Verification](https://github.com/djpiper28/CockatriceTournamentBot/blob/main/README.md#player-deck-verification). This can solve issues with players being wrongly kicked due to typos in their name, such issues can also be solved with the `tricebot-update-player` command.
+
+- Ex. !tricebot-disable-pdi "Marchesa 2021" 1
+
+### tricebot-update-player (tournament) (match number) (cockatrice player name/mention) (new player name)
+
+Used to update a player name in a match's player-deck info; see [Player Deck Verification](https://github.com/djpiper28/CockatriceTournamentBot/blob/main/README.md#player-deck-verification). This can solve issues with players being wrongly kicked due to typos in their name, such issues can also be solved with the `tricebot-update-player` command.
+
+An example of this command is to fix the typo `djpipr28`, which should be `djpiper28`.
+
+- Ex. !tricebot-update-player "Marchesa 2021" 1 djpipr28 djpiper28

@@ -93,3 +93,9 @@ Creates a match for the player that includes only that player. This match is con
 Removes all information surrounding a match. Any result is discarded. All players have their list of past opponents updated. Lastly, the role and voice channel (if they exist) are removed. Notably, this doesn’t change any existing (or future) match numbers. If two matches exists and match #1 is removed, the next match will be match #3 and match #1 will be unchanged.
 
 - Ex. !admin-remove-match “Marchesa 2021” 2 
+
+### tricebot-kick-player (tournament) (match number) (cockatrice player name)
+
+Kicks a player who has joined a tricebot game that should not be in the game. The Player name is case sensitive.
+
+- Ex. !tricebot-kick-player "Marchesa 2021" 1 HackerMan232

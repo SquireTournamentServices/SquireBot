@@ -51,12 +51,11 @@ SquireBot's commands are broken into three categories, player, judge, and admin 
 
 To see SquireBot's help message, use the command `!squirebot-help`. In that message will be the below links, which go into more depth about each command. There are two other links which are crash courses for new tournament admin and players. These are also linked in the help message.
 
- - **Player Commands - LINK TODO**
- - **Judge Commands - LINK TODO**
- - **Admin Commands - LINK TODO**
- - **Player Crash Course - LINK TODO**
+ - [Player Commands](https://github.com/TylerBloom/SquireBot/blob/master/docs/PlayerCommands.md)
+ - [Judge Commands](https://github.com/TylerBloom/SquireBot/blob/master/docs/JudgeCommands.md)
+ - [Admin Commands](https://github.com/TylerBloom/SquireBot/blob/master/docs/AdminCommands.md)
+ - [Player Crash Course](https://github.com/TylerBloom/SquireBot/blob/master/docs/CrashCourse.md)
  - **Admin Crash Course - LINK TODO**
-
 
 # Development
 To run a new instance of SquireBot, you will need its prerequistes and dependencies. SquireBot is written in python3 (and run/tested in python3.8). Its only non-standard dependencies are the Discord API library and the python-dotenv library. Both are available via pip3.
@@ -74,12 +73,12 @@ TESTING_TOKEN=<your Discord Auth token>
 
 
 ## Trice Bot Setup
-SquireBot has integration with [TriceBot](https://github.com/djpiper28/CockatriceTournamentBot), which helps organize players in Cockatrice as well as provides a single location to pull replay from. Follow the intrustion in its README to set it up. TriceBot should be ran on the same machine as SquireBot on `https://127.0.0.1:8000` with SSL enabled. It is recommended to use nginx to expose the tricebot replay downloads to the WAN (proxy http to API_URL).
+SquireBot has integration with [TriceBot](https://github.com/djpiper28/CockatriceTournamentBot), which helps organize players in Cockatrice as well as provides a single location to pull replay from. Follow the intrustion in its README to set it up. TriceBot should be ran on the same machine as SquireBot on `https://127.0.0.1:8000` with SSL enabled. It is recommended to use nginx to expose the tricebot replay downloads to the WAN (reverse proxy https to API_URL) you can you nginx to hide the /api/\* endpoints as well.
 
 The auth token for TriceBot should be put into the `.env` file with:
 ```yaml
 TRICE_BOT_AUTH_TOKEN=<tricebot auth token, same as in config.conf for TriceBot>
-API_URL=<TriceBot API URL (LAN address), i.e: https://0.0.0.0:8000>
+API_URL=<TriceBot API URL (LAN address), i.e: https://127.0.0.1:8000>
 EXTERN_URL=<TriceBot WAN address>
 
 
