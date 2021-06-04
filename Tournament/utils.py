@@ -120,6 +120,8 @@ def toPathSafe(name: str) -> bool:
     return digest
 
 def toSafeXML( input_XML: str ) -> str:
+    if input_XML == None:
+        return "" # Check for None
     digest = str(input_XML)
     for c in problem_chars:
         digest.replace(c, problem_chars[c])
