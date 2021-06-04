@@ -254,7 +254,7 @@ class fluidRoundTournament(tournament):
     
     def saveTournamentType( self, filename: str = "" ) -> None:
         print( "Fluid Round tournament type being saved." )
-        with open( filename, 'w' ) as xmlfile:
+        with open( filename, 'w+' ) as xmlfile:
             xmlfile.write( "<?xml version='1.0'?>\n<type>fluidRoundTournament</type>" )
    
     def saveOverview( self, filename: str = "" ) -> None:
@@ -290,7 +290,7 @@ class fluidRoundTournament(tournament):
         digest += f'\t</queueActivity>\n'
         digest += '</tournament>' 
         
-        with open( filename, 'w' ) as xmlfile:
+        with open( filename, 'w+' ) as xmlfile:
             xmlfile.write( toSafeXML(digest) )
     
     def loadOverview( self, filename: str ) -> None:

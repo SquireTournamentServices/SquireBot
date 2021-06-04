@@ -291,7 +291,7 @@ class player:
         for ident in self.decks:
             digest += self.decks[ident].exportXMLString( '\t' )
         digest += '</player>'
-        with open( a_filename, 'w' ) as xmlFile:
+        with open( a_filename, 'w+' ) as xmlFile:
             xmlFile.write( digest )
     
     # Loads an xml file saved with the class after construction
