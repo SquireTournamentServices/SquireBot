@@ -686,7 +686,7 @@ class tournament:
         if dirName == "":
             dirName = self.saveLocation
         if not (os.path.isdir( f'{dirName}' ) and os.path.exists( f'{dirName}' )):
-           os.mkdir( f'{dirName}' ) 
+            os.mkdir( f'{dirName}' ) 
         self.saveTournamentType( f'{dirName}/tournamentType.xml' )
         self.saveOverview( f'{dirName}/overview.xml' )
         self.saveMatches( dirName )
