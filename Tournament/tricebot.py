@@ -127,7 +127,7 @@ class TriceBot:
         
         if playerdeckverification:
             for i in range(0, len(playernames)):
-                if playernames[i] == "": # No name
+                if playernames[i] == "" or playernames[i] == None: # No name
                     body += f'playerName=*\n'
                 else:
                     body += f'playerName={playernames[i]}\n'
