@@ -64,7 +64,7 @@ class TriceBot:
     # 1 if success
     # 0 auth token is bad, error 404 or network issue
     # -1 game not found
-    def disablePlayerDeckVerificatoin(str, gameID: str) -> int:
+    def disablePlayerDeckVerificatoin(self, gameID: str) -> int:
         body  = f'authtoken={self.authToken}\n'
         body += f'gameid={gameID}'
         
