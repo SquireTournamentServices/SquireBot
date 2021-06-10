@@ -37,11 +37,11 @@ class guildSettings:
         self.d_VCCatergory    : discord.CategoryChannel = discord.utils.get( guild.categories, name="Matches" )
         
         # Tournament Stuff
-        self.tournaments  : list = [ ]
-        self.d_tournType  : str = "Swiss"
-        self.tournDefaults: dict = { }
+        self.tournaments : list = [ ]
+        self.d_tournType : str = "Swiss"
+        self.d_tournProps: dict = { }
         for prop in tournamentProperties:
-            self.tournDefaults[prop] = None
+            self.d_tournProps[prop] = None
         
         self.defaultNames = [ "judge-role", "tournament-admin-role", "pairings-channel", "vc-category", "tournament-type" ]
 
@@ -105,70 +105,72 @@ class guildSettings:
     
     # Updates the default settings for the guild
     def updateDefaults( self, defaults: Dict ) -> str:
-        successes: list = [ ]
-        failures : list = [ ]
-        undefined: list = [ ]
-        digest   : str  = ""
+        digest : str  = ""
+        
+        # Passing the adjusted defaults through the base fluidRoundsTournament
+        filteredDefaults = fluidRoundTournament.filterProperties( { prop: defaults[prop] for prop in defaults if not (prop in self.defaultNames) } )
+        
+        # TODO: As more tournaments types are added, this process will need to grow
+        
+        # Updating properties
 
-        for default in defaults:    
-            if not default in self.defaultNames:
-                undefined.append( default )
-                continue
+        if "judge-role" in defaults:
+            tmp = self.guild.get_role( get_ID_from_mention(defaults["judge-role"]) )
+            if not tmp is None:
+                self.d_judgeRole = tmp
+                filteredDefaults["successes"]["judge-role"] = defaults["judge-role"]
+            else:
+                filteredDefaults["failures"]["judge-role"] = defaults["judge-role"]
+        if "tournament-admin-role" in defaults:
+            tmp = self.guild.get_role( get_ID_from_mention(defaults["tournament-admin-role"]) )
+            if not tmp is None:
+                self.d_tournAdminRole = tmp
+                filteredDefaults["successes"]["tournament-admin-role"] = defaults["tournament-admin-role"]
+            else:
+                filteredDefaults["failures"]["tournament-admin-role"] = defaults["tournament-admin-role"]
+        if "pairings-channel" in defaults:
+            tmp = self.guild.get_channel( get_ID_from_mention(defaults["pairings-channel"]) )
+            if not tmp is None:
+                self.d_pairingsChannel = tmp
+                filteredDefaults["successes"]["pairings-channel"] = defaults["pairings-channel"]
+            else:
+                filteredDefaults["failures"]["pairings-channel"] = defaults["pairings-channel"]
+        if "vc-category" in defaults:
+            tmp = self.guild.get_channel( get_ID_from_mention(defaults["vc-category"]) )
+            if not tmp is None:
+                self.d_VCCatergory = tmp
+                filteredDefaults["successes"]["vc-category"] = defaults["vc-category"]
+            else:
+                filteredDefaults["failures"]["vc-category"] = defaults["vc-category"]
+        if "tournament-type" in defaults:
+            if defaults["tournament-type"] in tournamentTypes:
+                self.d_tournType = defaults["tournament-type"]
+                filteredDefaults["successes"]["tournament-type"] = defaults["tournament-type"]
+            else:
+                filteredDefaults["failures"]["tournament-type"] = defaults["tournament-type"]
+        
+        for prop in filteredDefaults["successes"]:
+            self.d_tournProps[prop] = filteredDefaults[prop]
 
-            if default == "judge-role":
-                tmp = self.guild.get_role( get_ID_from_mention(defaults[default]) )
-                if not tmp is None:
-                    self.d_judgeRole = tmp
-                    successes.append( default )
-                else:
-                    failures.append( default )
-            elif default == "tournament-admin-role":
-                tmp = self.guild.get_role( get_ID_from_mention(defaults[default]) )
-                if not tmp is None:
-                    self.d_tournAdminRole = tmp
-                    successes.append( default )
-                else:
-                    failures.append( default )
-            elif default == "pairings-channel":
-                tmp = self.guild.get_channel( get_ID_from_mention(defaults[default]) )
-                if not tmp is None:
-                    self.d_pairingsChannel = tmp
-                    successes.append( default )
-                else:
-                    failures.append( default )
-            elif default == "vc-category":
-                tmp = self.guild.get_channel( get_ID_from_mention(defaults[default]) )
-                if not tmp is None:
-                    self.d_VCCatergory = tmp
-                    successes.append( default )
-                else:
-                    failures.append( default )
-            elif default == "tournament-type":
-                if defaults[default] in tournamentTypes:
-                    self.d_tournType = defaults[default]
-                    successes.append( default )
-                else:
-                    failures.append( default )
-
-        if len(successes) == 0:
+        if len(filteredDefaults["successes"]) == 0:
             digest += "No defaults were successfully updated."
         else:
-            digest += f'The following default{" was" if len(successes) == 1 else "s were"} successfully updated:\n\t-'
-            digest += "\n\t-".join( [ f'{d}: {defaults[d]}' for d in successes ] )
-        if len(failures) > 0:
-            digest += f'\n\nThere were errors in updating the following default{"" if len(failures) == 1 else "s"}:\n\t-'
-            digest += "\n\t-".join( [ f'{d}: {defaults[d]}' for p in failures ] )
-        if len(undefined) > 0:
-            digest += f'\n\n{self.name} does not have the following default{"" if len(failures) == 1 else "s"}:\n\t-'
-            digest += "\n\t-".join( [ f'{d}: {defaults[d]}' for d in undefined ] )
+            digest += f'The following default{" was" if len(filteredDefaults["successes"]) == 1 else "s were"} successfully updated:\n\t-'
+            digest += "\n\t-".join( [ f'{d}: {defaults[d]}' for d in filteredDefaults["successes"] ] )
+        if len(filteredDefaults["failures"]) > 0:
+            digest += f'\n\nThere were errors in updating the following default{"" if len(filteredDefaults["failures"]) == 1 else "s"}:\n\t-'
+            digest += "\n\t-".join( [ f'{d}: {defaults[d]}' for p in filteredDefaults["failures"] ] )
+        if len(filteredDefaults["undefined"]) > 0:
+            digest += f'\n\n{self.name} does not have the following default{"" if len(filteredDefaults["undefined"]) == 1 else "s"}:\n\t-'
+            digest += "\n\t-".join( [ f'{d}: {defaults[d]}' for d in filteredDefaults["undefined"] ] )
 
         return digest
 
-    def updateTournDefaults( self ) -> str:
-        pass
-        
     
     # ---------------- Tournament Methods ----------------
+    
+    # Users can set properties that are used in some tournament types, but not others
+    # This filters out the unneeded properties
     def _mergeProperties( self ) -> Dict:
         pass
 

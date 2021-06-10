@@ -1,14 +1,14 @@
 import os
 import shutil
-import xml.etree.ElementTree as ET
-import random
 import threading
 import time
-import discord
 import asyncio
 import warnings
-
+import xml.etree.ElementTree as ET
 from typing import List, Dict, Tuple
+
+import discord
+from dotenv import load_dotenv
 
 from .tricebot import TriceBot
 from .utils import *
@@ -16,7 +16,6 @@ from .match import match
 from .player import player
 from .deck import deck
 
-from dotenv import load_dotenv
 
 load_dotenv()
 # Trice bot auth token must be the same as in config.conf for the tricebot
@@ -44,8 +43,8 @@ trice_bot = TriceBot(TRICE_BOT_AUTH_TOKEN, apiURL=API_URL, externURL=EXTERN_URL)
 class tournament:
     # The tournament base class is not meant to be constructed, but this
     # constructor acts as a guide for the minimum a constructor needs
-    def __init__( self, name: str, hostGuildName: str, props: dict = { } ):     
-        self.name = name.replace("\.\./", "")
+    def __init__( self, name: str, hostGuildName: str, props: dict = { } ):
+        self.name: str = name.replace("../", "")
         self.hostGuildName = hostGuildName
         self.format    = props["format"] if "format" in props else "Pioneer"
         
@@ -78,9 +77,9 @@ class tournament:
         #Create bot class and store the game creation settings
         self.triceBotEnabled = False
         self.spectators_allowed = False
-        self.spectators_need_password = False 
-        self.spectators_can_chat = False 
-        self.spectators_can_see_hands = False 
+        self.spectators_need_password = False
+        self.spectators_can_chat = False
+        self.spectators_can_see_hands = False
         self.only_registered = False
         self.player_deck_verification = False
         
@@ -96,7 +95,7 @@ class tournament:
     def isDead( self ) -> bool:
         return self.tournEnded or self.tournCancel
     
-    # ---------------- Universally Defined Methods ---------------- 
+    # ---------------- Universally Defined Methods ----------------
     
     async def addDiscordGuild( self, guild: discord.Guild ) -> str:
         self.guild = guild
@@ -130,121 +129,140 @@ class tournament:
                 mtch.addMatchVC( guild.get_channel( mtch.VC_ID ) )
 
 
-    # ---------------- Property Accessors ---------------- 
+    # ---------------- Property Accessors ----------------
     
-    def setProperties( self, props: Dict ) -> str:
-        successes = [ ]
-        failures  = [ ]
-        undefined = [ ]
+    # Each tournament type needs a static method that will filter out valid properties
+    # This used throughout the tournament and when adding server defaults
+    def filterProperties( props: Dict ) -> Dict[List]:
+        digest: dict = { "successes": [], "failures": [], "undefined": [] }
         for prop in props:
             props[prop] = str(props[prop])
             
-            # This flag is True if the value is a number and greater than 0
-            isValidNumber = props[prop].isnumeric()
-            if isValidNumber:
-                number = int(props[prop])
-                isValidNumber = number > 0
+            # Valid numbers here are strickly positive
+            # And yes, this is safe. The second expression isn't evaluated if the first is false
+            isValidNumber = props[prop].isnumeric() and int(props[prop]) > 0
                 
             # Check for empty strings
-            if props[prop] == "":                
-                successes.append( prop )
+            if props[prop] == "":
+                pass
             elif prop == "format":
                 # Not really sure what TODO here
-                self.format = props[prop]
-                successes.append( prop )
+                digest["successes"][prop] = props[prop]
             elif prop == "deck-count":
                 if isValidNumber:
-                    self.deckCount = number
-                    successes.append( prop )
+                    digest["successes"][prop] = int(props[prop])
                 else:
-                    failures.append( prop )
+                    digest["failures"][prop] = props[prop]
             elif prop == "match-length":
                 # The length of a match needs to be an int
                 if isValidNumber:
-                    self.matchLength = number * 60
-                    successes.append( prop )
+                    digest["successes"][prop] = int(props[prop]) * 60
                 else:
-                    failures.append( prop )
+                    digest["failures"][prop] = props[prop]
             elif prop == "match-size":
                 # The number of people in a match needs to be an int
                 if isValidNumber:
-                    self.playersPerMatch = number
-                    successes.append( prop )
+                    digest["successes"][prop] = int(props[prop])
                 else:
-                    failures.append( prop )
+                    digest["failures"][prop] = props[prop]
             elif prop == "pairings-channel":
                 # The pairings channel properties should be an ID, which is an int
                 # Also, the guild should have a channel whose ID is the given ID
                 channelID = discordID_from_mention( props[prop] )
                 if channelID.isnumeric() and not (self.guild.get_channel( int(channelID) ) is None):
-                    self.pairingsChannel = self.guild.get_channel( int(channelID) )
-                    self.pairingsChannelID = self.pairingsChannel.id
-                    successes.append( prop )
+                    digest["successes"][prop] = self.guild.get_channel( int(channelID) )
                 else:
-                    failures.append( prop )
+                    digest["failures"][prop] = props[prop]
             elif prop == "tricebot-enabled":
                 # This needs to be a bool
-                if not ( str_to_bool(props[prop]) is None ): 
-                    self.triceBotEnabled = str_to_bool(props[prop])
-                    successes.append( prop )
+                if not ( str_to_bool(props[prop]) is None ):
+                    digest["successes"][prop] = str_to_bool(props[prop])
                 else:
-                    failures.append( prop )
+                    digest["failures"][prop] = props[prop]
             elif prop == "spectators-allowed":
                 # This needs to be a bool
-                if not ( str_to_bool(props[prop]) is None ): 
-                    self.spectators_allowed = str_to_bool(props[prop])
-                    successes.append( prop )
+                if not ( str_to_bool(props[prop]) is None ):
+                    digest["successes"][prop] = str_to_bool(props[prop])
                 else:
-                    failures.append( prop )
+                    digest["failures"][prop] = props[prop]
             elif prop == "spectators-need-password":
                 # This needs to be a bool
-                if not ( str_to_bool(props[prop]) is None ): 
-                    self.spectators_need_password = str_to_bool(props[prop])
-                    successes.append( prop )
+                if not ( str_to_bool(props[prop]) is None ):
+                    digest["successes"][prop] = str_to_bool(props[prop])
                 else:
-                    failures.append( prop )
+                    digest["failures"][prop] = props[prop]
             elif prop == "spectators-can-chat":
                 # This needs to be a bool
-                if not ( str_to_bool(props[prop]) is None ): 
-                    self.spectators_can_chat = str_to_bool(props[prop])
-                    successes.append( prop )
+                if not ( str_to_bool(props[prop]) is None ):
+                    digest["successes"][prop] = str_to_bool(props[prop])
                 else:
-                    failures.append( prop )
+                    digest["failures"][prop] = props[prop]
             elif prop == "spectators-can-see-hands":
                 # This needs to be a bool
-                if not ( str_to_bool(props[prop]) is None ): 
-                    self.spectators_can_see_hands = str_to_bool(props[prop])
-                    successes.append( prop )
+                if not ( str_to_bool(props[prop]) is None ):
+                    digest["successes"][prop] = str_to_bool(props[prop])
                 else:
-                    failures.append( prop )
+                    digest["failures"][prop] = props[prop]
             elif prop == "only-registered":
                 # This needs to be a bool
-                if not ( str_to_bool(props[prop]) is None ): 
-                    self.only_registered = str_to_bool(props[prop])
-                    successes.append( prop )
+                if not ( str_to_bool(props[prop]) is None ):
+                    digest["successes"][prop] = str_to_bool(props[prop])
                 else:
-                    failures.append( prop )
-            elif prop == "player-deck-verification":                
+                    digest["failures"][prop] = props[prop]
+            elif prop == "player-deck-verification":
                 # This needs to be a bool
-                if not ( str_to_bool(props[prop]) is None ): 
-                    self.player_deck_verification = str_to_bool(props[prop])
-                    successes.append( prop )
+                if not ( str_to_bool(props[prop]) is None ):
+                    digest["successes"][prop] = str_to_bool(props[prop])
                 else:
-                    failures.append( prop )
+                    digest["failures"][prop] = props[prop]
             else:
-                undefined.append( prop )
+                digest["undefined"][prop] = props[prop]
+        
+        return digest
+    
+    # Sets properties that can be changed directly by users
+    # TODO: Consider a properies member instead of individual members (fixme)
+    def setProperties( self, props: Dict ) -> str:
+        filteredProps = self.filterProperties( props )
+        for prop in filteredProps["successes"]:
+            if prop == "format":
+                self.format = prop
+            elif prop == "deck-count":
+                self.deckCount = prop
+            elif prop == "match-length":
+                self.matchLength = prop
+            elif prop == "match-size":
+                self.playersPerMatch = prop
+            elif prop == "pairings-channel":
+                self.pairingsChannel = prop
+                self.pairingsChannelID = prop.id
+            elif prop == "tricebot-enabled":
+                self.triceBotEnabled = prop
+            elif prop == "spectators-allowed":
+                self.spectators_allowed = prop
+            elif prop == "spectators-need-password":
+                self.spectators_need_password = prop
+            elif prop == "spectators-can-chat":
+                self.spectators_can_chat = prop
+            elif prop == "spectators-can-see-hands":
+                self.spectators_can_see_hands = prop
+            elif prop == "only-registered":
+                self.only_registered = prop
+            elif prop == "player-deck-verification":
+                self.player_deck_verification = prop
+        
         digest = ""
-        if len(successes) == 0:
+        if len(filteredProps["successes"]) == 0:
             digest += "No properties were successfully updated."
         else:
-            digest += f'The following propert{"y was" if len(successes) == 1 else "ies were"} successfully updated:\n\t-'
-            digest += "\n\t-".join( [ f'{p}: {props[p]}' for p in successes ] )
-        if len(failures) > 0:
-            digest += f'\n\nThere were errors in updating the following propert{"y was" if len(failures) == 1 else "ies"}:\n\t-'
-            digest += "\n\t-".join( [ f'{p}: {props[p]}' for p in failures ] )
-        if len(undefined) > 0:
-            digest += f'\n\n{self.name} does not have the following propert{"y" if len(failures) == 1 else "ies"}:\n\t-'
-            digest += "\n\t-".join( [ f'{p}: {props[p]}' for p in undefined ] )
+            digest += f'The following propert{"y was" if len(filteredProps["successes"]) == 1 else "ies were"} successfully updated:\n\t-'
+            digest += "\n\t-".join( [ f'{p}: {props[p]}' for p in filteredProps["successes"] ] )
+        if len(filteredProps["failures"]) > 0:
+            digest += f'\n\nThere were errors in updating the following propert{"y was" if len(filteredProps["failures"]) == 1 else "ies"}:\n\t-'
+            digest += "\n\t-".join( [ f'{p}: {props[p]}' for p in filteredProps["failures"] ] )
+        if len(filteredProps["undefined"]) > 0:
+            digest += f'\n\n{self.name} does not have the following propert{"y" if len(filteredProps["undefined"]) == 1 else "ies"}:\n\t-'
+            digest += "\n\t-".join( [ f'{p}: {props[p]}' for p in filteredProps["undefined"] ] )
 
         return digest
 
@@ -260,7 +278,7 @@ class tournament:
             if mtch.matchNumber == matchNum:
                 return mtch
     
-    # ---------------- Misc ---------------- 
+    # ---------------- Misc ----------------
     
     def getStandings( self ) -> List[List]:
         rough = [ ]
@@ -300,7 +318,7 @@ class tournament:
         return digest
 
 
-    # ---------------- Embed Generators ---------------- 
+    # ---------------- Embed Generators ----------------
     def getPlayerProfileEmbed( self, plyr: int ) -> discord.Embed:
         digest = discord.Embed()
         deckPairs = [ f'{d}: {self.players[plyr].decks[d].deckHash}' for d in self.players[plyr].decks ]
@@ -318,7 +336,7 @@ class tournament:
 
     def getMatchEmbed( self, mtch: int ):
         digest = discord.Embed( )
-        Match = self.matches[mtch] 
+        Match = self.matches[mtch]
         digest.add_field( name="Status", value=Match.status )
         digest.add_field( name="Active Players", value="\u200b" + ", ".join( [ self.players[plyr].getMention() for plyr in Match.activePlayers ] ) )
         if len(Match.droppedPlayers) != 0:
@@ -342,7 +360,7 @@ class tournament:
             
         return digest
     
-    # ---------------- Player Accessors ---------------- 
+    # ---------------- Player Accessors ----------------
     def setPlayerTriceName( self, plyr: str, name: str ) -> str:
         if not plyr in self.players:
             return f'you are not registered for {self.name}. Use the !register {self.name} to register for this tournament.'
@@ -363,12 +381,12 @@ class tournament:
         self.players[plyr].saveXML( )
         deckHash = self.players[plyr].decks[deckName].deckHash
         if admin:
-            self.players[plyr].discordUser.send( content = f'A decklist has been submitted for {tourn} on your behalf. The name of the deck is "{deckName}" and the deck hash is "{deckHash}". Use the command "!decklist {deckName}" to see the list. Please contact tournament staff if there is an error.' ) 
+            self.players[plyr].discordUser.send( content = f'A decklist has been submitted for {tourn} on your behalf. The name of the deck is "{deckName}" and the deck hash is "{deckHash}". Use the command "!decklist {deckName}" to see the list. Please contact tournament staff if there is an error.' )
             return f'you have submitted a decklist for {plyr}. The deck hash is {deckHash}.'
         return f'your deck has been successfully registered in {self.name}. Your deck name is "{deckName}", and the deck hash is "{deckHash}". Make sure it matches your deck hash in Cockatrice. You can see your decklist by using !decklist "{deckName}" or !decklist {deckHash}.'
         
     
-    # ---------------- Tournament Status ---------------- 
+    # ---------------- Tournament Status ----------------
 
     def setRegStatus( self, status: bool ) -> str:
         if not ( self.tournEnded or self.tournCancel ):
@@ -414,7 +432,7 @@ class tournament:
         await self.purgeTourn( )
         self.tournEnded = False
         self.saveTournament( f'closedTournaments/{self.name}' )
-        if os.path.isdir( f'currentTournaments/{self.name}' ): 
+        if os.path.isdir( f'currentTournaments/{self.name}' ):
             shutil.rmtree( f'currentTournaments/{self.name}' )
         return f'{adminMention}, {self.name} has been closed by {author}.'
     
@@ -422,17 +440,17 @@ class tournament:
         await self.purgeTourn( )
         self.tournCancel = True
         self.saveTournament( f'closedTournaments/{self.name}' )
-        if os.path.isdir( f'currentTournaments/{self.name}' ): 
+        if os.path.isdir( f'currentTournaments/{self.name}' ):
             shutil.rmtree( f'currentTournaments/{self.name}' )
         return f'{adminMention}, {self.name} has been cancelled by {author}.'
     
-    # ---------------- Player Management ---------------- 
+    # ---------------- Player Management ----------------
 
     async def prunePlayers( self, ctx ) -> str:
         await ctx.send( f'Pruning players starting... now!' )
         for plyr in self.players:
             if len(self.players[plyr].decks) == 0:
-                await self.dropPlayer( plyr ) 
+                await self.dropPlayer( plyr )
                 await ctx.send( f'{self.players[plyr].getMention()} has been pruned.' )
                 await self.players[plyr].discordUser.send( content=f'You have been dropped from the tournament {self.name} on {ctx.guild.name} by tournament staff for not submitting a deck. If you believe this is an error, contact them immediately.' )
                 self.players[plyr].saveXML( )
@@ -457,7 +475,7 @@ class tournament:
         await self.players[discordUser.id].discordUser.add_roles( self.role )
         self.players[discordUser.id].saveXML( )
         if admin:
-            await discordUser.send( content=f'You have been registered for {self.name}!' )  
+            await discordUser.send( content=f'You have been registered for {self.name}!' )
             return f'you have {RE}registered {discordUser.mention} for {self.name}'
         return f'you have been {RE}registered in {self.name}!'
 
@@ -484,7 +502,7 @@ class tournament:
     async def recordMatchResult( self, plyr: str, result: str, matchNum: int, admin: bool = False ) -> str:
         if admin:
             message = await self.matches[matchNum - 1].recordResultAdmin( plyr, result )
-        else: 
+        else:
             message = await self.matches[matchNum - 1].recordResult( plyr, result )
         
         if "announcement" in message:
@@ -502,7 +520,7 @@ class tournament:
             plyr.saveXML( )
         return f'Decks have been pruned. All players have at most {self.deckCount} deck{"" if self.deckCount == 1 else "s"}.'
     
-    # ---------------- Match Management ---------------- 
+    # ---------------- Match Management ----------------
     async def _sendMatchWarning( self, msg: str ) -> None:
         await self.pairingsChannel.send( content=msg )
 
@@ -551,13 +569,13 @@ class tournament:
                            getAdminRole(self.guild): discord.PermissionOverwrite(read_messages=True),
                            getJudgeRole(self.guild): discord.PermissionOverwrite(read_messages=True),
                            matchRole: discord.PermissionOverwrite(read_messages=True) }
-            matchCategory = discord.utils.get( self.guild.categories, name="Matches" ) 
+            matchCategory = discord.utils.get( self.guild.categories, name="Matches" )
             if len(matchCategory.channels) >= 50:
-                matchCategory = category=discord.utils.get( self.guild.categories, name="More Matches" ) 
+                matchCategory = category=discord.utils.get( self.guild.categories, name="More Matches" )
                 
             game_name: str = f'{self.name} Match {newMatch.matchNumber}'
             
-            newMatch.VC    = await matchCategory.create_voice_channel( name=game_name, overwrites=overwrites ) 
+            newMatch.VC    = await matchCategory.create_voice_channel( name=game_name, overwrites=overwrites )
             newMatch.role  = matchRole
             newMatch.timer = threading.Thread( target=self._matchTimer, args=(newMatch,) )
             
@@ -596,7 +614,6 @@ class tournament:
                         for plyr in plyrs:
                             name = self.players[plyr].triceName
                             if name == "" or name == None:
-                            if name == "":
                                 name = "*"
                             playerNames.append(name)
                             deckHashes.append([])
@@ -623,7 +640,7 @@ class tournament:
                     message += f'A cockatrice game was automatically made for you it is called {game_name }'
                     message += f' and has a password of `"{game_password}"`\n'
                 
-                    #TODO: move replay download link?
+                    #TODO: move replay download link? (fixme)
                     message += f'Replay download link {replay_download_link} (available on game end).\n'
                 else:
                     #Game was not made
@@ -684,7 +701,7 @@ class tournament:
         return f'{author}, match #{matchNum} has been removed.'
     
     
-    # ---------------- Matchmaking Queue Methods ---------------- 
+    # ---------------- Matchmaking Queue Methods ----------------
     
     # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing
     # This is a prime canidate for adjustments when players how copies of match results.
@@ -695,16 +712,16 @@ class tournament:
         return f'{self.name} does not have a matchmaking queue.'
 
 
-    # ---------------- XML Saving/Loading ---------------- 
+    # ---------------- XML Saving/Loading ----------------
     # Most of these are also universally defined, but are for a particular purpose
 
-    def saveTournament( self, dirName: str = "" ) -> None:        
-        dirName = dirName.replace("\.\./", "") 
+    def saveTournament( self, dirName: str = "" ) -> None:
+        dirName = dirName.replace("../", "")
         #Check on folder creation, event though input should be safe
         if dirName == "":
             dirName = self.saveLocation
         if not (os.path.isdir( f'{dirName}' ) and os.path.exists( f'{dirName}' )):
-            os.mkdir( f'{dirName}' ) 
+            os.mkdir( f'{dirName}' )
         self.saveTournamentType( f'{dirName}/tournamentType.xml' )
         self.saveOverview( f'{dirName}/overview.xml' )
         self.saveMatches( dirName )
@@ -722,7 +739,7 @@ class tournament:
         if dirName == "":
             dirName = self.saveLocation
         if not (os.path.isdir( f'{dirName}/players/' ) and os.path.exists( f'{dirName}/players/' )):
-           os.mkdir( f'{dirName}/players/' ) 
+           os.mkdir( f'{dirName}/players/' )
 
         for player in self.players:
             self.players[player].saveXML( f'{dirName}/players/{toPathSafe(self.players[player].name)}.xml' )
@@ -731,7 +748,7 @@ class tournament:
         if dirName == "":
             dirName = self.saveLocation
         if not (os.path.isdir( f'{dirName}/matches/' ) and os.path.exists( f'{dirName}/matches/' )):
-           os.mkdir( f'{dirName}/matches/' ) 
+           os.mkdir( f'{dirName}/matches/' )
 
         for match in self.matches:
             match.saveXML( f'{dirName}/matches/match_{match.matchNumber}.xml' )
