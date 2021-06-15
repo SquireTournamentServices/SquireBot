@@ -41,6 +41,11 @@ trice_bot = TriceBot(TRICE_BOT_AUTH_TOKEN, apiURL=API_URL, externURL=EXTERN_URL)
     Or something akin to that.
 """
 class tournament:
+    properties: list = [ "format", "deck-count", "match-length",
+                         "match-size", "pairings-channel", "tricebot-enabled",
+                         "spectators-allowed", "spectators-need-password",
+                         "spectators-can-chat", "spectators-can-see-hands",
+                         "only-registered", "player-deck-verification" ]
     # The tournament base class is not meant to be constructed, but this
     # constructor acts as a guide for the minimum a constructor needs
     def __init__( self, name: str, hostGuildName: str, props: dict = { } ):
@@ -133,8 +138,8 @@ class tournament:
     
     # Each tournament type needs a static method that will filter out valid properties
     # This used throughout the tournament and when adding server defaults
-    def filterProperties( props: Dict ) -> Dict[List]:
-        digest: dict = { "successes": [], "failures": [], "undefined": [] }
+    def filterProperties( props: Dict ) -> Dict:
+        digest: dict = { "successes": dict(), "failures": dict(), "undefined": dict() }
         for prop in props:
             props[prop] = str(props[prop])
             

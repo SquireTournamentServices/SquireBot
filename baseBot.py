@@ -286,7 +286,7 @@ random.seed( )
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-tournaments = { }
+guildSettingsObjects = { }
 
 # A dictionary indexed by user idents and consisting of creation time, duration, and a coro to be awaited
 commandsToConfirm = { }
@@ -294,9 +294,7 @@ commandsToConfirm = { }
 # A list of matches that we currently resolving Wheel of Misfortune
 listOfMisfortunes = [ ]
 
-playersToBeDropped = [ ]
-
-savedTournaments = [ f'currentTournaments/{d}' for d in os.listdir( "currentTournaments" ) if os.path.isdir( f'currentTournaments/{d}' ) ]
+savedGuildSettings = [ f'guilds/{d}' for d in os.listdir( "guilds" ) if os.path.isdir( f'guilds/{d}' ) ]
 
 
 # When ready, the bot needs to looks at each pre-loaded tournament and add a discord user to each player.
@@ -306,24 +304,26 @@ async def on_ready():
     print(f'{bot.user.name} has connected to Discord!\n')
     #await discord.utils.get( bot.users, id=int(os.getenv("TYLORDS_ID")) ).send( f'I have restarted.' ) 
     for guild in bot.guilds:
-        print( f'This bot is connected to {guild.name} which has {len(guild.members)}!' )    
-    print( "" )
-    for tourn in savedTournaments:
+        print( f'This bot is connected to {guild.name} which has {len(guild.members)}!' ) 
         try:
-            newTourn = tournamentSelector( f'{tourn}/tournamentType.xml' )
-            newTourn.loop = bot.loop
-            newTourn.loadTournament( tourn )
-            if newTourn.name != "":
-                tournaments[newTourn.name] = newTourn
+            guildSettingsObjects[guild.id] = guildSettings( guild )
+            if os.path.isdir( f'guilds/{guild.id}' ):
+                guildSettingsObjects[guild.id].load( f'guilds/{guild.id}/' )
+            else:
+                guildSettingsObjects[guild.id].save( f'guilds/{guild.id}/' )
+            guildSettingsObjects[guild.id].setEventLoop( bot.loop )
         except Exception as ex:
-            print("Error loading tournament.")
+            print(f'Error loading settings for {guild.name}')
             print(ex)
             traceback.print_exception(type(ex), ex, ex.__traceback__)
-    for tourn in tournaments:
-        guild = bot.get_guild( tournaments[tourn].guildID )
-        if not guild is None:
-            tournaments[tourn].assignGuild( guild )
-            tournaments[tourn].loop = bot.loop
+    print( "" )
+
+# When the bot is added to a new guild, a settings object needs to be added for that guild
+@bot.event
+async def on_guild_join( guild ):
+    if not (guild.id in guildSettingsObjects):
+        guildSettingsObjects[guild.id] = guildSettings( guild )
+        guildSettingsObjects[guild.id].save( f'guilds/{guild.id}/' )
 
 
 bot.remove_command( "help" )

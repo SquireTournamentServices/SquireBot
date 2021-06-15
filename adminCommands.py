@@ -18,10 +18,10 @@ async def createTournament( ctx, tournName = None, tournType = None, *args ):
     if not await isTournamentAdmin( ctx ): return
     
     tournProps = generateTournProps( *args )
-    #if len(tournProps) != "".join(args).count("="):
-    #    print( tournProps )
-    #    await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
-    #    return
+    if len(tournProps) != "".join(args).count("="):
+        print( tournProps )
+        await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
+        return
     
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if tournName is None or tournType is None:
