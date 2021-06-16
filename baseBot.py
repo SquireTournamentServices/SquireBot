@@ -80,6 +80,16 @@ async def sendUserHelpMessage( ctx ) -> None:
 
 # ---------------- Command Util Methods ---------------- 
 
+# Looks through all guilds, finds the guilds where the user is a member, and
+# gets the tournaments they are registered for
+def getTournamentsByPlayer( user: discord.Member ) -> List:
+    digest: list = [ ]
+    for gld in guildSettingsObjects:
+        if not gld.isMember( user ):
+            continue
+        digest += gld.getPlayerTournaments( user )
+    return digest
+
 async def isPrivateMessage( ctx, send: bool = True ) -> bool:
     digest = (str(ctx.message.channel.type) == 'private')
     if digest and send:
@@ -90,106 +100,91 @@ async def isAdmin( ctx, send: bool = True ) -> bool:
     digest = False
     judgeMention = getJudgeMention( ctx.guild )
     adminMention = getTournamentAdminMention( ctx.guild )
-    for role in ctx.message.author.roles:
+    for role in ctx.author.roles:
         digest |= str(role).lower() == "tournament admin"
         digest |= str(role).lower() == "judge"
     if not digest and send:
-        await ctx.send( f'{ctx.message.author.mention}, invalid permissions: You are not tournament staff. Please do not use this command again or {adminMention} or {judgeMention} may intervene.' )
+        await ctx.send( f'{ctx.author.mention}, invalid permissions: You are not tournament staff. Please do not use this command again or {adminMention} or {judgeMention} may intervene.' )
     return digest
 
 async def isTournamentAdmin( ctx, send: bool = True ) -> bool:
     digest = False
     
     adminMention = getTournamentAdminMention( ctx.message.guild )
-    for role in ctx.message.author.roles:
+    for role in ctx.author.roles:
         digest |= str(role).lower() == "tournament admin"
     if not digest and send:
-        await ctx.send( f'{ctx.message.author.mention}, invalid permissions: You are not tournament staff. Please do not use this command again or {adminMention} may intervene.' )
-    return digest
-
-async def checkTournExists( tourn, ctx, send: bool = True ) -> bool:
-    digest = ( tourn in tournaments )
-    if not digest and send:
-        await ctx.send( f'{ctx.message.author.mention}, there is no tournament named "{tourn}" in this server.' )
-    return digest
-
-async def correctGuild( tourn, ctx, send: bool = True ) -> bool:
-    digest = ( tournaments[tourn].hostGuildName == ctx.message.guild.name )
-    if not digest and send:
-        await ctx.send( f'{ctx.message.author.mention}, this server is not hosting {tourn}. Please send your command in the correct server.' )
+        await ctx.send( f'{ctx.author.mention}, invalid permissions: You are not tournament staff. Please do not use this command again or {adminMention} may intervene.' )
     return digest
 
 async def isTournDead( tourn, ctx, send: bool = True ) -> bool:
-    adminMention = getTournamentAdminMention( ctx.message.guild )
-    digest = tournaments[tourn].isDead( )
+    digest = tourn.isDead( )
     if digest and send:
-        await ctx.send( f'{ctx.message.author.mention}, {tourn} has ended or been cancelled. Contact {adminMention} if you think this is an error.' )
+        await ctx.send( f'{ctx.author.mention}, {tourn} has ended or been cancelled. Contact {tourn.tournAdminRole} if you think this is an error.' )
     return digest
 
 async def isTournRunning( tourn, ctx, send: bool = True ) -> bool:
-    digest = tournaments[tourn].isActive and not await isTournDead( tourn, ctx, send )
-    if send and not tournaments[tourn].isActive:
-        await ctx.send( f'{ctx.message.author.mention}, {tourn} has not started yet.' )
+    digest = tourn.isActive and not await isTournDead( tourn, ctx, False )
+    if digest and send:
+        await ctx.send( f'{ctx.author.mention}, {tourn.name} has not started yet.' )
     return digest
 
 async def isRegOpen( tourn, ctx, send: bool = True ) -> bool:
     digest = tournaments[tourn].regOpen
     if send and not digest:
-        await ctx.send( f'{ctx.message.author.mention}, registration for {tourn} is closed. Please contact tournament staff if you think this is an error.' )
+        await ctx.send( f'{ctx.author.mention}, registration for {tourn} is closed. Please contact tournament staff if you think this is an error.' )
     return digest
 
 async def hasRegistered( tourn, plyr, ctx, send: bool = True ) -> bool:
-    digest = plyr in tournaments[tourn].players
+    digest = plyr in tourn.players
     if send and not digest:
-        await ctx.send( f'{ctx.message.author.mention}, you are not registered for {tourn}. Please register before trying to access the tournament.' )
+        await ctx.send( f'{ctx.author.mention}, you are not registered for {tourn.name}. Please register before trying to access the tournament.' )
     return digest
         
 async def isActivePlayer( tourn, plyr, ctx, send: bool = True ) -> bool:
-    digest = tournaments[tourn].players[plyr].isActive( )
+    digest = tourn.players[plyr].isActive( )
     if send and not digest:
-        await ctx.send( f'{ctx.message.author.mention}, you registered for {tourn} but have been dropped. Contact tournament staff if you think this is an error.' )
+        await ctx.send( f'{ctx.author.mention}, you registered for {tourn.name} but have been dropped. Contact tournament staff if you think this is an error.' )
     return digest
     
 async def hasOpenMatch( tourn, plyr, ctx, send: bool = True ) -> bool:
     digest = tournaments[tourn].players[plyr].hasOpenMatch( )
     if send and not digest:
-        await ctx.send( f'{ctx.message.author.mention}, you are not an active player in a match. You do not need to do anything.' )
+        await ctx.send( f'{ctx.author.mention}, you are not an active player in a match. You do not need to do anything.' )
     return digest
 
 async def hasCommandWaiting( ctx, user: int, send: bool = True ) -> bool:
     digest = user in commandsToConfirm
     if send and digest:
-        await ctx.send( f'{ctx.message.author.mention}, you have a command waiting for your confirmation. That confirmation request is being overwriten by this one.' )
+        await ctx.send( f'{ctx.author.mention}, you have a command waiting for your confirmation. That confirmation request is being overwriten by this one.' )
     return digest
 
 async def createMisfortune( ctx ) -> None:
-    playerMatch = ""
-    tourns = currentGuildTournaments( ctx.message.guild.name )
+    playerMatch = None
+    tourns = guildSettingsObjects[ctx.guild.id].getPlayerTournaments( ctx.author )
     for tourn in tourns.values():
-        if not ctx.message.author.id in tourn.players:
-            continue
-        if tourn.players[ctx.message.author.id].hasOpenMatch():
-            playerMatch = tourn.players[ctx.message.author.id].findOpenMatch()
+        if tourn.players[ctx.author.id].hasOpenMatch():
+            playerMatch = tourn.players[ctx.author.id].findOpenMatch()
             break
-    if playerMatch == "":
-        await ctx.send( f'{ctx.message.author.mention}, you are not in an open match, so you can not create any misfortune.' )
+    if playerMatch is None:
+        await ctx.send( f'{ctx.author.mention}, you are not in an open match, so you can not create any misfortune.' )
         return
     
-    await ctx.send( f'{ctx.message.author.mention}, you have created misfortune for {playerMatch.role.mention}. How will you all respond (via DM)?' )
+    await ctx.send( f'{ctx.author.mention}, you have created misfortune for {playerMatch.getMention()}. How will you all respond? (send via DM)' )
     for plyr in playerMatch.activePlayers:
         await tourn.players[plyr].discordUser.send( content=f'Misfortune has been created in your match. Tell me how you will respond (with "!misfortune [number]")!' )
     
     listOfMisfortunes.append( (ctx, playerMatch) )
 
 async def recordMisfortune( ctx, misfortune, num: int ) -> bool:
-    misfortune[1].misfortunes[ctx.message.author.id] = num
-    await ctx.send( f'{ctx.message.author.mention}, your response to this misfortune has been recorded!' )
+    misfortune[1].misfortunes[ctx.author.id] = num
+    await ctx.send( f'{ctx.author.mention}, your response to this misfortune has been recorded!' )
     if len( misfortune[1].misfortunes ) == len( misfortune[1].activePlayers ):
         tourns = currentGuildTournaments( misfortune[0].message.guild.name )
         for tourn in tourns.values():
-            if not ctx.message.author.id in tourn.players:
+            if not ctx.author.id in tourn.players:
                 continue
-            if tourn.players[ctx.message.author.id].hasOpenMatch():
+            if tourn.players[ctx.author.id].hasOpenMatch():
                 break
         newLine = "\n\t"
         printout = newLine.join( [ f'{tourn.players[plyr].discordUser.mention}: {misfortune[1].misfortunes[plyr]}' for plyr in misfortune[1].misfortunes ] )
@@ -214,13 +209,6 @@ def getTournamentAdminMention( a_guild ) -> str:
             adminMention = role.mention
             break
     return adminMention
-
-def currentGuildTournaments( a_guildName: str ):
-    tourns = {}
-    for tourn in tournaments:
-        if not tournaments[tourn].isDead() and tournaments[tourn].hostGuildName == a_guildName:
-            tourns[tourn] = tournaments[tourn]
-    return tourns
 
 def hasStartedTournament( a_guildName ) -> bool:
     for tourn in tournaments:
@@ -342,17 +330,17 @@ async def printHelp( ctx ):
 
 @bot.command(name='yes')
 async def confirmCommand( ctx ):
-    if not ctx.message.author.id in commandsToConfirm:
-        await ctx.send( f'{ctx.message.author.mention}, there are no commands needing your confirmation.' )
+    if not ctx.author.id in commandsToConfirm:
+        await ctx.send( f'{ctx.author.mention}, there are no commands needing your confirmation.' )
         return
     
-    if commandsToConfirm[ctx.message.author.id][1] <= timeDiff( commandsToConfirm[ctx.message.author.id][0], getTime() ):
-        await ctx.send( f'{ctx.message.author.mention}, you waited too long to confirm. If you still wish to confirm, run your prior command and then confirm.' )
-        del( commandsToConfirm[ctx.message.author.id] )
+    if commandsToConfirm[ctx.author.id][1] <= timeDiff( commandsToConfirm[ctx.author.id][0], getTime() ):
+        await ctx.send( f'{ctx.author.mention}, you waited too long to confirm. If you still wish to confirm, run your prior command and then confirm.' )
+        del( commandsToConfirm[ctx.author.id] )
         return
     
-    message = await commandsToConfirm[ctx.message.author.id][2]
-    del( commandsToConfirm[ctx.message.author.id] )
+    message = await commandsToConfirm[ctx.author.id][2]
+    del( commandsToConfirm[ctx.author.id] )
     
     if type(message) is discord.Embed:
         await ctx.send( embed=message )
@@ -374,13 +362,13 @@ async def confirmCommand( ctx ):
 @bot.command(name='no')
 async def denyCommand( ctx ):
     print( commandsToConfirm )
-    if not ctx.message.author.id in commandsToConfirm:
-        await ctx.send( f'{ctx.message.author.mention}, there are no commands needing your confirmation.' )
+    if not ctx.author.id in commandsToConfirm:
+        await ctx.send( f'{ctx.author.mention}, there are no commands needing your confirmation.' )
         return
     
-    await ctx.send( f'{ctx.message.author.mention}, your request has been cancelled.' )
+    await ctx.send( f'{ctx.author.mention}, your request has been cancelled.' )
 
-    del( commandsToConfirm[ctx.message.author.id] )
+    del( commandsToConfirm[ctx.author.id] )
 
 
 @bot.command(name='marchesa')

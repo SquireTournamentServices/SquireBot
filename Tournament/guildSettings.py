@@ -24,6 +24,9 @@ from .tournamentSelector import *
 
 
 class guildSettings:
+
+    defaultNames = [ "judge-role", "tournament-admin-role", "pairings-channel", "standings-channel", "vc-category", "tournament-type" ]
+
     def __init__( self, guild: discord.Guild ):
         self.guild   : discord.Guild = guild
         self.saveLoction: str = f'guilds/{guild.id}'
@@ -33,8 +36,9 @@ class guildSettings:
         self.d_judgeRole     : discord.Role = discord.utils.get( guild.roles , name="Judge" )
         self.d_tournAdminRole: discord.Role = discord.utils.get( guild.roles , name="Tournament Admin" )
 
-        self.d_pairingsChannel: discord.channel = discord.utils.get( guild.channels, name="pairings" )
-        self.d_VCCatergory    : discord.CategoryChannel = discord.utils.get( guild.categories, name="Matches" )
+        self.d_pairingsChannel : discord.channel = discord.utils.get( guild.channels, name="pairings" )
+        self.d_standingsChannel: discord.channel = discord.utils.get( guild.channels, name="Standings" )
+        self.d_VCCatergory     : discord.CategoryChannel = discord.utils.get( guild.categories, name="Matches" )
         
         # Tournament Stuff
         self.tournaments : list = [ ]
@@ -44,8 +48,6 @@ class guildSettings:
             self.d_tournProps[prop] = None
         
         self.eventLoop = None
-
-        self.defaultNames = [ "judge-role", "tournament-admin-role", "pairings-channel", "vc-category", "tournament-type" ]
 
     # ---------------- Misc ----------------
     
@@ -110,6 +112,10 @@ class guildSettings:
     def isTournamentOfficial( self, user: discord.Member, tournName: str = None ) -> bool:
         return self.isTO( user, tournName ) or self.isJudge( user, tournName )
     
+    # Determines if a user is a member of the guild
+    def isMember( self, user: discord.Member ) -> bool:
+        return True if self.guild.get_member( user.id ) is None else False
+    
     
     # ---------------- Settings and Default Methods ----------------
     
@@ -148,6 +154,13 @@ class guildSettings:
                 filteredDefaults["successes"]["pairings-channel"] = defaults["pairings-channel"]
             else:
                 filteredDefaults["failures"]["pairings-channel"] = defaults["pairings-channel"]
+        if "standings-channel" in defaults:
+            tmp = self.guild.get_channel( get_ID_from_mention(defaults["standings-channel"]) )
+            if not tmp is None:
+                self.d_pairingsChannel = tmp
+                filteredDefaults["successes"]["standings-channel"] = defaults["standings-channel"]
+            else:
+                filteredDefaults["failures"]["standings-channel"] = defaults["standings-channel"]
         if "vc-category" in defaults:
             tmp = self.guild.get_channel( get_ID_from_mention(defaults["vc-category"]) )
             if not tmp is None:
@@ -203,7 +216,9 @@ class guildSettings:
         return digest
         pass
     
-    def currentTournaments( self ) -> List:
+    # Returns a dictionary of current tournaments with tournament names as keys
+    # and tournament objects as values
+    def currentTournaments( self ) -> Dict:
         return self.tournaments
     
     def getTournament( self, name: str ) -> tournament:
@@ -212,6 +227,14 @@ class guildSettings:
             if tourn.name == name:
                 digest = tourn
                 break
+        return digest
+    
+    # Returns a list of tournaments that a user has registered for and is active in the guild
+    def getPlayerTournaments( self, user: discord.Member ) -> Dict:
+        digest: list = [ ]
+        for tourn in self.tournaments:
+            if user.id in tourn.players and tourn.players[user.id].isActive():
+                digest.append( tourn )
         return digest
     
     def _indexTournament( self, name: str ) -> int:
@@ -263,6 +286,11 @@ class guildSettings:
         else:
             digest += f'\t<pairingsChannel name="{self.d_pairingsChannel.name}" id="{self.d_pairingsChannel.id}"/>\n'
         
+        if self.d_standingsChannel is None:
+            digest += f'\t<standingsChannel name="None" id="None"/>\n'
+        else:
+            digest += f'\t<standingsChannel name="{self.d_standingsChannel.name}" id="{self.d_standingsChannel.id}"/>\n'
+        
         if self.d_VCCatergory is None:
             digest += f'\t<VCCatergory name="None" id="None"/>\n'
         else:
@@ -304,6 +332,10 @@ class guildSettings:
             pass
         try:
             self.d_pairingsChannel = self.guild.get_channel( int(fromXML(root.find('pairingsChannel').attrib['id'])) )
+        except ValueError:
+            pass
+        try:
+            self.d_standingsChannel = self.guild.get_channel( int(fromXML(root.find('standingsChannel').attrib['id'])) )
         except ValueError:
             pass
         try:
