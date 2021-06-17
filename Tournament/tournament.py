@@ -42,8 +42,8 @@ trice_bot = TriceBot(TRICE_BOT_AUTH_TOKEN, apiURL=API_URL, externURL=EXTERN_URL)
 """
 class tournament:
     properties: list = [ "format", "deck-count", "match-length",
-                         "match-size", "pairings-channel", "tricebot-enabled",
-                         "spectators-allowed", "spectators-need-password",
+                         "match-size", "pairings-channel", "standings-channel",
+                         "tricebot-enabled", "spectators-allowed", "spectators-need-password",
                          "spectators-can-chat", "spectators-can-see-hands",
                          "only-registered", "player-deck-verification" ]
     # The tournament base class is not meant to be constructed, but this
@@ -53,8 +53,6 @@ class tournament:
         self.hostGuildName = hostGuildName
         self.format    = props["format"] if "format" in props else "Pioneer"
         
-        self.saveLocation = f'currentTournaments/{self.name}'
-
         self.guild   = None
         self.guildID = ""
         self.role    = None
@@ -83,13 +81,21 @@ class tournament:
         self.triceBotEnabled = False
         self.spectators_allowed = False
         self.spectators_need_password = False
-        self.spectators_can_chat = False
+        self.spectators_can_chat = Fals
         self.spectators_can_see_hands = False
         self.only_registered = False
         self.player_deck_verification = False
         
         if len(props) != 0:
             self.setProperties(props)
+    
+    def getSaveLocation( self ) -> str:
+        digest: str = ""
+        if self.isDead():
+            digest = f'guilds/{self.guild.id}/closedTournaments/{self.name}/'
+        else:
+            digest = f'guilds/{self.guild.id}/currentTournaments/{self.name}/'
+        return digest
             
     def isPlanned( self ) -> bool:
         return not ( self.tournStarted or self.tournEnded or self.tournCancel )
@@ -138,7 +144,7 @@ class tournament:
     
     # Each tournament type needs a static method that will filter out valid properties
     # This used throughout the tournament and when adding server defaults
-    def filterProperties( props: Dict ) -> Dict:
+    def filterProperties( guild: discord.Guild, props: Dict ) -> Dict:
         digest: dict = { "successes": dict(), "failures": dict(), "undefined": dict() }
         for prop in props:
             props[prop] = str(props[prop])
@@ -173,9 +179,17 @@ class tournament:
             elif prop == "pairings-channel":
                 # The pairings channel properties should be an ID, which is an int
                 # Also, the guild should have a channel whose ID is the given ID
-                channelID = discordID_from_mention( props[prop] )
-                if channelID.isnumeric() and not (self.guild.get_channel( int(channelID) ) is None):
-                    digest["successes"][prop] = self.guild.get_channel( int(channelID) )
+                channelID = get_ID_from_mention( props[prop] )
+                if channelID.isnumeric() and not (guild.get_channel( int(channelID) ) is None):
+                    digest["successes"][prop] = guild.get_channel( int(channelID) )
+                else:
+                    digest["failures"][prop] = props[prop]
+            elif prop == "standings-channel":
+                # The standings channel properties should be an ID, which is an int
+                # Also, the guild should have a channel whose ID is the given ID
+                channelID = get_ID_from_mention( props[prop] )
+                if channelID.isnumeric() and not (guild.get_channel( int(channelID) ) is None):
+                    digest["successes"][prop] = guild.get_channel( int(channelID) )
                 else:
                     digest["failures"][prop] = props[prop]
             elif prop == "tricebot-enabled":
@@ -228,7 +242,12 @@ class tournament:
     # Sets properties that can be changed directly by users
     # TODO: Consider a properies member instead of individual members (fixme)
     def setProperties( self, props: Dict ) -> str:
-        filteredProps = self.filterProperties( props )
+        digest: str = ""
+        
+        if len(props) == 0:
+            return digest
+
+        filteredProps = tournament.filterProperties( self.guild, props )
         for prop in filteredProps["successes"]:
             if prop == "format":
                 self.format = prop
@@ -256,7 +275,6 @@ class tournament:
             elif prop == "player-deck-verification":
                 self.player_deck_verification = prop
         
-        digest = ""
         if len(filteredProps["successes"]) == 0:
             digest += "No properties were successfully updated."
         else:
@@ -443,10 +461,11 @@ class tournament:
     
     async def cancelTourn( self, adminMention: str = "", author: str = "") -> str:
         await self.purgeTourn( )
+        oldLocation = self.getSaveLocation()
         self.tournCancel = True
-        self.saveTournament( f'closedTournaments/{self.name}' )
-        if os.path.isdir( f'currentTournaments/{self.name}' ):
-            shutil.rmtree( f'currentTournaments/{self.name}' )
+        self.saveTournament( )
+        if os.path.isdir( oldLocation ):
+            shutil.rmtree( oldLocation )
         return f'{adminMention}, {self.name} has been cancelled by {author}.'
     
     # ---------------- Player Management ----------------
@@ -475,7 +494,7 @@ class tournament:
         else:
             self.players[discordUser.id] = player( discordUser.display_name, discordUser.id )
 
-        self.players[discordUser.id].saveLocation = f'{self.saveLocation}/players/{toPathSafe(discordUser.display_name)}.xml'
+        self.players[discordUser.id].saveLocation = f'{self.getSaveLocation()}/players/{toPathSafe(discordUser.display_name)}.xml'
         self.players[discordUser.id].addDiscordUser( discordUser )
         await self.players[discordUser.id].discordUser.add_roles( self.role )
         self.players[discordUser.id].saveXML( )
@@ -567,7 +586,7 @@ class tournament:
         self.matches.append( newMatch )
         newMatch.matchNumber = len(self.matches)
         newMatch.matchLength = self.matchLength
-        newMatch.saveLocation = f'{self.saveLocation}/matches/match_{newMatch.matchNumber}.xml'
+        newMatch.saveLocation = f'{self.getSaveLocation()}/matches/match_{newMatch.matchNumber}.xml'
         if type( self.guild ) == discord.Guild:
             matchRole = await self.guild.create_role( name=f'Match {newMatch.matchNumber}' )
             overwrites = { self.guild.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -684,7 +703,7 @@ class tournament:
         newMatch = match( [ plyr ] )
         self.matches.append( newMatch )
         newMatch.matchNumber = len(self.matches)
-        newMatch.saveLocation = f'{self.saveLocation}/matches/match_{newMatch.matchNumber}.xml'
+        newMatch.saveLocation = f'{self.getSaveLocation()}/matches/match_{newMatch.matchNumber}.xml'
         newMatch.recordBye( )
         self.players[plyr].matches.append( newMatch )
         newMatch.saveXML( )
@@ -724,7 +743,7 @@ class tournament:
         dirName = dirName.replace("../", "")
         #Check on folder creation, event though input should be safe
         if dirName == "":
-            dirName = self.saveLocation
+            dirName = self.getSaveLocation()
         if not (os.path.isdir( f'{dirName}' ) and os.path.exists( f'{dirName}' )):
             os.mkdir( f'{dirName}' )
         self.saveTournamentType( f'{dirName}/tournamentType.xml' )
@@ -742,7 +761,7 @@ class tournament:
     
     def savePlayers( self, dirName: str = "" ) -> None:
         if dirName == "":
-            dirName = self.saveLocation
+            dirName = self.getSaveLocation()
         if not (os.path.isdir( f'{dirName}/players/' ) and os.path.exists( f'{dirName}/players/' )):
            os.mkdir( f'{dirName}/players/' )
 
@@ -751,7 +770,7 @@ class tournament:
 
     def saveMatches( self, dirName: str = "" ) -> None:
         if dirName == "":
-            dirName = self.saveLocation
+            dirName = self.getSaveLocation()
         if not (os.path.isdir( f'{dirName}/matches/' ) and os.path.exists( f'{dirName}/matches/' )):
            os.mkdir( f'{dirName}/matches/' )
 
@@ -759,7 +778,6 @@ class tournament:
             match.saveXML( f'{dirName}/matches/match_{match.matchNumber}.xml' )
         
     def loadTournament( self, dirName: str ) -> None:
-        self.saveLocation = dirName
         self.loadPlayers( f'{dirName}/players/' )
         self.loadOverview( f'{dirName}/overview.xml' )
         self.loadMatches( f'{dirName}/matches/' )

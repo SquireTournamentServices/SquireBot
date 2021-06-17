@@ -50,7 +50,7 @@ async def listTournaments( ctx ):
 
     if await isPrivateMessage( ctx ): return
     
-    tourns = gld.currentTournaments()
+    tourns = [ tourn.name for tourn in gld.currentTournaments() ]
     if len( tourns ) == 0:
         await ctx.send( f'{mention}, there are no tournaments currently planned for this server.' )
         return

@@ -12,18 +12,19 @@ commandSnippets["create-tournament"] = "- create-tournament : Creates a tourname
 commandCategories["management"].append("create-tournament")
 @bot.command(name='create-tournament')
 async def createTournament( ctx, tournName = None, tournType = None, *args ):
-    mention = ctx.message.author.mention
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
     if await isPrivateMessage( ctx ): return
 
     if not await isTournamentAdmin( ctx ): return
     
-    tournProps = generateTournProps( *args )
+    tournProps = generatePropsDict( *args )
     if len(tournProps) != "".join(args).count("="):
-        print( tournProps )
-        await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
+        await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check that you entered them correctly and consult the "!squirebot-help" command for more help' )
         return
     
-    adminMention = getTournamentAdminMention( ctx.message.guild )
+    adminMention = gld.getTournAdminRole().mention
     if tournName is None or tournType is None:
         await ctx.send( f'{mention}, you need to specify what you want the tournament name and type.' )
         return
@@ -31,85 +32,111 @@ async def createTournament( ctx, tournName = None, tournType = None, *args ):
         await ctx.send( f'{mention}, you cannot have that as a tournament name.' )
         return
     
-    if tournName in tournaments:
-        await ctx.send( f'{mention}, there is already a tournament call {tournName} either on this server or another. Pick a different name.' )
+    shouldBeNone = gld.getTournament( tournName )
+    if not (shouldBeNone is None):
+        await ctx.send( f'{mention}, there is already a tournament call {tournName} on this server. Pick a different name.' )
         return
         
-    newTourn = getTournamentType( tournType, tournName, ctx.guild.name, tournProps )
-    if newTourn is None:
+    try:
+        message = await gld.createTournament( tournType, tournName, tournProps )
+    except NotImplementedError as e:
+        print(e)
         newLine = "\n\t- "
         await ctx.send( f'{mention}, invalid tournament type of {tournType}. The supported tournament types are:{newLine}{newLine.join(tournamentTypes)}.' )
         return
     
-    # Set properties
-    await ctx.send(newTourn.setProperties(tournProps))
-    
-    newTourn.saveLocation = f'currentTournaments/{tournName}/'
-    await newTourn.addDiscordGuild( ctx.message.guild )
-    newTourn.loop = bot.loop
-    newTourn.saveTournament( f'currentTournaments/{tournName}' )
-    tournaments[tournName] = newTourn
-    await ctx.send( f'{adminMention}, a new tournament called "{tournName}" has been created by {mention}.' )
-    
+    trice = ""
     # Was tricebot specified and was it specified to be True?
     if "tricebot-enabled" in tournProps and tournProps["tricebot-enabled"]:
-        await ctx.send( f'{adminMention}, tricebot has been enabled for "{tournName}".' )
+        trice = f' with TriceBot enabled'
+    
+    await ctx.send( f'{adminMention}, a new tournament called {tournName} was created{trice} by {mention}:\n{message}' )
+    
+    gld.getTournament( tournName ).saveTournament()
 
 
 commandSnippets["update-properties"] = "- update-properties : Changes the properties of a tournament." 
 commandCategories["properties"].append("update-properties")
 @bot.command(name='update-properties')
 async def updateTournProperties( ctx, tournName = None, *args ):
-    mention = ctx.message.author.mention
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
     if await isPrivateMessage( ctx ): return
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
+    
+    adminMention = gld.getTournAdminRole( ).mention
+    
     if tournName is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a number of players for a match.' )
         return
 
-    if not await checkTournExists( tournName, ctx ): return
-    if not await correctGuild( tournName, ctx ): return
-    if await isTournDead( tournName, ctx ): return
+    tourn = gld.getTournament( tournName )
+    if not (tourn is None): 
+        await ctx.send( f'{mention}, there is not tournament called "{tournName}" on this server.' )
+        return
     
-    tournProps = generateTournProps( *args )
+    tournProps = generatePropsDict( *args )
     if len(tournProps) != "".join(args).count("="):
-        print( tournProps )
-        await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
+        await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check that you entered them correctly and consult the "!squirebot-help" command for more help' )
         return
 
-    message = tournaments[tournName].setProperties( tournProps )
-    tournaments[tournName].saveOverview( )
+    message = tourn.setProperties( tournProps )
+    tourn.saveOverview( )
     await ctx.send( f'{adminMention}, {mention} has updated the properties of {tournName}.\n{message}' )
+
+
+commandSnippets["update-server-defaults"] = "- update-server-defaults : Changes the properties of a tournament." 
+commandCategories["properties"].append("update-defaults")
+@bot.command(name='update-server-defaults')
+async def updateTournProperties( ctx, *args ):
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
+    if await isPrivateMessage( ctx ): return
+
+    if not gld.isGuildAdmin( ctx.author ): 
+        ctx.send( f'{mention}, you do not have permissions to change the tournament settings on this server.' )
+        return
+    
+    guildDefaults = generatePropsDict( *args )
+    
+    message = gld.updateDefaults( guildDefaults )
+    
+    gld.saveSettings( )
+    await ctx.send( f'{mention}, you have updated the tournament settings for the server.\n{message}' )
 
 
 commandSnippets["tricebot-status"] = "- tricebot-status : Displays the status and settings of tricebot for a tournament" 
 commandCategories["management"].append("tricebot-status")
 @bot.command(name='tricebot-status')
-async def triceBotStatus( ctx, tourn = "" ):  
-    mention = ctx.message.author.mention
-    tourn = tourn.strip()
+async def triceBotStatus( ctx, tourn = None ):  
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
     
     if await isPrivateMessage( ctx ): return
-
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-
-    adminMention = getTournamentAdminMention( ctx.message.guild )
+    
     if not await isTournamentAdmin( ctx ): return
-    if tourn == "":
+    
+    adminMention = gld.getTournAdminRole().mention
+
+    if tourn is None:
         await ctx.send( f'{mention}, you need to specify what tournament you want to know the settings for.' )
         return
         
-    if (tournaments[tourn].triceBotEnabled):  
-        settings_str = "Spectators allowed: " + str(tournaments[tourn].spectators_allowed)
-        settings_str += "\nSpectator need password: " + str(tournaments[tourn].spectators_need_password)        
-        settings_str += "\nSpectator can chat: " + str(tournaments[tourn].spectators_can_chat)
-        settings_str += "\nSpectator can see hands: " + str(tournaments[tourn].spectators_can_see_hands)
-        settings_str += "\nOnly allow registered users: " + str(tournaments[tourn].only_registered)
-        settings_str += "\nPlayer deck verification: " + str(tournaments[tourn].player_deck_verification)
-        
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
+
+    if tournObj.triceBotEnabled:
+        settings_str  = 'Spectators allowed: {tournObj.spectators_allowed}'
+        settings_str += '\nSpectator need password: {tournObj.spectators_need_password}' 
+        settings_str += '\nSpectator can chat: {tournObj.spectators_can_chat}'
+        settings_str += '\nSpectator can see hands: {tournObj.spectators_can_see_hands}'
+        settings_str += '\nOnly allow registered users: {tournObj.only_registered}'
+        settings_str += '\nPlayer deck verification: {tournObj.player_deck_verification}'
         await ctx.send( f'{adminMention}, tricebot is enabled for "{tourn}" and has the following settings:\n```{settings_str}```' )
     else:
         await ctx.send( f'{adminMention}, tricebot is not enabled for "{tourn}."' )
@@ -119,22 +146,28 @@ commandSnippets["update-reg"] = "- update-reg : Opens or closes registration"
 commandCategories["management"].append("update-reg")
 @bot.command(name='update-reg')
 async def updateReg( ctx, tourn = None, status = None ):
-    mention = ctx.message.author.mention
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
     if await isPrivateMessage( ctx ): return
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
     if tourn is None or status is None:
         await ctx.send( f'{mention}, it appears that you did not give enough information. You need to first state the tournament name and then "true" or "false".' )
         return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
+    
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
 
     status = "True" if status.lower() == "open" else status
     status = "False" if status.lower() == "closed" else status
 
-    tournaments[tourn].setRegStatus( str_to_bool(status) )
-    tournaments[tourn].saveOverview( )
+    tournObj.setRegStatus( str_to_bool(status) )
+    tournObj.saveOverview( )
     await ctx.send( f'{adminMention}, registration for the "{tourn}" tournament has been {("opened" if str_to_bool(status) else "closed")} by {mention}.' ) 
 
 
@@ -142,97 +175,84 @@ commandSnippets["start-tournament"] = "- start-tournament : Starts the tournamen
 commandCategories["management"].append("start-tournament")
 @bot.command(name='start-tournament')
 async def startTournament( ctx, tourn = None ):
-    mention = ctx.message.author.mention
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
     if await isPrivateMessage( ctx ): return
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
     if tourn is None:
         await ctx.send( f'{mention}, you need to specify what tournament you want to start.' )
         return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if tournaments[tourn].tournStarted:
+    
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
+    if tournObj.tournStarted:
         await ctx.send( f'{mention}, {tourn} has already been started.' )
         return
 
-    tournaments[tourn].startTourn()
-    tournaments[tourn].saveOverview( )
+    tournObj.startTourn()
+    tournObj.saveOverview( )
     await ctx.send( f'{adminMention}, {tourn} has been started by {mention}.' )
     
 
-commandSnippets["end-tournament"] = "- end-tournament : Ends a tournament that's been started" 
+commandSnippets["end-tournament"] = "- end-tournament : Ends a tournament" 
 commandCategories["management"].append("end-tournament")
 @bot.command(name='end-tournament')
-async def endTournament( ctx, tourn = None ):
-    mention = ctx.message.author.mention
+async def endTournament( ctx, tourn: str = None ):
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
     if await isPrivateMessage( ctx ): return
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
     if tourn is None:
         await ctx.send( f'{mention}, you need to specify what tournament you want to end.' )
         return
-    if not tourn in tournaments:
-        await ctx.send( f'{mention}, there is no tournament called "{tourn}" for this server.' )
-        return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if tournaments[tourn].tournCancel:
-        await ctx.send( f'{mention}, {tourn} has already been cancelled. Check with {adminMention} if you think this is an error.' )
-        return
-
-    if await hasCommandWaiting( ctx, ctx.message.author.id ):
-        del( commandsToConfirm[ctx.message.author.id] )
-
-    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].endTourn( adminMention, mention ) )
-    await ctx.send( f'{adminMention}, in order to end {tourn}, confirmation is needed. {mention}, are you sure you want to end {tourn} (!yes/!no)?' )
-
-
-commandSnippets["cancel-tournament"] = "- cancel-tournament : Ends any tournament" 
-commandCategories["management"].append("cancel-tournament")
-@bot.command(name='cancel-tournament')
-async def cancelTournament( ctx, tourn = None ):
-    mention = ctx.message.author.mention
-    if await isPrivateMessage( ctx ): return
-
-    adminMention = getTournamentAdminMention( ctx.message.guild )
-    if not await isTournamentAdmin( ctx ): return
-    if tourn is None:
-        await ctx.send( f'{mention}, you need to specify what tournament you want to cancel.' )
-        return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
     
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
 
-    if await hasCommandWaiting( ctx, ctx.message.author.id ):
-        del( commandsToConfirm[ctx.message.author.id] )
+    if await hasCommandWaiting( ctx, ctx.author.id ):
+        del( commandsToConfirm[ctx.author.id] )
 
-    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].cancelTourn( adminMention, mention ) )
-    await ctx.send( f'{adminMention}, in order to cancel {tourn}, confirmation is needed. {mention}, are you sure you want to cancel {tourn} (!yes/!no)?' )
+    commandsToConfirm[ctx.author.id] = ( getTime(), 30, gld.endTournament( tourn, mention ) )
+    await ctx.send( f'{adminMention}, in order to end {tourn}, confirmation is needed. {mention}, are you sure you want to end {tourn} (!yes/!no)?' )
 
 
 commandSnippets["prune-decks"] = "- prune-decks : Removes decks from players until they have the max number" 
 commandCategories["day-of"].append("prune-decks")
 @bot.command(name='prune-decks')
 async def adminPruneDecks( ctx, tourn = None ):
-    mention = ctx.message.author.mention
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
     if await isPrivateMessage( ctx ): return
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
-    if not await isTournamentAdmin( ctx, tourn ): return
+    if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
     if tourn is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament.' )
         return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
     
-    if await hasCommandWaiting( ctx, ctx.message.author.id ):
-        del( commandsToConfirm[ctx.message.author.id] )
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
+    
+    if await hasCommandWaiting( ctx, ctx.author.id ):
+        del( commandsToConfirm[ctx.author.id] )
 
-    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].pruneDecks( ctx ) )
+    commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.pruneDecks( ctx ) )
     await ctx.send( f'{adminMention}, in order to prune decks, confirmation is needed. {mention}, are you sure you want to prune decks (!yes/!no)?' )
 
 
@@ -240,22 +260,27 @@ commandSnippets["prune-players"] = "- prune-players : Drops players that didn't 
 commandCategories["day-of"].append("prune-players")
 @bot.command(name='prune-players')
 async def adminPruneDecks( ctx, tourn = None ):
-    mention = ctx.message.author.mention
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
     if await isPrivateMessage( ctx ): return
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
     if tourn is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament.' )
         return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
     
-    if await hasCommandWaiting( ctx, ctx.message.author.id ):
-        del( commandsToConfirm[ctx.message.author.id] )
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
+    
+    if await hasCommandWaiting( ctx, ctx.author.id ):
+        del( commandsToConfirm[ctx.author.id] )
 
-    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].prunePlayers( ctx ) )
+    commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.prunePlayers( ctx ) )
     await ctx.send( f'{adminMention}, in order to prune players, confirmation is needed. {mention}, are you sure you want to prune players (!yes/!no)?' )
 
 
@@ -263,42 +288,55 @@ commandSnippets["create-match"] = "- create-match : Creates a match"
 commandCategories["day-of"].append("create-match")
 @bot.command(name='create-match')
 async def adminCreatePairing( ctx, tourn = None, *plyrs ):
-    mention = ctx.message.author.mention
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
     if await isPrivateMessage( ctx ): return
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
     if tourn is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament, match number, player, and result in order to remove a player from a match.' )
         return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
-    if len(plyrs) != tournaments[tourn].playersPerMatch:
-        await ctx.send( f'{mention}, {tourn} requires {tournaments[tourn].playersPerMatch} be in a match, but you specified {len(plyrs)} players.' )
+    
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
+    
+    if len(plyrs) != tournObj.playersPerMatch:
+        await ctx.send( f'{mention}, {tourn} requires {tournObj.playersPerMatch} be in a match, but you specified {len(plyrs)} players.' )
         return
         
-    members = [ findPlayer( ctx.guild, tourn, plyr ) for plyr in plyrs ]
-    if None in members:
-        await ctx.send( f'{mention}, at least one of the members that you specified is not a part of the tournament. Verify that they have the "{tourn} Player" role.' )
-        return
+    endCmd = False
+    members = [ gld.getMember( plyr ) for plyr in plyrs ]
+    for i in range(len(members)):
+        member = members[i]
+        if member is None:
+            ctx.send( f'{mention}, a user by "{plyrs[i]}" was not found on this server.' )
+            endCmd = True
+        if not member.id in tournObj.players:
+            await ctx.send( f'{mention}, a user by "{member.mention}" was found in the server, but they are not active in {tourn}. They need to register first.' )
+            endCmd = True
+        if not tournObj[member.id].isActive():
+            await ctx.send( f'{mention}, a player by "{member.mention}" has registered, but they have dropped. They need to re-register.' )
+            endCmd = True
     
-    for member in members:
-        if not member.id in tournaments[tourn].players:
-            await ctx.send( f'{mention}, a user by "{member.mention}" was found in the player role, but they are not active in {tourn}. Make sure they are registered or that they have not dropped.' )
-            return
+    if endCmd: return
     
-    await tournaments[tourn].addMatch( [ member.id for member in members ] )
-    tournaments[tourn].matches[-1].saveXML( )
-    tournaments[tourn].saveOverview( )
-    await ctx.send( f'{mention}, the players you specified for the match are now paired. Their match number is #{tournaments[tourn].matches[-1].matchNumber}.' )
+    await tournObj.addMatch( [ member.id for member in members ] )
+    tournObj.matches[-1].saveXML( )
+    tournObj.saveOverview( )
+    await ctx.send( f'{mention}, the players you specified for the match are now paired. Their match number is #{tournObj.matches[-1].matchNumber}.' )
 
 
-commandSnippets["create-pairings-list"] = "- create-pairings-list : Creates a list of possible match pairings (unweighted)" 
-commandCategories["day-of"].append("create-pairings-list")
+# This method will soon be depricated and will be removed when the Swiss tournament type is added
+# commandSnippets["create-pairings-list"] = "- create-pairings-list : Creates a list of possible match pairings (unweighted)" 
+# commandCategories["day-of"].append("create-pairings-list")
 @bot.command(name='create-pairings-list')
 async def createPairingsList( ctx, tourn = None ):
-    mention = ctx.message.author.mention
+    mention = ctx.author.mention
     
     if await isPrivateMessage( ctx ): return
 
@@ -318,7 +356,6 @@ async def createPairingsList( ctx, tourn = None ):
         plyr   = queue[lvl][i]
         plyrs  = [ queue[lvl][i] ]
         digest = [ (lvl, i) ]
-        
         # Sweep through the rest of the level we start in
         for k in range(i+1,len(queue[lvl])):
             if queue[lvl][k].areValidOpponents( plyrs ):
@@ -417,26 +454,31 @@ commandSnippets["set-pairing-threshold"] = "- set-pairing-threshold : Sets the n
 commandCategories["properties"].append("set-pairing-threshold")
 @bot.command(name='set-pairing-threshold')
 async def pairingsThreshold( ctx, tourn = None, num = None ):
-    mention = ctx.message.author.mention
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
     if await isPrivateMessage( ctx ): return
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
     if tourn is None or num is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a number of players for a match.' )
         return
+    
     try:
         num = int(num)
     except:
         await ctx.send( f'{mention}, "{num}" could not be converted to a number. Please make sure you only use digits.' )
         return
-
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
     
-    tournaments[tourn].updatePairingsThreshold( num )
-    tournaments[tourn].saveOverview( )
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        return
+    
+    tournObj.updatePairingsThreshold( num )
+    tournObj.saveOverview( )
     await ctx.send( f'{adminMention}, the pairings threshold for {tourn} was changed to {num} by {mention}.' )
 
 
@@ -444,31 +486,36 @@ commandSnippets["admin-drop"] = "- admin-drop : Removes a player for a tournamen
 commandCategories["day-of"].append("admin-drop")
 @bot.command(name='admin-drop')
 async def adminDropPlayer( ctx, tourn = None, plyr = None ):
-    mention = ctx.message.author.mention
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
     if await isPrivateMessage( ctx ): return
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
     if tourn is None or plyr is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
         return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
     
-    member = findPlayer( ctx.guild, tourn, plyr )
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
+    
+    member = gld.getMember( plyr )
     if member is None:
-        await ctx.send( f'{mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
+        await ctx.send( f'{mention}, a player by "{plyr}" could not be found on the server.' )
         return
 
-    if not member.id in tournaments[tourn].players:
-        await ctx.send( f'{mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". They may have already dropped from the tournament.' )
+    if not member.id in tournObj.players:
+        await ctx.send( f'{mention}, a user by "{plyr}" was found on the server, but they have not registered for "{tourn}". They need to register first.' )
         return
 
-    if await hasCommandWaiting( ctx, ctx.message.author.id ):
-        del( commandsToConfirm[ctx.message.author.id] )
+    if await hasCommandWaiting( ctx, ctx.author.id ):
+        del( commandsToConfirm[ctx.author.id] )
 
-    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].dropPlayer( member.id, mention ) )
+    commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.dropPlayer( member.id, mention ) )
     await ctx.send( f'{adminMention}, in order to drop {member.mention}, confirmation is needed. {mention}, are you sure you want to drop this player (!yes/!no)?' )
 
 
@@ -476,52 +523,62 @@ commandSnippets["give-bye"] = "- give-bye : Grants a bye to a player"
 commandCategories["day-of"].append("give-bye")
 @bot.command(name='give-bye')
 async def adminGiveBye( ctx, tourn = None, plyr = None ):
-    mention = ctx.message.author.mention
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
     if await isPrivateMessage( ctx ): return
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
     if tourn is None or plyr is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
         return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
     
-    member = findPlayer( ctx.guild, tourn, plyr )
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
+    
+    member = gld.getMember( plyr )
     if member is None:
-        await ctx.send( f'{mention}, a player by "{plyr}" could not be found in the player role for {tourn}. Please verify that they have registered.' )
+        await ctx.send( f'{mention}, a player by "{plyr}" could not be found on the server.' )
         return
 
-    if not member.id in tournaments[tourn].players:
-        await ctx.send( f'{mention}, a user by "{plyr}" was found in the player role, but they are not active in the tournament "{tourn}". They may have already dropped from the tournament.' )
+    if not member.id in tournObj.players:
+        await ctx.send( f'{mention}, a user by "{plyr}" was found on the server, but they have not registered for "{tourn}". They need to register first.' )
         return
     
-    if tournaments[tourn].players[member.id].hasOpenMatch( ):
+    if tournObj.players[member.id].hasOpenMatch( ):
         await ctx.send( f'{mention}, {plyr} currently has an open match in the tournament. That match needs to be certified before they can be given a bye.' )
         return
     
-    tournaments[tourn].addBye( member.id )
-    tournaments[tourn].players[member.id].saveXML( )
+    tournObj.addBye( member.id )
+    tournObj.players[member.id].saveXML( )
     await ctx.send( f'{mention}, {plyr} has been given a bye.' )
-    await tournaments[tourn].players[member.id].discordUser.send( content=f'You have been given a bye from the tournament admin for {tourn} on the server {ctx.guild.name}.' )
+    await tournObj.players[member.id].discordUser.send( content=f'You have been given a bye from the tournament admin for {tourn} on the server {ctx.guild.name}.' )
 
 
 commandSnippets["remove-match"] = "- remove-match : Removes a match" 
 commandCategories["day-of"].append("remove-match")
 @bot.command(name='remove-match')
 async def adminRemoveMatch( ctx, tourn = None, mtch = None ):
-    mention = ctx.message.author.mention
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
     if await isPrivateMessage( ctx ): return
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
     if tourn is None or mtch is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
         return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
+    
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
     
     try:
         mtch = int( mtch )
@@ -529,14 +586,14 @@ async def adminRemoveMatch( ctx, tourn = None, mtch = None ):
         await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
         return
     
-    if mtch > len(tournaments[tourn].matches):
+    if mtch > len(tournObj.matches):
         await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
         
-    if await hasCommandWaiting( ctx, ctx.message.author.id ):
-        del( commandsToConfirm[ctx.message.author.id] )
+    if await hasCommandWaiting( ctx, ctx.author.id ):
+        del( commandsToConfirm[ctx.author.id] )
 
-    commandsToConfirm[ctx.message.author.id] = ( getTime(), 30, tournaments[tourn].removeMatch( mtch, mention ) )
+    commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.removeMatch( mtch, mention ) )
     await ctx.send( f'{adminMention}, in order to remove match #{mtch}, confirmation is needed. {mention}, are you sure you want to remove this match (!yes/!no)?' )
 
 
@@ -544,19 +601,24 @@ commandSnippets["view-queue"] = "- view-queue : Prints the currect matchmaking q
 commandCategories["day-of"].append("view-queue")
 @bot.command(name='view-queue')
 async def viewQueue( ctx, tourn = None ):
-    mention = ctx.message.author.mention
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
     if await isPrivateMessage( ctx ): return
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
     if tourn is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament to view the queue.' )
         return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
     
-    if sum( [ len(lvl) for lvl in tournaments[tourn].queue ] ) == 0:
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
+    
+    if sum( [ len(lvl) for lvl in tournObj.queue ] ) == 0:
         await ctx.send( f'{mention}, the current matchmaking queue for {tourn} is empty:' )
         return
     
@@ -564,7 +626,7 @@ async def viewQueue( ctx, tourn = None ):
     value =  ""
     count = 0
     
-    for lvl in range(len(tournaments[tourn].queue)):
+    for lvl in range(len(tournObj.queue)):
         value += f'{lvl+1}) ' + ", ".join( [ plyr.discordUser.display_name for plyr in tournaments[tourn].queue[lvl] ] ) + "\n"
         if len(value) > 1024:
             embed.add_field( name = f'{tourn} Queue' if count == 0 else "\u200b", value = value, inline=False )
@@ -580,22 +642,23 @@ async def viewQueue( ctx, tourn = None ):
 commandSnippets["tricebot-kick-player"] = "- tricebot-kick-player : Kicks a player from a cockatrice match when tricebot is enabled for that match" 
 commandCategories["day-of"].append("tricebot-kick-player")
 @bot.command(name='tricebot-kick-player')
-async def tricebotKickPlayer( ctx, tourn = "", mtch = "", playerName = "" ):
-    mention = ctx.message.author.mention
-    tourn = tourn.strip()
-    mtch  =  mtch.strip()
-    playerName = playerName.strip()
+async def tricebotKickPlayer( ctx, tourn = None, mtch = None, playerName = None ):
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
 
     if await isPrivateMessage( ctx ): return
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
-    if tourn == "" or mtch == "":
+    adminMention = gld.getTournAdminRole().mention
+    
+    if tourn is None or mtch is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
         return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
+    
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
     
     try:
         mtch = int( mtch )
@@ -607,14 +670,13 @@ async def tricebotKickPlayer( ctx, tourn = "", mtch = "", playerName = "" ):
         await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
     
-    
-    Match = tournaments[tourn].matches[mtch - 1]
+    Match = tournObj.matches[mtch - 1]
     
     if not Match.triceMatch:
         await ctx.send( f'{mention}, that match is not a match with tricebot enabled.' )
         return
     
-    result = tournaments[tourn].kickTricePlayer(Match.gameID, playerName)    
+    result = tournObj.kickTricePlayer(Match.gameID, playerName)    
     
     #  1 success
     #  0 auth token is bad or error404 or network issue

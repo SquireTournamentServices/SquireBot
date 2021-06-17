@@ -2,6 +2,7 @@
 import string
 import re
 
+from typing import Dict, List
 from datetime import datetime
 
 import discord
@@ -75,20 +76,13 @@ def get_ID_from_mention( mention: str ) -> str:
     """ Gets a Discord ID from a Discord mention string """
     return re.sub( "[^0-9]", "", mention )
 
-# A list of universe tournament properties
-# This will be expanded on by each tournament class similar to how the command snippets work
-tournamentProperties = [ "format", "deck-count", "match-length", "match-size", "pairings-channel",
-                         "tricebot-enabled", "spectators-allowed", "spectators-need-password",
-                         "spectators-can-chat", "spectators-can-see-hands", "only-registered" ,
-                         "player-deck-verification" ]
-
 # Takes in any number of arguments (likely from a command call) and returns a dict
 # The keys of the dict are tournament properties (other key/value pairs are discarded)
 # The delimiter between properties and values is an equal sign.
 #   - example input: match-size= 1 hello = foo bar tricebot-enabled = true Format =EDH
-#             output: { "match-size": "1", "tricebot-enabled": "true", "format": "EDH"}
-def generateTournProps( *args ):
-    """ Converts a user-input string of properties to a dict """
+#             output: { "match-size": "1", "hello", "foo bar" "tricebot-enabled": "true", "format": "EDH"}
+def generatePropsDict( *args ) -> Dict:
+    """ Converts a user-input group of properties to a dict """
     args: list = [ segment.strip().lower() for segment in " ".join(args).split("=") ]
     digest: dict = { }
     pastSegement: list = [ args[0] ]
@@ -97,11 +91,6 @@ def generateTournProps( *args ):
         digest[pastSegement[-1].strip()] = segment[0].strip()
         pastSegement = segment
     toDelete = [ ]
-    for key in digest:
-        if not key in tournamentProperties:
-            toDelete.append( key )
-    for key in toDelete:
-        del digest[key]
     return digest
 
 

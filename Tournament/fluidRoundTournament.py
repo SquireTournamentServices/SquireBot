@@ -28,8 +28,6 @@ class fluidRoundTournament(tournament):
         self.hostGuildName = hostGuildName
         self.format    = props["format"] if "format" in props else "Pioneer"
         
-        self.saveLocation = f'currentTournaments/{self.name}'
-
         self.guild   = None
         self.guildID = ""
         self.role    = None
@@ -260,7 +258,7 @@ class fluidRoundTournament(tournament):
     def saveOverview( self, filename: str = "" ) -> None:
         print( "Fluid Round Overview being saved." )
         if filename == "":
-            filename = f'{self.saveLocation}/overview.xml'
+            filename = f'{self.getSaveLocation()}/overview.xml'
         digest  = "<?xml version='1.0'?>\n"
         digest += '<tournament>\n'
         digest += f'\t<name>{self.name}</name>\n'

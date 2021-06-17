@@ -19,5 +19,4 @@ newLine = "\n\t- "
 
 TOKEN = os.getenv( "TESTING_TOKEN" )
 
-
 bot.run(TOKEN)

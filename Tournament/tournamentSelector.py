@@ -13,6 +13,8 @@ def getTournamentType( tournType: str, tournName: str = "", guildName: str = "",
     digest = None
     if tournType == "fluidroundtournament":
         digest = fluidRoundTournament( tournName, guildName, tournProps )
+    else:
+        raise NotImplementedError( f'The type of "{tournType}" is not an implemented tournament type.' )
     
     return digest
     
@@ -20,12 +22,21 @@ def getTournamentType( tournType: str, tournName: str = "", guildName: str = "",
 def tournamentSelector( typeFile: str, tournName: str = "", guildName: str = "", tournProps: dict = { } ):
     tournType = ET.parse( typeFile ).getroot().text
     digest = getTournamentType( tournType, tournName, guildName, tournProps )
-    if digest is None:
-        raise NotImplementedError( f'{tournType} is not a supported tournament type' )
     return digest
 
+# A list of universe tournament properties
+# This will be expanded on by each tournament class similar to how the command snippets work
+def getTournamentProperties( ) -> List:
+    digest: list = [ ]
+    
+    # TODO: As more tournament types are added, this needs to be updated
+    digest += tournament.properties
+    digest += fluidRoundTournament.properties
+    
+    return list(set(digest))
 
-def filterProperties( props: Dict ) -> Dict:
+
+def filterProperties( guild: discord.Guild, props: Dict ) -> Dict:
     """Tracks a dict of potential tournament properties and converts to ensure they're 'level'"""
     digest: dict = { "successes": dict(), "failures": dict(), "undefined": dict() } 
 
@@ -33,7 +44,7 @@ def filterProperties( props: Dict ) -> Dict:
     filteredDefaults: list = [ ]
     
     # Passing the adjusted defaults through the base fluidRoundsTournament
-    filteredDefaults.append( fluidRoundTournament.filterProperties( props ) )
+    filteredDefaults.append( fluidRoundTournament.filterProperties( guild, props ) )
      
     # TODO: As more tournaments types are added, this process will need to grow
     

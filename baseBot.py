@@ -346,16 +346,6 @@ async def confirmCommand( ctx ):
         await ctx.send( embed=message )
         return
 
-    # Check to see if the message is from endTourn or cancelTourn
-    # If so, the tournament needs to be cancelled
-    if "has been closed" in message or "has been cancelled" in message:
-        words = message.split( "," )[1].strip().split( " " )
-        for i in range(1,len(words)-1):
-            if words[i] == "has":
-                if words[i+1] == "been":
-                    tourn = " ".join( words[:i] )
-                    break
-        del( tournaments[tourn] )
     await ctx.send( message )
 
 
