@@ -95,10 +95,11 @@ class fluidRoundTournament(tournament):
     
     # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing
     # This is a prime canidate for adjustments when players how copies of match results.
-    def addPlayerToQueue( self, plyr: str ) -> None:
+    def addPlayerToQueue( self, plyr: int ) -> None:
         for lvl in self.queue:
-            if plyr in lvl:
-                return "you are already in the matchmaking queue. You will be paired for when more people join the queue."
+            for p in lvl:
+                if plyr == p.discordID:
+                    return "you are already in the matchmaking queue. You will be paired for when more people join the queue."
         if plyr not in self.players:
             return "you are not registered for this tournament."
         if not self.players[plyr].isActive( ):
@@ -166,8 +167,8 @@ class fluidRoundTournament(tournament):
                         return digest
         return [ ]
         
-    def _pairingAttempt( self, q = [] ):
-        if len(q) == 0:
+    def _pairingAttempt( self, q = None ):
+        if q is None:
             q = [ lvl.copy() for lvl in self.queue ]
         newQueue = []
         for _ in range(len(q) + 1):
@@ -280,7 +281,7 @@ class fluidRoundTournament(tournament):
         digest += f'\t<queue size="{self.playersPerMatch}" threshold="{self.pairingsThreshold}">\n'
         for level in range(len(self.queue)):
             for plyr in self.queue[level]:
-                digest += f'\t\t<player name="{plyr.name}" priority="{level}"/>\n'
+                digest += f'\t\t<player name="{plyr.discordID}" priority="{level}"/>\n'
         digest += f'\t</queue>\n'
         digest += f'\t<queueActivity>\n'
         for act in self.queueActivity:
@@ -330,7 +331,7 @@ class fluidRoundTournament(tournament):
         for _ in range(maxLevel):
             self.queue.append( [] )
         for plyr in players:
-            self.queue[int(plyr.attrib['priority'])].append( fromXML(self.players[ plyr.attrib['name'] ] ))
+            self.queue[int(plyr.attrib['priority'])].append( self.players[ int(fromXML(plyr.attrib['name'])) ] )
         if sum( [ len(level) for level in self.queue ] ) >= self.pairingsThreshold and not self.pairingsThread.is_alive( ):
             self.pairingsThread = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )

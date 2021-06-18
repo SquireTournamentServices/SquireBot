@@ -114,7 +114,7 @@ class guildSettings:
     
     # Determines if a user is a member of the guild
     def isMember( self, user: discord.Member ) -> bool:
-        return True if self.guild.get_member( user.id ) is None else False
+        return False if self.guild.get_member( user.id ) is None else True
     
     
     # ---------------- Settings and Default Methods ----------------
@@ -223,7 +223,7 @@ class guildSettings:
     
     # Returns a dictionary of current tournaments with tournament names as keys
     # and tournament objects as values
-    def currentTournaments( self ) -> Dict:
+    def currentTournaments( self ) -> List:
         return self.tournaments
     
     def getTournament( self, name: str ) -> tournament:

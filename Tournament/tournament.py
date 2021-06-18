@@ -250,30 +250,30 @@ class tournament:
         filteredProps = tournament.filterProperties( self.guild, props )
         for prop in filteredProps["successes"]:
             if prop == "format":
-                self.format = prop
+                self.format = filteredProps["successes"][prop]
             elif prop == "deck-count":
-                self.deckCount = prop
+                self.deckCount = filteredProps["successes"][prop]
             elif prop == "match-length":
-                self.matchLength = prop
+                self.matchLength = filteredProps["successes"][prop]
             elif prop == "match-size":
-                self.playersPerMatch = prop
+                self.playersPerMatch = filteredProps["successes"][prop]
             elif prop == "pairings-channel":
-                self.pairingsChannel = prop
-                self.pairingsChannelID = prop.id
+                self.pairingsChannel = filteredProps["successes"][prop]
+                self.pairingsChannelID = filteredProps["successes"][prop].id
             elif prop == "tricebot-enabled":
-                self.triceBotEnabled = prop
+                self.triceBotEnabled = filteredProps["successes"][prop]
             elif prop == "spectators-allowed":
-                self.spectators_allowed = prop
+                self.spectators_allowed = filteredProps["successes"][prop]
             elif prop == "spectators-need-password":
-                self.spectators_need_password = prop
+                self.spectators_need_password = filteredProps["successes"][prop]
             elif prop == "spectators-can-chat":
-                self.spectators_can_chat = prop
+                self.spectators_can_chat = filteredProps["successes"][prop]
             elif prop == "spectators-can-see-hands":
-                self.spectators_can_see_hands = prop
+                self.spectators_can_see_hands = filteredProps["successes"][prop]
             elif prop == "only-registered":
-                self.only_registered = prop
+                self.only_registered = filteredProps["successes"][prop]
             elif prop == "player-deck-verification":
-                self.player_deck_verification = prop
+                self.player_deck_verification = filteredProps["successes"][prop]
         
         if len(filteredProps["successes"]) == 0:
             digest += "No properties were successfully updated."
@@ -343,17 +343,24 @@ class tournament:
 
     # ---------------- Embed Generators ----------------
     def getPlayerProfileEmbed( self, plyr: int ) -> discord.Embed:
+        Player = self.players[plyr]
         digest = discord.Embed()
-        deckPairs = [ f'{d}: {self.players[plyr].decks[d].deckHash}' for d in self.players[plyr].decks ]
+        bioInfo: str = f'Discord Name: {Player.getMention()}\n'
+        bioInfo += f'Discord ID: {Player.discordUser.id}\n'
+        if Player.triceName != "":
+            bioInfo += f'Cockatrice Name: {Player.triceName}\n'
+        bioInfo += f'Reg. Status: {"Registered" if Player.isActive() else "Dropped"}'
+        digest.add_field( name="Biographic Info:", value=bioInfo )
+        deckPairs = [ f'{d}: {Player.decks[d].deckHash}' for d in Player.decks ]
         digest.add_field( name="Decks:", value=("\u200b" + "\n".join(deckPairs)) )
-        for mtch in self.players[plyr].matches:
+        for mtch in Player.matches:
             players = mtch.activePlayers + mtch.droppedPlayers
             status = f'Status: {mtch.status}'
             if mtch.winner in self.players:
                 winner = f'Winner: {self.players[mtch.winner].getMention()}'
             else:
                 winner = f'Winner: {mtch.winner if mtch.winner else "N/A"}'
-            oppens = "Opponents: " + ", ".join( [ self.players[plyr].discordUser.mention for plyr in players if plyr != plyr ] )
+            oppens = "Opponents: " + ", ".join( [ Player.discordUser.mention for plyr in players if plyr != plyr ] )
             digest.add_field( name=f'Match #{mtch.matchNumber}', value=f'{status}\n{winner}\n{oppens}' )
         return digest
 
@@ -393,7 +400,7 @@ class tournament:
         self.players[plyr].saveXML( )
         return f'Your cockatrice name was set to {name} successfully.'
     
-    def addDeck( self, plyr: str, deckName: str, decklist: str, admin: bool = False ) -> str:
+    async def addDeck( self, plyr: int, deckName: str, decklist: str, admin: bool = False ) -> str:
         if not plyr in self.players:
             return f'you are not registered for {self.name}. Use the !register {self.name} to register for this tournament.'
         if not self.players[plyr].isActive():
@@ -404,8 +411,8 @@ class tournament:
         self.players[plyr].saveXML( )
         deckHash = self.players[plyr].decks[deckName].deckHash
         if admin:
-            self.players[plyr].discordUser.send( content = f'A decklist has been submitted for {tourn} on your behalf. The name of the deck is "{deckName}" and the deck hash is "{deckHash}". Use the command "!decklist {deckName}" to see the list. Please contact tournament staff if there is an error.' )
-            return f'you have submitted a decklist for {plyr}. The deck hash is {deckHash}.'
+            await self.players[plyr].discordUser.send( content = f'A decklist has been submitted for {self.name} on your behalf. The name of the deck is "{deckName}" and the deck hash is "{deckHash}". Use the command "!decklist {deckName}" to see the list. Please contact tournament staff if there is an error.' )
+            return f'you have submitted a decklist for {self.players[plyr].getMention()}. The deck hash is {deckHash}.'
         return f'your deck has been successfully registered in {self.name}. Your deck name is "{deckName}", and the deck hash is "{deckHash}". Make sure it matches your deck hash in Cockatrice. You can see your decklist by using !decklist "{deckName}" or !decklist {deckHash}.'
         
     
@@ -494,7 +501,7 @@ class tournament:
         else:
             self.players[discordUser.id] = player( discordUser.display_name, discordUser.id )
 
-        self.players[discordUser.id].saveLocation = f'{self.getSaveLocation()}/players/{toPathSafe(discordUser.display_name)}.xml'
+        self.players[discordUser.id].saveLocation = f'{self.getSaveLocation()}/players/{discordUser.id}.xml'
         self.players[discordUser.id].addDiscordUser( discordUser )
         await self.players[discordUser.id].discordUser.add_roles( self.role )
         self.players[discordUser.id].saveXML( )

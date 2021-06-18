@@ -47,7 +47,7 @@ class player:
     def __str__( self ):
         newLine = "\n\t- "
         digest  = f'Player Name: {self.name}\n'
-        digest += f'Disord Nickname: {self.discordUser.display_name}\n'
+        digest += f'Disord Nickname: {self.getMention()}\n'
         digest += f'Cockatrice Username: {self.triceName}\n'
         digest += f'Status: {self.status}\n'
         digest += f'Decks:{newLine}{newLine.join( [ str(self.decks[ident]) for ident in self.decks ] )}\n'
@@ -218,6 +218,7 @@ class player:
     # Addes a deck to the list of decks
     def addDeck( self, a_ident: str = "", a_decklist: str = "" ) -> None:
         # Removes an deck instead of overwriting it to keep self.decks in chrono order
+        print( a_ident, a_decklist )
         if a_ident in self.decks: 
             del( self.decks[a_ident] )
         self.decks[a_ident] = deck( a_ident, a_decklist )

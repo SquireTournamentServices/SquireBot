@@ -15,6 +15,11 @@ from Tournament import *
 
 # ---------------- Help Message Methods ---------------- 
 
+LINK_TO_PLAYER_CMD_DOC   = "https://gitlab.com/TylerBloom/SquireBot/-/blob/wip-dev-46-add-server-defaults/docs/UserCommands.md"
+LINK_TO_JUDGE_CMD_DOC    = "https://gitlab.com/TylerBloom/SquireBot/-/blob/wip-dev-46-add-server-defaults/docs/JudgeCommands.md" 
+LINK_TO_ADMIN_CMD_DOC    = "https://gitlab.com/TylerBloom/SquireBot/-/blob/wip-dev-46-add-server-defaults/docs/AdminCommands.md" 
+LINK_TO_CRASH_COURSE_DOC = "https://gitlab.com/TylerBloom/SquireBot/-/blob/wip-dev-46-add-server-defaults/docs/CrashCourse.md" 
+
 commandSnippets = { } 
 commandCategories = { "registration": [ ], "playing": [ ], "misc": [ ],
                       "admin-registration": [ ], "admin-playing": [ ], "admin-misc": [ ],
@@ -41,7 +46,7 @@ async def sendAdminHelpMessage( ctx ) -> None:
     embed.add_field( name="**Properties**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["properties"] ]), inline=False )
     embed.add_field( name="**Day-Of**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["day-of"] ]),inline=False )
     
-    embed.add_field( name="**__Additional Information__**", value="The full documentation for the judge commands can be found [here](https://docs.google.com/document/d/1rLVJZZKR-MF54WNhvbQdRJBhI5U_oUHbmfNcSbihUJQ/edit?usp=sharing) and admin commands [here](https://docs.google.com/document/d/1AlBRYAW5d4cLDc9VC89sa_Agzdhy1I-DkaYbXIJ45xM/edit?usp=sharing). The user commands are [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing), and the crash course is [here](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
+    embed.add_field( name="**__Additional Information__**", value=f'The full documentation for the judge commands can be found [here]({LINK_TO_JUDGE_CMD_DOC}) and admin commands [here]({LINK_TO_ADMIN_CMD_DOC}). The user commands are [here]({LINK_TO_PLAYER_CMD_DOC}), and the crash course is [here]({LINK_TO_PLAYER_CMD_DOC}). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!',inline=False )
     
     await ctx.send( embed=embed )
     return
@@ -61,7 +66,7 @@ async def sendJudgeHelpMessage( ctx ) -> None:
     embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-playing"] ]), inline=False )
     embed.add_field( name="**Miscellaneous**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-misc"] ]),inline=False )
     
-    embed.add_field( name="**__Additional Information__**", value="The full documentation for the judge commands can be found [here](https://docs.google.com/document/d/1rLVJZZKR-MF54WNhvbQdRJBhI5U_oUHbmfNcSbihUJQ/edit?usp=sharing). The user commands are [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing), and the crash course is [here](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
+    embed.add_field( name="**__Additional Information__**", value="The full documentation for the judge commands can be found [here]({LINK_TO_JUDGE_CMD_DOC}). The user commands are [here]({LINK_TO_PLAYER_CMD_DOC}), and the crash course is [here]({LINK_TO_CRASH_COURSE_DOC}). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
     
     await ctx.send( embed=embed )
     return
@@ -73,7 +78,7 @@ async def sendUserHelpMessage( ctx ) -> None:
     embed.add_field( name="**__Match Commands__**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
     embed.add_field( name="**__Miscellaneous Commands__**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
 
-    embed.add_field( name="**__Additional Information__**", value="Additional information about each command can be found [here](https://docs.google.com/document/d/1-ducYUYXel8vDJeDjY9ePYN36kF5Q8jTnbBck8Qjuoc/edit?usp=sharing). There is also a [crash course](https://docs.google.com/document/d/1jOWfZjhhxOai7CjDqZ6fFnio3qRuLa0efg9HeEiG6MA/edit?usp=sharing) for new users. If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
+    embed.add_field( name="**__Additional Information__**", value="Additional information about each command can be found [here]({LINK_TO_PLAYER_CMD_DOC}). There is also a [crash course]({LINK_TO_CRASH_COURSE_DOC}) for new users. If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
     
     await ctx.send( embed=embed )
     return
@@ -85,9 +90,9 @@ async def sendUserHelpMessage( ctx ) -> None:
 def getTournamentsByPlayer( user: discord.Member ) -> List:
     digest: list = [ ]
     for gld in guildSettingsObjects:
-        if not gld.isMember( user ):
+        if not guildSettingsObjects[gld].isMember( user ):
             continue
-        digest += gld.getPlayerTournaments( user )
+        digest += guildSettingsObjects[gld].getPlayerTournaments( user )
     return digest
 
 async def isPrivateMessage( ctx, send: bool = True ) -> bool:
@@ -124,13 +129,13 @@ async def isTournDead( tourn, ctx, send: bool = True ) -> bool:
     return digest
 
 async def isTournRunning( tourn, ctx, send: bool = True ) -> bool:
-    digest = tourn.isActive and not await isTournDead( tourn, ctx, False )
-    if digest and send:
+    digest = tourn.isActive() and not await isTournDead( tourn, ctx, False )
+    if not digest and send:
         await ctx.send( f'{ctx.author.mention}, {tourn.name} has not started yet.' )
     return digest
 
 async def isRegOpen( tourn, ctx, send: bool = True ) -> bool:
-    digest = tournaments[tourn].regOpen
+    digest = tourn.regOpen
     if send and not digest:
         await ctx.send( f'{ctx.author.mention}, registration for {tourn} is closed. Please contact tournament staff if you think this is an error.' )
     return digest
@@ -148,7 +153,7 @@ async def isActivePlayer( tourn, plyr, ctx, send: bool = True ) -> bool:
     return digest
     
 async def hasOpenMatch( tourn, plyr, ctx, send: bool = True ) -> bool:
-    digest = tournaments[tourn].players[plyr].hasOpenMatch( )
+    digest = tourn.players[plyr].hasOpenMatch( )
     if send and not digest:
         await ctx.send( f'{ctx.author.mention}, you are not an active player in a match. You do not need to do anything.' )
     return digest
@@ -209,46 +214,6 @@ def getTournamentAdminMention( a_guild ) -> str:
             adminMention = role.mention
             break
     return adminMention
-
-def hasStartedTournament( a_guildName ) -> bool:
-    for tourn in tournaments:
-        if tournaments[tourn].tournStarted and tournaments[tourn].hostGuildName == a_guildName:
-            return True
-    return False
-
-def findGuildMember( a_guild: discord.Guild, a_memberName: str ):
-    for member in a_guild.members:
-        if member.display_name == a_memberName:
-            return member
-        if member.mention.replace("!", "") == a_memberName.replace("!", ""):
-            return member
-    return ""
-
-def findPlayer( a_guild: discord.Guild, a_tourn: str, a_memberName: str ) -> discord.Member:
-    role = discord.utils.get( a_guild.roles, name=f'{a_tourn} Player' )
-    if type( role ) != discord.Role:
-        return None
-    for member in role.members:
-        if member.display_name == a_memberName:
-            return member
-        if str(member.id) == get_ID_from_mention(a_memberName):
-            return member
-    return None
-
-def findPlayerTourns( plyr: str, guild_name: str = "" ) -> List[str]: 
-    digest = [ ]
-    
-    if guild_name == "":
-        for tourn in tournaments.values():
-            if plyr in tourn.players:
-                if tourn.players[plyr].isActive():
-                    digest.append( tourn.name )
-    else:
-        for tourn in currentGuildTournaments( guild_name ):
-            if plyr in tournaments[tourn].players:
-                digest.append( tourn )
-    
-    return digest
 
 def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
     if len(msg) <= limit:

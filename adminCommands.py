@@ -73,7 +73,7 @@ async def updateTournProperties( ctx, tournName = None, *args ):
         return
 
     tourn = gld.getTournament( tournName )
-    if not (tourn is None): 
+    if tourn is None: 
         await ctx.send( f'{mention}, there is not tournament called "{tournName}" on this server.' )
         return
     
@@ -88,7 +88,7 @@ async def updateTournProperties( ctx, tournName = None, *args ):
 
 
 commandSnippets["update-server-defaults"] = "- update-server-defaults : Changes the properties of a tournament." 
-commandCategories["properties"].append("update-defaults")
+commandCategories["properties"].append("update-server-defaults")
 @bot.command(name='update-server-defaults')
 async def updateTournProperties( ctx, *args ):
     mention = ctx.author.mention
@@ -319,7 +319,7 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
         if not member.id in tournObj.players:
             await ctx.send( f'{mention}, a user by "{member.mention}" was found in the server, but they are not active in {tourn}. They need to register first.' )
             endCmd = True
-        if not tournObj[member.id].isActive():
+        if not tournObj.players[member.id].isActive():
             await ctx.send( f'{mention}, a player by "{member.mention}" has registered, but they have dropped. They need to re-register.' )
             endCmd = True
     
@@ -450,6 +450,7 @@ async def createPairingsList( ctx, tourn = None ):
         await ctx.send( msg )
     
 
+# TODO: This should be a property
 commandSnippets["set-pairing-threshold"] = "- set-pairing-threshold : Sets the number of players needed to pair the queue" 
 commandCategories["properties"].append("set-pairing-threshold")
 @bot.command(name='set-pairing-threshold')
@@ -555,7 +556,7 @@ async def adminGiveBye( ctx, tourn = None, plyr = None ):
     
     tournObj.addBye( member.id )
     tournObj.players[member.id].saveXML( )
-    await ctx.send( f'{mention}, {plyr} has been given a bye.' )
+    await ctx.send( f'{adminMention}, {plyr} has been given a bye by {mention}.' )
     await tournObj.players[member.id].discordUser.send( content=f'You have been given a bye from the tournament admin for {tourn} on the server {ctx.guild.name}.' )
 
 
@@ -627,7 +628,7 @@ async def viewQueue( ctx, tourn = None ):
     count = 0
     
     for lvl in range(len(tournObj.queue)):
-        value += f'{lvl+1}) ' + ", ".join( [ plyr.discordUser.display_name for plyr in tournaments[tourn].queue[lvl] ] ) + "\n"
+        value += f'{lvl+1}) ' + ", ".join( [ plyr.discordUser.display_name for plyr in tournObj.queue[lvl] ] ) + "\n"
         if len(value) > 1024:
             embed.add_field( name = f'{tourn} Queue' if count == 0 else "\u200b", value = value, inline=False )
             value = ""
@@ -666,7 +667,7 @@ async def tricebotKickPlayer( ctx, tourn = None, mtch = None, playerName = None 
         await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
         return
     
-    if mtch > len(tournaments[tourn].matches):
+    if mtch > len(tournObj.matches):
         await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
     
@@ -690,7 +691,125 @@ async def tricebotKickPlayer( ctx, tourn = None, mtch = None, playerName = None 
     else:
         await ctx.send( f'{mention}, An error has occured whilst kicking "{playerName}" from match {mtch}.' )        
         
+
+commandSnippets["tricebot-disable-pdi"] = "- tricebot-disable-pdi : Disables player deck verification." 
+commandCategories["day-of"].append("tricebot-disable-pdi")
+@bot.command(name='tricebot-disable-pdi')
+async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None ):
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
+    if await isPrivateMessage( ctx ): return
+
+    if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
+    if tourn is None or mtch is None:
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
+        return
+
+    tournObj = gld.getTournament( tournName )
+    if tournObj is None: 
+        await ctx.send( f'{mention}, there is not tournament called "{tournName}" on this server.' )
+        return
+    
+    # Get match
+    try:
+        mtch = int( mtch )
+    except:
+        await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
+        return
+    
+    if mtch > len(tournObj.matches):
+        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
+        return
+    
+    Match = tournObj.matches[mtch - 1]
+    
+    if not Match.triceMatch:
+        await ctx.send( f'{mention}, that match is not a match with tricebot enabled.' )
+        return
+    if not Match.playerDeckVerification:    
+        await ctx.send( f'{mention}, that match is not a match with player deck verification enabled.' )
+        return
+    
+    # Send update command
+    result = trice_bot.disablePlayerDeckVerificatoin(match.gameID)
+    if result == 1:
+        match.playerDeckVerification = False
+        await ctx.send( f'{mention}, player deck verification was disabled.' )
+    else:
+        await ctx.send( f'{mention}, an error occurred.' )
         
+
+commandSnippets["tricebot-update-player"] = "- tricebot-update-player : Updates the cockatrice username for a player, for a game that is ongoing." 
+commandCategories["day-of"].append("tricebot-update-player")
+@bot.command(name='tricebot-update-player')
+async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None, plyr = None, newTriceName = None ):
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
+    if await isPrivateMessage( ctx ): return
+
+    if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
+    if tourn is None or mtch is None or plyr is None or newTriceName is None:
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
+        return
+    
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
+    
+    # Get match
+    try:
+        mtch = int( mtch )
+    except ValueError:
+        await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
+        return
+    
+    if mtch > len(tournObj.matches):
+        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
+        return
+    
+    Match = tournObj.matches[mtch - 1]
+    
+    if not Match.triceMatch:
+        await ctx.send( f'{mention}, that match is not a match with tricebot enabled.' )
+        return
+    if not Match.playerDeckVerification:    
+        await ctx.send( f'{mention}, that match is not a match with player deck verification enabled.' )
+        return
+    
+    # Get player
+    nameNeedsUpdating: bool = False
+    
+    member = gld.getMember( plyr )
+    if member is None:
+        await ctx.send( f'{mention}, there is not a member of this server by "{plyr}".' )
+        return
+    
+    if not member.id in tournObj.players:
+        await ctx.send( f'{mention}, a player by "{plyr}" was found, but they have not registered for {tourn}. Make sure they register first.' )
+        return
+    
+    # Send update command
+    result = trice_bot.changePlayerInfo(Match.gameID, tournObj.players[member.id].triceName, newTriceName)
+    
+    # Handle result
+    if result.error:
+        await ctx.send( f'{mention}, there was an error updating the game room.' )
+    elif result.success:
+        await ctx.send( f'{mention}, the player information was successfully updated.' )
+        tournObj.setPlayerTriceName( member.id, newTriceName )
+    elif not result.gameFound:
+        await ctx.send( f'{mention}, the game was not found, so the player information was not updated, as there no action was taken.' )
+    elif not result.playerFound:
+        await ctx.send( f'{mention}, the player was not found, so no action was taken. If there are multiple players with no cockatrice names then you can ignore this error as they are still able to join.' )
+
+
 """
 
 @bot.command(name='tournament-report')

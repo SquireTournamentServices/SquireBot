@@ -312,7 +312,7 @@ class match:
         self.sentFiveMinWarning = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["fiveMin"] ) )
         self.sentFinalWarning   = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["final"  ] ) )
         self.winner = fromXML( matchRoot.find( "winner" ).attrib["name"] )
-        if self.winner != "":
+        if self.winner != "" and not self.isBye():
             self.winner = int(self.winner)
         for player in matchRoot.find("activePlayers"):
             self.activePlayers.append( int( fromXML( player.attrib["name"] ) ) )

@@ -77,7 +77,7 @@ async def registerPlayer( ctx, tourn = None ):
             await ctx.send( f'{mention}, there are no planned tournaments for this server. If you think this is an error, contact tournament staff.' )
             return
         else:
-            tourn = [ name for name in tourns ][0]
+            tourn = tourns[0].name
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
@@ -114,8 +114,7 @@ async def addTriceName( ctx, tourn = None, name = None ):
             await ctx.send( f'{mention}, you are registered for multiple tournaments on this server. Please specify which tournament you are playing in.' )
             return
         else:
-            tourn = tourns[0]
-            tourn = tournObj.name
+            tourn = tourns[0].name
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
@@ -174,7 +173,7 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
     
     message = ""
     try:
-        message = tournObj.addDeck( ctx.author.id, ident, decklist )
+        message = await tournObj.addDeck( ctx.author.id, ident, decklist )
     except Exception as e:
         print(e) #Print the stacktrace for debugging
         await ctx.send( f'{mention}, there was an error while processing your deck list. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
@@ -319,10 +318,10 @@ async def queuePlayer( ctx, tourn = None ):
     if tourn is None:
         tourns = gld.getPlayerTournaments( ctx.author )
         if len( tourns ) > 1:
-            await ctx.send( f'{mention}, there are multiple tournaments planned in this server. Please specify which tournament you are playing in.' )
+            await ctx.send( f'{mention}, you are registered for multiple tournaments on this server. Please specify which tournament you are playing in.' )
             return
         elif len( tourns ) < 1:
-            await ctx.send( f'{mention}, there are no planned tournaments for this server. If you think this is an error, contact tournament staff.' )
+            await ctx.send( f'{mention}, you are not registered for any tournaments on this server.' )
             return
         else:
             tournObj = tourns[0]
@@ -346,8 +345,8 @@ async def queuePlayer( ctx, tourn = None ):
         await ctx.send( f'{mention}, you have failed to submit a deck. As such, you can not play in this tournament. If you believe this is an error, talk to tournament staff.' )
         return
         
-    message = tournaments[tourn].addPlayerToQueue( ctx.author.id )
-    tournaments[tourn].saveOverview( )
+    message = tournObj.addPlayerToQueue( ctx.author.id )
+    tournObj.saveOverview( )
     await ctx.send( f'{mention}, {message}.' )
 
 
@@ -472,14 +471,14 @@ async def standings( ctx, tourn = None, printAll = None ):
     
     # If print all needs to be converted to a bool
     # If it's None at this point, we don't print all; otherwise, we do
-    printAll = (printAll is None)
+    printAll = not (printAll is None)
 
-    if printAll and (not gld.standingsChannel is None) and (ctx.channel.id != gld.standingsChannel.id):
-        await ctx.send( f'{mention}, this is not the correct channel to see the full standings. Please go to <#{gld.standingsChannel.id}> to use this command.' )
+    if printAll and (not gld.d_standingsChannel is None) and (ctx.channel.id != gld.d_standingsChannel.id):
+        await ctx.send( f'{mention}, this is not the correct channel to see the full standings. Please go to <#{gld.d_standingsChannel.id}> to use this command.' )
         return
     
-    standings = tournaments[tourn].getStandings( )
-    name = tournaments[tourn].players[ctx.author.id].getDisplayName()
+    standings = tournObj.getStandings( )
+    name = tournObj.players[ctx.author.id].getDisplayName()
     
     if name in standings[1] and not printAll:
         index = standings[1].index(name)
@@ -579,7 +578,6 @@ commandCategories["misc"].append( "decklist" )
 @bot.command(name='decklist')
 async def printDecklist( ctx, tourn = None, ident = None ):
     mention = ctx.author.mention
-    gld = guildSettingsObjects[ctx.guild.id]
     
     private = await isPrivateMessage( ctx, send = False )
 
