@@ -25,10 +25,14 @@ class TriceBot:
             self.externURL = externURL
         
     # verify = false as self signed ssl certificates will cause errors here
-    def req(self, urlpostfix: str, data: str) -> str:
+    def req(self, urlpostfix: str, data: str, abs: bool = False) -> str:
         print(data)
-        resp = requests.get(f'{self.apiURL}/{urlpostfix}', timeout=7.0, data=data,  verify=False).text
-        print(resp)
+        url = urlpostfix
+        if not abs:
+            url = f'{self.apiURL}/{url}'
+        resp = requests.get(url, timeout=7.0, data=data,  verify=False).text
+        if not abs:
+            print(resp)
         return resp
         
     def checkauthkey(self):
@@ -36,6 +40,52 @@ class TriceBot:
     
     def getDownloadLink(self, replayName: str) -> str:
         return f'{self.externURL}/{replayName}'
+    
+    # Returns the zip file which contains all of the downloaded files
+    # Returns none if the zip file would be empty or if there was an IOError
+    def downloadReplays(self, replayURLs, replaysNotFound = []):                
+        # Download all the replays
+        replayStrs = []
+        replayNames = []
+        
+        # Iterate over
+        for replayURL in replayURLs:
+            try:
+                res = self.req(replayURL, "", abs=True)
+                split = replayURL.split("/")
+                name = urllib.parse.unquote(split[len(split) - 1])
+                if res == "error 404" or re.match("Not found \[.*\]", res) or re.match("<!DOCTYPE html>.*", res):
+                    # Error file not found
+                    replaysNotFound.append(name)
+                    #print(res == "error 404")
+                    #print(re.match("Not found \[.*\]", res))
+                    #print(re.match("<!DOCTYPE html>.*", res))
+                else:
+                    # Create a temp file and write the data                    
+                    replayStrs.append(res)                    
+                    replayNames.append(name)
+            except OSError as exc:
+                # Network issues
+                print("[TRICEBOT ERROR]: Netty error")
+                replaysNotFound.append(replayURL)
+        
+        # Create zip file then close the temp files
+        try:
+            if (len(replayStrs) == 0):
+                return None
+            tmpFile = tempfile.TemporaryFile(mode="wb+", suffix="tricebot.py", prefix="replaydownloads.zip")
+            #tmpFile = open("I hate python.zip", "wb+")
+            zipf = zipfile.ZipFile(tmpFile, "w", zipfile.ZIP_STORED)
+            for i in range(0, len(replayStrs)):
+                replayStr = replayStrs[i]
+                name = replayNames[i]            
+                zipf.writestr(name, replayStr)
+            zipf.close()
+            tmpFile.seek(0)
+            return tmpFile
+        except IOError as exc:
+            print(exc)
+            return None
     
     # Returns a ChangePlayerInfo object that contains the state of the request
     def changePlayerInfo(self, gameID: int, oldPlayerName: str, newPlayerName: str) -> str:

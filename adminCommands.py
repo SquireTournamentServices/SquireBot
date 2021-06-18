@@ -811,6 +811,50 @@ async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None, plyr = None, new
         await ctx.send( f'{mention}, the player was not found, so no action was taken. If there are multiple players with no cockatrice names then you can ignore this error as they are still able to join.' )
 
 
+commandSnippets["download-replays"] = "- download-replays : Downloads all replays for a tournament" 
+commandCategories["management"].append("download-replays")
+@bot.command(name='download-replays')
+async def downloadReplays( ctx, tourn = None ):
+    mention = ctx.message.author.mention
+    if await isPrivateMessage( ctx ): return
+
+    adminMention = getTournamentAdminMention( ctx.message.guild )
+    if not await isTournamentAdmin( ctx ): return
+    if tourn is None:
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament to view the dqueue.' )
+        return
+    if not await checkTournExists( tourn, ctx ): return
+    if not await correctGuild( tourn, ctx ): return
+    if await isTournDead( tourn, ctx ): return
+
+    replayURLs = []
+
+    # Iterate over matches
+    for match in tournaments[tourn].matches:
+        if match.triceMatch and match.replayURL != "":
+            replayURLs.append(match.replayURL)
+    
+    if len(replayURLs) == 0:
+        await ctx.send( f'{mention}, there were no replays to download.' )
+        return
+    
+    # Download replays
+    replaysNotFound = []
+    replayFile = trice_bot.downloadReplays(replayURLs, replaysNotFound)
+    if replayFile == None:
+        await ctx.send( f'{mention}, an error occurred downloading the replays.' )
+        return
+    
+    message = "" 
+    for replay in replaysNotFound:
+        mesage += "\n - " + replay
+    if message != "":
+        message = "The following replays were unable to be downloaded:\n" + message
+    
+    await ctx.send( f'{mention}, here are the replays for {tourn}.\n{message}', file=discord.File(replayFile, f"{tourn}- replays.zip") )
+    replayFile.close()
+    
+
 """
 
 @bot.command(name='tournament-report')
