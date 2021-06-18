@@ -682,7 +682,7 @@ class tournament:
             self.players[plyr].matches.append( newMatch )
             for p in plyrs:
                 if p != plyr:
-                    self.players[plyr].opponents.append( p )
+                    self.players[plyr].opponents.add( p )
             if type( self.guild ) == discord.Guild:
                 self.players[plyr].saveXML()
                 await self.players[plyr].discordUser.add_roles( matchRole )

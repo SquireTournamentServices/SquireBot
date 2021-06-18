@@ -115,7 +115,7 @@ class fluidRoundTournament(tournament):
     def removePlayerFromQueue( self, plyr: str ) -> None:
         for lvl in self.queue:
             for i in range(len(lvl)):
-                if lvl[i].name == plyr:
+                if lvl[i].discordID == plyr:
                     del( lvl[i] )
                     self.saveOverview( )
                     return None
@@ -133,7 +133,7 @@ class fluidRoundTournament(tournament):
     # This method is intended to only be used in _pairQueue method
     def _searchForOpponents( self, lvl: int, i: int, q = [] ) -> List[Tuple[int,int]]:
         if len(q) == []:
-            q = self.queue
+            q = self.queue.copy()
         if lvl > 0:
             lvl = -1*(lvl+1)
         
@@ -193,7 +193,7 @@ class fluidRoundTournament(tournament):
                 else:
                     plyrs = [ ] 
                     for index in indices:
-                        plyrs.append( q[index[0]][index[1]].name )
+                        plyrs.append( q[index[0]][index[1]].discordID )
                         del( q[index[0]][index[1]] )
                     digest.append( self.addMatch( plyrs ) )
             lvl -= 1
@@ -206,7 +206,7 @@ class fluidRoundTournament(tournament):
         results = []
         
         for _ in range(tries):
-            results.append( self._pairingAttempt( tempQueue ) )
+            results.append( self._pairingAttempt( tempQueue.copy() ) )
             # Have we paired the maximum number of people, i.e. does the remainder of the queue by playersPerMatch equal the new queue
             if sum( [ len(lvl) for lvl in results[-1][1] ] ) == sum( [len(lvl) for lvl in self.queue] )%self.playersPerMatch:
                 break
@@ -218,7 +218,6 @@ class fluidRoundTournament(tournament):
         # Waiting for the tasks to be made
         for task in matchTasks:
             await task
-        
 
         # Trimming empty bins from the top of the new queue
         while len(newQueue) > 1:
