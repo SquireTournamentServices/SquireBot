@@ -674,20 +674,11 @@ async def tricebotKickPlayer( ctx, tourn = None, mtch = None, playerName = None 
     
     Match = tournObj.matches[mtch - 1]
     
-<<<<<<< HEAD
-=======
-    Match = tournaments[tourn].matches[mtch - 1]
-    
->>>>>>> 5b0e0c3... Merged Joking's docs and current changes on the 51-merge branch
     if not Match.triceMatch:
         await ctx.send( f'{mention}, that match is not a match with tricebot enabled.' )
         return
     
-<<<<<<< HEAD
     result = tournObj.kickTricePlayer(Match.gameID, playerName)    
-=======
-    result = tournaments[tourn].kickTricePlayer(Match.gameID, playerName)    
->>>>>>> 5b0e0c3... Merged Joking's docs and current changes on the 51-merge branch
     
     #  1 success
     #  0 auth token is bad or error404 or network issue
