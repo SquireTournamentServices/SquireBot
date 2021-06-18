@@ -17,8 +17,6 @@ from judgeCommands import *
 
 
 newLine = "\n\t- "
-print( f'These are the saved tournaments:{newLine}{newLine.join(savedTournaments)}' )
-print( f'These are the loaded current tournaments:{newLine}{newLine.join(tournaments)}' )
 
 
 bot.run(TOKEN)

@@ -77,7 +77,7 @@ async def updateTournProperties( ctx, tournName = None, *args ):
         await ctx.send( f'{mention}, there is not tournament called "{tournName}" on this server.' )
         return
     
-    tournProps = generateTournProps( *args )
+    tournProps = generatePropsDict( *args )
     if len(tournProps) != "".join(args).count("="):
         print( tournProps )
         await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
