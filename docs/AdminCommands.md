@@ -94,6 +94,12 @@ Removes all information surrounding a match. Any result is discarded. All player
 
 - Ex. !admin-remove-match “Marchesa 2021” 2 
 
+### download-replays (tournament)
+
+Downloads all of the replays that tricebot has for a tournament. It will return a zip file with all of the replays in that file's root folder.
+
+- Ex. !download-replays "Marchesa 2021"
+
 ### tricebot-kick-player (tournament) (match number) (cockatrice player name)
 
 Kicks a player who has joined a tricebot game that should not be in the game. The Player name is case sensitive.
