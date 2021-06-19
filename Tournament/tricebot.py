@@ -165,7 +165,7 @@ class TriceBot:
             GameMade(False, -1, -1) # They must the same length dummy!
             
         body  = f'authtoken={self.authToken}\n'
-        body += f'gamename={gamename}\n'
+        body += f'gamename={gamename.replace(" ", "").replace("_", "")}\n'
         body += f'password={password}\n'
         body += f'playerCount={playercount}\n'        
         body += f'spectatorsAllowed={int(spectatorsallowed)}\n'            
