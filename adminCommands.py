@@ -823,14 +823,19 @@ async def downloadReplays( ctx, tourn = None ):
     if tourn is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament to view the dqueue.' )
         return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
+    if tourn is None or mtch is None or plyr is None or newTriceName is None:
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
+        return
+    
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        return
 
     replayURLs = []
 
     # Iterate over matches
-    for match in tournaments[tourn].matches:
+    for match in tournObj.matches:
         if match.triceMatch and match.replayURL != "":
             replayURLs.append(match.replayURL)
     
