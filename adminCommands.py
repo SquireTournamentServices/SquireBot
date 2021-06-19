@@ -132,12 +132,12 @@ async def triceBotStatus( ctx, tourn = None ):
         return
 
     if tournObj.triceBotEnabled:
-        settings_str  = 'Spectators allowed: {tournObj.spectators_allowed}'
-        settings_str += '\nSpectator need password: {tournObj.spectators_need_password}' 
-        settings_str += '\nSpectator can chat: {tournObj.spectators_can_chat}'
-        settings_str += '\nSpectator can see hands: {tournObj.spectators_can_see_hands}'
-        settings_str += '\nOnly allow registered users: {tournObj.only_registered}'
-        settings_str += '\nPlayer deck verification: {tournObj.player_deck_verification}'
+        settings_str  = f'Spectators allowed: {tournObj.spectators_allowed}'
+        settings_str += f'\nSpectator need password: {tournObj.spectators_need_password}' 
+        settings_str += f'\nSpectator can chat: {tournObj.spectators_can_chat}'
+        settings_str += f'\nSpectator can see hands: {tournObj.spectators_can_see_hands}'
+        settings_str += f'\nOnly allow registered users: {tournObj.only_registered}'
+        settings_str += f'\nPlayer deck verification: {tournObj.player_deck_verification}'
         await ctx.send( f'{adminMention}, tricebot is enabled for "{tourn}" and has the following settings:\n```{settings_str}```' )
     else:
         await ctx.send( f'{adminMention}, tricebot is not enabled for "{tourn}."' )
