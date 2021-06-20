@@ -71,6 +71,12 @@ If you want to work on SquireBot and add features too, you'll want to add a valu
 TESTING_TOKEN=<your Discord Auth token>
 ```
 
+Lastly, if you'd error messages logged in Discord, you can specify the IDs to a Discord guild and text channel where errors will be logged.
+```yaml
+DEV_SERVER_ID=<your Discord server ID>
+ERROR_LOG_CHANNEL_ID=<your Discord logging channel ID>
+```
+
 
 ## Trice Bot Setup
 SquireBot has integration with [TriceBot](https://github.com/djpiper28/CockatriceTournamentBot), which helps organize players in Cockatrice as well as provides a single location to pull replay from. Follow the intrustion in its README to set it up. TriceBot should be ran on the same machine as SquireBot on `https://127.0.0.1:8000` with SSL enabled. It is recommended to use nginx to expose the tricebot replay downloads to the WAN (reverse proxy https to API_URL) you can you nginx to hide the /api/\* endpoints as well.

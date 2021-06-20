@@ -15,10 +15,10 @@ from Tournament import *
 
 # ---------------- Help Message Methods ---------------- 
 
-LINK_TO_PLAYER_CMD_DOC   = "https://gitlab.com/TylerBloom/SquireBot/-/blob/wip-dev-46-add-server-defaults/docs/UserCommands.md"
-LINK_TO_JUDGE_CMD_DOC    = "https://gitlab.com/TylerBloom/SquireBot/-/blob/wip-dev-46-add-server-defaults/docs/JudgeCommands.md" 
-LINK_TO_ADMIN_CMD_DOC    = "https://gitlab.com/TylerBloom/SquireBot/-/blob/wip-dev-46-add-server-defaults/docs/AdminCommands.md" 
-LINK_TO_CRASH_COURSE_DOC = "https://gitlab.com/TylerBloom/SquireBot/-/blob/wip-dev-46-add-server-defaults/docs/CrashCourse.md" 
+LINK_TO_PLAYER_CMD_DOC   = "https://gitlab.com/monarch3/SquireBot/-/blob/development/docs/UserCommands.md"
+LINK_TO_JUDGE_CMD_DOC    = "https://gitlab.com/monarch3/SquireBot/-/blob/development/docs/JudgeCommands.md" 
+LINK_TO_ADMIN_CMD_DOC    = "https://gitlab.com/monarch3/SquireBot/-/blob/development/docs/AdminCommands.md" 
+LINK_TO_CRASH_COURSE_DOC = "https://gitlab.com/monarch3/SquireBot/-/blob/development/docs/CrashCourse.md" 
 
 commandSnippets = { } 
 commandCategories = { "registration": [ ], "playing": [ ], "misc": [ ],
@@ -234,6 +234,14 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 MAX_COIN_FLIPS = int( os.getenv('MAX_COIN_FLIPS') )
 
+DEV_SERVER_ID: int = None
+if not os.getenv('DEV_SERVER_ID') is None:
+    DEV_SERVER_ID = int( os.getenv('DEV_SERVER_ID') )  
+
+ERROR_LOG_CHANNEL_ID: int = None
+if not os.getenv('ERROR_LOG_CHANNEL_ID') is None:
+    ERROR_LOG_CHANNEL_ID = int( os.getenv('ERROR_LOG_CHANNEL_ID') )
+
 random.seed( )
 
 intents = discord.Intents.all()
@@ -255,7 +263,6 @@ savedGuildSettings = [ f'guilds/{d}' for d in os.listdir( "guilds" ) if os.path.
 async def on_ready():
     await bot.wait_until_ready( )
     print(f'{bot.user.name} has connected to Discord!\n')
-    #await discord.utils.get( bot.users, id=int(os.getenv("TYLORDS_ID")) ).send( f'I have restarted.' ) 
     for guild in bot.guilds:
         print( f'This bot is connected to {guild.name} which has {len(guild.members)}!' ) 
         try:
@@ -278,6 +285,36 @@ async def on_guild_join( guild ):
         guildSettingsObjects[guild.id] = guildSettings( guild )
         guildSettingsObjects[guild.id].save( f'guilds/{guild.id}/' )
 
+
+# When an uncaught error occurs, the tracebot of the error needs to be printed
+# to stderr, logged, and sent to the development server's error log channel
+@bot.event
+async def on_command_error( ctx: discord.ext.commands.Context, error: discord.ext.commands.CommandError ):
+    traceback.print_exception( type(error), error, error.__traceback__ )
+    
+    if isinstance( error, discord.ext.commands.CommandNotFound ):
+        return
+
+    message: str = f'{getTime()}: An error has occured on the server {ctx.guild.name}. Below is the context of the error and traceback.\n\n'
+    message     += f'{ctx.message.content}\n'
+    
+    with open( "squireBotError.log", "a" ) as errorFile:
+        errorFile.write( message + "".join(traceback.format_exception( type(error), error, error.__traceback__ )) )
+    
+    devServer = bot.get_guild( DEV_SERVER_ID )
+    if devServer is None:
+        return
+    errorChannel = devServer.get_channel( ERROR_LOG_CHANNEL_ID )
+    if isinstance( errorChannel, discord.TextChannel ):
+        await errorChannel.send( message + f'```{"".join(traceback.format_exception( type(error), error, error.__traceback__ ))}```' )
+    
+    return
+
+@bot.command(name="error")
+async def raiseError( ctx ):
+    await ctx.send( "Raising an error" )
+    raise NotImplemented( "This is the end of the command" )
+    
 
 bot.remove_command( "help" )
 @bot.command(name='squirebot-help')
@@ -325,9 +362,4 @@ async def denyCommand( ctx ):
 
     del( commandsToConfirm[ctx.author.id] )
 
-
-@bot.command(name='marchesa')
-async def scrape( ctx ):
-    await ctx.send( f'Long may she reign!' )
-    return
 

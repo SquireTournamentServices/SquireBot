@@ -10,5 +10,7 @@ references/*
 scripts/
 scripts*
 
+squireBotError.log
+
 
 
