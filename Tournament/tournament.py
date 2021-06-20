@@ -373,10 +373,10 @@ class tournament:
             digest.add_field( name="Dropped Players", value=", ".join( [ self.players[plyr].getMention() for plyr in Match.droppedPlayers ] ) )
         if not ( Match.isCertified() or Match.stopTimer ):
             t = Match.getTimeElapsed()
-            if t > self.matchLength/60:
+            if t > self.matchLength:
                 digest.add_field( name="Time Remaining", value=f'0 minutes' )
             else:
-                digest.add_field( name="Time Remaining", value=f'{round(self.matchLength/60 - t)} minutes' )
+                digest.add_field( name="Time Remaining", value=f'{round((self.matchLength - t) / 60)} minutes' )
         if Match.winner != "":
             if Match.winner in self.players:
                 digest.add_field( name="Winner", value=self.players[Match.winner].discordUser.mention )
