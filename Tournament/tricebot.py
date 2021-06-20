@@ -1,4 +1,8 @@
 import requests
+import urllib
+import re
+import tempfile
+import zipfile
 
 class GameMade:
     def __init__(self, success: bool, gameID: int, replayName: str):

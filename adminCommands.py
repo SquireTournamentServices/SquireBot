@@ -822,15 +822,14 @@ commandCategories["management"].append("download-replays")
 @bot.command(name='download-replays')
 async def downloadReplays( ctx, tourn = None ):
     mention = ctx.message.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+    
     if await isPrivateMessage( ctx ): return
 
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament to view the dqueue.' )
-        return
-    if tourn is None or mtch is None or plyr is None or newTriceName is None:
-        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
         return
     
     tournObj = gld.getTournament( tourn )
@@ -858,9 +857,9 @@ async def downloadReplays( ctx, tourn = None ):
     
     message = "" 
     for replay in replaysNotFound:
-        mesage += "\n\t- " + replay
+        message += "\n\t- " + replay
     if message != "":
-        message = "The following replays were unable to be downloaded:\n" + message
+        message = "The following replays were unable to be downloaded:" + message
     
     await ctx.send( f'{mention}, here are the replays for {tourn}.\n{message}', file=discord.File(replayFile, f"{tourn}- replays.zip") )
     replayFile.close()
