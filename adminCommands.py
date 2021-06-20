@@ -74,7 +74,7 @@ async def updateTournProperties( ctx, tournName = None, *args ):
 
     tourn = gld.getTournament( tournName )
     if tourn is None: 
-        await ctx.send( f'{mention}, there is not tournament called "{tournName}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called "{tournName}" on this server.' )
         return
     
     tournProps = generatePropsDict( *args )
@@ -128,7 +128,7 @@ async def triceBotStatus( ctx, tourn = None ):
         
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
         return
 
     if tournObj.triceBotEnabled:
@@ -190,7 +190,7 @@ async def startTournament( ctx, tourn = None ):
     
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
         return
     if tournObj.tournStarted:
         await ctx.send( f'{mention}, {tourn} has already been started.' )
@@ -275,7 +275,7 @@ async def adminPruneDecks( ctx, tourn = None ):
     
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
         return
     
     if await hasCommandWaiting( ctx, ctx.author.id ):
@@ -303,7 +303,7 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
     
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
         return
     
     if len(plyrs) != tournObj.playersPerMatch:
@@ -502,7 +502,7 @@ async def adminDropPlayer( ctx, tourn = None, plyr = None ):
     
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
         return
     
     member = gld.getMember( plyr )
@@ -539,7 +539,7 @@ async def adminGiveBye( ctx, tourn = None, plyr = None ):
     
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
         return
     
     member = gld.getMember( plyr )
@@ -579,7 +579,7 @@ async def adminRemoveMatch( ctx, tourn = None, mtch = None ):
     
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
         return
     
     try:
@@ -617,7 +617,7 @@ async def viewQueue( ctx, tourn = None ):
     
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
         return
     
     if sum( [ len(lvl) for lvl in tournObj.queue ] ) == 0:
@@ -659,7 +659,7 @@ async def tricebotKickPlayer( ctx, tourn = None, mtch = None, playerName = None 
     
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
         return
     
     try:
@@ -711,7 +711,7 @@ async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None ):
 
     tournObj = gld.getTournament( tournName )
     if tournObj is None: 
-        await ctx.send( f'{mention}, there is not tournament called "{tournName}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called "{tournName}" on this server.' )
         return
     
     # Get match
@@ -761,7 +761,7 @@ async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None, plyr = None, new
     
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
         return
     
     # Get match
@@ -829,7 +829,7 @@ async def downloadReplays( ctx, tourn = None ):
     
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
         return
 
     replayURLs = []
@@ -852,7 +852,7 @@ async def downloadReplays( ctx, tourn = None ):
     
     message = "" 
     for replay in replaysNotFound:
-        mesage += "\n - " + replay
+        mesage += "\n\t- " + replay
     if message != "":
         message = "The following replays were unable to be downloaded:\n" + message
     
