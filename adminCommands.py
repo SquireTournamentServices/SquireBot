@@ -310,6 +310,12 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
         await ctx.send( f'{mention}, {tourn} requires {tournObj.playersPerMatch} be in a match, but you specified {len(plyrs)} players.' )
         return
         
+    for i in range(0, len(plyrs)):
+        for j in range(i + 1, len(plyrs)):
+            if plyrs[i] == plyrs[j]:
+                await ctx.send(f'{mention}, you cannot have duplicate players in a match.')
+                return
+        
     endCmd = False
     members = [ gld.getMember( plyr ) for plyr in plyrs ]
     for i in range(len(members)):
