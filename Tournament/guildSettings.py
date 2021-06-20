@@ -267,8 +267,8 @@ class guildSettings:
         if not (os.path.isdir( f'{dirName}/currentTournaments/' ) and os.path.exists( f'{dirName}/currentTournaments/' )):
            os.mkdir( f'{dirName}/currentTournaments/' )
         
-        if not (os.path.isdir( f'{dirName}/closedTournament/' ) and os.path.exists( f'{dirName}/closedTournament/' )):
-           os.mkdir( f'{dirName}/closedTournament/' )
+        if not (os.path.isdir( f'{dirName}/closedTournaments/' ) and os.path.exists( f'{dirName}/closedTournaments/' )):
+           os.mkdir( f'{dirName}/closedTournaments/' )
     
     def saveSettings( self, filename: str = "" ) -> None:
         if filename == "":
