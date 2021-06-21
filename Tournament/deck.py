@@ -154,7 +154,6 @@ class deck:
             # Add card to decklist
             card = main_board[card_name]
             self.decklist += f'{card["quantity"]} {card_name}\n'
-            
             side_board = deck_data["sideboard"]
             for card_name in side_board:
                 # Add card to decklist
