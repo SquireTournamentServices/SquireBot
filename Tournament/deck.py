@@ -27,6 +27,7 @@ from .utils import *
 
 # Constant compiled regexes
 moxFieldLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?moxfield\.com\/decks\/([a-zA-Z0-9-]{22})\s*', re.M | re.I)
+tappedoutLinkRegex = re.compile('\s*(https?:\/\/)?tappedout\.net\/mtg-decks\/([a-z0-9-]*)\/?\s*', re.M | re.I)
 mtgGoldFishLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})(#[a-zA-Z]*)?\s*', re.M | re.I)
 cockatriceDeckRegex = re.compile('\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*', re.M | re.I)
 
@@ -41,6 +42,9 @@ class deck:
     def isMtgGoldfishLink(self, decklist: str) -> bool:
         return None != re.fullmatch(mtgGoldFishLinkRegex, decklist)
     
+    def isTappedOutLink(self, decklist: str) -> bool:
+        return None != re.fullmatch(tappedoutLinkRegex, decklist)
+       
     """
     The class is this module
     """
@@ -60,6 +64,8 @@ class deck:
             self._loadMoxFieldDeck(decklist)
         elif self.isMtgGoldfishLink(decklist):
             self._loadMtgGoldfishDeck(decklist)
+        elif self.isTappedOutLink(decklist):
+            self._loadTappedOutDeck(decklist)
         else:
             self.decklist = decklist
             if self.decklist == "":
@@ -82,6 +88,17 @@ class deck:
             self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
             self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
                             self.parseNonAnnotatedTriceDecklist( )                        
+
+    def _loadTappedOutDeck(self, deckURL: str):
+        if self.isTappedOutLink(deckURL):
+            regex_match = re.fullmatch(tappedoutLinkRegex, deckURL)
+            https, deck_id = regex_match.groups()
+            
+            url = f"https://tappedout.net/mtg-decks/{deck_id}/?fmt=txt"
+            
+            self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
+            self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
+                            self.parseNonAnnotatedTriceDecklist( )
 
     def _loadMoxFieldDeck(self, deckURL: str):
         if self.isMoxFieldLink(deckURL):
