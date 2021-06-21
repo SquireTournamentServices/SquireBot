@@ -20,6 +20,16 @@ We don’t want you to have to post your decklist publicly; this is one of the f
 
 - Ex: !add-deck Marchesa “The big, bad Storm” “1 Izzet Charm”
 
+There are a few other options for uploading decks:
+ - A [moxfield](https://www.moxfield.com/) link
+ - A [tappedout](https://tappedout.net/) link
+ - A [mtggoldfish](https://www.mtggoldfish.com/) link
+ - A Cockatrice deck file (.cod)
+ To use a Cockatrice deck file you can upload the file as the attachment to the command.
+ 
+ - Ex: !add-deck Marchesa "A very good deck"
+ - With attachment an attachment of deck.cod
+
 ### cockatrice-name: (tournament name) (Cockatrice username)
 
 Adds your username on Cockatrice to your player profile. This does not cross-check with Cockatrice, so make sure you have it correct. This is how other players will identify you in Cockatrice.
