@@ -139,7 +139,7 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
     private = await isPrivateMessage( ctx, send=False )
     
     if tourn is None:
-        await ctx.send( f'{mention}, not enough information provided: Please provide your deckname and decklist to add a deck.' )
+        await ctx.send( f'{mention}, not enough information provided: Please provide your deckname and decklist to add a deck. Instead of a decklist you can upload a .cod file or, use the link of a tappedout.net, a moxfield.com or, a mtggoldfish.com deck.' )
         return
     
     tournaments: list = getTournamentsByPlayer( ctx.author ) if private else guildSettingsObjects[ctx.guild.id].getPlayerTournaments( ctx.author )

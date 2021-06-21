@@ -108,14 +108,8 @@ class deck:
             
             url = f"https://api.moxfield.com/v2/decks/all/{deck_id}"
             
-            #try:
             resp = requests.get(url, timeout=7.0, data="", verify=True).text
             deck_data = json.loads(resp)
-             
-            #except OSError as exc:
-                # Failed to connect to moxfield
-            #    traceback.print_exc()
-            #    print(exc)
             
             main = deck_data["main"]
             self.decklist += f'1 {str(main["name"])}\n'
@@ -130,7 +124,7 @@ class deck:
             for card_name in side_board:
                 # Add card to decklist
                 card = side_board[card_name]
-                self.decklist += f'{str(card["quantity"])} {str(card_name)}\n'
+                self.decklist += f'SB: {str(card["quantity"])} {str(card_name)}\n'
                             
             self.cards = self.parseAnnotatedTriceDecklist()
 
@@ -153,6 +147,8 @@ class deck:
                     cardnameLower = cardname.lower()
                     
                     # Add card to decklist
+                    if zone.attrib['name'] == "side":
+                        self.decklist += "SB: "
                     self.decklist += f'{number} {cardname}\n'
             
             # Update hash
