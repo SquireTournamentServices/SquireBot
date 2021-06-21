@@ -235,6 +235,7 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
         traceback.print_exception(type(ex), ex, ex.__traceback__)
         await ctx.send( f'{mention}, there was an error while processing your deck list, it is possible that it is in the wrong format. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
         return
+    
     await tournObj.updateInfoMessage()
         
         

@@ -166,7 +166,6 @@ class deck:
         self.cards = self.parseAnnotatedTriceDecklist()
 
     def _loadFromCodFile(self, fileData: str):
-        # Check if the file is valid
         # Init deck object
         self.decklist = ""
         
