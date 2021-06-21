@@ -31,20 +31,21 @@ tappedoutLinkRegex = re.compile('\s*(https?:\/\/)?tappedout\.net\/mtg-decks\/([a
 mtgGoldFishLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})(#[a-zA-Z]*)?\s*', re.M | re.I)
 cockatriceDeckRegex = re.compile('\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*', re.M | re.I)
 
-class deck:
+deckRegex = re.compile("(\s*[0-9]+ [a-zA-Z 0-9,.'-]*\r?\n?)+", re.M)
+
+def isValidCodFile(deckData: str) -> bool:
+    return None != re.fullmatch(cockatriceDeckRegex, deckData)
     
-    def isValidCodFile(self, deckData: str) -> bool:
-        return None != re.fullmatch(cockatriceDeckRegex, deckData)
+def isMoxFieldLink(decklist: str) -> bool:
+    return None != re.fullmatch(moxFieldLinkRegex, decklist)
+
+def isMtgGoldfishLink(decklist: str) -> bool:
+    return None != re.fullmatch(mtgGoldFishLinkRegex, decklist)
     
-    def isMoxFieldLink(self, decklist: str) -> bool:
-        return None != re.fullmatch(moxFieldLinkRegex, decklist)
-    
-    def isMtgGoldfishLink(self, decklist: str) -> bool:
-        return None != re.fullmatch(mtgGoldFishLinkRegex, decklist)
-    
-    def isTappedOutLink(self, decklist: str) -> bool:
-        return None != re.fullmatch(tappedoutLinkRegex, decklist)
-       
+def isTappedOutLink(decklist: str) -> bool:
+    return None != re.fullmatch(tappedoutLinkRegex, decklist)
+
+class deck:       
     """
     The class is this module
     """
@@ -56,15 +57,15 @@ class deck:
         self.decklist = ""
         
         # Check input type
-        if self.isValidCodFile(decklist):
+        if isValidCodFile(decklist):
             self._loadFromCodFile(decklist)
         
         # Deck scraping
-        elif self.isMoxFieldLink(decklist):
+        elif isMoxFieldLink(decklist):
             self._loadMoxFieldDeck(decklist)
-        elif self.isMtgGoldfishLink(decklist):
+        elif isMtgGoldfishLink(decklist):
             self._loadMtgGoldfishDeck(decklist)
-        elif self.isTappedOutLink(decklist):
+        elif isTappedOutLink(decklist):
             self._loadTappedOutDeck(decklist)
         else:
             self.decklist = decklist
@@ -79,7 +80,7 @@ class deck:
         return f'{self.ident}: {self.deckHash}'
 
     def _loadMtgGoldfishDeck(self, deckURL: str):
-        if self.isMtgGoldfishLink(deckURL):
+        if isMtgGoldfishLink(deckURL):
             regex_match = re.fullmatch(mtgGoldFishLinkRegex, deckURL)
             https, www, deck_id, anchor = regex_match.groups()
             
@@ -90,7 +91,7 @@ class deck:
                             self.parseNonAnnotatedTriceDecklist( )                        
 
     def _loadTappedOutDeck(self, deckURL: str):
-        if self.isTappedOutLink(deckURL):
+        if isTappedOutLink(deckURL):
             regex_match = re.fullmatch(tappedoutLinkRegex, deckURL)
             https, deck_id = regex_match.groups()
             
@@ -101,7 +102,7 @@ class deck:
                             self.parseNonAnnotatedTriceDecklist( )
 
     def _loadMoxFieldDeck(self, deckURL: str):
-        if self.isMoxFieldLink(deckURL):
+        if isMoxFieldLink(deckURL):
             self.decklist = ""
             regex_match = re.fullmatch(moxFieldLinkRegex, deckURL)
             https, www, deck_id = regex_match.groups()
@@ -130,7 +131,7 @@ class deck:
 
     def _loadFromCodFile(self, fileData: str):
         # Check if the file is valid
-        if self.isValidCodFile(fileData):
+        if isValidCodFile(fileData):
             # Init deck object
             self.decklist = ""
             
@@ -190,6 +191,9 @@ class deck:
         - The card has a number associated with it, so we store that many copies
             - Ex: "1 Izzet Charm" -> [ "izzet charm" ]
         """
+        if "" != self.decklist and re.fullmatch(deckRegex, self.decklist) is None:
+            raise SyntaxError(f"Error deck list is not in the correct form {self.decklist}.")
+        
         cards = []
         for card in self.cards:
             if not "SB:" in card:

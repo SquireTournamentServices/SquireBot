@@ -218,15 +218,17 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
     message = ""
     try:
         message = await tournObj.addDeck( ctx.author.id, ident, decklist )
-    except Exception as ex:
+        if isMoxFieldLink(decklist):
+            await ctx.send( f'{mention}, please be aware that moxfield treats your commander as if it were in your sideboard.' )
+        await ctx.send( f'{mention}, {message}' )
+        if not private:
+            await ctx.author.send( f'For future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
+    except SyntaxError as ex:
         traceback.print_exception(type(ex), ex, ex.__traceback__)
-        await ctx.send( f'{mention}, there was an error while processing your deck list. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
-        return
-    await ctx.send( f'{mention}, {message}' )
-    if not private:
-        await ctx.author.send( f'For future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
+        await ctx.send( f'{mention}, there was an error while processing your deck list, it is possible that it is in the wrong format. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
 
-
+        
+        
 commandSnippets["remove-deck"] = "- remove-deck : Removes a deck you registered (can be DM-ed)" 
 commandCategories["registration"].append( "remove-deck" )
 @bot.command(name='remove-deck')
