@@ -27,6 +27,7 @@ from .utils import *
 
 # Constant compiled regexes
 moxFieldLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?moxfield\.com\/decks\/([a-zA-Z0-9-]{22})\s*', re.M | re.I)
+mtgGoldFishLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})(#[a-zA-Z]*)?\s*', re.M | re.I)
 cockatriceDeckRegex = re.compile('\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*', re.M | re.I)
 
 class deck:
@@ -36,6 +37,9 @@ class deck:
     
     def isMoxFieldLink(self, decklist: str) -> bool:
         return None != re.fullmatch(moxFieldLinkRegex, decklist)
+    
+    def isMtgGoldfishLink(self, decklist: str) -> bool:
+        return None != re.fullmatch(mtgGoldFishLinkRegex, decklist)
     
     """
     The class is this module
@@ -52,9 +56,10 @@ class deck:
             self._loadFromCodFile(decklist)
         
         # Deck scraping
-        if self.isMoxFieldLink(decklist):
+        elif self.isMoxFieldLink(decklist):
             self._loadMoxFieldDeck(decklist)
-        
+        elif self.isMtgGoldfishLink(decklist):
+            self._loadMtgGoldfishDeck(decklist)
         else:
             self.decklist = decklist
             if self.decklist == "":
@@ -66,6 +71,17 @@ class deck:
 
     def __str__( self ):
         return f'{self.ident}: {self.deckHash}'
+
+    def _loadMtgGoldfishDeck(self, deckURL: str):
+        if self.isMtgGoldfishLink(deckURL):
+            regex_match = re.fullmatch(mtgGoldFishLinkRegex, deckURL)
+            https, www, deck_id, anchor = regex_match.groups()
+            
+            url = f"https://www.mtggoldfish.com/deck/download/{deck_id}"
+            
+            self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
+            self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
+                            self.parseNonAnnotatedTriceDecklist( )                        
 
     def _loadMoxFieldDeck(self, deckURL: str):
         if self.isMoxFieldLink(deckURL):
@@ -100,8 +116,6 @@ class deck:
                 self.decklist += f'{str(card["quantity"])} {str(card_name)}\n'
                             
             self.cards = self.parseAnnotatedTriceDecklist()
-            
-            
 
     def _loadFromCodFile(self, fileData: str):
         # Check if the file is valid

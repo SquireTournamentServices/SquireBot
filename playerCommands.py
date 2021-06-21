@@ -2,6 +2,7 @@ import os
 import shutil
 import random
 import re
+import traceback
 
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -217,8 +218,8 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
     message = ""
     try:
         message = await tournObj.addDeck( ctx.author.id, ident, decklist )
-    except Exception as e:
-        print(e) #Print the stacktrace for debugging
+    except Exception as ex:
+        traceback.print_exception(type(ex), ex, ex.__traceback__)
         await ctx.send( f'{mention}, there was an error while processing your deck list. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
         return
     await ctx.send( f'{mention}, {message}' )
