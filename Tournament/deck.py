@@ -17,15 +17,25 @@
 
 import hashlib
 import xml.etree.ElementTree as ET
+import json
 import re
-
+import requests
+import traceback
 from typing import List
 
 from .utils import *
-    
+
+# Constant compiled regexes
+moxFieldLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?moxfield\.com\/decks\/([a-zA-Z0-9-]{22})\s*', re.M | re.I)
+cockatriceDeckRegex = re.compile('\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*', re.M | re.I)
+
 class deck:
+    
     def isValidCodFile(self, deckData: str) -> bool:
-        return None != re.fullmatch('\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*', deckData, re.M | re.I)
+        return None != re.fullmatch(cockatriceDeckRegex, deckData)
+    
+    def isMoxFieldLink(self, decklist: str) -> bool:
+        return None != re.fullmatch(moxFieldLinkRegex, decklist)
     
     """
     The class is this module
@@ -34,30 +44,69 @@ class deck:
     def __init__ ( self, ident: str = "", decklist: str = "" ):
         self.deckHash  = 0
         self.ident = ident
+        self.cards = [ ]
+        self.decklist = ""
         
         # Check input type
         if self.isValidCodFile(decklist):
             self._loadFromCodFile(decklist)
         
         # Deck scraping
+        if self.isMoxFieldLink(decklist):
+            self._loadMoxFieldDeck(decklist)
         
-        else:        
+        else:
             self.decklist = decklist
             if self.decklist == "":
                 self.cards = [ ]
             else:
                 self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
                             self.parseNonAnnotatedTriceDecklist( )
-            self.updateDeckHash()
+        self.updateDeckHash()
 
     def __str__( self ):
         return f'{self.ident}: {self.deckHash}'
 
+    def _loadMoxFieldDeck(self, deckURL: str):
+        if self.isMoxFieldLink(deckURL):
+            self.decklist = ""
+            regex_match = re.fullmatch(moxFieldLinkRegex, deckURL)
+            https, www, deck_id = regex_match.groups()
+            
+            url = f"https://api.moxfield.com/v2/decks/all/{deck_id}"
+            
+            #try:
+            resp = requests.get(url, timeout=7.0, data="", verify=True).text
+            deck_data = json.loads(resp)
+             
+            #except OSError as exc:
+                # Failed to connect to moxfield
+            #    traceback.print_exc()
+            #    print(exc)
+            
+            main = deck_data["main"]
+            self.decklist += f'1 {str(main["name"])}\n'
+                
+            main_board = deck_data["mainboard"]
+            for card_name in main_board:
+                # Add card to decklist
+                card = main_board[card_name]
+                self.decklist += f'{str(card["quantity"])} {str(card_name)}\n'
+                
+            side_board = deck_data["sideboard"]            
+            for card_name in side_board:
+                # Add card to decklist
+                card = side_board[card_name]
+                self.decklist += f'{str(card["quantity"])} {str(card_name)}\n'
+                            
+            self.cards = self.parseAnnotatedTriceDecklist()
+            
+            
+
     def _loadFromCodFile(self, fileData: str):
         # Check if the file is valid
-        if self.isValidCodFile(fileData):            
-            # Init deck object            
-            self.cards = [ ]
+        if self.isValidCodFile(fileData):
+            # Init deck object
             self.decklist = ""
             
             # Extract deck and return object
@@ -77,7 +126,6 @@ class deck:
             
             # Update hash
             self.cards = self.parseNonAnnotatedTriceDecklist()
-            self.updateDeckHash()            
         else:
             # Error case
             return None

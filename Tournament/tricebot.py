@@ -34,7 +34,7 @@ class TriceBot:
         url = urlpostfix
         if not abs:
             url = f'{self.apiURL}/{url}'
-        resp = requests.get(url, timeout=7.0, data=data,  verify=False).text
+        resp = requests.get(url, timeout=7.0, data=data, verify=False).text
         if not abs:
             print(resp)
         return resp
