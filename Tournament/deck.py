@@ -17,12 +17,16 @@
 
 import hashlib
 import xml.etree.ElementTree as ET
+import re
 
 from typing import List
 
 from .utils import *
-
+    
 class deck:
+    def isValidCodFile(self, deckData: str) -> bool:
+        return None != re.fullmatch('\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*', deckData, re.M | re.I)
+    
     """
     The class is this module
     """
@@ -30,16 +34,53 @@ class deck:
     def __init__ ( self, ident: str = "", decklist: str = "" ):
         self.deckHash  = 0
         self.ident = ident
-        self.decklist = decklist
-        if self.decklist == "":
-            self.cards = [ ]
-        else:
-            self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
-                         self.parseNonAnnotatedTriceDecklist( )
-        self.updateDeckHash()
+        
+        # Check input type
+        if self.isValidCodFile(decklist):
+            self._loadFromCodFile(decklist)
+        
+        # Deck scraping
+        
+        else:        
+            self.decklist = decklist
+            if self.decklist == "":
+                self.cards = [ ]
+            else:
+                self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
+                            self.parseNonAnnotatedTriceDecklist( )
+            self.updateDeckHash()
 
     def __str__( self ):
         return f'{self.ident}: {self.deckHash}'
+
+    def _loadFromCodFile(self, fileData: str):
+        # Check if the file is valid
+        if self.isValidCodFile(fileData):            
+            # Init deck object            
+            self.cards = [ ]
+            self.decklist = ""
+            
+            # Extract deck and return object
+            dck = ET.fromstring(fileData)
+            
+            # self.ident = fromXML(dck.find("deckname").text)
+            zones = dck.findall("zone")
+            for zone in zones:
+                zonecards = zone.findall("card")
+                for card in zonecards:
+                    number = int(card.attrib['number'])
+                    cardname = fromXML(card.attrib['name'])
+                    cardnameLower = cardname.lower()
+                    
+                    # Add card to decklist
+                    self.decklist += f'{number} {cardname}\n'
+            
+            # Update hash
+            self.cards = self.parseNonAnnotatedTriceDecklist()
+            self.updateDeckHash()            
+        else:
+            # Error case
+            return None
 
     def exportXMLString( self, indent: str = "" ) -> str:
         """
