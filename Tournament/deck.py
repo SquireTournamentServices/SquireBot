@@ -89,6 +89,7 @@ class deck:
     def __str__( self ):
         return f'{self.ident}: {self.deckHash}'
 
+<<<<<<< HEAD
     def validateDecklist( self, decklist: str ) -> bool:
         """ A(n almost) static method that determines if a decklist will cause problems"""
         for card in decklist.strip().split("\n"):
