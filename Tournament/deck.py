@@ -88,28 +88,39 @@ class deck:
 
     def __str__( self ):
         return f'{self.ident}: {self.deckHash}'
-
-    def _loadMtgGoldfishDeck(self, deckURL: str):
-        if isMtgGoldfishLink(deckURL):
-            regex_match = self.mtgGoldFishLinkRegex.fullmatch(deckURL)
-            https, www, deck_id, anchor = regex_match.groups()
-            
-            url = f"https://www.mtggoldfish.com/deck/download/{deck_id}"
-            
-            self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
-            self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
-                            self.parseNonAnnotatedTriceDecklist( )                        
+    
+    def _loadMtgGoldfishDeck(deckURL: str):
+        regex_match = mtgGoldFishLinkRegex.fullmatch(deckURL)
+        https, www, deck_id, anchor = regex_match.groups()
+        
+        url = f"https://www.mtggoldfish.com/deck/download/{deck_id}"
+        
+        self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
+        self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
+            self.parseNonAnnotatedTriceDecklist( )
 
     def _loadTappedOutDeck(self, deckURL: str):
-        if isTappedOutLink(deckURL):
-            regex_match = self.tappedoutLinkRegex.fullmatch(deckURL)
-            https, deck_id = regex_match.groups()
-            
-            url = f"https://tappedout.net/mtg-decks/{deck_id}/?fmt=txt"
-            
-            self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
-            self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
-                            self.parseNonAnnotatedTriceDecklist( )
+        regex_match = tappedoutLinkRegex.fullmatch(deckURL)
+        https, deck_id = regex_match.groups()
+        
+        url = f"https://tappedout.net/mtg-decks/{deck_id}/?fmt=txt"
+        
+        decklist = requests.get(url, timeout=7.0, data="", verify=True).text
+        
+        # Sort out sideboard
+        boards = decklist.split("Sideboard:")
+        mainboard = boards[0]
+        
+        sideboard = []
+        sideboard_list = ""
+        if len(boards) > 1:
+            sideboard = boards[1].split("\n")
+            for card in sideboard:
+                if not card.isspace() and card != "":
+                    sideboard_list += f'{card}\n'        
+        self.decklist = mainboard + sideboard_list        
+        self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
+            self.parseNonAnnotatedTriceDecklist( )
 
     def _loadMoxFieldDeck(self, deckURL: str):
         self.decklist = ""
