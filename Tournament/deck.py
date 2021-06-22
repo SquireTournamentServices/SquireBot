@@ -12,7 +12,7 @@
         - ident: an identifier given on creation (usually the commander)
         - decklist: the string given on construction
         - cards: a list of strings for card names with the prefix "SB:"
-                 if a card is in the sideboard
+                if a card is in the sideboard
 """
 
 import hashlib
@@ -45,16 +45,18 @@ class deck:
         self.decklist = ""
         
         # Check input type
-        if isValidCodFile(decklist):
+        if self.isValidCodFile(decklist):
             self._loadFromCodFile(decklist)
         
         # Deck scraping
-        elif isMoxFieldLink(decklist):
+        elif self.isMoxFieldLink(decklist):
             self._loadMoxFieldDeck(decklist)
-        elif isMtgGoldfishLink(decklist):
+        elif self.isMtgGoldfishLink(decklist):
             self._loadMtgGoldfishDeck(decklist)
-        elif isTappedOutLink(decklist):
+        elif self.isTappedOutLink(decklist):
             self._loadTappedOutDeck(decklist)
+            
+        # Normal decklist
         else:
             self.decklist = decklist
             if self.decklist == "":
@@ -80,83 +82,75 @@ class deck:
         return self.tappedoutLinkRegex.search(decklist)
 
     def _loadMtgGoldfishDeck(self, deckURL: str):
-        if isMtgGoldfishLink(deckURL):
-            regex_match = self.mtgGoldFishLinkRegex.fullmatch(deckURL)
-            https, www, deck_id, anchor = regex_match.groups()
-            
-            url = f"https://www.mtggoldfish.com/deck/download/{deck_id}"
-            
-            self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
-            self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
-                            self.parseNonAnnotatedTriceDecklist( )                        
+        regex_match = self.mtgGoldFishLinkRegex.fullmatch(deckURL)
+        https, www, deck_id, anchor = regex_match.groups()
+        
+        url = f"https://www.mtggoldfish.com/deck/download/{deck_id}"
+        
+        self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
+        self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
+            self.parseNonAnnotatedTriceDecklist( )
 
     def _loadTappedOutDeck(self, deckURL: str):
-        if isTappedOutLink(deckURL):
-            regex_match = self.tappedoutLinkRegex.fullmatch(deckURL)
-            https, deck_id = regex_match.groups()
-            
-            url = f"https://tappedout.net/mtg-decks/{deck_id}/?fmt=txt"
-            
-            self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
-            self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
-                            self.parseNonAnnotatedTriceDecklist( )
+        regex_match = self.tappedoutLinkRegex.fullmatch(deckURL)
+        https, deck_id = regex_match.groups()
+        
+        url = f"https://tappedout.net/mtg-decks/{deck_id}/?fmt=txt"
+        
+        self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
+        self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
+            self.parseNonAnnotatedTriceDecklist( )
 
     def _loadMoxFieldDeck(self, deckURL: str):
-        if isMoxFieldLink(deckURL):
-            self.decklist = ""
-            regex_match = self.moxFieldLinkRegex.fullmatch(deckURL)
-            https, www, deck_id = regex_match.groups()
+        self.decklist = ""
+        regex_match = self.moxFieldLinkRegex.fullmatch(deckURL)
+        https, www, deck_id = regex_match.groups()
+        
+        url = f"https://api.moxfield.com/v2/decks/all/{deck_id}"
+        
+        resp = requests.get(url, timeout=7.0, data="", verify=True).text
+        deck_data = json.loads(resp)
+        
+        main = deck_data["main"]
+        self.decklist += f'1 {main["name"]}\n'
+        
+        main_board = deck_data["mainboard"]
+        for card_name in main_board:
+            # Add card to decklist
+            card = main_board[card_name]
+            self.decklist += f'{card["quantity"]} {card_name}\n'
             
-            url = f"https://api.moxfield.com/v2/decks/all/{deck_id}"
-            
-            resp = requests.get(url, timeout=7.0, data="", verify=True).text
-            deck_data = json.loads(resp)
-            
-            main = deck_data["main"]
-            self.decklist += f'1 {main["name"]}\n'
-                
-            main_board = deck_data["mainboard"]
-            for card_name in main_board:
-                # Add card to decklist
-                card = main_board[card_name]
-                self.decklist += f'{card["quantity"]} {card_name}\n'
-                
-            side_board = deck_data["sideboard"]            
+            side_board = deck_data["sideboard"]
             for card_name in side_board:
                 # Add card to decklist
                 card = side_board[card_name]
-                self.decklist += f'SB: {card["quantity"]} {card_name}\n'
-                            
+                self.decklist += f'SB: {card["quantity"]} {card_name}\n'                
             self.cards = self.parseAnnotatedTriceDecklist()
 
     def _loadFromCodFile(self, fileData: str):
         # Check if the file is valid
-        if isValidCodFile(fileData):
-            # Init deck object
-            self.decklist = ""
-            
-            # Extract deck and return object
-            dck = ET.fromstring(fileData)
-            
-            # self.ident = fromXML(dck.find("deckname").text)
-            zones = dck.findall("zone")
-            for zone in zones:
-                zonecards = zone.findall("card")
-                for card in zonecards:
-                    number = int(card.attrib['number'])
-                    cardname = fromXML(card.attrib['name'])
-                    cardnameLower = cardname.lower()
+        # Init deck object
+        self.decklist = ""
+        
+        # Extract deck and return object
+        dck = ET.fromstring(fileData)
+        
+        # self.ident = fromXML(dck.find("deckname").text)
+        zones = dck.findall("zone")
+        for zone in zones:
+            zonecards = zone.findall("card")
+            for card in zonecards:
+                number = int(card.attrib['number'])
+                cardname = fromXML(card.attrib['name'])
+                cardnameLower = cardname.lower()
+                
+                # Add card to decklist
+                if zone.attrib['name'] == "side":
+                    self.decklist += "SB: "
+                self.decklist += f'{number} {cardname}\n'
                     
-                    # Add card to decklist
-                    if zone.attrib['name'] == "side":
-                        self.decklist += "SB: "
-                    self.decklist += f'{number} {cardname}\n'
-            
-            # Update hash
-            self.cards = self.parseNonAnnotatedTriceDecklist()
-        else:
-            # Error case
-            return None
+        # Update hash            
+        self.cards = self.parseNonAnnotatedTriceDecklist()
 
     def exportXMLString( self, indent: str = "" ) -> str:
         """
@@ -257,7 +251,7 @@ class deck:
         As such, we can grab all the line that aren't whitespace nor start with "//"
         """
         return [ line for line in self.decklist.strip().split("\n") \
-                       if line.strip() != "" and line[0:2] != "//" ]
+                    if line.strip() != "" and line[0:2] != "//" ]
 
 
 
