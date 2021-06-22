@@ -229,10 +229,11 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
         remoteDeck = isMoxFieldLink(decklist) or isMtgGoldfishLink(decklist) or isTappedOutLink(decklist)
         
         if not remoteDeck:
-            await ctx.send( f'{mention}, an unknown error has occurred.' )            
+            await ctx.send( f'{mention}, an unknown error has occurred.' )
             raise e
         else:
             await ctx.send( f'{mention}, an error occurred whilst downloading your deck from a remote source.' )
+            raise e
 
         
         
