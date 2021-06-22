@@ -410,10 +410,15 @@ class tournament:
         self.players[plyr].addDeck( deckName, decklist )
         self.players[plyr].saveXML( )
         deckHash = self.players[plyr].decks[deckName].deckHash
+                
         if admin:
             await self.players[plyr].discordUser.send( content = f'A decklist has been submitted for {self.name} on your behalf. The name of the deck is "{deckName}" and the deck hash is "{deckHash}". Use the command "!decklist {deckName}" to see the list. Please contact tournament staff if there is an error.' )
             return f'you have submitted a decklist for {self.players[plyr].getMention()}. The deck hash is {deckHash}.'
-        return f'your deck has been successfully registered in {self.name}. Your deck name is "{deckName}", and the deck hash is "{deckHash}". Make sure it matches your deck hash in Cockatrice. You can see your decklist by using !decklist "{deckName}" or !decklist {deckHash}.'
+        message = f'your deck has been successfully registered in {self.name}. Your deck name is "{deckName}", and the deck hash is "{deckHash}". Make sure it matches your deck hash in Cockatrice. You can see your decklist by using !decklist "{deckName}" or !decklist {deckHash}.'
+        
+        if self.players[plyr].decks[deckName].isMoxFieldLink(decklist):
+            await message += f'\nPlease be aware that moxfield treats your commander as if it were in your sideboard.' 
+        return message
         
     
     # ---------------- Tournament Status ----------------

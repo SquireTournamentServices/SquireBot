@@ -25,27 +25,15 @@ from typing import List
 
 from .utils import *
 
-# Constant compiled regexes
-moxFieldLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?moxfield\.com\/decks\/([a-zA-Z0-9-]{22})\s*', re.M | re.I)
-tappedoutLinkRegex = re.compile('\s*(https?:\/\/)?tappedout\.net\/mtg-decks\/([a-z0-9-]*)\/?\s*', re.M | re.I)
-mtgGoldFishLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})(#[a-zA-Z]*)?\s*', re.M | re.I)
-cockatriceDeckRegex = re.compile('\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*', re.M | re.I)
+class deck:    
+    # Constant compiled regexes
+    moxFieldLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?moxfield\.com\/decks\/([a-zA-Z0-9-]{22})\s*', re.M | re.I)
+    tappedoutLinkRegex = re.compile('\s*(https?:\/\/)?tappedout\.net\/mtg-decks\/([a-z0-9-]*)\/?\s*', re.M | re.I)
+    mtgGoldFishLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})(#[a-zA-Z]*)?\s*', re.M | re.I)
+    cockatriceDeckRegex = re.compile('\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*', re.M | re.I)
 
-deckRegex = re.compile("(\s*[0-9]+ [a-zA-Z 0-9,.'-]*\r?\n?)+", re.M)
+    deckRegex = re.compile("(\s*[0-9]+ [a-zA-Z 0-9,.'-]*\r?\n?)+", re.M)
 
-def isValidCodFile(deckData: str) -> bool:
-    return None != re.fullmatch(cockatriceDeckRegex, deckData)
-    
-def isMoxFieldLink(decklist: str) -> bool:
-    return None != re.fullmatch(moxFieldLinkRegex, decklist)
-
-def isMtgGoldfishLink(decklist: str) -> bool:
-    return None != re.fullmatch(mtgGoldFishLinkRegex, decklist)
-    
-def isTappedOutLink(decklist: str) -> bool:
-    return None != re.fullmatch(tappedoutLinkRegex, decklist)
-
-class deck:       
     """
     The class is this module
     """
@@ -79,9 +67,21 @@ class deck:
     def __str__( self ):
         return f'{self.ident}: {self.deckHash}'
 
+    def isValidCodFile(self, deckData: str) -> bool:
+        return self.cockatriceDeckRegex.search(deckData)
+        
+    def isMoxFieldLink(self, decklist: str) -> bool:
+        return self.moxFieldLinkRegex.search(decklist)
+    
+    def isMtgGoldfishLink(self, decklist: str) -> bool:
+        return self.mtgGoldFishLinkRegex.search(decklist)
+        
+    def isTappedOutLink(self, decklist: str) -> bool:
+        return self.tappedoutLinkRegex.search(decklist)
+
     def _loadMtgGoldfishDeck(self, deckURL: str):
         if isMtgGoldfishLink(deckURL):
-            regex_match = re.fullmatch(mtgGoldFishLinkRegex, deckURL)
+            regex_match = self.mtgGoldFishLinkRegex.fullmatch(deckURL)
             https, www, deck_id, anchor = regex_match.groups()
             
             url = f"https://www.mtggoldfish.com/deck/download/{deck_id}"
@@ -92,7 +92,7 @@ class deck:
 
     def _loadTappedOutDeck(self, deckURL: str):
         if isTappedOutLink(deckURL):
-            regex_match = re.fullmatch(tappedoutLinkRegex, deckURL)
+            regex_match = self.tappedoutLinkRegex.fullmatch(deckURL)
             https, deck_id = regex_match.groups()
             
             url = f"https://tappedout.net/mtg-decks/{deck_id}/?fmt=txt"
@@ -104,7 +104,7 @@ class deck:
     def _loadMoxFieldDeck(self, deckURL: str):
         if isMoxFieldLink(deckURL):
             self.decklist = ""
-            regex_match = re.fullmatch(moxFieldLinkRegex, deckURL)
+            regex_match = self.moxFieldLinkRegex.fullmatch(deckURL)
             https, www, deck_id = regex_match.groups()
             
             url = f"https://api.moxfield.com/v2/decks/all/{deck_id}"
@@ -113,19 +113,19 @@ class deck:
             deck_data = json.loads(resp)
             
             main = deck_data["main"]
-            self.decklist += f'1 {str(main["name"])}\n'
+            self.decklist += f'1 {main["name"]}\n'
                 
             main_board = deck_data["mainboard"]
             for card_name in main_board:
                 # Add card to decklist
                 card = main_board[card_name]
-                self.decklist += f'{str(card["quantity"])} {str(card_name)}\n'
+                self.decklist += f'{card["quantity"]} {card_name}\n'
                 
             side_board = deck_data["sideboard"]            
             for card_name in side_board:
                 # Add card to decklist
                 card = side_board[card_name]
-                self.decklist += f'SB: {str(card["quantity"])} {str(card_name)}\n'
+                self.decklist += f'SB: {card["quantity"]} {card_name}\n'
                             
             self.cards = self.parseAnnotatedTriceDecklist()
 
@@ -191,7 +191,7 @@ class deck:
         - The card has a number associated with it, so we store that many copies
             - Ex: "1 Izzet Charm" -> [ "izzet charm" ]
         """
-        if "" != self.decklist and re.fullmatch(deckRegex, self.decklist) is None:
+        if "" != self.decklist and not self.deckRegex.search(self.decklist):
             raise SyntaxError(f"Error deck list is not in the correct form {self.decklist}.")
         
         cards = []
