@@ -89,52 +89,27 @@ class deck:
     def __str__( self ):
         return f'{self.ident}: {self.deckHash}'
 
-    def validateDecklist( self, decklist: str ) -> bool:
-        """ A(n almost) static method that determines if a decklist will cause problems"""
-        for card in decklist.strip().split("\n"):
-            if card == "":
-                continue
-            print( card )
-            if not self.validDecklistRegex.search( card ):
-                return False
-        return True
-    
-    def _loadMtgGoldfishDeck(deckURL: str):
-        regex_match = mtgGoldFishLinkRegex.fullmatch(deckURL)
-        https, www, deck_id, anchor = regex_match.groups()
-        
-        url = f"https://www.mtggoldfish.com/deck/download/{deck_id}"
-        
-        self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
-        if not self.validateDecklist( self.decklist ):
-            raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
-
-        self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
-                     self.parseNonAnnotatedTriceDecklist( )
+    def _loadMtgGoldfishDeck(self, deckURL: str):
+        if isMtgGoldfishLink(deckURL):
+            regex_match = self.mtgGoldFishLinkRegex.fullmatch(deckURL)
+            https, www, deck_id, anchor = regex_match.groups()
+            
+            url = f"https://www.mtggoldfish.com/deck/download/{deck_id}"
+            
+            self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
+            self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
+                            self.parseNonAnnotatedTriceDecklist( )                        
 
     def _loadTappedOutDeck(self, deckURL: str):
-        regex_match = tappedoutLinkRegex.fullmatch(deckURL)
-        https, deck_id = regex_match.groups()
-        
-        url = f"https://tappedout.net/mtg-decks/{deck_id}/?fmt=txt"
-        
-        decklist = requests.get(url, timeout=7.0, data="", verify=True).text
-        
-        # Sort out sideboard
-        boards = decklist.split("Sideboard:")
-        mainboard = boards[0]
-        
-        sideboard = []
-        sideboard_list = ""
-        if len(boards) > 1:
-            sideboard_list = "\n".join( [ card for card in boards[1].split("\n") if (not card.isspace()) and card != "" ] )
-        
-        if not self.validateDecklist( mainboard + sideboard_list ):
-            raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
-
-        self.decklist = mainboard + sideboard_list        
-        self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
-            self.parseNonAnnotatedTriceDecklist( )
+        if isTappedOutLink(deckURL):
+            regex_match = self.tappedoutLinkRegex.fullmatch(deckURL)
+            https, deck_id = regex_match.groups()
+            
+            url = f"https://tappedout.net/mtg-decks/{deck_id}/?fmt=txt"
+            
+            self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
+            self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
+                            self.parseNonAnnotatedTriceDecklist( )
 
     def _loadMoxFieldDeck(self, deckURL: str):
         self.decklist = ""
@@ -158,12 +133,9 @@ class deck:
             for card_name in side_board:
                 # Add card to decklist
                 card = side_board[card_name]
-                self.decklist += f'SB: {card["quantity"]} {card_name}\n'                
-        
-        if not self.validateDecklist( self.decklist ):
-            raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
-
-        self.cards = self.parseAnnotatedTriceDecklist()
+                self.decklist += f'SB: {card["quantity"]} {card_name}\n'
+                            
+            self.cards = self.parseAnnotatedTriceDecklist()
 
     def _loadFromCodFile(self, fileData: str):
         # Init deck object
