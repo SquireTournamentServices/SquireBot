@@ -792,15 +792,19 @@ async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None, plyr = None, new
     
     # Get player    
     member = gld.getMember( plyr )
+    oldTriceName = plyr
     if member is None:
         await ctx.send( f'{mention}, there is not a member of this server by "{plyr}", assuming this is the problematic cockatrice name.' )
     
-    if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a player by "{plyr}" was found, but they have not registered for {tourn}. Make sure they register first.' )
-        return
+    else:
+        if member.id in tournObj.players:
+            oldTriceName = tournObj.players[member.id].triceName
+        else:
+            await ctx.send( f'{mention}, a player by "{plyr}" was found, but they have not registered for {tourn}. Make sure they register first.' )
+            return
     
     # Send update command
-    result = trice_bot.changePlayerInfo(Match.gameID, tournObj.players[member.id].triceName, newTriceName)
+    result = trice_bot.changePlayerInfo(Match.gameID, oldTriceName, newTriceName)
     
     # Handle result
     if result == 0:
