@@ -126,8 +126,32 @@ async def addTriceName( ctx, tourn = None, name = None ):
         await ctx.send( f'{mention}, that name is too long.' )
         return
     
+    plyrObj = tournObj.players[ctx.author.id]
+    oldname = plyrObj.triceName
     message = tournObj.setPlayerTriceName( ctx.author.id, name )
     await ctx.send( f'{mention}, {message}' )
+    
+    for match in plyrObj.matches:
+        if not match.isDead() and match.triceMatch and match.playerDeckVerification:
+            baseMSG = ""
+                
+            # Send update command
+            result = trice_bot.changePlayerInfo(match.gameID, oldname, name)
+                
+            # Handle result
+            if result == 0:
+                await ctx.send( f'{mention}, an error occurred whilst updating a game you are in.' )
+            elif result == 1:
+                pass
+            elif result == 2:
+                await ctx.send( f'{mention}, the player information was successfully updated, however a player using that player\'s name is in the game.' )
+            elif result == -1:
+                await ctx.send( f'{mention}, an error occurred whilst updating a game you ar in: tricebot failed to find the game.' )
+            elif result == -2:
+                await ctx.send( f'{mention}, an error occurred whilst updating a game you ar in: tricebot failed to find the player.' )
+            else:
+                await ctx.send( f'{mention}, an unknown error has occurred whilst updating the information for a game you are in.' )
+                raise TriceBotAPIError( f'tricebot-update-player failed with code {result}' )
 
 
 commandSnippets["add-deck"] = "- add-deck : Registers a deck for a tournament (can be DM-ed)" 

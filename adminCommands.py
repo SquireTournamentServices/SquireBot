@@ -813,7 +813,7 @@ async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None, plyr = None, new
         await ctx.send( f'{mention}, the player information was successfully updated.' )
         if not member is None:
             tournObj.setPlayerTriceName( member.id, newTriceName ) # Update trice name
-    elif result == 2:        
+    elif result == 2:
         await ctx.send( f'{mention}, the player information was successfully updated, however a player using that player\'s name is in the game.' )
         if not member is None:
             tournObj.setPlayerTriceName( member.id, newTriceName ) # Update trice name
