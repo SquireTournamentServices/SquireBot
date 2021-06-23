@@ -12,7 +12,6 @@ from dotenv import load_dotenv
 from Tournament import *
 
 
-
 # ---------------- Help Message Methods ---------------- 
 
 LINK_TO_PLAYER_CMD_DOC   = "https://gitlab.com/monarch3/SquireBot/-/blob/development/docs/UserCommands.md"
@@ -289,11 +288,24 @@ async def on_guild_join( guild ):
 # When an uncaught error occurs, the tracebot of the error needs to be printed
 # to stderr, logged, and sent to the development server's error log channel
 @bot.event
-async def on_command_error( ctx: discord.ext.commands.Context, error: discord.ext.commands.CommandError ):
+async def on_command_error( ctx: discord.ext.commands.Context, error: Exception ):
+    error = getattr(error, 'original', error)
     traceback.print_exception( type(error), error, error.__traceback__ )
     
+    mention = ctx.message.author.mention
     if isinstance( error, discord.ext.commands.CommandNotFound ):
         return
+    elif isinstance(error, DeckRetrievalError ):
+        await ctx.send( f'{mention}, your decklist can not be retrieved. Check that your URL is correct.' )
+        return
+    elif isinstance(error, CodFileError ):
+        await ctx.send( f'{mention}, there is an error in your .cod file. Check that the file was not changed after you saved it.' )
+        return
+    elif isinstance(error, DecklistError ):
+        await ctx.send( f'{mention}, there is an error in your decklist. Check that you entered it correctly.' )
+        return
+    else:
+        await ctx.send( f'{mention}, there was an error while processing your command.' )
 
     message: str = f'{getTime()}: An error has occured on the server {ctx.guild.name}. Below is the context of the error and traceback.\n\n'
     message     += f'{ctx.message.content}\n'

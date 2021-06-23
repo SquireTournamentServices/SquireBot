@@ -24,6 +24,7 @@ import traceback
 from typing import List
 
 from .utils import *
+from .exceptions import *
 
 
 # Constant compiled regexes
@@ -50,6 +51,9 @@ class deck:
     """
     The class is this module
     """
+    # More specifically this checks to make sure that each line of a decklist is correct
+    validDecklistRegex = re.compile( "^(sb: )?[0-9]+[x]? [^\n]+$", re.I )
+
     # Class constructor
     def __init__ ( self, ident: str = "", decklist: str = "" ):
         self.deckHash  = 0
@@ -71,16 +75,29 @@ class deck:
             
         # Normal decklist
         else:
+            if not self.validateDecklist( decklist ):
+                raise DecklistError( f'Error in passed-in decklist.' )
             self.decklist = decklist
             if self.decklist == "":
                 self.cards = [ ]
             else:
                 self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
                             self.parseNonAnnotatedTriceDecklist( )
+        
         self.updateDeckHash()
 
     def __str__( self ):
         return f'{self.ident}: {self.deckHash}'
+
+    def validateDecklist( self, decklist: str ) -> bool:
+        """ A(n almost) static method that determines if a decklist will cause problems"""
+        for card in decklist.strip().split("\n"):
+            if card == "":
+                continue
+            print( card )
+            if not self.validDecklistRegex.search( card ):
+                return False
+        return True
     
     def _loadMtgGoldfishDeck(deckURL: str):
         regex_match = mtgGoldFishLinkRegex.fullmatch(deckURL)
@@ -89,8 +106,11 @@ class deck:
         url = f"https://www.mtggoldfish.com/deck/download/{deck_id}"
         
         self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
+        if not self.validateDecklist( self.decklist ):
+            raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
+
         self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
-            self.parseNonAnnotatedTriceDecklist( )
+                     self.parseNonAnnotatedTriceDecklist( )
 
     def _loadTappedOutDeck(self, deckURL: str):
         regex_match = tappedoutLinkRegex.fullmatch(deckURL)
@@ -107,10 +127,11 @@ class deck:
         sideboard = []
         sideboard_list = ""
         if len(boards) > 1:
-            sideboard = boards[1].split("\n")
-            for card in sideboard:
-                if not card.isspace() and card != "":
-                    sideboard_list += f'{card}\n'        
+            sideboard_list = "\n".join( [ card for card in boards[1].split("\n") if (not card.isspace()) and card != "" ] )
+        
+        if not self.validateDecklist( mainboard + sideboard_list ):
+            raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
+
         self.decklist = mainboard + sideboard_list        
         self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
             self.parseNonAnnotatedTriceDecklist( )
@@ -139,6 +160,10 @@ class deck:
                 # Add card to decklist
                 card = side_board[card_name]
                 self.decklist += f'SB: {card["quantity"]} {card_name}\n'                
+        
+        if not self.validateDecklist( self.decklist ):
+            raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
+
         self.cards = self.parseAnnotatedTriceDecklist()
 
     def _loadFromCodFile(self, fileData: str):
@@ -162,6 +187,9 @@ class deck:
                 if zone.attrib['name'] == "side":
                     self.decklist += "SB: "
                 self.decklist += f'{number} {cardname}\n'
+
+        if not self.validateDecklist( self.decklist ):
+            raise CodFileError( f'Malformed card/quantity while parsing cod file.' )
                     
         # Update hash            
         self.cards = self.parseNonAnnotatedTriceDecklist()

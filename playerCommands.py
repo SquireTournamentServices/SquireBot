@@ -164,77 +164,45 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
         return
 
     # Check for cod file
-    if ctx.message.attachments:
-        if len(ctx.message.attachments) == 1:
-            # Size < 1MiB
-            attachment = ctx.message.attachments[0]
-            if attachment.size < 1048576:
-                if re.fullmatch(".*\.cod", attachment.filename):
-                    index = ctx.message.content.find( ident ) + len(ident)
-                    deckname = re.sub( "^[^A-Za-z0-9\w\/]+", "", ctx.message.content[index:].replace('"', "") ).strip() 
-                    deckname = re.sub( "[^A-Za-z0-9\w\/]+$", "", deckname )
-                    
-                    try:
-                        filedata = (await attachment.read()).decode()
-                        
-                        # Try to create the decklist
-                        message = ""
-                        try:
-                            message = await tournObj.addDeck( ctx.author.id, ident, filedata )
-                        except Exception as e:
-                            print(e) #Print the stacktrace for debugging
-                            await ctx.send( f'{mention}, there was an error while processing your deck list. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
-                            return
-                        await ctx.send( f'{mention}, {message}' )
-                        if not private:
-                            await ctx.author.send( f'For future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
-                    except Exception as ex:
-                        print(ex)
-                        await ctx.send( f'{mention}, an error occurred whilst reading the file, make sure the file is valid: {str(ex)}.' )
-                else:
-                    # Unrecognised file type
-                    await ctx.send( f'{mention}, this is an unrecognised filetype.' )
-            else:
-                # Attachment is too big
-                await ctx.send( f'{mention}, this file is too big.' )
-        
+    if len(ctx.message.attachments) > 1:
+        await ctx.send( f'{mention}, you attached too many files. Please only attach one file per deck.' )
         return
-    
-    if ident is None:
-        await ctx.send( f'{mention}, not enough information provided: Please provide your deckname and decklist to add a deck.' )
-        return
-    
+
     index = ctx.message.content.find( ident ) + len(ident)
-    
-    # check if decklist is a link
     
     decklist = re.sub( "^[^A-Za-z0-9\w\/]+", "", ctx.message.content[index:].replace('"', "") ).strip() 
     decklist = re.sub( "[^A-Za-z0-9\w\/]+$", "", decklist )
+    
+    # The cod file will supercede you submitted decks
+    if len(ctx.message.attachments) == 1:
+        # Size < 1MiB
+        attachment = ctx.message.attachments[0]
+        if attachment.size >= 1048576:
+            # Attachment is too big
+            await ctx.send( f'{mention}, this file is too big.' )
+            return
+        
+        if not re.fullmatch(".*\.cod", attachment.filename):
+            # Unrecognised file type
+            await ctx.send( f'{mention}, this is an unrecognised filetype.' )
+            return
+        
+        try:
+            decklist = (await attachment.read()).decode()
+        except Exception as ex:
+            print(ex)
+            await ctx.send( f'{mention}, an error occurred whilst reading the file, make sure the file is valid: {str(ex)}.' )
+            return
     
     if decklist == "":
         await ctx.send( f'{mention}, not enough information provided: Please provide your deckname and decklist to add a deck.' )
         return
     
-    message = ""
-    try:
-        try:
-            message = await tournObj.addDeck( ctx.author.id, ident, decklist )
-            await ctx.send( f'{mention}, {message}' )
-            if not private:
-                await ctx.author.send( f'For future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
-        except SyntaxError as ex:
-            traceback.print_exception(type(ex), ex, ex.__traceback__)
-            await ctx.send( f'{mention}, there was an error while processing your deck list, it is possible that it is in the wrong format. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
-    except Exception as e:
-        remoteDeck = isMoxFieldLink(decklist) or isMtgGoldfishLink(decklist) or isTappedOutLink(decklist)
+    message = await tournObj.addDeck( ctx.author.id, ident, decklist )
+    await ctx.send( f'{mention}, {message}' )
+    if not private:
+        await ctx.author.send( f'For future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
         
-        if not remoteDeck:
-            await ctx.send( f'{mention}, an unknown error has occurred.' )
-            raise e
-        else:
-            await ctx.send( f'{mention}, an error occurred whilst downloading your deck from a remote source.' )
-            raise e
-
         
         
 commandSnippets["remove-deck"] = "- remove-deck : Removes a deck you registered (can be DM-ed)" 

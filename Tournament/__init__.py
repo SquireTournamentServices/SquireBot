@@ -8,3 +8,4 @@ from .fluidRoundTournament import *
 from .utils import *
 from .tournamentSelector import *
 from .guildSettings import *
+from .exceptions import *
