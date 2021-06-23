@@ -6,7 +6,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from baseBot import *
-from Tournament import * 
+from Tournament import *
 
 commandSnippets["create-tournament"] = "- create-tournament : Creates a tournament and has a toggle to enable tricebot." 
 commandCategories["management"].append("create-tournament")
@@ -790,13 +790,10 @@ async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None, plyr = None, new
         await ctx.send( f'{mention}, that match is not a match with player deck verification enabled.' )
         return
     
-    # Get player
-    nameNeedsUpdating: bool = False
-    
+    # Get player    
     member = gld.getMember( plyr )
     if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by "{plyr}".' )
-        return
+        await ctx.send( f'{mention}, there is not a member of this server by "{plyr}", assuming this is the problematic cockatrice name.' )
     
     if not member.id in tournObj.players:
         await ctx.send( f'{mention}, a player by "{plyr}" was found, but they have not registered for {tourn}. Make sure they register first.' )
@@ -806,15 +803,23 @@ async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None, plyr = None, new
     result = trice_bot.changePlayerInfo(Match.gameID, tournObj.players[member.id].triceName, newTriceName)
     
     # Handle result
-    if result.error:
+    if result == 0:
         await ctx.send( f'{mention}, there was an error updating the game room.' )
-    elif result.success:
+    elif result == 1:
         await ctx.send( f'{mention}, the player information was successfully updated.' )
-        tournObj.setPlayerTriceName( member.id, newTriceName )
-    elif not result.gameFound:
+        if not member is None:
+            tournObj.setPlayerTriceName( member.id, newTriceName ) # Update trice name
+    elif result == 2:        
+        await ctx.send( f'{mention}, the player information was successfully updated, however a player using that player\'s name is in the game.' )
+        if not member is None:
+            tournObj.setPlayerTriceName( member.id, newTriceName ) # Update trice name
+    elif result == -1:
         await ctx.send( f'{mention}, the game was not found, so the player information was not updated, as there no action was taken.' )
-    elif not result.playerFound:
+    elif result == -2:
         await ctx.send( f'{mention}, the player was not found, so no action was taken. If there are multiple players with no cockatrice names then you can ignore this error as they are still able to join.' )
+    else:
+        await ctx.send( f'{mention}, an unknown error has occurred.' )
+        raise TriceBotAPIError( f'tricebot-update-player failed with code {result}' )
 
 
 commandSnippets["download-replays"] = "- download-replays : Downloads all replays for a tournament" 

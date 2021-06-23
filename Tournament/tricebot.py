@@ -1,8 +1,8 @@
-import requests
-import urllib
-import re
-import tempfile
 import zipfile
+import urllib.parse
+import tempfile
+import requests
+import re
 
 class GameMade:
     def __init__(self, success: bool, gameID: int, replayName: str):
@@ -10,15 +10,8 @@ class GameMade:
         self.gameID = gameID
         self.replayName = replayName
 
-class ChangePlayerInfo:
-    def __init__(self, success: bool, playerFound: bool=True, gameFound: bool=True, error: bool=False):
-        self.success = success
-        self.playerFound = playerFound
-        self.gameFound = gameFound
-        self.error = error
-        
-class TriceBot:    
-    #Set externURL to the domain address and apiURL to the loopback address in LAN configs
+class TriceBot:
+    # Set externURL to the domain address and apiURL to the loopback address in LAN configs
     def __init__(self, authToken: str, apiURL: str="https://0.0.0.0:8000", externURL: str=""):
         self.authToken = authToken
         self.apiURL = apiURL
@@ -34,7 +27,7 @@ class TriceBot:
         url = urlpostfix
         if not abs:
             url = f'{self.apiURL}/{url}'
-        resp = requests.get(url, timeout=7.0, data=data, verify=False).text
+        resp = requests.get(url, timeout=7.0, data=data,  verify=False).text
         if not abs:
             print(resp)
         return resp
@@ -91,8 +84,14 @@ class TriceBot:
             print(exc)
             return None
     
-    # Returns a ChangePlayerInfo object that contains the state of the request
-    def changePlayerInfo(self, gameID: int, oldPlayerName: str, newPlayerName: str) -> str:
+    # Returns:
+    # 1 if the operation was a success
+    # 2 if the slot was occupied (warns the admin that a player may need to be kicked)
+    
+    # 0 if a network error occurred
+    # -1 if the game was not found
+    # -2 if the player slot was not found
+    def changePlayerInfo(self, gameID: int, oldPlayerName: str, newPlayerName: str):
         body  = f'authtoken={self.authToken}\n'
         body += f'oldplayername={oldPlayerName}\n'
         body += f'newplayername={newPlayerName}\n'
@@ -107,13 +106,15 @@ class TriceBot:
             res = "network error"
             
         if res == "success":
-            return ChangePlayerInfo(True)
+            return 1
+        elif res == "success but occupied":
+            return 2
         elif res == "error game not found":
-            return ChangePlayerInfo(False, False, False)
+            return -1
         elif res == "error player not found":
-            return ChangePlayerInfo(False, False, True)
+            return -2
         else:
-            return ChangePlayerInfo(False, False, False, True)
+            return 0
     
     # 1 if success
     # 0 auth token is bad, error 404 or network issue
@@ -138,6 +139,7 @@ class TriceBot:
         elif res == "game not found":
             return -1
         return 0
+    
     #  1 if success
     #  0 auth token is bad or error404 or network issue
     # -1 if player not found
@@ -150,7 +152,7 @@ class TriceBot:
         try:
             message = self.req("api/kickplayer", body)
         except OSError as exc:
-            #Network issues
+            # Network issues
             print("[TRICEBOT ERROR]: Netty error")
             return 0
         
@@ -169,7 +171,7 @@ class TriceBot:
             GameMade(False, -1, -1) # They must the same length dummy!
             
         body  = f'authtoken={self.authToken}\n'
-        body += f'gamename={gamename.replace(" ", "").replace("_", "")}\n'
+        body += f'gamename={gamename}\n'
         body += f'password={password}\n'
         body += f'playerCount={playercount}\n'        
         body += f'spectatorsAllowed={int(spectatorsallowed)}\n'            
@@ -199,22 +201,22 @@ class TriceBot:
             print("[TRICEBOT ERROR]: Netty error")
             return GameMade(False, -1, "")
             
-        #Check for server error
+        # Check for server error
         if (message.lower() == "timeout error") or (message.lower() == "error 404") or (message.lower() == "invalid auth token"):
             #Server issues         
             print("[TRICEBOT ERROR]: " + message)
             return GameMade(False, -1, "")
         
-        #Try to parse the message
+        # Try to parse the message
         lines = message.split("\n")
         gameID: int = -1
         replayName: str = ""
         
-        #Parse line for line
+        # Parse line for line
         for line in lines:
             parts = line.split("=")
             
-            #Check length
+            # Check length
             if len(parts) >= 2 :            
                 tag = parts[0]
                 value = ""
@@ -224,18 +226,18 @@ class TriceBot:
                         value += "="
                     
                 if tag == "gameid":
-                    #There has to be a better way to do this
+                    # There has to be a better way to do this
                     try:
                         gameID = int(value)
                     except:
-                        #Error checked at end
+                        # Error checked at end
                         pass
                 elif tag == "replayName":
-                    replayName = value.replace(" ", "%20")
-                #Ignore other tags
-            #Ignores lines that have no equals in them
+                    replayName = urllib.parse.quote(value)
+                # Ignore other tags
+            # Ignores lines that have no equals in them
         
-        #Check if there was an error
+        # Check if there was an error
         success = (gameID != -1) and (replayName != "")
         print(success)
         return GameMade(success, gameID, replayName)

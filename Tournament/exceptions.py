@@ -6,6 +6,9 @@ class TournamentBaseError( Exception ):
     """ The base error class for the project """
     pass
 
+class TriceBotAPIError( TournamentBaseError ):
+    """ Errors for when an unhandled or unknown tricebot error occurs """
+    pass
 
 class DeckBaseError( TournamentBaseError ):
     """ The base error class for the deck module """
