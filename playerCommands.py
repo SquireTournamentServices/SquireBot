@@ -87,6 +87,7 @@ async def registerPlayer( ctx, tourn = None ):
 
     message = await tournObj.addPlayer( ctx.author )
     await ctx.send( f'{mention}, {message}' )
+    await tournObj.updateInfoMessage()
 
 
 commandSnippets["cockatrice-name"] = "- cockatrice-name : Adds your Cockatrice username to your profile" 
@@ -274,6 +275,7 @@ async def removeDecklist( ctx, tourn = None, ident = None ):
 
     commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.players[ctx.author.id].removeDeckCoro( deckName ) )
     await ctx.send( f'{mention}, in order to remove your deck, you need to confirm your request. Are you sure you want to remove it? (!yes/!no)' )
+    await tournObj.updateInfoMessage()
     
 
 commandSnippets["decks"] = "- decks : Lists the names and hashes of the decks you've registered (can be DM-ed)"
@@ -394,6 +396,7 @@ async def queuePlayer( ctx, tourn = None ):
     message = tournObj.addPlayerToQueue( ctx.author.id )
     tournObj.saveOverview( )
     await ctx.send( f'{mention}, {message}.' )
+    await tournObj.updateInfoMessage()
 
 
 commandSnippets["match-result"] = "- match-result : Records you as the winner of your match or that the match was a draw" 
@@ -434,6 +437,7 @@ async def matchResult( ctx, tourn = None, result = None ):
     playerMatch = tournObj.players[ctx.author.id].findOpenMatch()
     message = await tournObj.recordMatchResult( ctx.author.id, result, playerMatch.matchNumber )
     await ctx.send( message )
+    await tournObj.updateInfoMessage()
     
     playerMatch.saveXML( )
 
@@ -479,6 +483,7 @@ async def confirmMatchResult( ctx, tourn = None ):
     message = await tournObj.playerConfirmResult( ctx.author.id, playerMatch.matchNumber )
     playerMatch.saveXML( )
     await ctx.send( f'{mention}, {message}' )
+    await tournObj.updateInfoMessage()
     
 
 commandSnippets["standings"] = "- standings : Prints out the current standings" 

@@ -267,7 +267,7 @@ async def on_ready():
         try:
             guildSettingsObjects[guild.id] = guildSettings( guild )
             if os.path.isdir( f'guilds/{guild.id}' ):
-                guildSettingsObjects[guild.id].load( f'guilds/{guild.id}/' )
+                await guildSettingsObjects[guild.id].load( f'guilds/{guild.id}/' )
             else:
                 guildSettingsObjects[guild.id].save( f'guilds/{guild.id}/' )
             guildSettingsObjects[guild.id].setEventLoop( bot.loop )
@@ -321,11 +321,6 @@ async def on_command_error( ctx: discord.ext.commands.Context, error: Exception 
         await errorChannel.send( message + f'```{"".join(traceback.format_exception( type(error), error, error.__traceback__ ))}```' )
     
     return
-
-@bot.command(name="error")
-async def raiseError( ctx ):
-    await ctx.send( "Raising an error" )
-    raise NotImplemented( "This is the end of the command" )
     
 
 bot.remove_command( "help" )

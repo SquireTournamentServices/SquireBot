@@ -42,6 +42,7 @@ async def adminAddPlayer( ctx, tourn = None, plyr = None ):
     message = await tournObj.addPlayer( member, admin=True )
     tournObj.players[member.id].saveXML( )
     await ctx.send( f'{mention}, {message}' )
+    await tournObj.updateInfoMessage()
 
 
 commandSnippets["admin-add-deck"] = "- admin-add-deck : Registers a deck for a player in a tournament" 
@@ -95,6 +96,7 @@ async def adminAddDeck( ctx, tourn = None, plyr = None, ident = None ):
 
     tournObj.players[member.id].saveXML( )
     await ctx.send( f'{mention}, {message}' )
+    await tournObj.updateInfoMessage()
 
 
 commandSnippets["admin-remove-deck"] = "- admin-remove-deck : Removes a deck for a player in a tournament" 
@@ -140,6 +142,7 @@ async def adminRemoveDeck( ctx, tourn = None, plyr = None, ident = None ):
 
     commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.players[member.id].removeDeckCoro( deckName, mention ) )
     await ctx.send( f'{mention}, in order to remove the deck {deckName} from {member.mention}, confirmation is needed. Are you sure you want to remove the deck (!yes/!no)?' )
+    await tournObj.updateInfoMessage()
 
 
 commandSnippets["list-players"] = "- list-players : Lists all player (or the number of players) in a tournament " 
@@ -264,6 +267,7 @@ async def adminMatchResult( ctx, tourn = None, plyr = None, mtch = None, result 
     message = await tournObj.recordMatchResult( member.id, result, mtch, admin=True )
     Match.saveXML( )
     await ctx.send( message )
+    await tournObj.updateInfoMessage()
     
 
 commandSnippets["admin-confirm-result"] = "- admin-confirm-result : Confirms the result of a match on a player's behalf" 
@@ -324,6 +328,7 @@ async def adminConfirmResult( ctx, tourn = None, plyr = None, mtch = None ):
     message = await tournObj.confirmResult( member.id, Match.matchNumber )
     Match.saveXML( )
     await ctx.send( f'{mention}, {message}.' )
+    await tournObj.updateInfoMessage()
 
 
 

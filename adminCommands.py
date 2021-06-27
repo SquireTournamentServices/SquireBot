@@ -72,8 +72,8 @@ async def updateTournProperties( ctx, tournName = None, *args ):
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a number of players for a match.' )
         return
 
-    tourn = gld.getTournament( tournName )
-    if tourn is None: 
+    tournObj = gld.getTournament( tournName )
+    if tournObj is None: 
         await ctx.send( f'{mention}, there is not a tournament called "{tournName}" on this server.' )
         return
     
@@ -83,9 +83,10 @@ async def updateTournProperties( ctx, tournName = None, *args ):
         await ctx.send( f'{mention}, there is an issue with the tournament properties that you gave. Check your spelling and consult the "!squirebot-help" command for more help' )
         return
 
-    message = tourn.setProperties( tournProps )
-    tourn.saveOverview( )
+    message = tournObj.setProperties( tournProps )
+    tournObj.saveOverview( )
     await ctx.send( f'{adminMention}, {mention} has updated the properties of {tournName}.\n{message}' )
+    await tournObj.updateInfoMessage()
 
 
 commandSnippets["update-server-defaults"] = "- update-server-defaults : Changes the properties of a tournament." 
@@ -170,6 +171,7 @@ async def updateReg( ctx, tourn = None, status = None ):
     tournObj.setRegStatus( str_to_bool(status) )
     tournObj.saveOverview( )
     await ctx.send( f'{adminMention}, registration for the "{tourn}" tournament has been {("opened" if str_to_bool(status) else "closed")} by {mention}.' ) 
+    await tournObj.updateInfoMessage()
 
 
 commandSnippets["start-tournament"] = "- start-tournament : Starts the tournament, which closes registration and let's players LFG" 
@@ -199,6 +201,7 @@ async def startTournament( ctx, tourn = None ):
     tournObj.startTourn()
     tournObj.saveOverview( )
     await ctx.send( f'{adminMention}, {tourn} has been started by {mention}.' )
+    await tournObj.updateInfoMessage()
     
 
 commandSnippets["end-tournament"] = "- end-tournament : Ends a tournament" 
@@ -227,6 +230,7 @@ async def endTournament( ctx, tourn: str = None ):
 
     commandsToConfirm[ctx.author.id] = ( getTime(), 30, gld.endTournament( tourn, mention ) )
     await ctx.send( f'{adminMention}, in order to end {tourn}, confirmation is needed. {mention}, are you sure you want to end {tourn} (!yes/!no)?' )
+    await tournObj.updateInfoMessage()
 
 
 commandSnippets["prune-decks"] = "- prune-decks : Removes decks from players until they have the max number" 
@@ -603,6 +607,34 @@ async def adminRemoveMatch( ctx, tourn = None, mtch = None ):
 
     commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.removeMatch( mtch, mention ) )
     await ctx.send( f'{adminMention}, in order to remove match #{mtch}, confirmation is needed. {mention}, are you sure you want to remove this match (!yes/!no)?' )
+
+
+commandSnippets["tournament-status"] = "- tournament-status : Prints the currect matchmaking queue" 
+commandCategories["day-of"].append("tournament-status")
+@bot.command(name='tournament-status')
+async def viewQueue( ctx, tourn = None ):
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
+    if await isPrivateMessage( ctx ): return
+
+    if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
+    if tourn is None:
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament to view the queue.' )
+        return
+    
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        return
+
+    tournInfo: discord.Embed = tournObj.getTournamentStatusEmbed()
+
+    message = await ctx.send( embed=tournInfo )
+    tournObj.infoMessage = message
+    tournObj.saveOverview()
 
 
 commandSnippets["view-queue"] = "- view-queue : Prints the currect matchmaking queue" 

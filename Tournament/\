@@ -35,10 +35,6 @@ class fluidRoundTournament(tournament):
         self.pairingsChannel = None
         self.pairingsChannelID = ""
         
-        self.infoMessageChannelID = None
-        self.infoMessageID = None
-        self.infoMessage = None
-        
         self.regOpen      = True
         self.tournStarted = False
         self.tournEnded   = False
@@ -88,35 +84,19 @@ class fluidRoundTournament(tournament):
     # ---------------- Embed Generators ---------------- 
     def getTournamentStatusEmbed( self ) -> discord.Embed:
         digest: discord.Embed = discord.Embed( title = f'{self.name} Status' )
-        NL = "\n"
-        NLT = "\n\t"
-        
         props = self.getProperties()
-        propsText = f'{self.name} has{"" if self.isActive() else " not"} started.\n' + "\n".join( [ f'{p}: {props[p]}' for p in props if not props[p] is None ] )
-        digest.add_field( name="**Settings Info.**", value=propsText )
-        
+        digest.add_field( name="**Settings Info.**", value="\n".join( [ f'{p}: {props[p]}' for p in props if not props[p] is None ] ) )
         plyrsWithDecks = [ p for p in self.players if len(self.players[p].decks) > 0 ]
-        plyrsActive = [ p for p in self.players if self.players[p].isActive() ]
-        decksText = f'There are {len(plyrsActive)} players registered.'
-        if len(plyrsWithDecks) > 0:
-            decksText = decksText[:-1] + f', and {len(plyrsWithDecks)} of them have submitted decks.'
-        digest.add_field( name="**Player Count**", value=decksText )
-        
+        digest.add_field( name="**Player Count**", value=f'There are {len(self.players)} players registered, and {len(plyrsWithDecks)} of them have submitted decks.' )
+        queueText = [ f'Tier {l+1}: {", ".join(self.queue[l])}' for l in range(len(self.queue)) if len(self.queue[l]) > 0 ]
         queueSize = sum( [ len(l) for l in self.queue ] )
-        queueStr  = [ f'Tier {l+1}: {", ".join([ p.getMention() for p in self.queue[l] ])}' for l in range(len(self.queue)) if len(self.queue[l]) > 0 ]
-        queueText = f'There are {queueSize} players in the queue.'
-        if queueSize > 0:
-            queueText += f' The queue looks like:{NL}{NL.join(queueStr)}'
-        digest.add_field( name="**Queue Info.**", value=queueText )
-        
+        digest.add_field( name="**Queue Info.**", value=f'There are {queueSize} players in the queue. The queue looks like:\n{"\n".join(queueText)}' )
         openMatches = [ m for m in self.matches if m.isOpen() ]
         uncertMatches = [ m for m in self.matches if m.isUncertified() ]
-        matchText  = f'There are {len(openMatches)} open matches and {len(uncertMatches)} uncertified matches.'
-        if len(openMatches) > 0:
-            matchText += f'{NL}**Open Matches**:{NLT}{NLT.join([ "#" + str(m.matchNumber) for m in openMatches ])}'
-        if len(uncertMatches) > 0:
-            matchText += f'{NL}**Uncertified Matches**:{NLT}{NLT.join([ "#" + str(m.matchNumber) for m in uncertMatches ])}'
-        digest.add_field( name="**Match Info.**", value=matchText )
+        matchText  = f'There are {} open matches and {} uncertified matches.'
+        matchText += f'\n**Open Matches**:\n\t{"\n\t".join([ m.matchNumber for m in openMatches ])}'
+        matchText += f'\n**Uncertified Matches**:\n\t{"\n\t".join([ m.matchNumber for m in uncertMatches ])}'
+        digest.add_field( name="**Match Info.**", value= )
         return digest
     
     # ---------------- Player Accessors ---------------- 
@@ -301,8 +281,6 @@ class fluidRoundTournament(tournament):
         digest += f'\t<guild id="{self.guild.id if type(self.guild) == discord.Guild else str()}">{self.hostGuildName}</guild>\n'
         digest += f'\t<role id="{self.role.id if type(self.role) == discord.Role else str()}"/>\n'
         digest += f'\t<pairingsChannel id="{self.pairingsChannel.id}"/>\n'
-        if not self.infoMessage is None:
-            digest += f'\t<infoMessage channel="{self.infoMessage.channel.id}" id="{self.infoMessage.id}"/>\n'
         digest += f'\t<format>{self.format}</format>\n'
         digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
         digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
@@ -336,9 +314,6 @@ class fluidRoundTournament(tournament):
         self.guildID   = int( fromXML(tournRoot.find( 'guild' ).attrib["id"]) )
         self.roleID    = int( fromXML(tournRoot.find( 'role' ).attrib["id"]) )
         self.pairingsChannelID = int( fromXML(tournRoot.find( 'pairingsChannel' ).attrib["id"]) )
-        if not tournRoot.find( 'infoMessage' ) is None:
-            self.infoMessageChannelID = int( fromXML(tournRoot.find( 'infoMessage' ).attrib["channel"]) )
-            self.infoMessageID = int( fromXML(tournRoot.find( 'infoMessage' ).attrib["id"]) )
 
         self.format    = fromXML(tournRoot.find( 'format' ).text)
         self.deckCount = int( fromXML(tournRoot.find( 'deckCount' ).text) )
@@ -375,5 +350,7 @@ class fluidRoundTournament(tournament):
         if sum( [ len(level) for level in self.queue ] ) >= self.pairingsThreshold and not self.pairingsThread.is_alive( ):
             self.pairingsThread = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )
+
+
 
 

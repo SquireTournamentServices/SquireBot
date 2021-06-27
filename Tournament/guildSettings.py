@@ -318,10 +318,10 @@ class guildSettings:
         for tourn in self.tournaments:
             tourn.saveTournament()
     
-    def load( self, dirName: str ) -> None:
+    async def load( self, dirName: str ) -> None:
         self.saveLoction = dirName
         self.loadSettings( f'{dirName}/settings.xml' )
-        self.loadTournaments( f'{dirName}/currentTournaments' )
+        await self.loadTournaments( f'{dirName}/currentTournaments' )
     
     def loadSettings( self, filename: str ) -> None:
         xmlTree = ET.parse( filename )
@@ -353,12 +353,12 @@ class guildSettings:
         # The filter properties method converts properties too
         self.updateDefaults( { fromXML(prop): fromXML(root.find("properties").attrib[fromXML(prop)]) for prop in root.find("properties").attrib } )
     
-    def loadTournaments( self, dirName: str ) -> None:
+    async def loadTournaments( self, dirName: str ) -> None:
         tournDirs: list = [ f'{dirName}/{tournName}/' for tournName in os.listdir(dirName) if os.path.isdir( f'{dirName}/{tournName}/' ) ]
         for tournDir in tournDirs:
             tourn = tournamentSelector( f'{tournDir}/tournamentType.xml', tournDir.split("/")[-2], self.guild.name, {} )
             tourn.loadTournament( tournDir )
-            tourn.assignGuild( self.guild )
+            await tourn.assignGuild( self.guild )
             self.tournaments.append( tourn )
 
 

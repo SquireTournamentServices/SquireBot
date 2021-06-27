@@ -76,6 +76,12 @@ class match:
         digest += f'Match winner: {self.winner}'
         return digest
     
+    def isOpen( self ) -> bool:
+        return self.status == "open"
+    
+    def isUncertified( self ) -> bool:
+        return self.status == "uncertified"
+
     def isBye( self ) -> bool:
         return self.winner == "This match is a bye."
     

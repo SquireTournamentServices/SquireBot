@@ -60,6 +60,10 @@ class tournament:
         self.pairingsChannel = None
         self.pairingsChannelID = ""
         
+        self.infoMessageChannelID = None
+        self.infoMessageID = None
+        self.infoMessage = None
+        
         self.regOpen      = True
         self.tournStarted = False
         self.tournEnded   = False
@@ -118,13 +122,19 @@ class tournament:
         self.pairingsChannel = discord.utils.get( guild.channels, name="match-pairings" )
         self.pairingsChannelID = self.pairingsChannel.id
     
-    def assignGuild( self, guild: discord.Guild ) -> str:
+    async def assignGuild( self, guild: discord.Guild ) -> str:
         print( f'The guild "{guild}" is being assigned to {self.name}.' )
         print( f'There are {len(self.players)} players in this tournament!\n' )
         self.guild = guild
         self.guildID = guild.id
         self.hostGuildName = guild.name
         self.pairingsChannel = guild.get_channel( self.pairingsChannelID )
+        infoChannel = None
+        if isinstance(self.infoMessageChannelID, int):
+            infoChannel = self.guild.get_channel( self.infoMessageChannelID )
+            print( f'{infoChannel=}' )
+        if (not infoChannel is None) and isinstance(self.infoMessageID, int):
+            self.infoMessage = await infoChannel.fetch_message( self.infoMessageID )
         if self.pairingsChannel is None:
             self.pairingsChannel = discord.utils.get( guild.channels, name="match-pairings" )
         if self.roleID != "":
@@ -139,6 +149,11 @@ class tournament:
             if mtch.VC_ID != "":
                 mtch.addMatchVC( guild.get_channel( mtch.VC_ID ) )
 
+    async def updateInfoMessage( self ) -> None:
+        if self.infoMessage is None:
+            return
+        await self.infoMessage.edit( embed = self.getTournamentStatusEmbed() )
+        return
 
     # ---------------- Property Accessors ----------------
     
@@ -237,6 +252,22 @@ class tournament:
             else:
                 digest["undefined"][prop] = props[prop]
         
+        return digest
+
+    def getProperties( self ) -> Dict:
+        digest: dict = { }
+        digest["format"] = self.format
+        digest["deck-count"] = self.deckCount
+        digest["match-length"] = f'{int(self.matchLength/60)} min.'
+        digest["match-size"] = self.playersPerMatch
+        digest["pairings-channel"] = None if self.pairingsChannel is None else f'<#{self.pairingsChannel.id}>'
+        digest["tricebot-enabled"] = self.triceBotEnabled if self.triceBotEnabled else None
+        digest["spectators-allowed"] = self.spectators_allowed if self.spectators_allowed else None
+        digest["spectators-need-password"] = self.spectators_need_password if self.spectators_need_password else None
+        digest["spectators-can-chat"] = self.spectators_can_chat if self.spectators_can_chat else None
+        digest["spectators-can-see-hands"] = self.spectators_can_see_hands if self.spectators_can_see_hands else None
+        digest["only-registered"] = self.only_registered if self.only_registered else None
+        digest["player-deck-verification"] = self.player_deck_verification if self.player_deck_verification else None
         return digest
     
     # Sets properties that can be changed directly by users
@@ -342,6 +373,10 @@ class tournament:
 
 
     # ---------------- Embed Generators ----------------
+    def getTournamentStatusEmbed( self ) -> discord.Embed:
+        digest: discord.Embed = discord.Embed( title = f'{self.name} Status' )
+        return digest
+    
     def getPlayerProfileEmbed( self, plyr: int ) -> discord.Embed:
         Player = self.players[plyr]
         digest = discord.Embed()
@@ -471,6 +506,7 @@ class tournament:
         self.saveTournament( f'closedTournaments/{self.name}' )
         if os.path.isdir( f'currentTournaments/{self.name}' ):
             shutil.rmtree( f'currentTournaments/{self.name}' )
+        await self.updateInfoMessage()
         return f'{adminMention}, {self.name} has been closed by {author}.'
     
     async def cancelTourn( self, adminMention: str = "", author: str = "") -> str:
@@ -480,6 +516,7 @@ class tournament:
         self.saveTournament( )
         if os.path.isdir( oldLocation ):
             shutil.rmtree( oldLocation )
+        await self.updateInfoMessage()
         return f'{adminMention}, {self.name} has been cancelled by {author}.'
     
     # ---------------- Player Management ----------------
@@ -525,6 +562,7 @@ class tournament:
             await self.players[plyr].discordUser.send( content=f'You have been dropped from {self.name} on {self.guild.name} by tournament staff. If you believe this is an error, check with them.' )
             return f'{author}, {self.players[plyr].discordUser.mention} has been dropped from the tournament.'
         return f'{self.players[plyr].discordUser.mention}, you have been dropped from {self.name}.'
+        await self.updateInfoMessage()
     
     async def playerConfirmResult( self, plyr: str, matchNum: int, admin: bool = False ) -> None:
         if not plyr in self.players:
@@ -546,6 +584,7 @@ class tournament:
         if "announcement" in message:
             await self.pairingsChannel.send( content=message["announcement"] )
         return message["message"]
+
     async def pruneDecks( self, ctx ) -> str:
         await ctx.send( f'Pruning decks starting... now!' )
         for plyr in self.players.values():
@@ -556,6 +595,7 @@ class tournament:
                 await plyr.discordUser.send( content=f'Your deck {deckIdents[0]} has been pruned from the tournament {self.name} on {ctx.guild.name} by tournament staff.' )
                 del( deckIdents[0] )
             plyr.saveXML( )
+        await self.updateInfoMessage()
         return f'Decks have been pruned. All players have at most {self.deckCount} deck{"" if self.deckCount == 1 else "s"}.'
     
     # ---------------- Match Management ----------------
@@ -601,7 +641,7 @@ class tournament:
         newMatch.matchNumber = len(self.matches)
         newMatch.matchLength = self.matchLength
         newMatch.saveLocation = f'{self.getSaveLocation()}/matches/match_{newMatch.matchNumber}.xml'
-        if type( self.guild ) == discord.Guild:
+        if isinstance( self.guild, discord.Guild ):
             matchRole = await self.guild.create_role( name=f'Match {newMatch.matchNumber}' )
             overwrites = { self.guild.default_role: discord.PermissionOverwrite(read_messages=False),
                            getAdminRole(self.guild): discord.PermissionOverwrite(read_messages=True),
@@ -700,6 +740,7 @@ class tournament:
             
         newMatch.timer.start( )
         newMatch.saveXML()
+        await self.updateInfoMessage()
     
     # See tricebot.py for retun details
     # copy pasta of them is here. accurate as of 25/04/21
@@ -736,6 +777,7 @@ class tournament:
         await self.matches[matchNum - 1].killMatch( )
         self.matches[matchNum - 1].saveXML( )
         
+        await self.updateInfoMessage()
         return f'{author}, match #{matchNum} has been removed.'
     
     
