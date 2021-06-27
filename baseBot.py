@@ -14,10 +14,10 @@ from Tournament import *
 
 # ---------------- Help Message Methods ---------------- 
 
-LINK_TO_PLAYER_CMD_DOC   = "https://gitlab.com/monarch3/SquireBot/-/blob/development/docs/UserCommands.md"
-LINK_TO_JUDGE_CMD_DOC    = "https://gitlab.com/monarch3/SquireBot/-/blob/development/docs/JudgeCommands.md" 
-LINK_TO_ADMIN_CMD_DOC    = "https://gitlab.com/monarch3/SquireBot/-/blob/development/docs/AdminCommands.md" 
-LINK_TO_CRASH_COURSE_DOC = "https://gitlab.com/monarch3/SquireBot/-/blob/development/docs/CrashCourse.md" 
+LINK_TO_PLAYER_CMD_DOC   = "https://gitlab.com/monarch3/SquireBot/-/tree/development/docs/UserCommands.md"
+LINK_TO_JUDGE_CMD_DOC    = "https://gitlab.com/monarch3/SquireBot/-/tree/development/docs/JudgeCommands.md" 
+LINK_TO_ADMIN_CMD_DOC    = "https://gitlab.com/monarch3/SquireBot/-/tree/development/docs/AdminCommands.md" 
+LINK_TO_CRASH_COURSE_DOC = "https://gitlab.com/monarch3/SquireBot/-/tree/development/docs/CrashCourse.md" 
 
 commandSnippets = { } 
 commandCategories = { "registration": [ ], "playing": [ ], "misc": [ ],
@@ -65,7 +65,7 @@ async def sendJudgeHelpMessage( ctx ) -> None:
     embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-playing"] ]), inline=False )
     embed.add_field( name="**Miscellaneous**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-misc"] ]),inline=False )
     
-    embed.add_field( name="**__Additional Information__**", value="The full documentation for the judge commands can be found [here]({LINK_TO_JUDGE_CMD_DOC}). The user commands are [here]({LINK_TO_PLAYER_CMD_DOC}), and the crash course is [here]({LINK_TO_CRASH_COURSE_DOC}). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
+    embed.add_field( name="**__Additional Information__**", value=f'The full documentation for the judge commands can be found [here]({LINK_TO_JUDGE_CMD_DOC}). The user commands are [here]({LINK_TO_PLAYER_CMD_DOC}), and the crash course is [here]({LINK_TO_CRASH_COURSE_DOC}). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!',inline=False )
     
     await ctx.send( embed=embed )
     return
@@ -77,7 +77,7 @@ async def sendUserHelpMessage( ctx ) -> None:
     embed.add_field( name="**__Match Commands__**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
     embed.add_field( name="**__Miscellaneous Commands__**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
 
-    embed.add_field( name="**__Additional Information__**", value="Additional information about each command can be found [here]({LINK_TO_PLAYER_CMD_DOC}). There is also a [crash course]({LINK_TO_CRASH_COURSE_DOC}) for new users. If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!",inline=False )
+    embed.add_field( name="**__Additional Information__**", value=f'Additional information about each command can be found [here]({LINK_TO_PLAYER_CMD_DOC}). There is also a [crash course]({LINK_TO_CRASH_COURSE_DOC}) for new users. If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!',inline=False )
     
     await ctx.send( embed=embed )
     return
