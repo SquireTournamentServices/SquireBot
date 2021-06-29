@@ -140,9 +140,8 @@ async def adminRemoveDeck( ctx, tourn = None, plyr = None, ident = None ):
     if await hasCommandWaiting( ctx, ctx.author.id ):
         del( commandsToConfirm[ctx.author.id] )
 
-    commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.players[member.id].removeDeckCoro( deckName, mention ) )
+    commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.players.removeDeck( member.id, deckName, mention ) )
     await ctx.send( f'{mention}, in order to remove the deck {deckName} from {member.mention}, confirmation is needed. Are you sure you want to remove the deck (!yes/!no)?' )
-    await tournObj.updateInfoMessage()
 
 
 commandSnippets["list-players"] = "- list-players : Lists all player (or the number of players) in a tournament " 

@@ -132,7 +132,6 @@ class tournament:
         infoChannel = None
         if isinstance(self.infoMessageChannelID, int):
             infoChannel = self.guild.get_channel( self.infoMessageChannelID )
-            print( f'{infoChannel=}' )
         if (not infoChannel is None) and isinstance(self.infoMessageID, int):
             self.infoMessage = await infoChannel.fetch_message( self.infoMessageID )
         if self.pairingsChannel is None:
@@ -456,6 +455,16 @@ class tournament:
         elif isTappedOutLink(decklist) or isMtgGoldfishLink(decklist):            
             message += f'\nPlease be aware that this website treats your commander as if it were in your mainboard.'
         return message
+        
+    async def removeDeck( self, plyr: int, deckName: str = "", author: str = "" ) -> str:
+        if not plyr in self.players:
+            return f'<@{plyr}>, you are not registered for {self.name}. Use !register {self.name} to register for this tournament.'
+        if not self.players[plyr].isActive():
+            return f'<@{plyr}>, you are registered by are not an active player in {self.name}. If you believe this is an error, contact tournament staff.'
+
+        digest = await self.players[plyr].removeDeck( deckName, author )
+        await self.updateInfoMessage()
+        return digest
         
     
     # ---------------- Tournament Status ----------------

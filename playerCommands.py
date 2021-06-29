@@ -223,19 +223,12 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
         await ctx.send( f'{mention}, not enough information provided: Please provide your deckname and decklist to add a deck.' )
         return
     
-    message = ""
-    try:
-        message = await tournObj.addDeck( ctx.author.id, ident, decklist )
-        if isMoxFieldLink(decklist):
-            await ctx.send( f'{mention}, please be aware that moxfield treats your commander as if it were in your sideboard.' )
-        await ctx.send( f'{mention}, {message}' )
-        if not private:
-            await ctx.author.send( f'For future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
-    except SyntaxError as ex:
-        traceback.print_exception(type(ex), ex, ex.__traceback__)
-        await ctx.send( f'{mention}, there was an error while processing your deck list, it is possible that it is in the wrong format. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
-        return
-    
+    message = await tournObj.addDeck( ctx.author.id, ident, decklist )
+    if isMoxFieldLink(decklist):
+        message += " Please be aware that Moxfield treats your commander as if it were in your sideboard."
+    await ctx.send( f'{mention}, {message}' )
+    if not private:
+        await ctx.author.send( f'For future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
     await tournObj.updateInfoMessage()
         
         
@@ -282,9 +275,8 @@ async def removeDecklist( ctx, tourn = None, ident = None ):
     if await hasCommandWaiting( ctx, ctx.author.id ):
         del( commandsToConfirm[ctx.author.id] )
 
-    commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.players[ctx.author.id].removeDeckCoro( deckName ) )
+    commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.removeDeck( ctx.author.id, deckName ) )
     await ctx.send( f'{mention}, in order to remove your deck, you need to confirm your request. Are you sure you want to remove it? (!yes/!no)' )
-    await tournObj.updateInfoMessage()
     
 
 commandSnippets["decks"] = "- decks : Lists the names and hashes of the decks you've registered (can be DM-ed)"

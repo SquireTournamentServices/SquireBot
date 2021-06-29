@@ -271,6 +271,8 @@ async def on_ready():
             else:
                 guildSettingsObjects[guild.id].save( f'guilds/{guild.id}/' )
             guildSettingsObjects[guild.id].setEventLoop( bot.loop )
+            for tourn in guildSettingsObjects[guild.id].tournaments:
+                await tourn.updateInfoMessage()
         except Exception as ex:
             print(f'Error loading settings for {guild.name}')
             print(ex)
@@ -324,6 +326,11 @@ async def on_command_error( ctx: discord.ext.commands.Context, error: Exception 
     
 
 bot.remove_command( "help" )
+@bot.command(name='help')
+async def printHelp( ctx ):
+    await ctx.send( f'{ctx.author.mention}, use the command "!squirebot-help" to see the list of my commands.' )
+
+
 @bot.command(name='squirebot-help')
 async def printHelp( ctx ):
     if await isPrivateMessage( ctx, send=False ):
