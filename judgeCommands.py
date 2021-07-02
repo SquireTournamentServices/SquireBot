@@ -324,7 +324,7 @@ async def adminConfirmResult( ctx, tourn = None, plyr = None, mtch = None ):
         await ctx.send( f'{mention}, match #{mtch} is not certified, but {plyr} has already certified the result. There is no need to do this twice.' )
         return
     
-    message = await tournObj.confirmResult( member.id, Match.matchNumber )
+    message = await tournObj.playerConfirmResult( member.id, Match.matchNumber )
     Match.saveXML( )
     await ctx.send( f'{mention}, {message}.' )
     await tournObj.updateInfoMessage()
