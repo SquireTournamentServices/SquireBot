@@ -69,11 +69,11 @@ class match:
     
     def __str__( self ):
         digest  = f'Match #{self.matchNumber}\n'
-        digest += f'Active players: {", ".join(self.activePlayers)}\n'
-        digest += f'Dropped players: {", ".join(self.droppedPlayers)}\n'
-        digest += f'ConfirmedPlayers: {", ".join(self.confirmedPlayers)}\n'
+        digest += f'Active players: {", ".join([ "<@" + str(p) + ">" for p in self.activePlayers ])}\n'
+        digest += f'Dropped players: {", ".join([ "<@" + str(p) + ">" for p in self.droppedPlayers ])}\n'
+        digest += f'ConfirmedPlayers: {", ".join([ "<@" + str(p) + ">" for p in self.confirmedPlayers ])}\n'
         digest += f'Match status: {self.status}\n'
-        digest += f'Match winner: {self.winner}'
+        digest += f'Match winner: <@{self.winner}>'
         return digest
     
     def isOpen( self ) -> bool:

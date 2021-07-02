@@ -36,7 +36,7 @@ def str_to_bool( newBool: str ) -> bool:
 
 def trunk( score ) -> str:
     """ Trunkates doubles to 2 decimal places """
-    if isinstance(score, str):
+    if not isinstance(score, str):
         score = str(score)
     score = score.split(".")
     if len(score) > 1:

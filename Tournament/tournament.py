@@ -394,7 +394,7 @@ class tournament:
                 winner = f'Winner: {self.players[mtch.winner].getMention()}'
             else:
                 winner = f'Winner: {mtch.winner if mtch.winner else "N/A"}'
-            oppens = "Opponents: " + ", ".join( [ Player.discordUser.mention for plyr in players if plyr != plyr ] )
+            oppens = "Opponents: " + ", ".join( [ f'<@{player}>' for player in players if player != plyr ] )
             digest.add_field( name=f'Match #{mtch.matchNumber}', value=f'{status}\n{winner}\n{oppens}' )
         return digest
 
@@ -420,7 +420,7 @@ class tournament:
             digest.add_field( name="Confirmed Players", value=", ".join( [ self.players[plyr].getMention() for plyr in Match.confirmedPlayers ] ) )
             
         if Match.triceMatch:
-            digest.add_field( name="Tricebot Match", value = f'Replay at: {Match.replayURL}' )
+            digest.add_field( name="Tricebot Match", value = f'Replay at: {Match.replayURL}\nPlayer deck verification is {"enabled" if Match.playerDeckVerification else "disabled "}' )
             
         return digest
     
