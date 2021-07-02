@@ -932,25 +932,26 @@ async def cutToTopX( ctx, tourn = None, x = None):
     try:
         x = int (x)
     except:
-        await ctx.send( "You must insert a whole number for the amount of players to cut to." )
+        await ctx.send( f"{mention}, you must insert a whole number for the amount of players to cut to." )
         return
     if x < 2:
         # Minimum to create a match
-        await ctx.send( "You cannot cut to less than 2 players." )        
+        await ctx.send( f"{mention}, you cannot cut to less than 2 players." )        
         return
     
     standings = tournObj.getStandings( )
-    if x < len(standings):
-        await ctx.send( "There are not enough players with standings to make this cut," )
+    if x > len(standings[1]):
+        await ctx.send( f"{mention}, there are not enough players with standings to make this cut." )
         return
     
     playersDropped = []
     for i in range(x, len(standings[1])):
         # Drop this player
-        tourn.dropPlayer(standings[1][i].discordID, ctx.author.mention)
-        playersDropped.append(standings[1][i])
+        aawait tournObj.dropPlayer(standings[1][i].discordID, ctx.author.mention)
+        playersDropped.append(standings[1][i].getMention())
         
-    await ctx.send( f'Cut tournament {tourn} to the top {x} players, the following players were dropped:  - {", ".join(playersDropped)}' )
+    newLine = "\n\t- "
+    await ctx.send( f'{mention}, tournament {tourn} was cut to the top {x} players, the following players were dropped:{newLine}{f"{newLine}".join(playersDropped)}' )
 
 
 """
