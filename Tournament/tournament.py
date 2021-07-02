@@ -332,7 +332,7 @@ class tournament:
                 return mtch
     
     # ---------------- Misc ----------------
-    
+        
     def getStandings( self ) -> List[List]:
         rough = [ ]
         for plyr in self.players.values():
@@ -354,14 +354,14 @@ class tournament:
                 if games != 0:
                     OWP = wins/games
                 #OWP = sum( [ self.players[opp].getMatchWinPercentage( withBye=False ) for opp in plyr.opponents ] )/len(plyr.opponents)
-            rough.append( (points, MWP, OWP, plyr.discordUser.display_name) )
+            rough.append( (points, MWP, OWP, plyr) )
         
         # sort() is stable, so relate order similar elements is preserved
         rough.sort( key= lambda x: x[2], reverse=True )
         rough.sort( key= lambda x: x[1], reverse=True )
         rough.sort( key= lambda x: x[0], reverse=True )
         
-        # Place, Player name, Points, MWP, OWP
+        # Place, Player object, Points, MWP, OWP
         digest =  [ [ i+1 for i in range(len(rough))], \
                     [ i[3] for i in rough ], \
                     [ i[0] for i in rough ], \

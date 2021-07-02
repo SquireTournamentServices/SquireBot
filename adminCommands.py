@@ -794,7 +794,7 @@ async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None, plyr = None, new
     adminMention = gld.getTournAdminRole().mention
     
     if tourn is None or mtch is None or plyr is None or newTriceName is None:
-        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and a player.' )
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament, a match, a player, and their new name.' )
         return
     
     tournObj = gld.getTournament( tourn )
@@ -870,7 +870,7 @@ async def downloadReplays( ctx, tourn = None ):
     adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
     if tourn is None:
-        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament to view the dqueue.' )
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament to download the replays for.' )
         return
     
     tournObj = gld.getTournament( tourn )
@@ -905,6 +905,53 @@ async def downloadReplays( ctx, tourn = None ):
     await ctx.send( f'{mention}, here are the replays for {tourn}.\n{message}', file=discord.File(replayFile, f"{tourn}- replays.zip") )
     replayFile.close()
     
+
+
+commandSnippets["cut-to-top"] = "- cut-to-top: Cuts a tournament to the top X players." 
+commandCategories["management"].append("cut-to-top")
+@bot.command(name='cut-to-top')
+async def cutToTopX( ctx, tourn = None, x = None):
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
+    if await isPrivateMessage( ctx ): return
+
+    if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
+    if tourn is None or x is None:
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and the number of players to cut to.' )
+        return
+    
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        return
+    
+    # Validate the value of x
+    try:
+        x = int (x)
+    except:
+        await ctx.send( "You must insert a whole number for the amount of players to cut to." )
+        return
+    if x < 2:
+        # Minimum to create a match
+        await ctx.send( "You cannot cut to less than 2 players." )        
+        return
+    
+    standings = tournObj.getStandings( )
+    if x < len(standings):
+        await ctx.send( "There are not enough players with standings to make this cut," )
+        return
+    
+    playersDropped = []
+    for i in range(x, len(standings[1])):
+        # Drop this player
+        tourn.dropPlayer(standings[1][i].discordID, ctx.author.mention)
+        playersDropped.append(standings[1][i])
+        
+    await ctx.send( f'Cut tournament {tourn} to the top {x} players, the following players were dropped:  - {", ".join(playersDropped)}' )
+
 
 """
 
