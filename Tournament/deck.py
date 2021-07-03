@@ -21,29 +21,11 @@ import json
 import re
 import requests
 import traceback
-from time import sleep
 from typing import List
 
 from .utils import *
 from .exceptions import *
 from .cardDB import *
-from threading import Thread
-
-def updateDB(db):
-    while True:
-        sleep(db.updateTime)
-        while dn.needsUpdate():
-            db.updateCards()
-
-def initCardDB():
-    print("Creating card database...")
-    db = cardDB()
-    print("Created card database.")
-    
-    cardUpdateThread = Thread(target = updateDB, args = (db,))
-    cardUpdateThread.start() 
-    
-    return db
 
 # Constant compiled regexes
 cardsDB = initCardDB()

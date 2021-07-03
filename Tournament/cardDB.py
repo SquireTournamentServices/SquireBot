@@ -7,15 +7,8 @@ import gc
 import ctypes
 
 from time import time
-
-normaliseRegex = re.compile(",|\.|-|'")
-spacesRegex = re.compile(" +")
-
-
-# Makes two strings easier to compare by removing excess whitespace,
-# commas, hyphens, apostrophes and full stops.
-def normaliseCardName(string: str):
-    return re.sub(spacesRegex, " ", re.sub(normaliseRegex, "", string)).lower().split("//")[0].strip()
+from time import sleep
+from threading import Thread
 
 class card:
     def __init__(self, name: str, layout: str):
@@ -26,7 +19,7 @@ class card:
     
     def __str__(self):
         return f'{self.name} ({self.layout})'
-    
+
 class cardDB:
     def __init__(self, updateTime: int = 24*60*60, mtgjsonURL: str = "https://www.mtgjson.com/api/v5/AllPrintings.json"):
         self.lastUpdate = 0
@@ -35,7 +28,15 @@ class cardDB:
         self.url = mtgjsonURL
         
         self.updateCards()
-    
+        
+        self.normaliseRegex = re.compile(",|\.|-|'")
+        self.spacesRegex = re.compile(" +")
+
+    # Makes two strings easier to compare by removing excess whitespace,
+    # commas, hyphens, apostrophes and full stops.
+    def normaliseCardName(self, string: str):
+        return re.sub(self.spacesRegex, " ", re.sub(self.normaliseRegex, "", string)).lower().split("//")[0].strip()
+
     def needsUpdate(self) -> bool:
         return int(time()) - self.lastUpdate > self.updateTime
     
@@ -52,14 +53,13 @@ class cardDB:
                 for card_ in data[set]["cards"]:
                     # Check for reprint (also stops the back of a mdfc from being added)
                     # i hate mdfcs as they make this harder than it has to be
-                    name = normaliseCardName(card_["name"])
+                    name = self.normaliseCardName(card_["name"])
                         
                     if not name in tempCards:
                         cardObject = card(card_["name"], card_["layout"])
-                        if "face" in card_:
-                            if card_["face"] != "a":
-                                continue # Rear of the card is ignored
-                            
+                        if ("face" in card_) and (card_["face"] != "a"):
+                            continue # Rear of the card is ignored
+                        
                         tempCards[name] = cardObject
                                     
         except Exception as e:
@@ -83,19 +83,34 @@ class cardDB:
         libc = ctypes.CDLL("libc.so.6")
         libc.malloc_trim(0)
         
-        if status:            
-            self.lastUpdate = int(time())
-        
         return status
 
-    # Returns a card object from a database search.
-    def getCard(self, cardName) -> card:    
+    # Returns a cockatrice card name from the database, failing that the input
+    # is returned. This is for turning cards into the format that cockatrice uses
+    # for deck hashing, in future this method may be changed to return card objects.
+    def getCard(self, cardName) -> str:
         name = ""
         
-        if normaliseCardName(cardName) in self.cards:
-            name = self.cards[normaliseCardName(cardName)].name
+        if self.normaliseCardName(cardName) in self.cards:
+            name = self.cards[self.normaliseCardName(cardName)].name
         else:
             name = cardName
         
-        print(name)
         return name
+
+# Util methods for starting this db
+def updateDB(db):
+    while True:
+        sleep(db.updateTime)
+        while db.needsUpdate():
+            db.updateCards()
+
+def initCardDB():
+    print("Creating card database...")
+    db = cardDB()
+    print("Created card database.")
+    
+    cardUpdateThread = Thread(target = updateDB, args = (db,))
+    cardUpdateThread.start() 
+    
+    return db
