@@ -21,7 +21,7 @@ import json
 import re
 import requests
 import traceback
-import time
+from time import sleep
 from typing import List
 
 from .utils import *
@@ -31,9 +31,9 @@ from threading import Thread
 
 def updateDB(db):
     while True:
-        while not db.updateCards():
-            pass
-        time.sleep(db.updateTime)
+        sleep(db.updateTime)
+        while dn.needsUpdate():
+            db.updateCards()
 
 def initCardDB():
     print("Creating card database...")

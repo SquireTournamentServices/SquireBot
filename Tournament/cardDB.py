@@ -8,7 +8,7 @@ import ctypes
 
 from time import time
 
-normaliseRegex = re.compile(",\.-'")
+normaliseRegex = re.compile(",|\.|-|'")
 spacesRegex = re.compile(" +")
 
 
@@ -20,38 +20,13 @@ def normaliseCardName(string: str):
 class card:
     def __init__(self, name: str, layout: str):
         self.name = name
-        self.layout = layout
+        if layout in ["modal_dfc", "transform", "flip"]:
+            self.name = self.name.split("//")[0]
+        self.name = self.name.strip()
     
     def __str__(self):
         return f'{self.name} ({self.layout})'
     
-    def getCockatriceName(self) -> str:
-        if self.layout in ["modal_dfc", "transform", "flip"]:
-            return self.name.split(" // ")[0]
-        else:
-            return self.name
-    
-    def compare(self, name:str) -> int:
-        if self.equals(name):
-            return 0
-        else:
-            normalisedName = normaliseCardName(self.name)
-            name = normaliseCardName(name)
-            if self.name < name:
-                return -1
-            else:
-                return 1
-    
-    def equals(self, name: str) -> bool:
-        name = normaliseCardName(name)
-        normalisedName = normaliseCardName(self.name)
-        
-        if self.layout == "normal":
-            return normalisedName == name
-        else:
-            # Complete match or the first name matches
-            return normalisedName == name or normalisedName.split(" //")[0] == name
-
 class cardDB:
     def __init__(self, updateTime: int = 24*60*60, mtgjsonURL: str = "https://www.mtgjson.com/api/v5/AllPrintings.json"):
         self.lastUpdate = 0
@@ -114,9 +89,13 @@ class cardDB:
         return status
 
     # Returns a card object from a database search.
-    def getCard(self, cardName) -> card:        
-        cardName = normaliseCardName(cardName)
-        if cardName in self.cards:
-            return self.cards[cardName].getCockatriceName()
+    def getCard(self, cardName) -> card:    
+        name = ""
+        
+        if normaliseCardName(cardName) in self.cards:
+            name = self.cards[normaliseCardName(cardName)].name
         else:
-            return cardName
+            name = cardName
+        
+        print(name)
+        return name
