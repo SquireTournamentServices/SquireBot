@@ -26,7 +26,7 @@ class card:
         return f'{self.name} ({self.layout})'
     
     def getCockatriceName(self) -> str:
-        if self.layout in ["modal_dfc", "transform"]:
+        if self.layout in ["modal_dfc", "transform", "flip"]:
             return self.name.split(" // ")[0]
         else:
             return self.name
