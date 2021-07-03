@@ -21,13 +21,32 @@ import json
 import re
 import requests
 import traceback
+import time
 from typing import List
 
 from .utils import *
 from .exceptions import *
+from .cardDB import *
+from threading import Thread
 
+def updateDB(db):
+    while True:
+        while not db.updateCards():
+            pass
+        time.sleep(db.updateTime)
+
+def initCardDB():
+    print("Creating card database...")
+    db = cardDB()
+    print("Created card database.")
+    
+    cardUpdateThread = Thread(target = updateDB, args = (db,))
+    cardUpdateThread.start() 
+    
+    return db
 
 # Constant compiled regexes
+cardsDB = initCardDB()
 moxFieldLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?moxfield\.com\/decks\/([a-z_A-Z0-9-]+)\s*', re.M | re.I)
 tappedoutLinkRegex = re.compile('\s*(https?:\/\/)?tappedout\.net\/mtg-decks\/([a-z0-9-]*)\/?\s*', re.M | re.I)
 mtgGoldFishLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})(#[a-zA-Z]*)?\s*', re.M | re.I)
@@ -238,16 +257,16 @@ class deck:
                     card = [ card ]
                 if len( card ) == 1:
                     number = 1
-                    name   = card[0].strip().lower()
+                    name   = cardsDB.getCard(card[0]).strip().lower()
                 else:
                     number = int( card[0].strip() )
-                    name   = card[1].strip().lower()
+                    name   = cardsDB.getCard(card[1]).strip().lower()
                 for i in range(number):
                     cards.append( name )
             else:
                 card = card.split(" ", 2)
                 number = int( card[1].strip() )
-                name   = card[0] + card[2].strip().lower()
+                name   = cardsDB.getCard(card[0] + card[2]).strip().lower()
                 for i in range(number):
                     cards.append( name )
 
