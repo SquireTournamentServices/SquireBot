@@ -248,7 +248,7 @@ class deck:
             else:
                 card = card.split(" ", 2)
                 number = int( card[1].strip() )
-                name   = cardsDB.getCard(card[0] + card[2]).strip().lower()
+                name   = card[0] + cardsDB.getCard(card[2]).strip().lower()
                 for i in range(number):
                     cards.append( name )
 
