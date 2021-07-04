@@ -303,7 +303,7 @@ class player:
         self.saveLocation = a_filename
         self.name = fromXML(xmlTree.getroot().find( 'name' ).text)
         self.triceName = fromXML(xmlTree.getroot().find( 'triceName' ).text)
-        if self.triceName == None:
+        if self.triceName is None:
             self.triceName = ""
         self.discordID  = fromXML(xmlTree.getroot().find( 'discord' ).attrib['id'])
         if self.discordID != "":

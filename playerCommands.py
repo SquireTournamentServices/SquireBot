@@ -133,7 +133,7 @@ async def addTriceName( ctx, tourn = None, name = None ):
     await ctx.send( f'{mention}, {message}' )
     
     for match in plyrObj.matches:
-        if not match.isDead() and match.triceMatch and match.playerDeckVerification:
+        if (not match.isDead()) and match.triceMatch and match.playerDeckVerification:
             baseMSG = ""
                 
             # Send update command

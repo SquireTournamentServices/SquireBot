@@ -687,7 +687,7 @@ class tournament:
                 if self.player_deck_verification:
                     for plyr in plyrs:
                         name = self.players[plyr].triceName
-                        if name == "":
+                        if name == "" or name is None:
                             name = "*"
                         playerNames.append(name)
                         deckHashes.append( [dck.deckHash for dck in self.players[plyr].decks.values()] )
