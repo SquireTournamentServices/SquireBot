@@ -18,7 +18,7 @@ class card:
         self.name = self.name.strip()
     
     def __str__(self):
-        return f'{self.name} ({self.layout})'
+        return f'{self.name}'
 
 class cardDB:
     def __init__(self, updateTime: int = 24*60*60, mtgjsonURL: str = "https://www.mtgjson.com/api/v5/AllPrintings.json"):
@@ -26,16 +26,15 @@ class cardDB:
         self.updateTime = updateTime
         self.cards = dict( )
         self.url = mtgjsonURL
-        
-        self.updateCards()
-        
         self.normaliseRegex = re.compile(",|\.|-|'")
         self.spacesRegex = re.compile(" +")
+        
+        self.updateCards()        
 
     # Makes two strings easier to compare by removing excess whitespace,
     # commas, hyphens, apostrophes and full stops.
     def normaliseCardName(self, string: str):
-        return re.sub(self.spacesRegex, " ", re.sub(self.normaliseRegex, "", string)).lower().split("//")[0].strip()
+        return re.sub(self.spacesRegex, " ", re.sub(self.normaliseRegex, "", string)).split("//")[0].lower().strip()
 
     def needsUpdate(self) -> bool:
         return int(time()) - self.lastUpdate > self.updateTime
@@ -90,9 +89,10 @@ class cardDB:
     # for deck hashing, in future this method may be changed to return card objects.
     def getCard(self, cardName) -> str:
         name = ""
+        nameNormal = self.normaliseCardName(cardName)
         
-        if self.normaliseCardName(cardName) in self.cards:
-            name = self.cards[self.normaliseCardName(cardName)].name
+        if nameNormal in self.cards:
+            name = self.cards[nameNormal].name
         else:
             name = cardName
         
