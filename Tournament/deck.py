@@ -41,13 +41,13 @@ def isValidCodFile(deckData: str) -> bool:
 
 def isMoxFieldLink(decklist: str) -> bool:
     return moxFieldLinkRegex.search(decklist)
-    
+
 def isMtgGoldfishLink(decklist: str) -> bool:
     return mtgGoldFishLinkRegex.search(decklist)
-    
+
 def isTappedOutLink(decklist: str) -> bool:
-    return tappedoutLinkRegex.search(decklist)    
-    
+    return tappedoutLinkRegex.search(decklist)
+
 class deck:
     """
     The class is this module
@@ -61,11 +61,11 @@ class deck:
         self.ident = ident
         self.cards = [ ]
         self.decklist = ""
-        
+
         # Check input type
         if isValidCodFile(decklist):
             self._loadFromCodFile(decklist)
-        
+
         # Deck scraping
         elif isMoxFieldLink(decklist):
             self._loadMoxFieldDeck(decklist)
@@ -73,7 +73,7 @@ class deck:
             self._loadMtgGoldfishDeck(decklist)
         elif isTappedOutLink(decklist):
             self._loadTappedOutDeck(decklist)
-            
+
         # Normal decklist
         else:
             if not self.validateDecklist( decklist ):
@@ -84,7 +84,7 @@ class deck:
             else:
                 self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
                             self.parseNonAnnotatedTriceDecklist( )
-        
+
         self.updateDeckHash()
 
     def __str__( self ):
@@ -99,13 +99,13 @@ class deck:
             if not self.validDecklistRegex.search( card ):
                 return False
         return True
-    
+
     def _loadMtgGoldfishDeck(deckURL: str):
         regex_match = mtgGoldFishLinkRegex.fullmatch(deckURL)
         https, www, deck_id, anchor = regex_match.groups()
-        
+
         url = f"https://www.mtggoldfish.com/deck/download/{deck_id}"
-        
+
         self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
         if not self.validateDecklist( self.decklist ):
             raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
@@ -116,24 +116,24 @@ class deck:
     def _loadTappedOutDeck(self, deckURL: str):
         regex_match = tappedoutLinkRegex.fullmatch(deckURL)
         https, deck_id = regex_match.groups()
-        
+
         url = f"https://tappedout.net/mtg-decks/{deck_id}/?fmt=txt"
-        
+
         decklist = requests.get(url, timeout=7.0, data="", verify=True).text
-        
+
         # Sort out sideboard
         boards = decklist.split("Sideboard:")
         mainboard = boards[0]
-        
+
         sideboard = []
         sideboard_list = ""
         if len(boards) > 1:
             sideboard_list = "\n".join( [ card for card in boards[1].split("\n") if (not card.isspace()) and card != "" ] )
-        
+
         if not self.validateDecklist( mainboard + sideboard_list ):
             raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
 
-        self.decklist = mainboard + sideboard_list        
+        self.decklist = mainboard + sideboard_list
         self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
             self.parseNonAnnotatedTriceDecklist( )
 
@@ -141,9 +141,9 @@ class deck:
         self.decklist = ""
         regex_match = moxFieldLinkRegex.fullmatch(deckURL)
         https, www, deck_id = regex_match.groups()
-        
+
         url = f"https://api.moxfield.com/v2/decks/all/{deck_id}"
-        
+
         resp = requests.get(url, timeout=7.0, data="", verify=True).text
         deck_data = json.loads(resp)
         
@@ -160,8 +160,8 @@ class deck:
             for card_name in side_board:
                 # Add card to decklist
                 card = side_board[card_name]
-                self.decklist += f'SB: {card["quantity"]} {card_name}\n'                
-        
+                self.decklist += f'SB: {card["quantity"]} {card_name}\n'
+
         if not self.validateDecklist( self.decklist ):
             raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
 
@@ -170,10 +170,10 @@ class deck:
     def _loadFromCodFile(self, fileData: str):
         # Init deck object
         self.decklist = ""
-        
+
         # Extract deck and return object
         dck = ET.fromstring(fileData)
-        
+
         # self.ident = fromXML(dck.find("deckname").text)
         zones = dck.findall("zone")
         for zone in zones:
@@ -182,7 +182,7 @@ class deck:
                 number = int(card.attrib['number'])
                 cardname = fromXML(card.attrib['name'])
                 cardnameLower = cardname.lower()
-                
+
                 # Add card to decklist
                 if zone.attrib['name'] == "side":
                     self.decklist += "SB: "
@@ -190,8 +190,8 @@ class deck:
 
         if not self.validateDecklist( self.decklist ):
             raise CodFileError( f'Malformed card/quantity while parsing cod file.' )
-                    
-        # Update hash            
+
+        # Update hash
         self.cards = self.parseNonAnnotatedTriceDecklist()
 
     def exportXMLString( self, indent: str = "" ) -> str:
@@ -229,7 +229,7 @@ class deck:
         """
         if "" != self.decklist and not deckRegex.search(self.decklist):
             raise SyntaxError(f"Error deck list is not in the correct form {self.decklist}.")
-        
+
         cards = []
         for card in self.cards:
             if not "SB:" in card:

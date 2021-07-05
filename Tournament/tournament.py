@@ -52,47 +52,47 @@ class tournament:
         self.name: str = name.replace("../", "")
         self.hostGuildName = hostGuildName
         self.format    = props["format"] if "format" in props else "Pioneer"
-        
+
         self.guild   = None
         self.guildID = ""
         self.role    = None
         self.roleID  = ""
         self.pairingsChannel = None
         self.pairingsChannelID = ""
-        
+
         self.infoMessageChannelID = None
         self.infoMessageID = None
         self.infoMessage = None
-        
+
         self.regOpen      = True
         self.tournStarted = False
         self.tournEnded   = False
         self.tournCancel  = False
-        
+
         self.loop = asyncio.new_event_loop( )
         self.fail_count = 0
-        
+
         self.playersPerMatch = int(props["match-size"]) if "match-size" in props else 2
         self.matchLength     = int(props["match-length"])*60 if "match-length" in props else 60*60 # Length of matches in seconds
-        
+
         self.deckCount = 1
 
         self.players  = {}
-        
+
         self.matches = []
-        
+
         #Create bot class and store the game creation settings
         self.triceBotEnabled = False
         self.spectators_allowed = False
-        self.spectators_need_password = False 
-        self.spectators_can_chat = False 
-        self.spectators_can_see_hands = False 
+        self.spectators_need_password = False
+        self.spectators_can_chat = False
+        self.spectators_can_see_hands = False
         self.only_registered = False
         self.player_deck_verification = False
-        
+
         if len(props) != 0:
             self.setProperties(props)
-    
+
     def getSaveLocation( self ) -> str:
         digest: str = ""
         if self.isDead():
@@ -100,18 +100,18 @@ class tournament:
         else:
             digest = f'guilds/{self.guild.id}/currentTournaments/{self.name}/'
         return digest
-            
+
     def isPlanned( self ) -> bool:
         return not ( self.tournStarted or self.tournEnded or self.tournCancel )
-    
+
     def isActive( self ) -> bool:
         return self.tournStarted and not ( self.tournEnded or self.tournCancel )
-    
+
     def isDead( self ) -> bool:
         return self.tournEnded or self.tournCancel
-    
+
     # ---------------- Universally Defined Methods ----------------
-    
+
     async def addDiscordGuild( self, guild: discord.Guild ) -> str:
         self.guild = guild
         self.hostGuildName = guild.name
@@ -121,7 +121,7 @@ class tournament:
         self.roleID = self.role.id
         self.pairingsChannel = discord.utils.get( guild.channels, name="match-pairings" )
         self.pairingsChannelID = self.pairingsChannel.id
-    
+
     async def assignGuild( self, guild: discord.Guild ) -> str:
         print( f'The guild "{guild}" is being assigned to {self.name}.' )
         print( f'There are {len(self.players)} players in this tournament!\n' )
@@ -155,18 +155,18 @@ class tournament:
         return
 
     # ---------------- Property Accessors ----------------
-    
+
     # Each tournament type needs a static method that will filter out valid properties
     # This used throughout the tournament and when adding server defaults
     def filterProperties( guild: discord.Guild, props: Dict ) -> Dict:
         digest: dict = { "successes": dict(), "failures": dict(), "undefined": dict() }
         for prop in props:
             props[prop] = str(props[prop])
-            
+
             # Valid numbers here are strickly positive
             # And yes, this is safe. The second expression isn't evaluated if the first is false
             isValidNumber = props[prop].isnumeric() and int(props[prop]) > 0
-                
+
             # Check for empty strings
             if props[prop] == "":
                 pass
@@ -250,7 +250,7 @@ class tournament:
                     digest["failures"][prop] = props[prop]
             else:
                 digest["undefined"][prop] = props[prop]
-        
+
         return digest
 
     def getProperties( self ) -> Dict:
@@ -268,12 +268,12 @@ class tournament:
         digest["only-registered"] = self.only_registered if self.only_registered else None
         digest["player-deck-verification"] = self.player_deck_verification if self.player_deck_verification else None
         return digest
-    
+
     # Sets properties that can be changed directly by users
     # TODO: Consider a properies member instead of individual members (fixme)
     def setProperties( self, props: Dict ) -> str:
         digest: str = ""
-        
+
         if len(props) == 0:
             return digest
 
@@ -304,7 +304,7 @@ class tournament:
                 self.only_registered = filteredProps["successes"][prop]
             elif prop == "player-deck-verification":
                 self.player_deck_verification = filteredProps["successes"][prop]
-        
+
         if len(filteredProps["successes"]) == 0:
             digest += "No properties were successfully updated."
         else:
@@ -321,7 +321,7 @@ class tournament:
 
     def updatePairingsThreshold( self, count: int ) -> str:
         return f'There is no pairings threshold is not defined for {self.name}'
-    
+
     def getMatch( self, matchNum: int ) -> match:
         if matchNum > len(self.matches) + 1:
             return match( [] )
@@ -330,9 +330,9 @@ class tournament:
         for mtch in self.matches:
             if mtch.matchNumber == matchNum:
                 return mtch
-    
+
     # ---------------- Misc ----------------
-        
+
     def getStandings( self ) -> List[List]:
         rough = [ ]
         for plyr in self.players.values():
@@ -355,12 +355,12 @@ class tournament:
                     OWP = wins/games
                 #OWP = sum( [ self.players[opp].getMatchWinPercentage( withBye=False ) for opp in plyr.opponents ] )/len(plyr.opponents)
             rough.append( (points, MWP, OWP, plyr) )
-        
+
         # sort() is stable, so relate order similar elements is preserved
         rough.sort( key= lambda x: x[2], reverse=True )
         rough.sort( key= lambda x: x[1], reverse=True )
         rough.sort( key= lambda x: x[0], reverse=True )
-        
+
         # Place, Player object, Points, MWP, OWP
         digest =  [ [ i+1 for i in range(len(rough))], \
                     [ i[3] for i in rough ], \
@@ -375,7 +375,7 @@ class tournament:
     def getTournamentStatusEmbed( self ) -> discord.Embed:
         digest: discord.Embed = discord.Embed( title = f'{self.name} Status' )
         return digest
-    
+
     def getPlayerProfileEmbed( self, plyr: int ) -> discord.Embed:
         Player = self.players[plyr]
         digest = discord.Embed()
@@ -418,12 +418,12 @@ class tournament:
                 digest.add_field( name="Winner", value=Match.winner )
         if len(Match.confirmedPlayers) != 0:
             digest.add_field( name="Confirmed Players", value=", ".join( [ self.players[plyr].getMention() for plyr in Match.confirmedPlayers ] ) )
-            
+
         if Match.triceMatch:
             digest.add_field( name="Tricebot Match", value = f'Replay at: {Match.replayURL}\nPlayer deck verification is {"enabled" if Match.playerDeckVerification else "disabled "}' )
             
         return digest
-    
+
     # ---------------- Player Accessors ----------------
     def setPlayerTriceName( self, plyr: str, name: str ) -> str:
         if not plyr in self.players:
@@ -433,7 +433,7 @@ class tournament:
         self.players[plyr].triceName = name
         self.players[plyr].saveXML( )
         return f'Your cockatrice name was set to {name} successfully.'
-    
+
     async def addDeck( self, plyr: int, deckName: str, decklist: str, admin: bool = False ) -> str:
         if not plyr in self.players:
             return f'you are not registered for {self.name}. Use the !register {self.name} to register for this tournament.'
@@ -444,18 +444,18 @@ class tournament:
         self.players[plyr].addDeck( deckName, decklist )
         self.players[plyr].saveXML( )
         deckHash = self.players[plyr].decks[deckName].deckHash
-                
+
         if admin:
             await self.players[plyr].discordUser.send( content = f'A decklist has been submitted for {self.name} on your behalf. The name of the deck is "{deckName}" and the deck hash is "{deckHash}". Use the command "!decklist {deckName}" to see the list. Please contact tournament staff if there is an error.' )
             return f'you have submitted a decklist for {self.players[plyr].getMention()}. The deck hash is {deckHash}.'
         message = f'your deck has been successfully registered in {self.name}. Your deck name is "{deckName}", and the deck hash is "{deckHash}". Make sure it matches your deck hash in Cockatrice. You can see your decklist by using !decklist "{deckName}" or !decklist {deckHash}.'
-        
+
         if isMoxFieldLink(decklist):
             message += f'\nPlease be aware that moxfield treats your commander as if it were in your sideboard.'
-        elif isTappedOutLink(decklist) or isMtgGoldfishLink(decklist):            
+        elif isTappedOutLink(decklist) or isMtgGoldfishLink(decklist):
             message += f'\nPlease be aware that this website treats your commander as if it were in your mainboard.'
         return message
-        
+
     async def removeDeck( self, plyr: int, deckName: str = "", author: str = "" ) -> str:
         if not plyr in self.players:
             return f'<@{plyr}>, you are not registered for {self.name}. Use !register {self.name} to register for this tournament.'
@@ -465,8 +465,8 @@ class tournament:
         digest = await self.players[plyr].removeDeck( deckName, author )
         await self.updateInfoMessage()
         return digest
-        
-    
+
+
     # ---------------- Tournament Status ----------------
 
     def setRegStatus( self, status: bool ) -> str:
@@ -477,7 +477,7 @@ class tournament:
             return "This tournament has already ended. As such, registeration can't be opened."
         elif self.tournCancel:
             return "This tournament has been cancelled. As such, registeration can't be opened."
-    
+
     def startTourn( self ) -> str:
         if not (self.tournStarted or self.tournEnded or self.tournCancel):
             self.tournStarted = True
@@ -487,7 +487,7 @@ class tournament:
             return "This tournament has already ended. As such, it can't be started."
         elif self.tournCancel:
             return "This tournament has been cancelled. As such, it can't be started."
-    
+
     async def purgeTourn( self ) -> None:
         for match in self.matches:
             match.stopTimer = True
@@ -506,7 +506,7 @@ class tournament:
                 await self.role.delete( )
             except:
                 pass
-    
+
     async def endTourn( self, adminMention: str = "", author: str = "" ) -> str:
         if not self.tournStarted:
             return f'{self.name} has not started, so it can not be ended. However, it can be cancelled.'
@@ -517,7 +517,7 @@ class tournament:
             shutil.rmtree( f'currentTournaments/{self.name}' )
         await self.updateInfoMessage()
         return f'{adminMention}, {self.name} has been closed by {author}.'
-    
+
     async def cancelTourn( self, adminMention: str = "", author: str = "") -> str:
         await self.purgeTourn( )
         oldLocation = self.getSaveLocation()
@@ -527,7 +527,7 @@ class tournament:
             shutil.rmtree( oldLocation )
         await self.updateInfoMessage()
         return f'{adminMention}, {self.name} has been cancelled by {author}.'
-    
+
     # ---------------- Player Management ----------------
 
     async def prunePlayers( self, ctx ) -> str:
@@ -539,7 +539,7 @@ class tournament:
                 await self.players[plyr].discordUser.send( content=f'You have been dropped from the tournament {self.name} on {ctx.guild.name} by tournament staff for not submitting a deck. If you believe this is an error, contact them immediately.' )
                 self.players[plyr].saveXML( )
         return f'All players that did not submit a deck have been pruned.'
-    
+
     async def addPlayer( self, discordUser, admin=False ) -> str:
         if not admin and self.tournCancel:
             return "this tournament has been cancelled. If you believe this to be incorrect, please contact the tournament staff."
@@ -572,7 +572,7 @@ class tournament:
             return f'{author}, {self.players[plyr].discordUser.mention} has been dropped from the tournament.'
         return f'{self.players[plyr].discordUser.mention}, you have been dropped from {self.name}.'
         await self.updateInfoMessage()
-    
+
     async def playerConfirmResult( self, plyr: str, matchNum: int, admin: bool = False ) -> None:
         if not plyr in self.players:
             return f'you are not registered in {self.name}.'
@@ -583,13 +583,13 @@ class tournament:
         if admin:
             await self.players.discordUser.send( f'The result for match #{matchNum} in {self.name} has been confirmed on your behalf by tournament staff.' )
         return message
-    
+
     async def recordMatchResult( self, plyr: str, result: str, matchNum: int, admin: bool = False ) -> str:
         if admin:
             message = await self.matches[matchNum - 1].recordResultAdmin( plyr, result )
         else:
             message = await self.matches[matchNum - 1].recordResult( plyr, result )
-        
+
         if "announcement" in message:
             await self.pairingsChannel.send( content=message["announcement"] )
         return message["message"]
@@ -606,7 +606,7 @@ class tournament:
             plyr.saveXML( )
         await self.updateInfoMessage()
         return f'Decks have been pruned. All players have at most {self.deckCount} deck{"" if self.deckCount == 1 else "s"}.'
-    
+
     # ---------------- Match Management ----------------
     async def _sendMatchWarning( self, msg: str ) -> None:
         await self.pairingsChannel.send( content=msg )
@@ -621,7 +621,7 @@ class tournament:
     def _matchTimer( self, mtch: match, t: int = -1 ) -> None:
         if t == -1:
             t = self.matchLength
-        
+
         while mtch.getTimeLeft() > 0 and not mtch.stopTimer:
             time.sleep( 1 )
             if mtch.getTimeLeft() <= 60 and not mtch.sentOneMinWarning and not mtch.stopTimer:
@@ -641,7 +641,7 @@ class tournament:
             task.join( )
             mtch.sentFinalWarning = True
         mtch.saveXML( )
-    
+
     async def addMatch( self, plyrs: List[str] ) -> None:
         for plyr in plyrs:
             self.queueActivity.append( (plyr, getTime() ) )
@@ -659,29 +659,29 @@ class tournament:
             matchCategory = discord.utils.get( self.guild.categories, name="Matches" )
             if len(matchCategory.channels) >= 50:
                 matchCategory = category=discord.utils.get( self.guild.categories, name="More Matches" )
-                
+
             game_name: str = f'{self.name} Match {newMatch.matchNumber}'
-            
+
             newMatch.VC    = await matchCategory.create_voice_channel( name=game_name, overwrites=overwrites )
             newMatch.role  = matchRole
             newMatch.timer = threading.Thread( target=self._matchTimer, args=(newMatch,) )
-            
+
             message = f'\n{matchRole.mention} of {self.name}, you have been paired. A voice channel has been created for you. Below is information about your opponents.\n'
             embed   = discord.Embed( )
-            
+
             if self.triceBotEnabled:
                 #This causes the replay to get saved into a folder
                 game_name: str = f'{self.name}/Match {newMatch.matchNumber}'
-                
+
                 #Try to create the game
                 creation_success: bool = False
                 replay_download_link: str = ""
                 game_id: int = -1
                 tries: int = 0
                 max_tries: int = 3
-                
+
                 game_password: str = "game-" + str(newMatch.matchNumber)
-                
+
                 playerNames = []
                 deckHashes = []
                 if self.player_deck_verification:
@@ -695,24 +695,24 @@ class tournament:
                 #Try up to three times
                 while not creation_success and tries < max_tries:                    
                     game_made = trice_bot.createGame(game_name, game_password, len(plyrs), self.spectators_allowed, self.spectators_need_password, self.spectators_can_chat, self.spectators_can_see_hands, self.only_registered, self.player_deck_verification, playerNames, deckHashes)
-                    
+
                     creation_success = game_made.success
                     replay_download_link = trice_bot.getDownloadLink(game_made.replayName)
                     game_id = game_made.gameID
                     tries += 1
-                    
+
                 if creation_success:
                     #Game was made
                     newMatch.triceMatch = True
                     newMatch.gameID = game_id
                     newMatch.replayURL = replay_download_link
-                    
+
                     if self.player_deck_verification:
                         newMatch.playerDeckVerification = True
-                    
+
                     message += f'A cockatrice game was automatically made for you it is called {game_name }'
                     message += f' and has a password of `"{game_password}"`\n'
-                
+
                     #TODO: move replay download link? (fixme)
                     message += f'Replay download link {replay_download_link} (available on game end).\n'
                 else:
@@ -729,17 +729,17 @@ class tournament:
                 self.players[plyr].saveXML()
                 await self.players[plyr].discordUser.add_roles( matchRole )
                 embed.add_field( name=self.players[plyr].getDisplayName(), value=self.players[plyr].pairingString() )
-        
+
         if type( self.guild ) is discord.Guild:
             await self.pairingsChannel.send( content=message, embed=embed )
-            
+
         newMatch.timer.start( )
         newMatch.saveXML()
         await self.updateInfoMessage()
-    
+
     # See tricebot.py for retun details
     # copy pasta of them is here. accurate as of 25/04/21
-    
+
     #  1 if success
     #  0 auth token is bad or error404 or network issue
     # -1 if player not found
@@ -747,7 +747,7 @@ class tournament:
     def kickTricePlayer(self, a_matchNum, playerName):
         match = self.matches[a_matchNum - 1]
         return trice_bot.kickPlayer(match.gameID, playerName)
-    
+
     def addBye( self, plyr: str ) -> None:
         self.removePlayerFromQueue( plyr )
         newMatch = match( [ plyr ] )
@@ -757,7 +757,7 @@ class tournament:
         newMatch.recordBye( )
         self.players[plyr].matches.append( newMatch )
         newMatch.saveXML( )
-    
+
     async def removeMatch( self, matchNum: int, author: str = "" ) -> str:
         if self.matches[matchNum - 1] != matchNum:
             self.matches.sort( key=lambda x: x.matchNumber )
@@ -771,18 +771,18 @@ class tournament:
 
         await self.matches[matchNum - 1].killMatch( )
         self.matches[matchNum - 1].saveXML( )
-        
+
         await self.updateInfoMessage()
         return f'{author}, match #{matchNum} has been removed.'
-    
-    
+
+
     # ---------------- Matchmaking Queue Methods ----------------
-    
+
     # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing
     # This is a prime canidate for adjustments when players how copies of match results.
     def addPlayerToQueue( self, plyr: str ) -> str:
         return f'{self.name} does not have a matchmaking queue.'
-    
+
     def removePlayerFromQueue( self, plyr: str ) -> str:
         return f'{self.name} does not have a matchmaking queue.'
 
@@ -801,15 +801,15 @@ class tournament:
         self.saveOverview( f'{dirName}/overview.xml' )
         self.saveMatches( dirName )
         self.savePlayers( dirName )
-    
+
     def saveTournamentType( self, filename: str = "" ):
         print( "No tournament type being saved." )
         return None
-    
+
     def saveOverview( self, filename: str = "" ):
         print( "No overview being saved." )
         return None
-    
+
     def savePlayers( self, dirName: str = "" ) -> None:
         if dirName == "":
             dirName = self.getSaveLocation()
@@ -827,15 +827,15 @@ class tournament:
 
         for match in self.matches:
             match.saveXML( f'{dirName}/matches/match_{match.matchNumber}.xml' )
-        
+
     def loadTournament( self, dirName: str ) -> None:
         self.loadPlayers( f'{dirName}/players/' )
         self.loadOverview( f'{dirName}/overview.xml' )
         self.loadMatches( f'{dirName}/matches/' )
-    
+
     def loadOverview( self, filename: str ) -> None:
         return None
-    
+
     def loadPlayers( self, dirName: str ) -> None:
         playerFiles = [ f'{dirName}/{f}' for f in os.listdir(dirName) if os.path.isfile( f'{dirName}/{f}' ) ]
         for playerFile in playerFiles:
@@ -845,7 +845,7 @@ class tournament:
             newPlayer.loadXML( playerFile )
             self.players[newPlayer.discordID] = newPlayer
         print( list(self.players.keys()) )
-    
+
     def loadMatches( self, dirName: str ) -> None:
         matchFiles = [ f'{dirName}/{f}' for f in os.listdir(dirName) if os.path.isfile( f'{dirName}/{f}' ) ]
         for matchFile in matchFiles:
