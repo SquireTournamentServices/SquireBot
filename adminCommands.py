@@ -1048,8 +1048,8 @@ async def cutToTopX( ctx, tourn = None, x = None):
     playersDropped = []
     for i in range(x, len(standings[1])):
         # Drop this player
-        tourn.dropPlayer(standings[1][i].discordID, ctx.author.mention)
-        playersDropped.append(standings[1][i])
+        await tournObj.dropPlayer(standings[1][i].discordID, ctx.author.mention)
+        playersDropped.append(standings[1][i].getMention())
         
     await ctx.send( f'Cut tournament {tourn} to the top {x} players, the following players were dropped:  - {", ".join(playersDropped)}' )
 
