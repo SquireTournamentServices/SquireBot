@@ -93,17 +93,31 @@ class player:
     async def getDeckEmbed( self, a_deckname: str ) -> discord.Embed:
         digest = discord.Embed( title=f"**{self.name}'s Deck,** **{a_deckname}**: **{self.decks[a_deckname].deckHash}**" )
 
-        fieldVals: dict = { }
+        fieldVals: dict = { "Sideboard": [] }
         for card in self.decks[a_deckname].cards:
             if card == "":
                 continue
-            tmpCard = cardsDB.getCard( card.partition( " " )[-1] )
-            if not getPrimaryType(tmpCard.types) in fieldVals:
+            isSideboard = "SB:" in card
+            if isSideboard:
+                card = card.partition( "SB:" )[-1].strip()
+            tmpCard = cardsDB.getCard( card.partition( " " )[-1].strip() )
+            if (not isSideboard) and (not getPrimaryType(tmpCard.types) in fieldVals ):
                 fieldVals[getPrimaryType(tmpCard.types)] = []
-            fieldVals[getPrimaryType(tmpCard.types)].append( card )
+            fieldVals["Sideboard" if isSideboard else getPrimaryType(tmpCard.types)].append( card )
 
-        for field in fieldVals:
-            digest.add_field( name=f'{field} ({len(fieldVals[field])}):', value="\n".join(fieldVals[field]) )
+        # The embed looks bad if the fields that form a row are vastly different lengths
+        # So, they are sorted (except for the sideboard)
+        fieldKeys: list = [ key for key in fieldVals if key != "Sideboard" ]
+        fieldKeys.sort( key = lambda x: len(fieldVals[x]), reverse=True )
+
+        for field in fieldKeys:
+            count = sum( [ int(c.partition( " " )[0]) for c in fieldVals[field] ] )
+            digest.add_field( name=f'{field} ({count}):', value="\n".join(fieldVals[field]) )
+
+        # The Sideboard should always be displayed last
+        if len(fieldVals["Sideboard"]) > 0:
+            count = sum( [ int(c.partition( " " )[0]) for c in fieldVals["Sideboard"] ] )
+            digest.add_field( name=f'Sideboard ({count}):', value="\n".join(fieldVals["Sideboard"]) )
 
         return digest
 
