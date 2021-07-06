@@ -257,7 +257,7 @@ class player:
         digest = 0
         certMatches = self.getCertMatches( withBye )
         for mtch in certMatches:
-            if mtch.winner == self.name:
+            if mtch.winner == self.discordID:
                 digest += 3 #4
             elif mtch.isDraw():
                 digest += 1 #0.5
@@ -277,7 +277,7 @@ class player:
         return digest #if digest >= 1./3 else 1./3
     
     def getNumberOfWins( self ) -> int:
-        return sum( [ 1 if mtch.winner == self.name else 0 for mtch in self.matches if mtch.isCertified( ) ] )
+        return sum( [ 1 if mtch.winner == self.discordID else 0 for mtch in self.matches if mtch.isCertified( ) ] )
     
     # Saves the overview of the player and their deck(s)
     # Matches aren't saved with the player. They are save seperately.

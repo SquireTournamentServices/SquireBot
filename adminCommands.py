@@ -947,7 +947,7 @@ async def cutToTopX( ctx, tourn = None, x = None):
     playersDropped = []
     for i in range(x, len(standings[1])):
         # Drop this player
-        aawait tournObj.dropPlayer(standings[1][i].discordID, ctx.author.mention)
+        await tournObj.dropPlayer(standings[1][i].discordID, ctx.author.mention)
         playersDropped.append(standings[1][i].getMention())
         
     newLine = "\n\t- "
