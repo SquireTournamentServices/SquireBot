@@ -1,6 +1,9 @@
 import re
 import requests
 import json
+import tempfile
+import zipfile
+import os.path
 
 # Helps with memory being consumed
 import gc
@@ -19,17 +22,36 @@ class card:
     
     def __str__(self):
         return f'{self.name}'
+    
+class cardsDBLoadingError ( Exception ):
+    pass
 
 class cardDB:
-    def __init__(self, updateTime: int = 24*60*60, mtgjsonURL: str = "https://www.mtgjson.com/api/v5/AllPrintings.json"):
+    def __init__(self, updateTime: int = 24*60*60, mtgjsonURL: str = "https://www.mtgjson.com/api/v5/AllPrintings.json.zip"):
         self.lastUpdate = 0
         self.updateTime = updateTime
         self.cards = dict( )
         self.url = mtgjsonURL
         self.normaliseRegex = re.compile(",|\.|-|'")
         self.spacesRegex = re.compile(" +")
+        self.cacheName = "AllPrintings.json"
         
-        self.updateCards()        
+        if self.isCacheIsUpToDate():
+            # Allow for invalid cache
+            updatedFromCache = self.updateFromCache()
+            if not updatedFromCache:
+                print("Updating CardsDB from cache")
+                if not self.updateFromCache():
+                    print("Error loading CardsDB from cache")
+                    self.updateCards()
+            else:
+                print("CardsDB was loaded from cache")
+        else:
+            print("CardsDB cache was not up to date")
+            self.updateCards()
+                
+        if len(self.cards) == 0:
+            raise cardsDBLoadingError("Error loading CardsDB")
 
     # Makes two strings easier to compare by removing excess whitespace,
     # commas, hyphens, apostrophes and full stops.
@@ -71,18 +93,47 @@ class cardDB:
             self.cards = tempCards
             self.lastUpdate = int(time())
         return parseSuccess
-        
+    
+    def isCacheIsUpToDate(self) -> bool:
+        if os.path.exists(self.cacheName):
+            return int(time()) - getFileLastModified(self.cacheName) < self.updateTime
+        return False
+    
+    def updateFromCache(self) -> bool:
+        if os.path.exists(self.cacheName):
+            status = False
+            
+            with open(self.cacheName, "r") as f:
+                json = f.read()
+                status: bool = self.updateCardsFromJson(json)
+                
+            return status
+        else:
+            return False
+    
     #@profile
     def updateCards(self) -> bool:
-        with requests.get(self.url, timeout=7.0, data="",  verify=False) as resp:        
-            status: bool = self.updateCardsFromJson(resp.text)
+        compressedCacheName = self.cacheName + ".zip"    
+        resp = requests.get(self.url, timeout=7.0, data="",  verify=False)
         
-        # Try and force python to collect some garbage
-        gc.collect()
-        libc = ctypes.CDLL("libc.so.6")
-        libc.malloc_trim(0)
+        # Save zip file
+        tmpFile = tmpFile = tempfile.TemporaryFile(mode="wb+", suffix="cardDB.py", prefix=compressedCacheName)
+        for chunk in resp.iter_content(chunk_size=512 * 1024):
+            if chunk: # filter out keep-alive new chunks
+                tmpFile.write(chunk)
         
-        return status
+        # Go to the start of the file before unzipping
+        tmpFile.seek(0)
+            
+        # Decompress the file
+        zip = zipfile.ZipFile(tmpFile, "r")
+        zip.extract(self.cacheName, "./")
+        
+        # Close file
+        zip.close()
+        tmpFile.close()
+        
+        return self.updateFromCache()
 
     # Returns a cockatrice card name from the database, failing that the input
     # is returned. This is for turning cards into the format that cockatrice uses
@@ -99,6 +150,13 @@ class cardDB:
         return name
 
 # Util methods for starting this db
+def getFileLastModified(file_name: str) -> int:
+    try:
+        mtime = os.path.getmtime(file_name)
+    except OSError:
+        mtime = 0
+    return mtime
+
 def updateDB(db):
     while True:
         sleep(db.updateTime)
@@ -108,7 +166,7 @@ def updateDB(db):
 def initCardDB():
     print("Creating card database...")
     db = cardDB()
-    print("Created card database.")
+    print(f"Created card database with {len(db.cards)} cards.")
     
     cardUpdateThread = Thread(target = updateDB, args = (db,))
     cardUpdateThread.start() 

@@ -1,31 +1,31 @@
 import cardDB
 import time
+import os
 
 #@profile
 def test():
+    # Assert cockatrice name converter works
     c = cardDB.card("a // b", "flip")
-    print(c.name)
     assert(c.name == "a")
     
     c = cardDB.card("a // b", "modal_dfc")
-    print(c.name)
     assert(c.name == "a")
         
     c = cardDB.card("a // b", "transform")
-    print(c.name)
     assert(c.name == "a")
-    
-    print("Testing card database")
+        
+    # Test downloading the cards
+    try:
+        os.remove("AllPrintings.json")
+    except FileNotFoundError as e:
+        print(e)
     cards = cardDB.cardDB()
-    print(f'{len(cards.cards)} cards were found. Running tests...')
+    length = len(cards.cards)
+    assert(length > 0)
     
-    max = 5
-    for i in range(max):
-        print(f"Testing update cards method {i + 1}/{max}")
-        time.sleep(1)
-        cards.updateCards()
-
-    print("Finished.")
+    # Test load from cache
+    cards = cardDB.cardDB()
+    assert(len(cards.cards) == length)
 
 if __name__ == '__main__':
     test()

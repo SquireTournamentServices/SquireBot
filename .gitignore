@@ -9,7 +9,8 @@ references/
 references/*
 scripts/
 scripts*
-
+AllPrintings.json
+Tournament/AllPrintings.json
 squireBotError.log
 
 
