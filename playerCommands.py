@@ -228,8 +228,6 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
         return
     
     message = await tournObj.addDeck( ctx.author.id, ident, decklist )
-    if isMoxFieldLink(decklist):
-        message += " Please be aware that Moxfield treats your commander as if it were in your sideboard."
     await ctx.send( f'{mention}, {message}' )
     if not private:
         await ctx.author.send( f'For future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
