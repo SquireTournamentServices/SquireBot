@@ -421,7 +421,7 @@ class tournament:
 
         if Match.triceMatch:
             digest.add_field( name="Tricebot Match", value = f'Replay at: {Match.replayURL}\nPlayer deck verification is {"enabled" if Match.playerDeckVerification else "disabled "}' )
-            
+
         return digest
 
     # ---------------- Player Accessors ----------------
