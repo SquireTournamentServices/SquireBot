@@ -147,8 +147,9 @@ class deck:
         resp = requests.get(url, timeout=7.0, data="", verify=True).text
         deck_data = json.loads(resp)
         
-        main = deck_data["main"]
-        self.decklist += f'1 {main["name"]}\n'
+        main = deck_data["commanders"]
+        for commander in main:
+            self.decklist += f'1 {main[commander]["card"]["name"]}\n'
         
         main_board = deck_data["mainboard"]
         for card_name in main_board:
