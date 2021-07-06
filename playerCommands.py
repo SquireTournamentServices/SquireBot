@@ -129,30 +129,34 @@ async def addTriceName( ctx, tourn = None, name = None ):
     
     plyrObj = tournObj.players[ctx.author.id]
     oldname = plyrObj.triceName
-    message = tournObj.setPlayerTriceName( ctx.author.id, name )
-    await ctx.send( f'{mention}, {message}' )
+    message = tournObj.setPlayerTriceName( ctx.author.id, name ) + "\n"
+    errors = []
     
     for match in plyrObj.matches:
-        if (not match.isDead()) and match.triceMatch and match.playerDeckVerification:
-            baseMSG = ""
-                
+        if match.isOpen() and match.triceMatch and match.playerDeckVerification:                
             # Send update command
             result = trice_bot.changePlayerInfo(match.gameID, oldname, name)
                 
             # Handle result
             if result == 0:
-                await ctx.send( f'{mention}, an error occurred whilst updating a game you are in.' )
+                message += f'{mention}, an error occurred whilst updating match {match.matchNumber}.'
             elif result == 1:
                 pass
             elif result == 2:
-                await ctx.send( f'{mention}, the player information was successfully updated, however a player using that player\'s name is in the game.' )
+                message += f'{mention}, the player information was successfully updated for match{match.matchNumber}, however a player using that player\'s name is in the game.'
             elif result == -1:
-                await ctx.send( f'{mention}, an error occurred whilst updating a game you ar in: tricebot failed to find the game.' )
+                message += f'{mention}, an error occurred whilst updating match {match.matchNumber}: tricebot failed to find the game.'
             elif result == -2:
-                await ctx.send( f'{mention}, an error occurred whilst updating a game you ar in: tricebot failed to find the player.' )
+                message += f'{mention}, an error occurred whilst updating match {match.matchNumber}: tricebot failed to find the player.'
             else:
-                await ctx.send( f'{mention}, an unknown error has occurred whilst updating the information for a game you are in.' )
-                raise TriceBotAPIError( f'tricebot-update-player failed with code {result}' )
+                message += f'{mention}, an unknown error has occurred whilst updating the information for match {match.matchNumber}.'
+                errors.append(TriceBotAPIError( f'tricebot-update-player failed with code {result}' ))
+            message += "\n"
+    
+    await ctx.send( f'{mention}, {message}' )
+    
+    for error in errors:
+        raise error
 
 
 commandSnippets["add-deck"] = "- add-deck : Registers a deck for a tournament (can be DM-ed)" 

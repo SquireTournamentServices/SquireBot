@@ -34,7 +34,7 @@ tappedoutLinkRegex = re.compile('\s*(https?:\/\/)?tappedout\.net\/mtg-decks\/([a
 mtgGoldFishLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})(#[a-zA-Z]*)?\s*', re.M | re.I)
 cockatriceDeckRegex = re.compile('\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*', re.M | re.I)
 
-deckRegex = re.compile("(\s*[0-9]+ [a-zA-Z 0-9,.'-]*\r*\n*)+", re.M)
+deckRegex = re.compile("(\s*[0-9]+ [\/a-zA-Z 0-9,.'-]+\r*\n*)+", re.M)
 
 def isValidCodFile(deckData: str) -> bool:
     return cockatriceDeckRegex.search(deckData)
