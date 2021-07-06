@@ -71,10 +71,27 @@ def getJudgeRole( duild: discord.Guild ):
             break
     return digest
 
-
 def get_ID_from_mention( mention: str ) -> str:
     """ Gets a Discord ID from a Discord mention string """
     return re.sub( "[^0-9]", "", mention )
+
+def getPrimaryType( types: List[str] ) -> str:
+    if   "Creature" in types:
+        return "Creature"
+    elif "Land" in types:
+        return "Land"
+    elif "Artifact" in types:
+        return "Artifact"
+    elif "Enchantment" in types:
+        return "Enchantment"
+    elif "Instant" in types:
+        return "Instant"
+    elif "Sorcery" in types:
+        return "Sorcery"
+    elif "Planeswalker" in types:
+        return "Planeswalker"
+    else:
+        return types[0]
 
 # Takes in any number of arguments (likely from a command call) and returns a dict
 # The keys of the dict are tournament properties (other key/value pairs are discarded)

@@ -29,12 +29,12 @@ from .cardDB import *
 
 # Constant compiled regexes
 cardsDB = initCardDB()
-moxFieldLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?moxfield\.com\/decks\/([a-z_A-Z0-9-]+)\s*', re.M | re.I)
-tappedoutLinkRegex = re.compile('\s*(https?:\/\/)?tappedout\.net\/mtg-decks\/([a-z0-9-]*)\/?\s*', re.M | re.I)
-mtgGoldFishLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})(#[a-zA-Z]*)?\s*', re.M | re.I)
-cockatriceDeckRegex = re.compile('\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*', re.M | re.I)
+moxFieldLinkRegex = re.compile('^\s*(https?:\/\/)?(www\.)?moxfield\.com\/decks\/([a-z_A-Z0-9-]+)\s*$', re.M | re.I)
+tappedoutLinkRegex = re.compile('^\s*(https?:\/\/)?tappedout\.net\/mtg-decks\/([a-z0-9-]*)\/?\s*$', re.M | re.I)
+mtgGoldFishLinkRegex = re.compile('^\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})(#[a-zA-Z]*)?\s*$', re.M | re.I)
+cockatriceDeckRegex = re.compile('^\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*$', re.M | re.I)
 
-deckRegex = re.compile("(\s*[0-9]+ [\/a-zA-Z 0-9,.'-]+\r*\n*)+", re.M)
+deckRegex = re.compile("^(\s*[0-9]+ [\/a-zA-Z 0-9,.'-]+\r*\n*)+$", re.M)
 
 def isValidCodFile(deckData: str) -> bool:
     return cockatriceDeckRegex.search(deckData)
@@ -59,6 +59,8 @@ class deck:
     def __init__ ( self, ident: str = "", decklist: str = "" ):
         self.deckHash  = 0
         self.ident = ident
+        # TODO: The cards list should probably be a list of card objects from the card DB module
+        # This would save a decent work of time when constructing the deck embed
         self.cards = [ ]
         self.decklist = ""
 
@@ -146,11 +148,11 @@ class deck:
 
         resp = requests.get(url, timeout=7.0, data="", verify=True).text
         deck_data = json.loads(resp)
-        
+
         main = deck_data["commanders"]
         for commander in main:
             self.decklist += f'1 {main[commander]["card"]["name"]}\n'
-        
+
         main_board = deck_data["mainboard"]
         for card_name in main_board:
             # Add card to decklist
@@ -240,16 +242,16 @@ class deck:
                     card = [ card ]
                 if len( card ) == 1:
                     number = 1
-                    name   = cardsDB.getCard(card[0]).strip().lower()
+                    name   = cardsDB.getCard(card[0]).getName().strip().lower()
                 else:
                     number = int( card[0].strip() )
-                    name   = cardsDB.getCard(card[1]).strip().lower()
+                    name   = cardsDB.getCard(card[1]).getName().strip().lower()
                 for i in range(number):
                     cards.append( name )
             else:
                 card = card.split(" ", 2)
                 number = int( card[1].strip() )
-                name   = card[0] + cardsDB.getCard(card[2]).strip().lower()
+                name   = card[0] + cardsDB.getCard(card[2]).getName().strip().lower()
                 for i in range(number):
                     cards.append( name )
 

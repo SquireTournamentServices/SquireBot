@@ -26,6 +26,12 @@ class DeckRetrievalError( DeckBaseError ):
     """ The error raised when a deck can not be retrieved from a URL """
     pass
 
+class CardDatabaseBaseError( TournamentBaseError ):
+    """ The base error class for the card database """
+    pass
 
+class CardNotFoundError( CardDatabaseBaseError ):
+    """ The error raised when a card name is not found in the card database. """
+    pass
 
 
