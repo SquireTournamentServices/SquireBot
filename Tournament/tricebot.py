@@ -71,7 +71,7 @@ class TriceBot:
                 res = self.reqBin(replayURL.replace(self.externURL, self.apiURL), "", abs=True)
                 split = replayURL.split("/")
                 name = urllib.parse.unquote(split[len(split) - 1])
-                if res == "error 404" or re.match("Not found \[.*\]", res) or re.match("<!DOCTYPE html>.*", res):
+                if res.decode() == "error 404" or re.match("Not found \[.*\]", res.decode()) or re.match("<!DOCTYPE html>.*", res.decode()) or re.match("<html>.*", res.decode()):
                     # Error file not found
                     replaysNotFound.append(name)
                     #print(res == "error 404")
