@@ -41,6 +41,16 @@ class TriceBot:
         if not abs:
             print(resp)
         return resp
+    
+    def reqBin(self, urlpostfix: str, data: str, abs: bool = False) -> str:
+        print(data)
+        url = urlpostfix
+        if not abs:
+            url = f'{self.apiURL}/{url}'
+        resp = requests.get(url, timeout=7.0, data=data,  verify=False).content
+        if not abs:
+            print(resp)
+        return resp
         
     def checkauthkey(self):
         return self.req("api/checkauthkey", self.authToken) == "1"
@@ -58,7 +68,7 @@ class TriceBot:
         # Iterate over
         for replayURL in replayURLs:
             try:
-                res = self.req(replayURL.replace(self.externURL, self.apiURL), "", abs=True)
+                res = self.reqBin(replayURL.replace(self.externURL, self.apiURL), "", abs=True)
                 split = replayURL.split("/")
                 name = urllib.parse.unquote(split[len(split) - 1])
                 if res == "error 404" or re.match("Not found \[.*\]", res) or re.match("<!DOCTYPE html>.*", res):
