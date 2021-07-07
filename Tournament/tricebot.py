@@ -58,22 +58,16 @@ class TriceBot:
         # Iterate over
         for replayURL in replayURLs:
             try:
-                res = self.reqBin(replayURL.replace(self.externURL, self.apiURL), "", abs=True)
+                res = self.req(replayURL.replace(self.externURL, self.apiURL), "", abs=True)
                 split = replayURL.split("/")
                 name = urllib.parse.unquote(split[len(split) - 1])
-                try:
-                    if res.decode() == "error 404" or re.match("Not found \[.*\]", res.decode()) or re.match("<!DOCTYPE html>.*", res.decode()) or re.match("<html>.*", res.decode()):
-                        # Error file not found
-                        replaysNotFound.append(name)
-                        #print(res == "error 404")
-                        #print(re.match("Not found \[.*\]", res))
-                        #print(re.match("<!DOCTYPE html>.*", res))
-                    else:
-                        # Create a temp file and write the data
-                        replayStrs.append(res)
-                        replayNames.append(name)
-                except UnicodeDecodeError as e:
-                    print(e) # This means we got binary :)
+                if res == "error 404" or re.match("Not found \[.*\]", res) or re.match("<!DOCTYPE html>.*", res):
+                    # Error file not found
+                    replaysNotFound.append(name)
+                    #print(res == "error 404")
+                    #print(re.match("Not found \[.*\]", res))
+                    #print(re.match("<!DOCTYPE html>.*", res))
+                else:
                     # Create a temp file and write the data
                     replayStrs.append(res)
                     replayNames.append(name)
