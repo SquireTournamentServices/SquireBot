@@ -78,9 +78,12 @@ class TriceBot:
                         #print(res == "error 404")
                         #print(re.match("Not found \[.*\]", res))
                         #print(re.match("<!DOCTYPE html>.*", res))
+                    else:
+                        # Create a temp file and write the data
+                        replayStrs.append(res)
+                        replayNames.append(name)
                 except UnicodeDecodeError as e:
                     print(e) # This means we got binary :)
-                else:
                     # Create a temp file and write the data
                     replayStrs.append(res)
                     replayNames.append(name)
