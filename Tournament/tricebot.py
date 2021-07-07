@@ -31,6 +31,16 @@ class TriceBot:
         if not abs:
             print(resp)
         return resp
+    
+    def reqBin(self, urlpostfix: str, data: str, abs: bool = False) -> str:
+        print(data)
+        url = urlpostfix
+        if not abs:
+            url = f'{self.apiURL}/{url}'
+        resp = requests.get(url, timeout=7.0, data=data,  verify=False).content
+        if not abs:
+            print(resp)
+        return resp
         
     def checkauthkey(self):
         return self.req("api/checkauthkey", self.authToken) == "1"
@@ -48,18 +58,24 @@ class TriceBot:
         # Iterate over
         for replayURL in replayURLs:
             try:
-                res = self.req(replayURL, "", abs=True)
+                res = self.reqBin(replayURL.replace(self.externURL, self.apiURL), "", abs=True)
                 split = replayURL.split("/")
                 name = urllib.parse.unquote(split[len(split) - 1])
-                if res == "error 404" or re.match("Not found \[.*\]", res) or re.match("<!DOCTYPE html>.*", res):
-                    # Error file not found
-                    replaysNotFound.append(name)
-                    #print(res == "error 404")
-                    #print(re.match("Not found \[.*\]", res))
-                    #print(re.match("<!DOCTYPE html>.*", res))
-                else:
-                    # Create a temp file and write the data                    
-                    replayStrs.append(res)                    
+                try:
+                    if res.decode() == "error 404" or re.match("Not found \[.*\]", res.decode()) or re.match("<!DOCTYPE html>.*", res.decode()) or re.match("<html>.*", res.decode()):
+                        # Error file not found
+                        replaysNotFound.append(name)
+                        #print(res == "error 404")
+                        #print(re.match("Not found \[.*\]", res))
+                        #print(re.match("<!DOCTYPE html>.*", res))
+                    else:
+                        # Create a temp file and write the data
+                        replayStrs.append(res)
+                        replayNames.append(name)
+                except UnicodeDecodeError as e:
+                    print(e) # This means we got binary :)
+                    # Create a temp file and write the data
+                    replayStrs.append(res)
                     replayNames.append(name)
             except OSError as exc:
                 # Network issues
