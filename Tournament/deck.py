@@ -27,26 +27,29 @@ from .utils import *
 from .exceptions import *
 from .cardDB import *
 
-# Constant compiled regexes
 cardsDB = initCardDB()
-moxFieldLinkRegex = re.compile('^\s*(https?:\/\/)?(www\.)?moxfield\.com\/decks\/([a-z_A-Z0-9-]+)\s*$', re.M | re.I)
-tappedoutLinkRegex = re.compile('^\s*(https?:\/\/)?tappedout\.net\/mtg-decks\/([a-z0-9-]*)\/?\s*$', re.M | re.I)
-mtgGoldFishLinkRegex = re.compile('^\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})(#[a-zA-Z]*)?\s*$', re.M | re.I)
-cockatriceDeckRegex = re.compile('^\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*$', re.M | re.I)
 
-deckRegex = re.compile("^(\s*[0-9]+ [\/a-zA-Z 0-9,.'-]+\r*\n*)+$", re.M)
+# Constant compiled regexes
+anchorRegex = "((#[a-zA-Z0-9_-]+)?(\?([a-zA-Z0-9_-]+=[+a-zA-Z0-9_-]+)(&([a-zA-Z0-9_-]+=[+a-zA-Z0-9_-]+))*)?)?"
+
+moxFieldLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?moxfield\.com\/decks\/([a-z_A-Z0-9-]+)\/?'+anchorRegex+'\s*', re.M | re.I)
+tappedoutLinkRegex = re.compile('\s*(https?:\/\/)?tappedout\.net\/mtg-decks\/([a-z0-9_-]+)\/?'+anchorRegex+'\s*', re.M | re.I)
+mtgGoldFishLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})\/?'+anchorRegex+'\s*', re.M | re.I)
+cockatriceDeckRegex = re.compile('\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*', re.M | re.I)
+
+deckRegex = re.compile("\s*([0-9]+ [\/a-zA-Z 0-9,.'-]+\r*\n+)+\s*", re.M)
 
 def isValidCodFile(deckData: str) -> bool:
-    return cockatriceDeckRegex.search(deckData)
+    return cockatriceDeckRegex.search(deckData) is not None
 
 def isMoxFieldLink(decklist: str) -> bool:
-    return moxFieldLinkRegex.search(decklist)
+    return moxFieldLinkRegex.search(decklist) is not None
 
 def isMtgGoldfishLink(decklist: str) -> bool:
-    return mtgGoldFishLinkRegex.search(decklist)
+    return mtgGoldFishLinkRegex.search(decklist) is not None
 
 def isTappedOutLink(decklist: str) -> bool:
-    return tappedoutLinkRegex.search(decklist)
+    return tappedoutLinkRegex.search(decklist) is not None
 
 class deck:
     """
@@ -54,6 +57,7 @@ class deck:
     """
     # More specifically this checks to make sure that each line of a decklist is correct
     validDecklistRegex = re.compile( "^(sb: )?[0-9]+[x]? [^\n]+$", re.I )
+    emptySpaceRegex = re.compile("\s*")
 
     # Class constructor
     def __init__ ( self, ident: str = "", decklist: str = "" ):
@@ -95,29 +99,29 @@ class deck:
     def validateDecklist( self, decklist: str ) -> bool:
         """ A(n almost) static method that determines if a decklist will cause problems"""
         for card in decklist.strip().split("\n"):
-            if card == "":
+            if self.emptySpaceRegex.search(card) is not None:
                 continue
-            print( card )
             if not self.validDecklistRegex.search( card ):
                 return False
         return True
 
-    def _loadMtgGoldfishDeck(deckURL: str):
-        regex_match = mtgGoldFishLinkRegex.fullmatch(deckURL)
-        https, www, deck_id, anchor = regex_match.groups()
+    def _loadMtgGoldfishDeck(self, deckURL: str):
+        groups = mtgGoldFishLinkRegex.match(deckURL).groups()
+        deck_id = groups[2]
 
         url = f"https://www.mtggoldfish.com/deck/download/{deck_id}"
 
         self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
+        
         if not self.validateDecklist( self.decklist ):
             raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
 
-        self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
-                     self.parseNonAnnotatedTriceDecklist( )
+        self.cards = self.parseAnnotatedTriceDecklist( )
 
     def _loadTappedOutDeck(self, deckURL: str):
-        regex_match = tappedoutLinkRegex.fullmatch(deckURL)
-        https, deck_id = regex_match.groups()
+        groups = tappedoutLinkRegex.match(deckURL).groups()
+        https = groups[0]
+        deck_id = groups[1]
 
         url = f"https://tappedout.net/mtg-decks/{deck_id}/?fmt=txt"
 
@@ -132,17 +136,17 @@ class deck:
         if len(boards) > 1:
             sideboard_list = "\n".join( [ card for card in boards[1].split("\n") if (not card.isspace()) and card != "" ] )
 
-        if not self.validateDecklist( mainboard + sideboard_list ):
+        self.decklist = mainboard + sideboard_list
+        if not self.validateDecklist( self.decklist ):
             raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
 
-        self.decklist = mainboard + sideboard_list
         self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
             self.parseNonAnnotatedTriceDecklist( )
 
     def _loadMoxFieldDeck(self, deckURL: str):
         self.decklist = ""
-        regex_match = moxFieldLinkRegex.fullmatch(deckURL)
-        https, www, deck_id = regex_match.groups()
+        groups = moxFieldLinkRegex.match(deckURL).groups()
+        deck_id = groups[2]
 
         url = f"https://api.moxfield.com/v2/decks/all/{deck_id}"
 
@@ -193,7 +197,6 @@ class deck:
         if not self.validateDecklist( self.decklist ):
             raise CodFileError( f'Malformed card/quantity while parsing cod file.' )
 
-        # Update hash
         self.cards = self.parseNonAnnotatedTriceDecklist()
 
     def exportXMLString( self, indent: str = "" ) -> str:
@@ -214,6 +217,7 @@ class deck:
         for card in tree.iter( "card" ):
             self.cards.append( fromXML( card.attrib['name'] ) )
         self.updateDeckHash()
+        self.parseNonAnnotatedTriceDecklist()
 
     def updateDeckHash( self ) -> None:
         """
@@ -242,16 +246,30 @@ class deck:
                     card = [ card ]
                 if len( card ) == 1:
                     number = 1
-                    name   = cardsDB.getCard(card[0]).getName().strip().lower()
+                    
+                    name = card[0]
+                    try:
+                        name   = cardsDB.getCard(name).getName().strip().lower()                        
+                    except CardNotFoundError as ex:
+                        pass
                 else:
                     number = int( card[0].strip() )
-                    name   = cardsDB.getCard(card[1]).getName().strip().lower()
+                    
+                    name = card[1]
+                    try:
+                        name   = cardsDB.getCard(name).getName().strip().lower()                                        
+                    except CardNotFoundError as ex:
+                        pass
                 for i in range(number):
                     cards.append( name )
             else:
                 card = card.split(" ", 2)
                 number = int( card[1].strip() )
-                name   = card[0] + cardsDB.getCard(card[2]).getName().strip().lower()
+                name = card[2]
+                try:
+                    name   = card[0] + cardsDB.getCard(name).getName().strip().lower()
+                except CardNotFoundError as ex:
+                    pass
                 for i in range(number):
                     cards.append( name )
 

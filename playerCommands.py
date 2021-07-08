@@ -158,6 +158,7 @@ async def addTriceName( ctx, tourn = None, name = None ):
     for error in errors:
         raise error
 
+mentionRegex = re.compile(".*((@everyone)|(<@&?[0-9]+>)).*", re.M)
 
 commandSnippets["add-deck"] = "- add-deck : Registers a deck for a tournament (can be DM-ed)" 
 commandCategories["registration"].append( "add-deck" )
@@ -168,7 +169,14 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
     private = await isPrivateMessage( ctx, send=False )
     
     if tourn is None:
-        await ctx.send( f'{mention}, not enough information provided: Please provide your deckname and decklist to add a deck. Instead of a decklist you can upload a .cod file or, use the link of a tappedout.net, a moxfield.com or, a mtggoldfish.com deck.' )
+        await ctx.send( f'{mention}, not enough information provided: Please provide your deckname and decklist to add a deck. Instead of a decklist you can upload a .cod file or; use the link of: a tappedout.net, a moxfield.com or, a mtggoldfish.com deck.' )
+        return
+    
+    if ident is None:
+        await ctx.send( f'{mention}, error there was no deck name in the command.' )
+        return
+    if mentionRegex.search(ident):
+        await ctx.send( f'{mention}, you cannot have mentions in a deck name.' )
         return
     
     tournaments: list = getTournamentsByPlayer( ctx.author ) if private else guildSettingsObjects[ctx.guild.id].getPlayerTournaments( ctx.author )
@@ -197,16 +205,19 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
         await ctx.send( f'{mention}, you attached too many files. Please only attach one file per deck.' )
         return
 
-    index = ctx.message.content.find( ident ) + len(ident)
-    
-    decklist = re.sub( "^[^A-Za-z0-9\w\/]+", "", ctx.message.content[index:].replace('"', "") ).strip() 
+    # Fixes a bug where a deck with a letter in add-deck as the entire name breaks this
+    msg = ctx.message.content[len("add-deck"):]
+    index = msg.find( ident ) + len(ident) + 1 # One for the zero index offset, one for the space
+    decklist = msg[index:]
+    decklist = re.sub( "^[^A-Za-z0-9\w\/]+", "", decklist.replace('"', "") ).strip() 
     decklist = re.sub( "[^A-Za-z0-9\w\/]+$", "", decklist )
     
     # The cod file will supercede you submitted decks
     if len(ctx.message.attachments) == 1:
         # Size < 1MiB
         attachment = ctx.message.attachments[0]
-        if attachment.size >= 1048576:
+        # 50 KiB
+        if attachment.size >= (1024 * 50):
             # Attachment is too big
             await ctx.send( f'{mention}, this file is too big.' )
             return
@@ -393,7 +404,7 @@ async def queuePlayer( ctx, tourn = None ):
         return
     
     if len(tournObj.players[ctx.author.id].decks) == 0:
-        await ctx.send( f'{mention}, you have failed to submit a deck. As such, you can not play in this tournament. If you believe this is an error, talk to tournament staff.' )
+        await ctx.send( f'{mention}, you have failed to submit a deck. As such, you cannot play in this tournament. If you believe this is an error, talk to tournament staff.' )
         return
         
     message = tournObj.addPlayerToQueue( ctx.author.id )

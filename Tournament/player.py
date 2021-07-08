@@ -94,17 +94,25 @@ class player:
         digest = discord.Embed( title=f"**{self.name}'s Deck,** **{a_deckname}**: **{self.decks[a_deckname].deckHash}**" )
 
         fieldVals: dict = { "Sideboard": [] }
-        for card in self.decks[a_deckname].cards:
-            if card == "":
+        for card_ in self.decks[a_deckname].cards:
+            if card_ == "":
                 continue
-            isSideboard = "SB:" in card
+            isSideboard = "SB:" in card_
             if isSideboard:
-                card = card.partition( "SB:" )[-1].strip()
-            tmpCard = cardsDB.getCard( card.partition( " " )[-1].strip() )
+                card_ = card_.partition( "SB:" )[-1].strip()
+            
+            cardName = card_.partition( " " )[-1].strip()
+                
+            try:
+                tmpCard = cardsDB.getCard( cardName )
+            except CardNotFoundError as ex:
+                typesList = []
+                typesList.append("Unknown")
+                tmpCard = card( cardName, "normal", typesList )
+
             if (not isSideboard) and (not getPrimaryType(tmpCard.types) in fieldVals ):
                 fieldVals[getPrimaryType(tmpCard.types)] = []
-            fieldVals["Sideboard" if isSideboard else getPrimaryType(tmpCard.types)].append( card )
-
+            fieldVals["Sideboard" if isSideboard else getPrimaryType(tmpCard.types)].append( card_ )
         # The embed looks bad if the fields that form a row are vastly different lengths
         # So, they are sorted (except for the sideboard)
         fieldKeys: list = [ key for key in fieldVals if key != "Sideboard" ]

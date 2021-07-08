@@ -67,7 +67,8 @@ class cardDB:
     # Makes two strings easier to compare by removing excess whitespace,
     # commas, hyphens, apostrophes and full stops.
     def normaliseCardName(self, string: str):
-        return re.sub(self.spacesRegex, " ", re.sub(self.normaliseRegex, "", string)).split("//")[0].lower().strip()
+        return re.sub(self.spacesRegex, " ", re.sub(self.normaliseRegex, "", string)).split("//")[0].lower().strip().replace("û", "u")
+        # heck Lim-Dûl's Vault, it is the bane of my existence
 
     def needsUpdate(self) -> bool:
         return int(time()) - self.lastUpdate > self.updateTime

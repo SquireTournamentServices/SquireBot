@@ -440,7 +440,7 @@ class tournament:
         if not self.players[plyr].isActive():
             return f'you are registered by are not an active player in {self.name}. If you believe this is an error, contact tournament staff.'
         if not ( admin or self.regOpen ):
-            return f'registration for {self.name} is closed, so you can not submit a deck. If you believe this is an error, contact tournament staff.'
+            return f'registration for {self.name} is closed, so you cannot submit a deck. If you believe this is an error, contact tournament staff.'
         self.players[plyr].addDeck( deckName, decklist )
         self.players[plyr].saveXML( )
         deckHash = self.players[plyr].decks[deckName].deckHash
@@ -509,7 +509,7 @@ class tournament:
 
     async def endTourn( self, adminMention: str = "", author: str = "" ) -> str:
         if not self.tournStarted:
-            return f'{self.name} has not started, so it can not be ended. However, it can be cancelled.'
+            return f'{self.name} has not started, so it cannot be ended. However, it can be cancelled.'
         await self.purgeTourn( )
         self.tournEnded = False
         self.saveTournament( f'closedTournaments/{self.name}' )
