@@ -171,14 +171,6 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
     if tourn is None:
         await ctx.send( f'{mention}, not enough information provided: Please provide your deckname and decklist to add a deck. Instead of a decklist you can upload a .cod file or; use the link of: a tappedout.net, a moxfield.com or, a mtggoldfish.com deck.' )
         return
-    
-    if ident is None:
-        await ctx.send( f'{mention}, error there was no deck name in the command.' )
-        return
-    if mentionRegex.search(ident):
-        await ctx.send( f'{mention}, you cannot have mentions in a deck name.' )
-        return
-    
     tournaments: list = getTournamentsByPlayer( ctx.author ) if private else guildSettingsObjects[ctx.guild.id].getPlayerTournaments( ctx.author )
     tournNames:  list = [ tourn.name for tourn in tournaments ] 
 
@@ -195,6 +187,13 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
             tourn = tournObj.name
     else:
         tournObj = tournaments[tournNames.index(tourn)]
+
+    if ident is None:
+        await ctx.send( f'{mention}, error there was no deck name in the command.' )
+        return
+    if mentionRegex.search(ident):
+        await ctx.send( f'{mention}, you cannot have mentions in a deck name.' )
+        return
 
     if not tournObj.regOpen:
         await ctx.send( f'{mention}, registration for {tourn} is closed. If you believe this is an error, contact tournament staff.' )
