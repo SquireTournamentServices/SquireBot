@@ -54,7 +54,7 @@ async def createTournament( ctx, tournName = None, tournType = None, *args ):
     if tournName is None or tournType is None:
         await ctx.send( f'{mention}, you need to specify what you want the tournament name and type.' )
         return
-    elif isPathSafeName(tournName):
+    elif isPathSafeName(tournName) or "@everyone" in tournName:
         await ctx.send( f'{mention}, you cannot have that as a tournament name.' )
         return
 
