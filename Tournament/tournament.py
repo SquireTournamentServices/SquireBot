@@ -450,9 +450,7 @@ class tournament:
             return f'you have submitted a decklist for {self.players[plyr].getMention()}. The deck hash is {deckHash}.'
         message = f'your deck has been successfully registered in {self.name}. Your deck name is "{deckName}", and the deck hash is "{deckHash}". Make sure it matches your deck hash in Cockatrice. You can see your decklist by using !decklist "{deckName}" or !decklist {deckHash}.'
 
-        if isMoxFieldLink(decklist):
-            message += f'\nPlease be aware that moxfield treats your commander as if it were in your mainboard.'
-        elif isTappedOutLink(decklist) or isMtgGoldfishLink(decklist):
+        if isMoxFieldLink(decklist) or isTappedOutLink(decklist) or isMtgGoldfishLink(decklist):
             message += f'\nPlease be aware that this website treats your commander as if it were in your mainboard.'
         return message
 
