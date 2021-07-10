@@ -166,7 +166,7 @@ async def hasCommandWaiting( ctx, user: int, send: bool = True ) -> bool:
 async def createMisfortune( ctx ) -> None:
     playerMatch = None
     tourns = guildSettingsObjects[ctx.guild.id].getPlayerTournaments( ctx.author )
-    for tourn in tourns.values():
+    for tourn in tourns:
         if tourn.players[ctx.author.id].hasOpenMatch():
             playerMatch = tourn.players[ctx.author.id].findOpenMatch()
             break

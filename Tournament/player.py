@@ -287,7 +287,7 @@ class player:
             elif mtch.isDraw():
                 digest += 1 #0.5
             elif withBye and mtch.isBye():
-                digest += 1
+                digest += 3
             else:
                 digest += 0 #-2.25
         return digest

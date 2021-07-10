@@ -2,6 +2,7 @@ import os
 import shutil
 import threading
 import time
+from time import sleep
 import asyncio
 import warnings
 import xml.etree.ElementTree as ET
@@ -406,11 +407,8 @@ class tournament:
         if len(Match.droppedPlayers) != 0:
             digest.add_field( name="Dropped Players", value=", ".join( [ self.players[plyr].getMention() for plyr in Match.droppedPlayers ] ) )
         if not ( Match.isCertified() or Match.stopTimer ):
-            t = Match.getTimeElapsed()
-            if t > self.matchLength:
-                digest.add_field( name="Time Remaining", value=f'0 minutes' )
-            else:
-                digest.add_field( name="Time Remaining", value=f'{round((self.matchLength - t) / 60)} minutes' )
+            t = round(Match.getTimeLeft( ) / 60) 
+            digest.add_field( name="Time Remaining", value=f'{t if t > 0 else 0} minutes' )
         if Match.winner != "":
             if Match.winner in self.players:
                 digest.add_field( name="Winner", value=self.players[Match.winner].discordUser.mention )
@@ -621,7 +619,7 @@ class tournament:
             t = self.matchLength
 
         while mtch.getTimeLeft() > 0 and not mtch.stopTimer:
-            time.sleep( 1 )
+            sleep( 1 )
             if mtch.getTimeLeft() <= 60 and not mtch.sentOneMinWarning and not mtch.stopTimer:
                     task = threading.Thread( target=self._launch_match_warning, args=(f'{mtch.getMention()}, you have one minute left in your match.',) )
                     task.start( )

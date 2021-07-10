@@ -164,7 +164,6 @@ class deck:
             self.decklist += f'{card["quantity"]} {card_name}\n'
             
         side_board = deck_data["sideboard"]            
-
         for card_name in side_board:
             # Add card to decklist
             card = side_board[card_name]
@@ -316,6 +315,5 @@ class deck:
         """
         return [ line for line in self.decklist.strip().split("\n") \
                     if line.strip() != "" and line[0:2] != "//" ]
-
 
 

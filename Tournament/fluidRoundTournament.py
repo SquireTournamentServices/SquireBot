@@ -105,9 +105,13 @@ class fluidRoundTournament(tournament):
         queueSize = sum( [ len(l) for l in self.queue ] )
         queueStr  = [ f'Tier {l+1}: {", ".join([ p.getMention() for p in self.queue[l] ])}' for l in range(len(self.queue)) if len(self.queue[l]) > 0 ]
         queueText = f'There are {queueSize} players in the queue.'
+        queueMessage = ""
         if queueSize > 0:
-            queueText += f' The queue looks like:{NL}{NL.join(queueStr)}'
-        digest.add_field( name="**Queue Info.**", value=queueText )
+            queueMessage += f' The queue looks like:{NL}{NL.join(queueStr)}'
+        if len(queueMessage) <= 1024:
+            digest.add_field( name="**Queue Info.**", value=queueMessage )
+        else:
+            digest.add_field( name="**Queue Info.**", value=queueText )
         
         openMatches = [ m for m in self.matches if m.isOpen() ]
         uncertMatches = [ m for m in self.matches if m.isUncertified() ]
