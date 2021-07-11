@@ -46,6 +46,20 @@ def trunk( score ) -> str:
 def getTime( ) -> str:
     return datetime.utcnow().strftime(TFORM)
 
+def Union( vals: List ) -> bool:
+    """ Applies a logical OR to a list of bools """
+    digest = vals[0]
+    for val in vals[1:]:
+        digest |= val
+    return digest
+
+def Intersection( vals: List ) -> bool:
+    """ Applies a logical AND to a list of bools """
+    digest = vals[0]
+    for val in vals[1:]:
+        digest &= val
+    return digest
+
 # Finds the difference (in second) between two times given by getTime()
 def timeDiff( tOne: str, tTwo: str ) -> float:
     """ Gets the difference between two times in TFORM """
