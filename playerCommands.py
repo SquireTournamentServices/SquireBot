@@ -444,6 +444,7 @@ async def dequeuePlayer( ctx, tourn = None ):
     if not await isTournRunning( tournObj, ctx ): return
         
     message = tournObj.removePlayerFromQueue( ctx.author.id )
+    #tournObj.saveOverview( ) # This is done in the removePlayerFromQueue method already
     await ctx.send( message )
     await tournObj.updateInfoMessage()
     
