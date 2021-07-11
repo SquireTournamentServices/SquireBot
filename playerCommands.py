@@ -411,6 +411,41 @@ async def queuePlayer( ctx, tourn = None ):
     await ctx.send( f'{message}.' )
     await tournObj.updateInfoMessage()
 
+commandSnippets["leave-lfg"] ="- leave-lfg : Removes you from the matchmaking queue" 
+commandCategories["playing"].append( "leave-lfg" )
+@bot.command(name='leave-lfg')
+async def dequeuePlayer( ctx, tourn = None ):
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+    
+    if await isPrivateMessage( ctx ): return
+    
+    if tourn is None:
+        tourns = gld.getPlayerTournaments( ctx.author )
+        if len( tourns ) > 1:
+            await ctx.send( f'{mention}, you are registered for multiple tournaments on this server. Please specify which tournament you are playing in.' )
+            return
+        elif len( tourns ) < 1:
+            await ctx.send( f'{mention}, you are not registered for any tournaments on this server.' )
+            return
+        else:
+            tournObj = tourns[0]
+            tourn = tournObj.name
+    else:
+        tournObj = gld.getTournament( tourn )
+        if tournObj is None:
+            await ctx.send( f'{mention}, you are not registered in a tournament called "{tourn}" in this server.' )
+            return
+    
+    if not await hasRegistered( tournObj, ctx.author.id, ctx ): return
+    if not await isActivePlayer( tournObj, ctx.author.id, ctx ): return
+    if not await isTournRunning( tournObj, ctx ): return
+        
+    message = tournObj.removePlayerFromQueue( ctx.author.id )
+    #tournObj.saveOverview( ) # This is done in the removePlayerFromQueue method already
+    await ctx.send( f'{mention}, {message}.' )
+    await tournObj.updateInfoMessage()
+    
 
 commandSnippets["match-result"] = "- match-result : Records you as the winner of your match or that the match was a draw" 
 commandCategories["playing"].append( "match-result" )
