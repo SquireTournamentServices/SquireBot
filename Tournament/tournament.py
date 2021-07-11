@@ -339,8 +339,6 @@ class tournament:
         for plyr in self.players.values():
             if not plyr.isActive( ):
                 continue
-            if plyr.discordUser is None:
-                continue
             if len(plyr.matches) == 0:
                 continue
             # Match Points
