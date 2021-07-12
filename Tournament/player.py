@@ -67,8 +67,6 @@ class player:
         return self.status == "active"
 
     def isValidOpponent( self, a_plyr: 'player' ) -> bool:
-        if self.name in a_plyr.opponents:
-            return False
         if a_plyr.name in self.opponents:
             return False
         return True
@@ -87,8 +85,10 @@ class player:
     def getDisplayName( self ):
         if type(self.discordUser) == discord.User or type(self.discordUser) == discord.Member:
             return self.discordUser.display_name
-        else:
-            return "\u200b" # Widthless whitespace char to prevent Embed issues
+        return "\u200b" # Widthless whitespace char to prevent Embed issues
+
+    def countByes( self ) -> int:
+        return sum( 1 for mtch in self.matches if mtch.isBye() )
 
     async def getDeckEmbed( self, a_deckname: str ) -> discord.Embed:
         digest = discord.Embed( title=f"**{self.name}'s Deck,** **{a_deckname}**: **{self.decks[a_deckname].deckHash}**" )

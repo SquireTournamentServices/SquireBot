@@ -9,3 +9,4 @@ from .utils import *
 from .tournamentSelector import *
 from .guildSettings import *
 from .exceptions import *
+from .pairingQueue import *
