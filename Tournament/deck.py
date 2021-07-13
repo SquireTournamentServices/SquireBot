@@ -27,7 +27,7 @@ from .utils import *
 from .exceptions import *
 from .cardDB import *
 
-cardsDB = initCardDB()
+#cardsDB = initCardDB()
 
 # Constant compiled regexes
 anchorRegex = "((#[a-zA-Z0-9_-]+)?(\?([a-zA-Z0-9_-]+=[+a-zA-Z0-9_-]+)(&([a-zA-Z0-9_-]+=[+a-zA-Z0-9_-]+))*)?)?"

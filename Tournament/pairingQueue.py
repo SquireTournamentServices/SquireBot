@@ -26,10 +26,8 @@ class pairingQueue:
         """ Returns a string representation of the queue. """
         levels = [ ]
         for lvl in self.queue:
-            if len(lvl) < 1:
-                continue
             levels.append( ", ".join( [ plyr.getMention() for plyr in lvl ] ) )
-        return "\n".join( [ f'Tier {i+1}: {lvl}' for i, lvl in enumerate(levels) ] )
+        return "\n".join( [ f'Tier {i+1}: {lvl}' for i, lvl in enumerate(levels) if len(lvl) > 0 ] )
 
     def size( self ) -> int:
         """ Calculates the number of people in the queue """
@@ -70,7 +68,7 @@ class pairingQueue:
         # together and logically ANDs the results
         return Intersection( [ A.isValidOpponent(B) for i, A in enumerate(plyrs) for B in plyrs[i+1:] ] )
 
-    def _attemptPairing( self, matchSize: int ) -> List:
+    def _attemptPairing( self, matchSize: int ) -> List[List]:
         """ Creates a potential list of pairings """
         digest: List = [ ]
         # The queue gets shuffled, each tier is sorted so that players with
@@ -84,7 +82,7 @@ class pairingQueue:
         pairingFound = True
         # There has to be a more pythonic way of doing...
         while pairingFound and len(queue) >= matchSize:
-            #print( "\n".join( [ str([ p.getMention() for p in pairing ]) for pairing in digest ] ) )
+            pairingFound = False
             pairing = [ queue[0] ]
             del queue[0]
             for plyr in queue:
@@ -103,7 +101,7 @@ class pairingQueue:
 
     def bump( self ) -> None:
         """ Adds an empty list to the begin of the queue. """
-        self.queue.insert( [ ], 0 )
+        self.queue.insert( 0, [ ] )
         return
 
     def addPlayer( self, plyr: player, index: int = 0 ) -> str:
@@ -139,7 +137,9 @@ class pairingQueue:
             if size - len(tries[-1])*matchSize < matchSize:
                 break
         tries.sort( key=lambda x: len(x) )
-        return tries[-1][0]
+        # Since the tries have been sorted, the last one will be the one with
+        # the most pairings
+        return tries[-1]
 
     # Note that there is not a load method. Players are added back in by the tournament when its load method is called.
     def exportToXML( self, indent: str ) -> str:

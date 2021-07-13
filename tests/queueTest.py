@@ -20,8 +20,13 @@ print( queue )
 
 pairings = queue.createPairings( 4 )
 
-for p in pairings:
-    print( ", ".join( [ plyr.getMention() for plyr in p ] ) )
+for pairing in pairings:
+    for plyr in pairing:
+        queue.removePlayer( plyr )
 
+print( queue )
 
+queue.bump()
+
+print( queue )
 
