@@ -3,19 +3,19 @@ import shutil
 import xml.etree.ElementTree as ET
 import random
 import threading
-import time
 import discord
 import asyncio
 import warnings
 
-from typing import List
-from typing import Tuple
+from time import sleep
+from typing import List, Tuple
 
 from .utils import *
 from .tournament import tournament
 from .match import match
 from .player import player
 from .deck import deck
+from .pairingQueue import *
 
 
 """
@@ -50,7 +50,7 @@ class fluidRoundTournament(tournament):
         self.playersPerMatch   = int(props["match-size"]) if "match-size" in props else 2
         self.matchLength       = int(props["match-length"])*60 if "match-length" in props else 60*60 # Length of matches in seconds
         
-        self.queue             = [ [] ]
+        self.queue             = pairingQueue( )
         self.pairingsThreshold = self.playersPerMatch * 2 # + 3
         self.pairingWaitTime   = 5
         self.queueActivity     = [ ]
@@ -79,7 +79,7 @@ class fluidRoundTournament(tournament):
 
     def updatePairingsThreshold( self, count: int ) -> None:
         self.pairingsThreshold = count
-        if sum( [ len(level) for level in self.queue ] ) >= self.pairingsThreshold and not self.pairingsThread.is_alive():
+        if self.queue.readyToPair( self.pairingsThreshold ) and not self.pairingsThread.is_alive():
             self.pairingsThread = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )
     
@@ -102,16 +102,11 @@ class fluidRoundTournament(tournament):
             decksText = decksText[:-1] + f', and {len(plyrsWithDecks)} of them have submitted decks.'
         digest.add_field( name="**Player Count**", value=decksText )
         
-        queueSize = sum( [ len(l) for l in self.queue ] )
-        queueStr  = [ f'Tier {l+1}: {", ".join([ p.getMention() for p in self.queue[l] ])}' for l in range(len(self.queue)) if len(self.queue[l]) > 0 ]
-        queueText = f'There are {queueSize} players in the queue.'
-        queueMessage = ""
-        if queueSize > 0:
-            queueMessage += f' The queue looks like:{NL}{NL.join(queueStr)}'
-        if len(queueMessage) <= 1024:
-            digest.add_field( name="**Queue Info.**", value=queueMessage )
-        else:
-            digest.add_field( name="**Queue Info.**", value=queueText )
+        queueMessage = f'There are {self.queue.size()} players in the queue.'
+        queueStr  = f' The queue looks like:\n{str(self.queue)}' if self.queue.size() > 0 else ""
+        if len(queueMessage) + len(queueStr) <= 1024:
+            queueMessage += queueStr
+        digest.add_field( name="**Queue Info.**", value=queueMessage )
         
         openMatches = [ m for m in self.matches if m.isOpen() ]
         uncertMatches = [ m for m in self.matches if m.isUncertified() ]
@@ -136,165 +131,56 @@ class fluidRoundTournament(tournament):
     # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing
     # This is a prime canidate for adjustments when players how copies of match results.
     def addPlayerToQueue( self, plyr: int ) -> None:
-        for lvl in self.queue:
-            for p in lvl:
-                if plyr == p.discordID:
-                    return "you are already in the matchmaking queue. You will be paired for when more people join the queue."
         if plyr not in self.players:
-            return "you are not registered for this tournament."
+            return "<@{plyr}>, you are not registered for this tournament."
         if not self.players[plyr].isActive( ):
-            return "you are registered but are not an active player."
+            return "{self.players[plyr].getMention()}, you are registered but are not an active player."
         
-        self.queue[0].append(self.players[plyr])
+        digest = self.queue.addPlayer( self.players[plyr] )
         self.queueActivity.append( (plyr, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
-        if sum( [ len(level) for level in self.queue ] ) >= self.pairingsThreshold and not self.pairingsThread.is_alive():
+        if self.queue.readyToPair( self.pairingsThreshold ) and not self.pairingsThread.is_alive():
             self.pairingsThread = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )
-        return "you have been added to the queue."
+        return digest
     
-    def removePlayerFromQueue( self, plyr: str ) -> None:
-        for lvl in self.queue:
-            for i in range(len(lvl)):
-                if lvl[i].discordID == plyr:
-                    del( lvl[i] )
-                    self.saveOverview( )
-                    return None
-        return None
+    def removePlayerFromQueue( self, plyr: int ) -> None:
+        if plyr not in self.players:
+            return "<@{plyr}>, you are not registered for this tournament."
+        return self.queue.removePlayer( self.players[plyr] )
 
     # Wrapper for self._pairQueue so that it can be ran on a seperate thread
     def _launch_pairings( self, waitTime ):
-        time.sleep( waitTime )
+        sleep( waitTime )
+        print( self.queue )
         fut_pairings = asyncio.run_coroutine_threadsafe( self._pairQueue(waitTime), self.loop )
         fut_pairings.result( )
-    
-    # Starting from the given position, searches through the queue to find opponents for the player at the given position.
-    # Returns the positions of the closest players that can form a match.
-    # If a match can't be formed, we return an empty list
-    # This method is intended to only be used in _pairQueue method
-    def _searchForOpponents( self, lvl: int, i: int, q = [] ) -> List[Tuple[int,int]]:
-        if len(q) == []:
-            q = self.queue.copy()
-        if lvl > 0:
-            lvl = -1*(lvl+1)
-        
-        plyr   = q[lvl][i]
-        plyrs  = [ q[lvl][i] ]
-        digest = [ (lvl, i) ]
-        
-        # Sweep through the rest of the level we start in
-        for k in range(i+1,len(q[lvl])):
-            if q[lvl][k].areValidOpponents( plyrs ):
-                plyrs.append( q[lvl][k] )
-                # We want to store the shifted inner index since any players in
-                # front of this player will be removed
-                digest.append( (lvl, k - len(digest) ) )
-                if len(digest) == self.playersPerMatch:
-                    return digest
-        
-        # Starting from the priority level directly below the given level and
-        # moving towards the lowest priority level, we sweep across each
-        # remaining level looking for a match
-        for l in reversed(range(-1*len(q),lvl)):
-            count = 0
-            for k in range(len(q[l])):
-                if q[l][k].areValidOpponents( plyrs ):
-                    plyrs.append( q[l][k] )
-                    # We want to store the shifted inner index since any players in
-                    # front of this player will be removed
-                    digest.append( (l, k - count ) )
-                    count += 1
-                    if len(digest) == self.playersPerMatch:
-                        return digest
-        return [ ]
-        
-    def _pairingAttempt( self, q = None ):
-        if q is None:
-            q = [ lvl.copy() for lvl in self.queue ]
-        newQueue = []
-        for _ in range(len(q) + 1):
-            newQueue.append( [] )
-        plyrs = [ ]
-        indices = [ ]
-        digest = [ ]
 
-        for lvl in q:
-            random.shuffle( lvl )
-        
-        lvl = -1
-        while lvl >= -1*len(q):
-            while len(q[lvl]) > 0:
-                indices = self._searchForOpponents( lvl, 0, q )
-                # If an empty array is returned, no match was found
-                # Add the current player to the end of the new queue
-                # and remove them from the current queue
-                if len(indices) == 0:
-                    newQueue[lvl].append(q[lvl][0])
-                    del( q[lvl][0] )
-                else:
-                    plyrs = [ ] 
-                    for index in indices:
-                        plyrs.append( q[index[0]][index[1]].discordID )
-                        del( q[index[0]][index[1]] )
-                    digest.append( self.addMatch( plyrs ) )
-            lvl -= 1
-        
-        return digest, newQueue
-    
     async def _pairQueue( self, waitTime: int ) -> None:
-        tries = 25
-        tempQueue = [ lvl.copy() for lvl in self.queue ]
-        results = []
-        
-        for _ in range(tries):
-            results.append( self._pairingAttempt( tempQueue.copy() ) )
-            # Have we paired the maximum number of people, i.e. does the remainder of the queue by playersPerMatch equal the new queue
-            if sum( [ len(lvl) for lvl in results[-1][1] ] ) == sum( [len(lvl) for lvl in self.queue] )%self.playersPerMatch:
-                break
+        startingStr = str( self.queue )
+        pairings: List = self.queue.createPairings( self.playersPerMatch )
+        for pairing in pairings:
+            print( pairing )
+            await self.addMatch( pairing )
 
-        results.sort( key=lambda x: len(x[0]) ) 
-        matchTasks = results[-1][0]
-        newQueue   = results[-1][1]
-        
-        # Waiting for the tasks to be made
-        for task in matchTasks:
-            await task
+        endStr = str( self.queue )
 
-        # Trimming empty bins from the top of the new queue
-        while len(newQueue) > 1:
-            if len(newQueue[-1]) != 0:
-                break
-            del( newQueue[-1] )
+        self.queue.bump( )
 
-        # Check to see if the new queue is the same as the old queue
-        isSame = True
-        if [ len(lvl) for lvl in self.queue ] == [ len(lvl) for lvl in newQueue ]:
-            for i in range(len(self.queue)):
-                self.queue[i].sort( key=lambda x: x.name )
-                newQueue[i].sort( key=lambda x: x.name )
-            for i in range(len(self.queue)):
-                for j in range(len(self.queue[i])):
-                    isSame &= self.queue[i][j] == newQueue[i][j] 
-                    if not isSame: break
-                if not isSame: break
-
-        if len(self.queue) > self.highestPriority:
-            self.highestPriority = len(self.queue)
-        
         self.saveOverview()
-        
-        if sum( [ len(level) for level in self.queue ] ) >= self.pairingsThreshold and not isSame:
+
+        if self.queue.readyToPair( self.pairingsThreshold ) and startingStr != endStr:
             self.pairingsThread = threading.Thread( target=self._launch_pairings, args=(0,) )
             self.pairingsThread.start( )
-        
+
         return
 
     # ---------------- XML Saving/Loading ---------------- 
-    
+
     def saveTournamentType( self, filename: str = "" ) -> None:
         print( "Fluid Round tournament type being saved." )
         with open( filename, 'w+' ) as xmlfile:
             xmlfile.write( "<?xml version='1.0'?>\n<type>fluidRoundTournament</type>" )
-   
+
     def saveOverview( self, filename: str = "" ) -> None:
         print( "Fluid Round Overview being saved." )
         if filename == "":
@@ -320,9 +206,7 @@ class fluidRoundTournament(tournament):
         digest += f'\t<onlyRegistered>{self.only_registered}</onlyRegistered>\n'
         digest += f'\t<playerDeckVerification>{self.player_deck_verification}</playerDeckVerification>\n'
         digest += f'\t<queue size="{self.playersPerMatch}" threshold="{self.pairingsThreshold}">\n'
-        for level in range(len(self.queue)):
-            for plyr in self.queue[level]:
-                digest += f'\t\t<player name="{plyr.discordID}" priority="{level}"/>\n'
+        digest += self.queue.exportToXML( "\t\t" )
         digest += f'\t</queue>\n'
         digest += f'\t<queueActivity>\n'
         for act in self.queueActivity:
@@ -335,7 +219,7 @@ class fluidRoundTournament(tournament):
     
     def loadOverview( self, filename: str ) -> None:
         xmlTree = ET.parse( filename )
-        tournRoot = xmlTree.getroot() 
+        tournRoot = xmlTree.getroot()
         self.name = fromXML(tournRoot.find( 'name' ).text)
         self.guildID   = int( fromXML(tournRoot.find( 'guild' ).attrib["id"]) )
         self.roleID    = int( fromXML(tournRoot.find( 'role' ).attrib["id"]) )
@@ -368,15 +252,9 @@ class fluidRoundTournament(tournament):
         for act in acts:
             self.queueActivity.append( ( fromXML( act.attrib['player'] ), fromXML(act.attrib['time'] ) ) )
         players = tournRoot.find( 'queue' ).findall( 'player' )
-        maxLevel = 1
         for plyr in players:
-            if int( plyr.attrib['priority'] ) > maxLevel:
-                maxLevel = int( fromXML(plyr.attrib['priority']) )
-        for _ in range(maxLevel):
-            self.queue.append( [] )
-        for plyr in players:
-            self.queue[int(plyr.attrib['priority'])].append( self.players[ int(fromXML(plyr.attrib['name'])) ] )
-        if sum( [ len(level) for level in self.queue ] ) >= self.pairingsThreshold and not self.pairingsThread.is_alive( ):
+            self.queue.addPlayer( self.players[int(fromXML(plyr.attrib['name']))], int(plyr.attrib['priority']) )
+        if self.queue.readyToPair( self.pairingsThreshold ) and not self.pairingsThread.is_alive( ):
             self.pairingsThread = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )
 

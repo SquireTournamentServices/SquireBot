@@ -684,23 +684,16 @@ async def viewQueue( ctx, tourn = None ):
         await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
         return
 
-    if sum( [ len(lvl) for lvl in tournObj.queue ] ) == 0:
-        await ctx.send( f'{mention}, the current matchmaking queue for {tourn} is empty:' )
+    if tournObj.queue.size() == 0:
+        await ctx.send( f'{mention}, the current matchmaking queue for {tourn} is empty.' )
         return
 
-    embed = discord.Embed( )
-    value =  ""
-    count = 0
+    embed = discord.Embed( title=f'Queue for {tourn}:' )
 
-    for lvl in range(len(tournObj.queue)):
-        value += f'{lvl+1}) ' + ", ".join( [ plyr.discordUser.display_name for plyr in tournObj.queue[lvl] ] ) + "\n"
-        if len(value) > 1024:
-            embed.add_field( name = f'{tourn} Queue' if count == 0 else "\u200b", value = value, inline=False )
-            value = ""
-            count += 1
-
-    if value != "":
-        embed.add_field( name = f'{tourn} Queue' if count == 0 else "\u200b", value = value, inline=False )
+    for i, lvl in enumerate( tournObj.queue.queue ):
+        if len(lvl) < 1:
+            continue
+        embed.add_field( name = f'Tier {i+1}:', value=", ".join( [ plyr.getMention() for plyr in lvl ] ) + "\n" )
 
     await ctx.send( f'{mention}, here is the current matchmaking queue for {tourn}:', embed=embed )
 

@@ -66,8 +66,8 @@ class player:
     def isActive( self ):
         return self.status == "active"
 
-    def isValidOpponent( self, a_plyr: 'player' ) -> bool:
-        if a_plyr.name in self.opponents:
+    def isValidOpponent( self, a_plyr: int ) -> bool:
+        if a_plyr in self.opponents:
             return False
         return True
 

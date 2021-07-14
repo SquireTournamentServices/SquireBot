@@ -636,7 +636,7 @@ class tournament:
             mtch.sentFinalWarning = True
         mtch.saveXML( )
 
-    async def addMatch( self, plyrs: List[str] ) -> None:
+    async def addMatch( self, plyrs: List ) -> None:
         for plyr in plyrs:
             self.queueActivity.append( (plyr, getTime() ) )
         newMatch = match( plyrs )
@@ -714,11 +714,11 @@ class tournament:
                     message += "A cockatrice game was not automatically made for you.\n"
 
         for plyr in plyrs:
+            # TODO: This should be unready player
             self.removePlayerFromQueue( plyr )
             self.players[plyr].matches.append( newMatch )
             for p in plyrs:
-                if p != plyr:
-                    self.players[plyr].opponents.add( p )
+                self.players[plyr].opponents.add( p )
             if type( self.guild ) == discord.Guild:
                 self.players[plyr].saveXML()
                 await self.players[plyr].discordUser.add_roles( matchRole )
@@ -815,7 +815,7 @@ class tournament:
 
     def saveMatches( self, dirName: str = "" ) -> None:
         if dirName == "":
-            dirName = self.getSaveLocation()
+           dirName = self.getSaveLocation()
         if not (os.path.isdir( f'{dirName}/matches/' ) and os.path.exists( f'{dirName}/matches/' )):
            os.mkdir( f'{dirName}/matches/' )
 

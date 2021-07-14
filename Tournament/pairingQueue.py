@@ -2,7 +2,6 @@
 # Imports of standard libraries
 
 # Partial imports from standard libraries
-from copy import deepcopy
 from random import shuffle
 
 # Include typing help
@@ -37,6 +36,10 @@ class pairingQueue:
         """ Calculates the number of levels in the queue """
         return len(self.queue)
 
+    def _copyQueue( self ) -> List:
+        """ Deepcopy struggles with copying player objects. This method creates a psuedo-deepcopy """
+        return [ [ plyr for plyr in lvl ] for lvl in self.queue ]
+
     def _isInQueue( self, plyr: player ) -> bool:
         """ Determines if a player is in the queue """
         return Union( [ (plyr in lvl) for lvl in self.queue ] )
@@ -50,7 +53,7 @@ class pairingQueue:
     def _shuffle( self ) -> List:
         """ Returns a copy of the current queue, but with each level shuffled """
         digest: List = [ ]
-        for lvl in deepcopy( self.queue ):
+        for lvl in self._copyQueue( ):
             shuffle(lvl)
             digest.append( lvl )
         return digest
@@ -66,7 +69,7 @@ class pairingQueue:
         """ Determines if a group of players are all mutually valid opponents. """
         # Creates each pair of player and determines if they can be paired
         # together and logically ANDs the results
-        return Intersection( [ A.isValidOpponent(B) for i, A in enumerate(plyrs) for B in plyrs[i+1:] ] )
+        return Intersection( [ A.isValidOpponent(B.discordID) for i, A in enumerate(plyrs) for B in plyrs[i+1:] ] )
 
     def _attemptPairing( self, matchSize: int ) -> List[List]:
         """ Creates a potential list of pairings """
@@ -75,7 +78,7 @@ class pairingQueue:
         # byes are prioritized, linearized, and then reversed
         queue: List = [ ]
         for lvl in self._shuffle():
-            lvl.sort( key=lambda p: p.countByes(), reverse=True )
+            lvl.sort( key=lambda p: p.countByes() )
             queue.append( lvl )
         queue = list( reversed( self._linearize( queue ) ) )
         # The pairings process can begin
@@ -108,6 +111,8 @@ class pairingQueue:
         """ Adds a player to the queue """
         if self._isInQueue( plyr ):
             return f'{plyr.getMention()}, you are already in the queue.'
+        while index > self.height() - 2:
+            self.queue.append( [ ] )
         self.queue[index].append( plyr )
         return f'{plyr.getMention()}, you have been added to the queue.'
 
@@ -122,7 +127,7 @@ class pairingQueue:
 
     def readyToPair( self, threshold: int ) -> bool:
         """ Determines if there are enough people to create pairings """
-        return threshold > self.size()
+        return self.size() >= threshold
 
     # This simply pairs the queue. Players are removed by the tournament
     def createPairings( self, matchSize: int ) -> List:
@@ -136,14 +141,15 @@ class pairingQueue:
             # Would the new queue be smaller than the match size
             if size - len(tries[-1])*matchSize < matchSize:
                 break
+        print( tries )
         tries.sort( key=lambda x: len(x) )
         # Since the tries have been sorted, the last one will be the one with
         # the most pairings
-        return tries[-1]
+        return [ [ plyr.discordID for plyr in pairing ] for pairing in tries[-1] ]
 
     # Note that there is not a load method. Players are added back in by the tournament when its load method is called.
     def exportToXML( self, indent: str ) -> str:
         """ Exports the queue to an XML for saving. """
-        return indent.join( [ f'<player name="{p.discordID}" priority="{i}"/>\n' for i, lvl in enumerate(self.queue) for p in lvl ] )
+        return "".join( [ f'{indent}<player name="{p.discordID}" priority="{i}"/>\n' for i, lvl in enumerate(self.queue) for p in lvl ] )
 
 

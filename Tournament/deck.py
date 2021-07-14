@@ -27,7 +27,7 @@ from .utils import *
 from .exceptions import *
 from .cardDB import *
 
-#cardsDB = initCardDB()
+cardsDB = initCardDB()
 
 # Constant compiled regexes
 anchorRegex = "((#[a-zA-Z0-9_-]+)?(\?([a-zA-Z0-9_-]+=[+a-zA-Z0-9_-]+)(&([a-zA-Z0-9_-]+=[+a-zA-Z0-9_-]+))*)?)?"
@@ -36,8 +36,6 @@ moxFieldLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?moxfield\.com\/decks\/(
 tappedoutLinkRegex = re.compile('\s*(https?:\/\/)?tappedout\.net\/mtg-decks\/([a-z0-9_-]+)\/?'+anchorRegex+'\s*', re.M | re.I)
 mtgGoldFishLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})\/?'+anchorRegex+'\s*', re.M | re.I)
 cockatriceDeckRegex = re.compile('\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*', re.M | re.I)
-
-deckRegex = re.compile("\s*([0-9]+ [\/a-zA-Z 0-9,.'-]+\r*\n+)+\s*", re.M)
 
 def isValidCodFile(deckData: str) -> bool:
     return cockatriceDeckRegex.search(deckData) is not None
@@ -56,7 +54,7 @@ class deck:
     The class is this module
     """
     # More specifically this checks to make sure that each line of a decklist is correct
-    validDecklistRegex = re.compile( "^(sb: )?[0-9]+[x]? [^\n]+$", re.I )
+    validDecklistRegex = re.compile( "^((sb: )?[0-9]+[x]? [^\n]+\n*)+$", re.I )
     emptySpaceRegex = re.compile("\s*")
 
     # Class constructor
@@ -234,7 +232,7 @@ class deck:
         - The card has a number associated with it, so we store that many copies
             - Ex: "1 Izzet Charm" -> [ "izzet charm" ]
         """
-        if "" != self.decklist and not deckRegex.search(self.decklist):
+        if "" != self.decklist and not self.validDecklistRegex.search(self.decklist):
             raise SyntaxError(f"Error deck list is not in the correct form {self.decklist}.")
 
         cards = []

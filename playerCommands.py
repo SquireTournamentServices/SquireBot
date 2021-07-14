@@ -408,7 +408,7 @@ async def queuePlayer( ctx, tourn = None ):
         
     message = tournObj.addPlayerToQueue( ctx.author.id )
     tournObj.saveOverview( )
-    await ctx.send( f'{mention}, {message}.' )
+    await ctx.send( f'{message}.' )
     await tournObj.updateInfoMessage()
 
 
