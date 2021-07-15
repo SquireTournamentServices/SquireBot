@@ -563,7 +563,7 @@ class tournament:
         self.players[plyr].saveXML()
         if author != "":
             # Remove the dropped player from the queue
-            self.removePlayerFromQueue( self.players[plyr] )
+            self.removePlayerFromQueue( plyr )
             await self.players[plyr].discordUser.send( content=f'You have been dropped from {self.name} on {self.guild.name} by tournament staff. If you believe this is an error, check with them.' )
             return f'{author}, {self.players[plyr].discordUser.mention} has been dropped from the tournament.'
         return f'{self.players[plyr].discordUser.mention}, you have been dropped from {self.name}.'
