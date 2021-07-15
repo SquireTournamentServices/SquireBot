@@ -102,7 +102,7 @@ class TriceBot:
             for i in range(0, len(replayStrs)):
                 replayStr = replayStrs[i]
                 name = replayNames[i]            
-                zipf.writestr(name, replayStr)
+                zipf.writestr(name, replayStr, compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
             zipf.close()
             tmpFile.seek(0)
             return tmpFile
