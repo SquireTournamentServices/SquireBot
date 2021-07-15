@@ -264,7 +264,7 @@ async def on_member_remove( member ):
     for tourn in guildSettingsObjects.tournaments:
         if member.id in tourn.players:
             tournament.dropPlayer( member.id )
-    
+
 
 # When ready, the bot needs to looks at each pre-loaded tournament and add a discord user to each player.
 @bot.event
