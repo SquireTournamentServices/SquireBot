@@ -262,8 +262,9 @@ savedGuildSettings = [ f'guilds/{d}' for d in os.listdir( "guilds" ) if os.path.
 @bot.event
 async def on_member_remove( member ):
     for tourn in guildSettingsObjects[member.guild.id].tournaments:
-        message = tournament.dropPlayer( member.id )
-        await member.send( message )
+        if member.id in tourn.players:
+            message = await tourn.dropPlayer( member.id )
+            await member.send( message )
 
 # When ready, the bot needs to looks at each pre-loaded tournament and add a discord user to each player.
 @bot.event
