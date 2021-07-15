@@ -65,7 +65,7 @@ class TriceBot:
         replayStrs = []
         replayNames = []
         
-        # Iterate over
+        # Iterate over each replay url
         for replayURL in replayURLs:
             try:
                 res = self.reqBin(replayURL.replace(self.externURL, self.apiURL), "", abs=True)
@@ -98,7 +98,7 @@ class TriceBot:
                 return None
             tmpFile = tempfile.TemporaryFile(mode="wb+", suffix="tricebot.py", prefix="replaydownloads.zip")
             #tmpFile = open("I hate python.zip", "wb+")
-            zipf = zipfile.ZipFile(tmpFile, "w", zipfile.ZIP_STORED)
+            zipf = zipfile.ZipFile(tmpFile, "w", zipfile.ZIP_DEFLATED)
             for i in range(0, len(replayStrs)):
                 replayStr = replayStrs[i]
                 name = replayNames[i]            
