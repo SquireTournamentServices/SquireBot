@@ -376,111 +376,47 @@ async def createPairingsList( ctx, tourn = None ):
     mention = ctx.author.mention
 
     if await isPrivateMessage( ctx ): return
+    gld = guildSettingsObjects[ctx.guild.id]
 
-    adminMention = getTournamentAdminMention( ctx.message.guild )
     if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+
     if tourn is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament, match number, player, and result in order to remove a player from a match.' )
         return
-    if not await checkTournExists( tourn, ctx ): return
-    if not await correctGuild( tourn, ctx ): return
-    if await isTournDead( tourn, ctx ): return
 
-    def searchForOpponents( lvl: int, i: int, queue ) -> List[Tuple[int,int]]:
-        if lvl > 0:
-            lvl = -1*(lvl+1)
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        return
 
-        plyr   = queue[lvl][i]
-        plyrs  = [ queue[lvl][i] ]
-        digest = [ (lvl, i) ]
-        # Sweep through the rest of the level we start in
-        for k in range(i+1,len(queue[lvl])):
-            if queue[lvl][k].areValidOpponents( plyrs ):
-                plyrs.append( queue[lvl][k] )
-                # We want to store the shifted inner index since any players in
-                # front of this player will be removed
-                digest.append( (lvl, k - len(digest) ) )
-                if len(digest) == tournaments[tourn].playersPerMatch:
-                    # print( f'Match found: {", ".join([ p.name for p in plyrs ])}.' )
-                    return digest
+    queue = pairingQueue( )
+    for plyr in tournObj.players:
+        if not plyr.isActive():
+            continue
+        queue.addPlayer( plyr )
 
-        # Starting from the priority level directly below the given level and
-        # moving towards the lowest priority level, we sweep across each
-        # remaining level looking for a match
-        for l in reversed(range(-1*len(queue),lvl)):
-            count = 0
-            for k in range(len(queue[l])):
-                if queue[l][k].areValidOpponents( plyrs ):
-                    plyrs.append( queue[l][k] )
-                    # We want to store the shifted inner index since any players in
-                    # front of this player will be removed
-                    digest.append( (l, k - count ) )
-                    count += 1
-                    if len(digest) == tournaments[tourn].playersPerMatch:
-                        # print( f'Match found: {", ".join([ p.name for p in plyrs ])}.' )
-                        return digest
+    if not queue.readyToPair( tournObj.playersPerMatch ):
+        await ctx.send( f'{mention}, there are not enough players in {tourn} to create a match.' )
+        return
 
-        # A full match couldn't be formed. Return an empty list
-        return [ ]
+    pairings = queue.createPairings( tournObj.playersPerMatch )
+    for pairing in pairings:
+        for plyr in pairings:
+            queue.removePlayer( plyr )
 
-    def pairingAttempt( ):
-        # Even though this is a single list in a list, this could change to have several component lists
-        queue    = [ [ plyr for plyr in tournaments[tourn].players.values() if plyr.isActive() ] ]
-        newQueue = [ [] for _ in range(len(queue)+1) ]
-        plyrs    = [ ]
-        indices  = [ ]
-        pairings = [ ]
-
-        for lvl in queue:
-            random.shuffle( lvl )
-        oldQueue = queue
-
-        lvl = -1
-        while lvl >= -1*len(queue):
-            while len(queue[lvl]) > 0:
-                indices = searchForOpponents( lvl, 0, queue )
-                # If an empty array is returned, no match was found
-                # Add the current player to the end of the new queue
-                # and remove them from the current queue
-                if len(indices) == 0:
-                    newQueue[lvl].append(queue[lvl][0])
-                    del( queue[lvl][0] )
-                else:
-                    plyrs = [ ]
-                    for index in indices:
-                        plyrs.append( f'"{queue[index[0]][index[1]].discordUser.display_name}"' )
-                        del( queue[index[0]][index[1]] )
-                    pairings.append( " ".join( plyrs ) )
-            lvl -= 1
-
-        return pairings, newQueue
-
-    tries = 25
-    results = []
-
-    for _ in range(tries):
-        results.append( pairingAttempt() )
-        # Have we paired the maximum number of people, i.e. does the remainder of the queue by playersPerMatch equal the new queue
-        if sum( [ len(lvl) for lvl in results[-1][1] ] ) == sum( [len(lvl) for lvl in tournaments[tourn].queue] )%tournaments[tourn].playersPerMatch:
-            break
-
-    results.sort( key=lambda x: len(x) )
-    pairings = results[-1][0]
-    newQueue = results[-1][1]
-
-    newLine = "\n- "
-    if sum( [ len(lvl) for lvl in newQueue ] ) == 0:
-        await ctx.send( f'{mention}, here is a list of possible pairings. There would be no players left unmatched.' )
+    if queue.size() == 0:
+        await ctx.send( f'{mention}, here is a list of possible pairings. No players are left unmatched.' )
     else:
-        plyrs = [ f'"{plyr.discordUser.display_name}"' for lvl in newQueue for plyr in lvl ]
+        plyrs = [ f'"{plyr.getMention()}"' for plyr in queue.queue ]
         message = f'{mention}, here is a list of possible pairings. These players would be left unmatched:{newLine}{newLine.join(plyrs)}'
         for msg in splitMessage( message ):
             if msg == "":
                 break
             await ctx.send( msg )
 
-    await ctx.send( f'\nThese are all the complete pairings.' )
-    message = "\n".join( pairings )
+    await ctx.send( f'\nThese are the complete pairings.' )
+    message = "\n".join( [ f'"{plyr.getMention()}"' for plyr in pairing ] for pairing in pairings ] )
     for msg in splitMessage( message ):
         if msg == "":
             break
