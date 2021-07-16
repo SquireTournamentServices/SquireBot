@@ -936,7 +936,7 @@ async def cutToTopX( ctx, tourn = None, x = None):
     
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
     
     # Validate the value of x
@@ -961,6 +961,50 @@ async def cutToTopX( ctx, tourn = None, x = None):
 
     commandsToConfirm[ctx.author.id] = ( getTime(), 30, cutTopXCoroFunc(ctx, mention, standings, tournObj, tourn, x) )
     await ctx.send( f'{adminMention}, in order to cut players to the top {x}, confirmation is needed. {mention}, are you sure you want to remove this match (!yes/!no)?' )
+
+
+commandSnippets["raw-standings"] = "- raw-standings : Creates a text file with standings for Mike." 
+commandCategories["misc"].append( "raw-standings" )
+@bot.command(name='raw-standings')
+async def rawStandings( ctx, tourn = None ):
+    mention = ctx.author.mention
+    
+    if await isPrivateMessage( ctx ): return
+    gld = guildSettingsObjects[ctx.guild.id]
+
+    if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
+    if tourn is None:
+        tourns = gld.currentTournaments()
+        if len( tourns ) > 1:
+            await ctx.send( f'{mention}, there are multiple tournaments planned in this server. Please specify which tournament you would like to see the standings of.' )
+            return
+        elif len( tourns ) < 1:
+            await ctx.send( f'{mention}, there are no planned tournaments for this server. If you think this is an error, contact tournament staff.' )
+            return
+        else:
+            tournObj = tourns[0]
+            tourn = tournObj.name
+    else:
+        tournObj = gld.getTournament( tourn )
+        if tournObj is None:
+            await ctx.send( f'{mention}, there is not a tournament called {tourn!r} in this server".' )
+            return
+    
+    standings = tournObj.getStandings( )
+    if len(tournObj.players) < 1:
+        await ctx.send( "There are no players registered in this tournament." )
+        return
+    
+    with open( "standings.txt", mode="w+" ) as attachment:
+        attachment.write( "Placement, Players, Match Points, Win Percentage, Opponent WP\n" )
+        length = len(standings[0])
+        for i in range(length):
+            attachment.write( f'{standings[0][i]}, {standings[1][i].name.replace(",", "")}, {standings[2][i]}, {trunk(standings[3][i])}, {trunk(standings[4][i])}\n' )
+    
+    with open( "standings.txt", mode="r" ) as attachment:
+        await ctx.send( content=f'{mention}, the standings for {tourn} are in the attached file.', file = discord.File( attachment, "standings.txt" ) )
     
 
 """
