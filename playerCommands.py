@@ -416,9 +416,9 @@ commandCategories["playing"].append( "leave-lfg" )
 @bot.command(name='leave-lfg')
 async def dequeuePlayer( ctx, tourn = None ):
     mention = ctx.author.mention
-    gld = guildSettingsObjects[ctx.guild.id]
     
     if await isPrivateMessage( ctx ): return
+    gld = guildSettingsObjects[ctx.guild.id]
     
     if tourn is None:
         tourns = gld.getPlayerTournaments( ctx.author )
@@ -442,8 +442,7 @@ async def dequeuePlayer( ctx, tourn = None ):
     if not await isTournRunning( tournObj, ctx ): return
         
     message = tournObj.removePlayerFromQueue( ctx.author.id )
-    #tournObj.saveOverview( ) # This is done in the removePlayerFromQueue method already
-    await ctx.send( f'{mention}, {message}.' )
+    await ctx.send( message )
     await tournObj.updateInfoMessage()
     
 
