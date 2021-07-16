@@ -391,7 +391,7 @@ async def createPairingsList( ctx, tourn = None ):
         return
 
     queue = pairingQueue( )
-    for plyr in tournObj.players:
+    for plyr in tournObj.players.values():
         if not plyr.isActive():
             continue
         queue.addPlayer( plyr )
@@ -402,13 +402,13 @@ async def createPairingsList( ctx, tourn = None ):
 
     pairings = queue.createPairings( tournObj.playersPerMatch )
     for pairing in pairings:
-        for plyr in pairings:
+        for plyr in pairing:
             queue.removePlayer( tournObj.players[plyr] )
 
     if queue.size() == 0:
         await ctx.send( f'{mention}, here is a list of possible pairings. No players are left unmatched.' )
     else:
-        plyrs = [ f'"{plyr.getMention()}"' for plyr in queue.queue ]
+        plyrs = [ f'"{plyr.getMention()}"' for lvl in queue.queue for plyr in lvl ]
         message = f'{mention}, here is a list of possible pairings. These players would be left unmatched:\n{", ".join(plyrs)}'
         for msg in splitMessage( message ):
             if msg == "":
@@ -416,8 +416,8 @@ async def createPairingsList( ctx, tourn = None ):
             await ctx.send( msg )
 
     await ctx.send( f'\nThese are the complete pairings.' )
-    queueStr = [ [ f'"{plyr.getMention()}"' for plyr in pairing ] for pairing in pairings ]
-    message  = [ ", ".join( pairing ) for pairing in pairings ]
+    queueStr = [ [ f'"{tournObj.players[plyr].getMention()}"' for plyr in pairing ] for pairing in pairings ]
+    message  = "\n".join( [ ", ".join( pairing ) for pairing in queueStr ] )
     for msg in splitMessage( message ):
         if msg == "":
             break
