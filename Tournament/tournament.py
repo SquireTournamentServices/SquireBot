@@ -334,6 +334,8 @@ class tournament:
 
     # ---------------- Misc ----------------
 
+    # TODO: There should be a calculator class for this when more flexible
+    # scoring systems are added
     def getStandings( self ) -> List[List]:
         rough = [ ]
         for plyr in self.players.values():
@@ -721,7 +723,7 @@ class tournament:
             self.removePlayerFromQueue( plyr )
             self.players[plyr].matches.append( newMatch )
             for p in plyrs:
-                self.players[plyr].opponents.add( p )
+                self.players[plyr].addOpponent( p )
             if type( self.guild ) == discord.Guild:
                 self.players[plyr].saveXML()
                 await self.players[plyr].discordUser.add_roles( matchRole )

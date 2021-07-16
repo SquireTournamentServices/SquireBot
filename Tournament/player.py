@@ -153,6 +153,10 @@ class player:
             digest |= not mtch.isCertified( )
         return digest
 
+    def addOpponent( self, a_plyr: int ) -> None:
+        if a_plyr != self.discordID:
+            self.opponents.add( a_plyr )
+
     def removeOpponent( self, a_plyr ) -> None:
         if a_plyr in self.opponents:
             self.opponents.remove( a_plyr )
@@ -175,13 +179,9 @@ class player:
     def addMatch( self, a_mtch: match ) -> None:
         self.matches.append( a_mtch )
         for plyr in a_mtch.activePlayers:
-            if plyr == self.name:
-                continue
-            self.opponents.add( plyr )
+            self.addOpponent( plyr )
         for plyr in a_mtch.droppedPlayers:
-            if plyr == self.name:
-                continue
-            self.opponents.add( plyr )
+            self.addOpponent( plyr )
 
     def getMatch( self, a_matchNum: int ) -> match:
         for mtch in self.matches:
@@ -284,11 +284,11 @@ class player:
         for mtch in certMatches:
             if mtch.winner == self.discordID:
                 digest += 3 #4
-            elif mtch.isDraw():
-                digest += 1 #0.5
             elif withBye and mtch.isBye():
                 digest += 3
-            else:
+            elif mtch.isDraw():
+                digest += 1 #0.5
+            else: # Lose gets no points
                 digest += 0 #-2.25
         return digest
 
