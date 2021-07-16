@@ -1,2 +1,0 @@
-Placement, Players, Match Points, Win Percentage, Opponent WP
-1, Tyler B | They/Them, 3, 0.0, 0.0
