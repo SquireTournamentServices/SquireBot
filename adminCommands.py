@@ -1,6 +1,7 @@
 import os
 import shutil
 import random
+import tempfile
 
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -100,7 +101,7 @@ async def updateTournProperties( ctx, tournName = None, *args ):
 
     tournObj = gld.getTournament( tournName )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tournName}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tournName!r} on this server.' )
         return
 
     tournProps = generatePropsDict( *args )
@@ -155,7 +156,7 @@ async def triceBotStatus( ctx, tourn = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
     if tournObj.triceBotEnabled:
@@ -165,7 +166,7 @@ async def triceBotStatus( ctx, tourn = None ):
         settings_str += f'\nSpectator can see hands: {tournObj.spectators_can_see_hands}'
         settings_str += f'\nOnly allow registered users: {tournObj.only_registered}'
         settings_str += f'\nPlayer deck verification: {tournObj.player_deck_verification}'
-        await ctx.send( f'{adminMention}, tricebot is enabled for "{tourn}" and has the following settings:\n```{settings_str}```' )
+        await ctx.send( f'{adminMention}, tricebot is enabled for {tourn!r} and has the following settings:\n```{settings_str}```' )
     else:
         await ctx.send( f'{adminMention}, tricebot is not enabled for "{tourn}."' )
 
@@ -188,7 +189,7 @@ async def updateReg( ctx, tourn = None, status = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
 
     status = "True" if status.lower() == "open" else status
@@ -196,7 +197,7 @@ async def updateReg( ctx, tourn = None, status = None ):
 
     tournObj.setRegStatus( str_to_bool(status) )
     tournObj.saveOverview( )
-    await ctx.send( f'{adminMention}, registration for the "{tourn}" tournament has been {("opened" if str_to_bool(status) else "closed")} by {mention}.' )
+    await ctx.send( f'{adminMention}, registration for the {tourn!r} tournament has been {("opened" if str_to_bool(status) else "closed")} by {mention}.' )
     await tournObj.updateInfoMessage()
 
 
@@ -218,7 +219,7 @@ async def startTournament( ctx, tourn = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
     if tournObj.tournStarted:
         await ctx.send( f'{mention}, {tourn} has already been started.' )
@@ -248,7 +249,7 @@ async def endTournament( ctx, tourn: str = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
 
     if await hasCommandWaiting( ctx, ctx.author.id ):
@@ -277,7 +278,7 @@ async def adminPruneDecks( ctx, tourn = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
 
     if await hasCommandWaiting( ctx, ctx.author.id ):
@@ -305,7 +306,7 @@ async def adminPruneDecks( ctx, tourn = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
     if await hasCommandWaiting( ctx, ctx.author.id ):
@@ -333,7 +334,7 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
     if len(plyrs) != tournObj.playersPerMatch:
@@ -351,13 +352,13 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
     for i in range(len(members)):
         member = members[i]
         if member is None:
-            await ctx.send( f'{mention}, a user by "{plyrs[i]}" was not found on this server.' )
+            await ctx.send( f'{mention}, a user by {plyrs[i]!r} was not found on this server.' )
             endCmd = True
         if not member.id in tournObj.players:
-            await ctx.send( f'{mention}, a user by "{member.mention}" was found in the server, but they are not active in {tourn}. They need to register first.' )
+            await ctx.send( f'{mention}, a user by {member.mention!r} was found in the server, but they are not active in {tourn}. They need to register first.' )
             endCmd = True
         if not tournObj.players[member.id].isActive():
-            await ctx.send( f'{mention}, a player by "{member.mention}" has registered, but they have dropped. They need to re-register.' )
+            await ctx.send( f'{mention}, a player by {member.mention!r} has registered, but they have dropped. They need to re-register.' )
             endCmd = True
 
     if endCmd: return
@@ -387,7 +388,7 @@ async def createPairingsList( ctx, tourn = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
     queue = pairingQueue( )
@@ -408,7 +409,7 @@ async def createPairingsList( ctx, tourn = None ):
     if queue.size() == 0:
         await ctx.send( f'{mention}, here is a list of possible pairings. No players are left unmatched.' )
     else:
-        plyrs = [ f'"{plyr.getMention()}"' for lvl in queue.queue for plyr in lvl ]
+        plyrs = [ f'{plyr.getMention()!r}' for lvl in queue.queue for plyr in lvl ]
         message = f'{mention}, here is a list of possible pairings. These players would be left unmatched:\n{", ".join(plyrs)}'
         for msg in splitMessage( message ):
             if msg == "":
@@ -416,7 +417,7 @@ async def createPairingsList( ctx, tourn = None ):
             await ctx.send( msg )
 
     await ctx.send( f'\nThese are the complete pairings.' )
-    queueStr = [ [ f'"{tournObj.players[plyr].getMention()}"' for plyr in pairing ] for pairing in pairings ]
+    queueStr = [ [ f'{tournObj.players[plyr].getMention()!r}' for plyr in pairing ] for pairing in pairings ]
     message  = "\n".join( [ ", ".join( pairing ) for pairing in queueStr ] )
     for msg in splitMessage( message ):
         if msg == "":
@@ -444,12 +445,12 @@ async def pairingsThreshold( ctx, tourn = None, num = None ):
     try:
         num = int(num)
     except:
-        await ctx.send( f'{mention}, "{num}" could not be converted to a number. Please make sure you only use digits.' )
+        await ctx.send( f'{mention}, {num!r} could not be converted to a number. Please make sure you only use digits.' )
         return
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
     tournObj.updatePairingsThreshold( num )
@@ -475,16 +476,16 @@ async def adminDropPlayer( ctx, tourn = None, plyr = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
     member = gld.getMember( plyr )
     if member is None:
-        await ctx.send( f'{mention}, a player by "{plyr}" could not be found on the server.' )
+        await ctx.send( f'{mention}, a player by {plyr!r} could not be found on the server.' )
         return
 
     if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a user by "{plyr}" was found on the server, but they have not registered for "{tourn}". They need to register first.' )
+        await ctx.send( f'{mention}, a user by {plyr!r} was found on the server, but they have not registered for {tourn!r}. They need to register first.' )
         return
 
     if await hasCommandWaiting( ctx, ctx.author.id ):
@@ -512,16 +513,16 @@ async def adminGiveBye( ctx, tourn = None, plyr = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
     member = gld.getMember( plyr )
     if member is None:
-        await ctx.send( f'{mention}, a player by "{plyr}" could not be found on the server.' )
+        await ctx.send( f'{mention}, a player by {plyr!r} could not be found on the server.' )
         return
 
     if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a user by "{plyr}" was found on the server, but they have not registered for "{tourn}". They need to register first.' )
+        await ctx.send( f'{mention}, a user by {plyr!r} was found on the server, but they have not registered for {tourn!r}. They need to register first.' )
         return
 
     if tournObj.players[member.id].hasOpenMatch( ):
@@ -552,7 +553,7 @@ async def adminRemoveMatch( ctx, tourn = None, mtch = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
     try:
@@ -590,7 +591,7 @@ async def viewQueue( ctx, tourn = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
     tournInfo: discord.Embed = tournObj.getTournamentStatusEmbed()
@@ -618,7 +619,7 @@ async def viewQueue( ctx, tourn = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
     if tournObj.queue.size() == 0:
@@ -653,7 +654,7 @@ async def tricebotKickPlayer( ctx, tourn = None, mtch = None, playerName = None 
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
     try:
@@ -680,11 +681,11 @@ async def tricebotKickPlayer( ctx, tourn = None, mtch = None, playerName = None 
     # -2 an unknown error occurred
 
     if result == 1:
-        await ctx.send( f'{mention}, "{playerName}" was kicked from match {mtch}.' )
+        await ctx.send( f'{mention}, {playerName!r} was kicked from match {mtch}.' )
     elif result == -1:
-        await ctx.send( f'{mention}, "{playerName}" was not found in match {mtch}.' )
+        await ctx.send( f'{mention}, {playerName!r} was not found in match {mtch}.' )
     else:
-        await ctx.send( f'{mention}, An error has occured whilst kicking "{playerName}" from match {mtch}.' )
+        await ctx.send( f'{mention}, An error has occured whilst kicking {playerName!r} from match {mtch}.' )
 
 
 commandSnippets["tricebot-disable-pdi"] = "- tricebot-disable-pdi : Disables player deck verification."
@@ -705,7 +706,7 @@ async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None ):
 
     tournObj = gld.getTournament( tournName )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tournName}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tournName!r} on this server.' )
         return
 
     # Get match
@@ -755,7 +756,7 @@ async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None, plyr = None, new
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
     # Get match
@@ -782,13 +783,13 @@ async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None, plyr = None, new
     member = gld.getMember( plyr )
     oldTriceName = plyr
     if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by "{plyr}", assuming this is the problematic cockatrice name.' )
+        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}, assuming this is the problematic cockatrice name.' )
 
     else:
         if member.id in tournObj.players:
             oldTriceName = tournObj.players[member.id].triceName
         else:
-            await ctx.send( f'{mention}, a player by "{plyr}" was found, but they have not registered for {tourn}. Make sure they register first.' )
+            await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
             return
 
     # Send update command
@@ -831,7 +832,7 @@ async def downloadReplays( ctx, tourn = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
     replayURLs = []
@@ -848,7 +849,7 @@ async def downloadReplays( ctx, tourn = None ):
     # Download replays
     replaysNotFound = []
     replayFile = trice_bot.downloadReplays(replayURLs, replaysNotFound)
-    if replayFile == None:
+    if replayFile is None:
         await ctx.send( f'{mention}, an error occurred downloading the replays.' )
         return
 
@@ -881,7 +882,7 @@ async def cutToTopX( ctx, tourn = None, x = None):
     
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
     
     # Validate the value of x
@@ -907,7 +908,51 @@ async def cutToTopX( ctx, tourn = None, x = None):
         playersDropped.append(standings[1][i].getMention())
         
     newLine = "\n\t- "
-    await ctx.send( f'{mention}, tournament {tourn} was cut to the top {x} players, the following players were dropped:{newLine}{f"{newLine}".join(playersDropped)}' )
+    await ctx.send( f'{mention}, tournament {tourn} was cut to the top {x} players, the following players were dropped:\n{f"{newLine}".join(playersDropped)}' )
+
+
+commandSnippets["raw-standings"] = "- raw-standings : Creates a text file with standings for Mike." 
+commandCategories["misc"].append( "raw-standings" )
+@bot.command(name='raw-standings')
+async def rawStandings( ctx, tourn = None ):
+    mention = ctx.author.mention
+    
+    if await isPrivateMessage( ctx ): return
+    gld = guildSettingsObjects[ctx.guild.id]
+
+    if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
+    if tourn is None:
+        tourns = gld.currentTournaments()
+        if len( tourns ) > 1:
+            await ctx.send( f'{mention}, there are multiple tournaments planned in this server. Please specify which tournament you would like to see the standings of.' )
+            return
+        elif len( tourns ) < 1:
+            await ctx.send( f'{mention}, there are no planned tournaments for this server. If you think this is an error, contact tournament staff.' )
+            return
+        else:
+            tournObj = tourns[0]
+            tourn = tournObj.name
+    else:
+        tournObj = gld.getTournament( tourn )
+        if tournObj is None:
+            await ctx.send( f'{mention}, there is not a tournament called {tourn!r} in this server".' )
+            return
+    
+    standings = tournObj.getStandings( )
+    if len(tournObj.players) < 1:
+        await ctx.send( "There are no players registered in this tournament." )
+        return
+    
+    with open( "standings.txt", mode="w+" ) as attachment:
+        attachment.write( "Placement, Players, Match Points, Win Percentage, Opponent WP\n" )
+        length = len(standings[0])
+        for i in range(length):
+            attachment.write( f'{standings[0][i]}, {standings[1][i].name.replace(",", "")}, {standings[2][i]}, {trunk(standings[3][i])}, {trunk(standings[4][i])}\n' )
+    
+    with open( "standings.txt", mode="r" ) as attachment:
+        await ctx.send( content=f'{mention}, the standings for {tourn} are in the attached file.', file = discord.File( attachment, "standings.txt" ) )
 
 
 """

@@ -82,7 +82,7 @@ async def registerPlayer( ctx, tourn = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'There is no tournament called "{tourn}" on this server.' )
+        await ctx.send( f'There is no tournament called {tourn!r} on this server.' )
         return
 
     message = await tournObj.addPlayer( ctx.author )
@@ -120,7 +120,7 @@ async def addTriceName( ctx, tourn = None, name = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
-        await ctx.send( f'There is no tournament called "{tourn}" on this server.' )
+        await ctx.send( f'There is no tournament called {tourn!r} on this server.' )
         return
     
     if len(name) > 255:
@@ -272,7 +272,7 @@ async def removeDecklist( ctx, tourn = None, ident = None ):
             tourn = tournObj.name
     else:
         if not tourn in tournNames:
-            await ctx.send( f'{mention}, you are not registered in a tournament called "{tourn}"{"" if private else " in this server"}.' )
+            await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r}{"" if private else " in this server"}.' )
             return
         tournObj = tournaments[tournNames.index(tourn)]
 
@@ -281,7 +281,7 @@ async def removeDecklist( ctx, tourn = None, ident = None ):
         if len( tournObj.players[ctx.author.id].decks ) < 1:
             await ctx.send( f'{mention}, you do not have any decks registered for {tourn}.' )
         else:
-            await ctx.send( f'{mention}, you do not have a deck whose name or hash is "{ident}". To see the decks you have registered, use !decks {tourn}' )
+            await ctx.send( f'{mention}, you do not have a deck whose name or hash is {ident!r}. To see the decks you have registered, use !decks {tourn}' )
         return
 
     if await hasCommandWaiting( ctx, ctx.author.id ):
@@ -314,7 +314,7 @@ async def listDeck( ctx, tourn = None ):
             tourn = tournObj.name
     else:
         if not tourn in tournNames:
-            await ctx.send( f'{mention}, you are not registered in a tournament called "{tourn}"{"" if private else " in this server"}.' )
+            await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r}{"" if private else " in this server"}.' )
             return
         tournObj = tournaments[tournNames.index(tourn)]
         
@@ -354,7 +354,7 @@ async def dropTournament( ctx, tourn = None ):
     else:
         tournObj = gld.getTournament( tourn )
         if tournObj is None:
-            await ctx.send( f'{mention}, you are not registered in a tournament called "{tourn}" in this server.' )
+            await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server.' )
             return
     
     if not await hasRegistered( tournObj, ctx.author.id, ctx ): return
@@ -390,7 +390,7 @@ async def queuePlayer( ctx, tourn = None ):
     else:
         tournObj = gld.getTournament( tourn )
         if tournObj is None:
-            await ctx.send( f'{mention}, you are not registered in a tournament called "{tourn}" in this server.' )
+            await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server.' )
             return
     
     if not await hasRegistered( tournObj, ctx.author.id, ctx ): return
@@ -434,7 +434,7 @@ async def dequeuePlayer( ctx, tourn = None ):
     else:
         tournObj = gld.getTournament( tourn )
         if tournObj is None:
-            await ctx.send( f'{mention}, you are not registered in a tournament called "{tourn}" in this server.' )
+            await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server.' )
             return
     
     if not await hasRegistered( tournObj, ctx.author.id, ctx ): return
@@ -474,7 +474,7 @@ async def matchResult( ctx, tourn = None, result = None ):
     else:
         tournObj = gld.getTournament( tourn )
         if tournObj is None:
-            await ctx.send( f'{mention}, you are not registered in a tournament called "{tourn}" in this server".' )
+            await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server".' )
             return
     
     if not await hasRegistered( tournObj, ctx.author.id, ctx ): return
@@ -512,7 +512,7 @@ async def confirmMatchResult( ctx, tourn = None ):
     else:
         tournObj = gld.getTournament( tourn )
         if tournObj is None:
-            await ctx.send( f'{mention}, you are not registered in a tournament called "{tourn}" in this server".' )
+            await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server".' )
             return
 
     if not await hasRegistered( tournObj, ctx.author.id, ctx ): return
@@ -564,7 +564,7 @@ async def standings( ctx, tourn = None, printAll = None ):
     else:
         tournObj = gld.getTournament( tourn )
         if tournObj is None:
-            await ctx.send( f'{mention}, you are not registered in a tournament called "{tourn}" in this server".' )
+            await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server".' )
             return
     
     # If print all needs to be converted to a bool
@@ -709,7 +709,7 @@ async def printDecklist( ctx, tourn = None, ident = None ):
         if len(tournObj.players[ctx.author.id].decks) == 0:
             await ctx.send( f'{mention}, you do not have any decks registered for {tourn}.' )
         else:
-            await ctx.send( f'{mention}, you do not have a deck registered for {tourn} whose name/hash is "{ident}".' )
+            await ctx.send( f'{mention}, you do not have a deck registered for {tourn} whose name/hash is {tourn!r}.' )
         return
 
     if await isPrivateMessage( ctx, send=False ):

@@ -27,12 +27,12 @@ async def adminAddPlayer( ctx, tourn = None, plyr = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None: 
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
     
     member = gld.getMember( plyr )
     if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by "{plyr}".' )
+        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
         return
     
     if member.id in tournObj.players and tournObj.players[member.id].isActive():
@@ -62,20 +62,20 @@ async def adminAddDeck( ctx, tourn = None, plyr = None, ident = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None: 
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
     
     member = gld.getMember( plyr )
     if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by "{plyr}".' )
+        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
         return
     
     if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a player by "{plyr}" was found, but they have not registered for {tourn}. Make sure they register first.' )
+        await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
         return
 
     if not tournObj.players[member.id].isActive():
-        await ctx.send( f'{mention}, a player by "{plyr}" was found, and they have dropped from {tourn}. Make sure they re-register first.' )
+        await ctx.send( f'{mention}, a player by {plyr!r} was found, and they have dropped from {tourn}. Make sure they re-register first.' )
         return
     
     index = ctx.message.content.find( ident ) + len(ident)
@@ -116,25 +116,25 @@ async def adminRemoveDeck( ctx, tourn = None, plyr = None, ident = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None: 
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
     
     member = gld.getMember( plyr )
     if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by "{plyr}".' )
+        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
         return
     
     if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a player by "{plyr}" was found, but they have not registered for {tourn}. Make sure they register first.' )
+        await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
         return
 
     if not tournObj.players[member.id].isActive():
-        await ctx.send( f'{mention}, a player by "{plyr}" was found, and they have dropped from {tourn}. Make sure they re-register first.' )
+        await ctx.send( f'{mention}, a player by {plyr!r} was found, and they have dropped from {tourn}. Make sure they re-register first.' )
         return
     
     deckName = tournObj.players[member.id].getDeckIdent( ident )
     if deckName == "":
-        await ctx.send( f'{mention}, it appears that {plyr} does not have a deck whose name nor hash is "{ident}" registered for {tourn}.' )
+        await ctx.send( f'{mention}, it appears that {plyr} does not have a deck whose name nor hash is {ident!r} registered for {tourn}.' )
         return
         
     if await hasCommandWaiting( ctx, ctx.author.id ):
@@ -161,7 +161,7 @@ async def adminListPlayers( ctx, tourn = None, num = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None: 
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
     
     if len( tournObj.players ) == 0:
@@ -200,16 +200,16 @@ async def adminPlayerProfile( ctx, tourn = None, plyr = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None: 
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
     
     member = gld.getMember( plyr )
     if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by "{plyr}".' )
+        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
         return
     
     if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a player by "{plyr}" was found, but they have not registered for {tourn}. Make sure they register first.' )
+        await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
         return
     
     await ctx.send( content=f'{mention}, the following is the profile for {plyr}:', embed=tournObj.getPlayerProfileEmbed(member.id) )
@@ -232,20 +232,20 @@ async def adminMatchResult( ctx, tourn = None, plyr = None, mtch = None, result 
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None: 
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
     
     member = gld.getMember( plyr )
     if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by "{plyr}".' )
+        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
         return
     
     if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a player by "{plyr}" was found, but they have not registered for {tourn}. Make sure they register first.' )
+        await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
         return
 
     if not tournObj.players[member.id].isActive():
-        await ctx.send( f'{mention}, a player by "{plyr}" was found, and they have dropped from {tourn}. Make sure they re-register first.' )
+        await ctx.send( f'{mention}, a player by {plyr!r} was found, and they have dropped from {tourn}. Make sure they re-register first.' )
         return
     
     try:
@@ -286,20 +286,20 @@ async def adminConfirmResult( ctx, tourn = None, plyr = None, mtch = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None: 
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
     
     member = gld.getMember( plyr )
     if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by "{plyr}".' )
+        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
         return
     
     if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a player by "{plyr}" was found, but they have not registered for {tourn}. Make sure they register first.' )
+        await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
         return
 
     if not tournObj.players[member.id].isActive():
-        await ctx.send( f'{mention}, a player by "{plyr}" was found, and they have dropped from {tourn}. Make sure they re-register first.' )
+        await ctx.send( f'{mention}, a player by {plyr!r} was found, and they have dropped from {tourn}. Make sure they re-register first.' )
         return
     
     try:
@@ -348,7 +348,7 @@ async def giveTimeExtension( ctx, tourn = None, mtch = None, t = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None: 
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
     
     try:
@@ -399,16 +399,16 @@ async def adminPrintDecklist( ctx, tourn = None, plyr = None, ident = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None: 
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
     
     member = gld.getMember( plyr )
     if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by "{plyr}".' )
+        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
         return
     
     if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a player by "{plyr}" was found, but they have not registered for {tourn}. Make sure they register first.' )
+        await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
         return
     
     deckName = tournObj.players[member.id].getDeckIdent( ident )
@@ -436,7 +436,7 @@ async def matchStatus( ctx, tourn = None, mtch = None ):
 
     tournObj = gld.getTournament( tourn )
     if tournObj is None: 
-        await ctx.send( f'{mention}, there is not tournament called "{tourn}" on this server.' )
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
     
     try:
