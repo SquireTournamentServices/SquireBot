@@ -174,8 +174,8 @@ class match:
         if await self.confirmMatch( ):
             self.stopTimer = True
             return f'{self.getMention()}, your match has been certified. You can join the matchmaking queue again.'
-        else:
-            return f'you have confirmed the result of match #{self.matchNumber}.'
+        #else:
+        #    return f'you have confirmed the result of match #{self.matchNumber}.'
     
     # Combines previous methods into a single method.  A player and "win",
     # "loss", or "draw" is specified and the result for that player is
