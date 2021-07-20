@@ -42,6 +42,8 @@ def createStandingsEmbeds( places: List[str], names: List[str], points: List[str
     return digest
         
 
+commandEmbeds["tournaments"] = discord.Embed( title = "Tournaments Command Info." )
+commandEmbeds["tournaments"].add_field( name = "", value = "" )
 commandSnippets["tournaments"] = "- tournaments : Registers you for a tournament"
 commandCategories["registration"].append( "tournaments" )
 @bot.command(name='tournaments')

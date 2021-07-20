@@ -15,11 +15,12 @@ from Tournament import *
 # ---------------- Help Message Methods ---------------- 
 
 LINK_TO_PLAYER_CMD_DOC   = "https://gitlab.com/monarch3/SquireBot/-/tree/development/docs/UserCommands.md"
-LINK_TO_JUDGE_CMD_DOC    = "https://gitlab.com/monarch3/SquireBot/-/tree/development/docs/JudgeCommands.md" 
-LINK_TO_ADMIN_CMD_DOC    = "https://gitlab.com/monarch3/SquireBot/-/tree/development/docs/AdminCommands.md" 
-LINK_TO_CRASH_COURSE_DOC = "https://gitlab.com/monarch3/SquireBot/-/tree/development/docs/CrashCourse.md" 
+LINK_TO_JUDGE_CMD_DOC    = "https://gitlab.com/monarch3/SquireBot/-/tree/development/docs/JudgeCommands.md"
+LINK_TO_ADMIN_CMD_DOC    = "https://gitlab.com/monarch3/SquireBot/-/tree/development/docs/AdminCommands.md"
+LINK_TO_CRASH_COURSE_DOC = "https://gitlab.com/monarch3/SquireBot/-/tree/development/docs/CrashCourse.md"
 
-commandSnippets = { } 
+commandSnippets = { }
+commandEmbeds = { }
 commandCategories = { "registration": [ ], "playing": [ ], "misc": [ ],
                       "admin-registration": [ ], "admin-playing": [ ], "admin-misc": [ ],
                       "management": [ ], "properties": [ ], "day-of": [ ] }
@@ -339,7 +340,10 @@ async def printHelp( ctx ):
 
 
 @bot.command(name='squirebot-help')
-async def printHelp( ctx ):
+async def printHelp( ctx, cmd: str = "" ):
+    if cmd in commandEmbeds:
+        await ctx.send( embed = commandEmbeds[cmd] )
+        return
     if await isPrivateMessage( ctx, send=False ):
         await sendUserHelpMessage( ctx )
         return
