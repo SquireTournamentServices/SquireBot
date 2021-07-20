@@ -571,8 +571,6 @@ class tournament:
         # The player was dropped by an admin, so two messages need to be sent
         # TODO: The admin half of this command needs to be its own method
         if author != "":
-            # Remove the dropped player from the queue
-            self.removePlayerFromQueue( self.players[plyr] )
             await self.players[plyr].discordUser.send( content=f'You have been dropped from {self.name} on {self.guild.name} by tournament staff. If you believe this is an error, check with them.' )
             return f'{author}, {self.players[plyr].getMention()} has been dropped from the tournament.'
         return message
