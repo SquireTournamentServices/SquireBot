@@ -443,10 +443,8 @@ async def dequeuePlayer( ctx, tourn = None ):
     if not await isActivePlayer( tournObj, ctx.author.id, ctx ): return
     if not await isTournRunning( tournObj, ctx ): return
         
-    message = tournObj.removePlayerFromQueue( ctx.author.id )
-    #tournObj.saveOverview( ) # This is done in the removePlayerFromQueue method already
+    message = await tournObj.removePlayerFromQueue( ctx.author.id )
     await ctx.send( message )
-    await tournObj.updateInfoMessage()
     
 
 commandSnippets["match-result"] = "- match-result : Records you as the winner of your match or that the match was a draw" 

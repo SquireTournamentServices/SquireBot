@@ -411,7 +411,7 @@ class tournament:
             digest.add_field( name="Time Remaining", value=f'{t if t > 0 else 0} minutes' )
         if Match.winner != "":
             if Match.winner in self.players:
-                digest.add_field( name="Winner", value=self.players[Match.winner].discordUser.mention )
+                digest.add_field( name="Winner", value=self.players[Match.winner].getMention() )
             else:
                 digest.add_field( name="Winner", value=Match.winner )
         if len(Match.confirmedPlayers) != 0:
@@ -556,21 +556,21 @@ class tournament:
         self.players[discordUser.id].saveXML( )
         if admin:
             await discordUser.send( content=f'You have been registered for {self.name}!' )
-            return f'you have {RE}registered {discordUser.mention} for {self.name}'
+            return f'you have {RE}registered {getMention()} for {self.name}'
         return f'you have been {RE}registered in {self.name}!'
 
     async def dropPlayer( self, plyr: str, author: str = "" ) -> None:
         await self.players[plyr].discordUser.remove_roles( self.role )
         await self.players[plyr].drop( )
         self.players[plyr].saveXML()
-        print(self.removePlayerFromQueue( plyr ))
+        message = await self.removePlayerFromQueue( plyr )
         
+        # The player was dropped by an admin, so two messages need to be sent
+        # TODO: The admin half of this command needs to be its own method
         if author != "":
-            # Remove the dropped player from the queue
             await self.players[plyr].discordUser.send( content=f'You have been dropped from {self.name} on {self.guild.name} by tournament staff. If you believe this is an error, check with them.' )
-            return f'{author}, {self.players[plyr].discordUser.mention} has been dropped from the tournament.'
-        return f'{self.players[plyr].discordUser.mention}, you have been dropped from {self.name}.'
-        await self.updateInfoMessage()
+            return f'{author}, {self.players[plyr].getMention()} has been dropped from the tournament.'
+        return message
 
     async def playerConfirmResult( self, plyr: str, matchNum: int, admin: bool = False ) -> None:
         if not plyr in self.players:
@@ -599,7 +599,7 @@ class tournament:
             deckIdents = [ ident for ident in plyr.decks ]
             while len( plyr.decks ) > self.deckCount:
                 del( plyr.decks[deckIdents[0]] )
-                await ctx.send( f'The deck {deckIdents[0]} belonging to {plyr.discordUser.mention} has been pruned.' )
+                await ctx.send( f'The deck {deckIdents[0]} belonging to {plyr.getMention()} has been pruned.' )
                 await plyr.discordUser.send( content=f'Your deck {deckIdents[0]} has been pruned from the tournament {self.name} on {ctx.guild.name} by tournament staff.' )
                 del( deckIdents[0] )
             plyr.saveXML( )
@@ -720,7 +720,7 @@ class tournament:
 
         for plyr in plyrs:
             # TODO: This should be unready player
-            self.removePlayerFromQueue( plyr )
+            await self.removePlayerFromQueue( plyr )
             self.players[plyr].matches.append( newMatch )
             for p in plyrs:
                 self.players[plyr].addOpponent( p )
@@ -748,7 +748,7 @@ class tournament:
         return trice_bot.kickPlayer(match.gameID, playerName)
 
     def addBye( self, plyr: str ) -> None:
-        self.removePlayerFromQueue( plyr )
+        await self.removePlayerFromQueue( plyr )
         newMatch = match( [ plyr ] )
         self.matches.append( newMatch )
         newMatch.matchNumber = len(self.matches)
@@ -782,7 +782,7 @@ class tournament:
     def addPlayerToQueue( self, plyr: str ) -> str:
         return f'{self.name} does not have a matchmaking queue.'
 
-    def removePlayerFromQueue( self, plyr: str ) -> str:
+    async def removePlayerFromQueue( self, plyr: str ) -> str:
         return f'{self.name} does not have a matchmaking queue.'
 
 

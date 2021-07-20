@@ -145,7 +145,7 @@ class fluidRoundTournament(tournament):
             self.pairingsThread.start( )
         return digest
     
-    def removePlayerFromQueue( self, plyr: int ) -> None:
+    async def removePlayerFromQueue( self, plyr: int ) -> None:
         if plyr not in self.players:
             return "<@{plyr}>, you are not registered for this tournament."
         self.saveOverview( )
