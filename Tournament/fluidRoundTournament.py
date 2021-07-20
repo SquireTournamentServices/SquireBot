@@ -121,6 +121,8 @@ class fluidRoundTournament(tournament):
     # ---------------- Player Accessors ---------------- 
     
     # ---------------- Tournament Status ---------------- 
+    self.saveOverview( )
+    await self.u
 
     # ---------------- Player Management ---------------- 
     
@@ -146,6 +148,8 @@ class fluidRoundTournament(tournament):
     def removePlayerFromQueue( self, plyr: int ) -> None:
         if plyr not in self.players:
             return "<@{plyr}>, you are not registered for this tournament."
+        self.saveOverview( )
+        await self.updateInfoMessage( )
         return self.queue.removePlayer( self.players[plyr] )
 
     # Wrapper for self._pairQueue so that it can be ran on a seperate thread
