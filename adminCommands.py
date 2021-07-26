@@ -1051,6 +1051,62 @@ async def cutToTopX( ctx, tourn = None, x = None):
     await ctx.send( f'{mention}, tournament {tourn} was cut to the top {x} players, the following players were dropped:{newLine}{f"{newLine}".join(playersDropped)}' )
 
 
+async def cutTopXCoroFunc(ctx, mention, standings, tournObj, tourn, x):
+    # Cut the players
+    playersDropped = []
+    for i in range(x, len(standings[1])):
+        # Drop this player
+        await tournObj.dropPlayer(standings[1][i].discordID, ctx.author.mention)
+        playersDropped.append(standings[1][i].getMention())
+        
+    newLine = "\n\t- "
+    return f'{mention}, tournament {tourn} was cut to the top {x} players, the following players were dropped:{newLine}{f"{newLine}".join(playersDropped)}'
+
+commandSnippets["cut-to-top"] = "- cut-to-top: Cuts a tournament to the top X players." 
+commandCategories["management"].append("cut-to-top")
+@bot.command(name='cut-to-top')
+async def cutToTopX( ctx, tourn = None, x = None):
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
+    if await isPrivateMessage( ctx ): return
+
+    if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+    
+    if tourn is None or x is None:
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and the number of players to cut to.' )
+        return
+    
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not a tournament called "{tourn}" on this server.' )
+        return
+    
+    # Validate the value of x
+    try:
+        x = int (x)
+    except:
+        await ctx.send( f"{mention}, you must insert a whole number for the amount of players to cut to." )
+        return
+    if x < 2:
+        # Minimum to create a match
+        await ctx.send( f"{mention}, you cannot cut to less than 2 players." )        
+        return
+    
+    standings = tournObj.getStandings( )
+    if x > len(standings[1]):
+        await ctx.send( f"{mention}, there are not enough players with standings to make this cut." )
+        return
+    
+    # Get command confirmation
+    if await hasCommandWaiting( ctx, ctx.author.id ):
+        del( commandsToConfirm[ctx.author.id] )
+
+    commandsToConfirm[ctx.author.id] = ( getTime(), 30, cutTopXCoroFunc(ctx, mention, standings, tournObj, tourn, x) )
+    await ctx.send( f'{adminMention}, in order to cut players to the top {x}, confirmation is needed. {mention}, are you sure you want to remove this match (!yes/!no)?' )
+    
+
 """
 
 @bot.command(name='tournament-report')

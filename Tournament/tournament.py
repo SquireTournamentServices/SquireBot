@@ -560,7 +560,10 @@ class tournament:
         return f'you have been {RE}registered in {self.name}!'
 
     async def dropPlayer( self, plyr: str, author: str = "" ) -> None:
-        await self.players[plyr].discordUser.remove_roles( self.role )
+        try:
+            await self.players[plyr].discordUser.remove_roles( self.role )
+        except AttributeError as e:
+            pass # This is thrown when the discord object is None
         await self.players[plyr].drop( )
         self.players[plyr].saveXML()
         message = await self.removePlayerFromQueue( plyr )
