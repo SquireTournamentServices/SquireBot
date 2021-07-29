@@ -34,7 +34,7 @@ To get SquireBot working on your server, you need to do the following. First, ad
 # Setup
 
 To get this bot working on your server, you to only do a few things.
-First, add the bot to your server [here]("https://discord.com/api/oauth2/authorize?client_id=784967512106074183&permissions=268634192&scope=bot").
+First, add the bot to your server [here](https://discord.com/api/oauth2/authorize?client_id=784967512106074183&permissions=268634192&scope=bot).
 This will get the bot all necessary permissions, namely:
  - Manage roles and channels
  - Send messages
