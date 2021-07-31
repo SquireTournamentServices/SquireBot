@@ -121,8 +121,6 @@ class fluidRoundTournament(tournament):
     # ---------------- Player Accessors ---------------- 
     
     # ---------------- Tournament Status ---------------- 
-    self.saveOverview( )
-    await self.u
 
     # ---------------- Player Management ---------------- 
     

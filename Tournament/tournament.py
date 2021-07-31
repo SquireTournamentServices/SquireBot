@@ -747,7 +747,7 @@ class tournament:
         match = self.matches[a_matchNum - 1]
         return trice_bot.kickPlayer(match.gameID, playerName)
 
-    def addBye( self, plyr: str ) -> None:
+    async def addBye( self, plyr: str ) -> None:
         await self.removePlayerFromQueue( plyr )
         newMatch = match( [ plyr ] )
         self.matches.append( newMatch )
