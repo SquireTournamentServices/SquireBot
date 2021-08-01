@@ -580,7 +580,10 @@ async def standings( ctx, tourn = None, printAll = None ):
     if len(tournObj.players) < 1:
         await ctx.send( "There are no players registered in this tournament." )
         return
-    name = tournObj.players[ctx.author.id].getDisplayName()
+
+    name = ""
+    if ctx.author.id is tournObj.playes:
+        name = tournObj.players[ctx.author.id].getDisplayName()
     
     if name in standings[1] and not printAll:
         index = standings[1].index(name)
