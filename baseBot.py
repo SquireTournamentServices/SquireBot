@@ -267,12 +267,6 @@ async def on_member_remove( member ):
             await member.send( message )
 
 
-def isFolderSafe(name: str) -> bool:
-    #bad chars are xml chars and "../" as it is a directory buggerer
-    if (name.replace("../", "") != name):
-        return False
-    return True
-
 # When ready, the bot needs to looks at each pre-loaded tournament and add a discord user to each player.
 @bot.event
 async def on_ready():

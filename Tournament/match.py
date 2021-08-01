@@ -278,15 +278,15 @@ class match:
         digest += f'\t<winner name="{self.winner}"/>\n'
         digest += '\t<activePlayers>\n'
         for player in self.activePlayers:
-            digest += f'\t\t<player name="{toSafeXML(player)}"/>\n'
+            digest += f'\t\t<player name="{player}"/>\n'
         digest += '\t</activePlayers>\n'
         digest += '\t<droppedPlayers>\n'
         for player in self.droppedPlayers:
-            digest += f'\t\t<player name="{toSafeXML(player)}"/>\n'
+            digest += f'\t\t<player name="{player}"/>\n'
         digest += '\t</droppedPlayers>\n'
         digest += '\t<confirmedPlayers>\n'
         for player in self.confirmedPlayers:
-            digest += f'\t\t<player name="{toSafeXML(player)}"/>\n'
+            digest += f'\t\t<player name="{player}"/>\n'
         digest += '\t</confirmedPlayers>\n'
         digest += '</match>'
         with open( a_filename, "w+" ) as savefile:
