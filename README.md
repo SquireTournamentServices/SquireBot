@@ -51,11 +51,11 @@ SquireBot's commands are broken into three categories, player, judge, and admin 
 
 To see SquireBot's help message, use the command `!squirebot-help`. In that message will be the below links, which go into more depth about each command. There are two other links which are crash courses for new tournament admin and players. These are also linked in the help message.
 
- - [Player Commands](https://gitlab.com/TylerBloom/SquireBot/-/blob/development/docs/PlayerCommands.md)
- - [Judge Commands](https://gitlab.com/TylerBloom/SquireBot/-/blob/development/docs/JudgeCommands.md)
- - [Admin Commands](https://gitlab.com/TylerBloom/SquireBot/-/blob/development/docs/AdminCommands.md)
- - [Player Crash Course](https://gitlab.com/TylerBloom/SquireBot/-/blob/development/docs/docs/CrashCourse.md)
- - **Admin Crash Course - LINK TODO**
+ - [Player Commands](https://gitlab.com/TylerBloom/SquireBot/-/blob/master/docs/PlayerCommands.md)
+ - [Judge Commands](https://gitlab.com/TylerBloom/SquireBot/-/blob/master/docs/JudgeCommands.md)
+ - [Admin Commands](https://gitlab.com/TylerBloom/SquireBot/-/blob/master/docs/AdminCommands.md)
+ - [Player Crash Course](https://gitlab.com/TylerBloom/SquireBot/-/blob/master/docs/docs/CrashCourse.md)
+ - [Admin Crash Course](https://gitlab.com/TylerBloom/SquireBot/-/blob/master/docs/docs/AdminCrashCourse.md)
 
 # Development
 To run a new instance of SquireBot, you will need its prerequistes and dependencies. SquireBot is written in python3 (and run/tested in python3.8). Its only non-standard dependencies are the Discord API library and the python-dotenv library. Both are available via pip3.
