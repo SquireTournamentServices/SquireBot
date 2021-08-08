@@ -410,18 +410,18 @@ class tournament:
         digest: discord.Embed = discord.Embed( title = f'{self.name} Status' )
         NL = "\n"
         NLT = "\n\t"
-        
+
         props = self.getProperties()
         propsText = f'{self.name} has{"" if self.isActive() else " not"} started.\n' + "\n".join( [ f'{p}: {props[p]}' for p in props if not props[p] is None ] )
         digest.add_field( name="**Settings Info.**", value=propsText )
-        
+
         plyrsWithDecks = [ p for p in self.players if len(p.decks) > 0 ]
         plyrsActive = [ p for p in self.players if p.isActive() ]
         decksText = f'There are {len(plyrsActive)} players registered.'
         if len(plyrsWithDecks) > 0:
             decksText = decksText[:-1] + f', and {len(plyrsWithDecks)} of them have submitted decks.'
         digest.add_field( name="**Player Count**", value=decksText )
-        
+
         openMatches = [ m for m in self.matches if m.isOpen() ]
         uncertMatches = [ m for m in self.matches if m.isUncertified() ]
         matchText  = f'There are {len(openMatches)} open matches and {len(uncertMatches)} uncertified matches.'
@@ -464,7 +464,7 @@ class tournament:
         if len(Match.droppedPlayers) != 0:
             digest.add_field( name="Dropped Players", value=", ".join( [ self.getPlayer(plyr).getMention() for plyr in Match.droppedPlayers ] ) )
         if not ( Match.isCertified() or Match.stopTimer ):
-            t = round(Match.getTimeLeft( ) / 60) 
+            t = round(Match.getTimeLeft( ) / 60)
             digest.add_field( name="Time Remaining", value=f'{t if t > 0 else 0} minutes' )
         if Match.winner != "":
             if Match.winner in self.players:
@@ -655,7 +655,7 @@ class tournament:
         await plyr.drop( )
         plyr.saveXML()
         message = await self.removePlayerFromQueue( plyr )
-        
+
         # The player was dropped by an admin, so two messages need to be sent
         # TODO: The admin half of this command needs to be its own method
         if author != "":
@@ -783,7 +783,7 @@ class tournament:
                         deckHashes.append( [dck.deckHash for dck in self.getPlayer(plyr).decks.values()] )
 
                 #Try up to three times
-                while not creation_success and tries < max_tries:                    
+                while not creation_success and tries < max_tries:
                     game_made = trice_bot.createGame(game_name, game_password, len(plyrs), self.spectators_allowed, self.spectators_need_password, self.spectators_can_chat, self.spectators_can_see_hands, self.only_registered, self.player_deck_verification, playerNames, deckHashes)
 
                     creation_success = game_made.success

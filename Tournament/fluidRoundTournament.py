@@ -24,7 +24,7 @@ from .pairingQueue import *
     It also holds certain metadata about the tournament, such as the tournament's name and host guild's name.
 """
 class fluidRoundTournament(tournament):
-    def __init__( self, name: str, hostGuildName: str, props: dict = { } ):     
+    def __init__( self, name: str, hostGuildName: str, props: dict = { } ):
         super().__init__( name, hostGuildName, props )
         self.queue             = pairingQueue( )
         self.pairingsThreshold = self.playersPerMatch * 2 # + 3
@@ -35,18 +35,18 @@ class fluidRoundTournament(tournament):
 
         if len(props) != 0:
             self.setProperties(props)
-    
-    # ---------------- Property Accessors ---------------- 
+
+    # ---------------- Property Accessors ----------------
 
     def updatePairingsThreshold( self, count: int ) -> None:
         self.pairingsThreshold = count
         if self.queue.readyToPair( self.pairingsThreshold ) and not self.pairingsThread.is_alive():
             self.pairingsThread = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )
-    
-    # ---------------- Misc ---------------- 
 
-    # ---------------- Embed Generators ---------------- 
+    # ---------------- Misc ----------------
+
+    # ---------------- Embed Generators ----------------
     def getTournamentStatusEmbed( self ) -> discord.Embed:
         digest = super().getTournamentStatusEmbed( )
         queueMessage = f'There are {self.queue.size()} players in the queue.'
@@ -54,19 +54,19 @@ class fluidRoundTournament(tournament):
         if len(queueMessage) + len(queueStr) <= 1024:
             queueMessage += queueStr
         digest.add_field( name="**Queue Info.**", value=queueMessage )
-        
+
         return digest
-    
-    # ---------------- Player Accessors ---------------- 
-    
-    # ---------------- Tournament Status ---------------- 
 
-    # ---------------- Player Management ---------------- 
-    
-    # ---------------- Match Management ---------------- 
+    # ---------------- Player Accessors ----------------
 
-    # ---------------- Matchmaking Queue ---------------- 
-    
+    # ---------------- Tournament Status ----------------
+
+    # ---------------- Player Management ----------------
+
+    # ---------------- Match Management ----------------
+
+    # ---------------- Matchmaking Queue ----------------
+
     # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing
     # This is a prime canidate for adjustments when players how copies of match results.
     def addPlayerToQueue( self, plyr: int ) -> None:
@@ -74,14 +74,14 @@ class fluidRoundTournament(tournament):
             return "<@{plyr}>, you are not registered for this tournament."
         if not self.getPlayer(plyr).isActive( ):
             return "{self.getPlayer(plyr).getMention()}, you are registered but are not an active player."
-        
+
         digest = self.queue.addPlayer( self.getPlayer(plyr) )
         self.queueActivity.append( (plyr, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
         if self.queue.readyToPair( self.pairingsThreshold ) and not self.pairingsThread.is_alive():
             self.pairingsThread = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )
         return digest
-    
+
     async def removePlayerFromQueue( self, plyr: int ) -> None:
         if plyr not in self.players:
             return "<@{plyr}>, you are not registered for this tournament."
@@ -115,7 +115,7 @@ class fluidRoundTournament(tournament):
 
         return
 
-    # ---------------- XML Saving/Loading ---------------- 
+    # ---------------- XML Saving/Loading ----------------
 
     def saveTournamentType( self, filename: str = "" ) -> None:
         print( "Fluid Round tournament type being saved." )
@@ -154,11 +154,11 @@ class fluidRoundTournament(tournament):
         for act in self.queueActivity:
             digest += f'\t\t<event player="{act[0]}" time="{act[1]}"/>\n'
         digest += f'\t</queueActivity>\n'
-        digest += '</tournament>' 
-        
+        digest += '</tournament>'
+
         with open( filename, 'w+' ) as xmlfile:
             xmlfile.write( toSafeXML(digest) )
-    
+
     def loadOverview( self, filename: str ) -> None:
         xmlTree = ET.parse( filename )
         tournRoot = xmlTree.getroot()
@@ -182,7 +182,7 @@ class fluidRoundTournament(tournament):
         self.playersPerMatch = int( fromXML(tournRoot.find( 'queue' ).attrib['size'] ))
         self.pairingsThreshold = int( fromXML(tournRoot.find( 'queue' ).attrib['threshold'] ))
         self.matchLength     = int( fromXML(tournRoot.find( 'matchLength' ).text ))
-        
+
         self.triceBotEnabled = str_to_bool( fromXML(tournRoot.find( "triceBotEnabled" ).text ) )
         self.spectators_allowed = str_to_bool( fromXML(tournRoot.find( "spectatorsAllowed" ).text ) )
         self.spectators_need_password = str_to_bool( fromXML(tournRoot.find( "spectatorsNeedPassword" ).text ) )
@@ -190,7 +190,7 @@ class fluidRoundTournament(tournament):
         self.spectators_can_see_hands = str_to_bool( fromXML(tournRoot.find( "spectatorsCanSeeHands" ).text ) )
         self.only_registered = str_to_bool( fromXML(tournRoot.find( "onlyRegistered" ).text ) )
         self.player_deck_verification = str_to_bool( fromXML(tournRoot.find( "playerDeckVerification" ).text ) )
-        
+
         acts    = tournRoot.find( 'queueActivity' ).findall( 'event' )
         for act in acts:
             self.queueActivity.append( ( fromXML( act.attrib['player'] ), fromXML(act.attrib['time'] ) ) )

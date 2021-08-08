@@ -828,18 +828,18 @@ async def downloadReplays( ctx, tourn = None ):
     replayFile.close()
 
 
-commandSnippets["raw-standings"] = "- raw-standings : Creates a text file with standings for Mike." 
+commandSnippets["raw-standings"] = "- raw-standings : Creates a text file with standings for Mike."
 commandCategories["misc"].append( "raw-standings" )
 @bot.command(name='raw-standings')
 async def rawStandings( ctx, tourn = None ):
     mention = ctx.author.mention
-    
+
     if await isPrivateMessage( ctx ): return
     gld = guildSettingsObjects[ctx.guild.id]
 
     if not await isTournamentAdmin( ctx ): return
     adminMention = gld.getTournAdminRole().mention
-    
+
     if tourn is None:
         tourns = gld.currentTournaments()
         if len( tourns ) > 1:
@@ -856,18 +856,18 @@ async def rawStandings( ctx, tourn = None ):
         if tournObj is None:
             await ctx.send( f'{mention}, there is not a tournament called {tourn!r} in this server".' )
             return
-    
+
     standings = tournObj.getStandings( )
     if len(tournObj.players) < 1:
         await ctx.send( "There are no players registered in this tournament." )
         return
-    
+
     with open( "standings.txt", mode="w+" ) as attachment:
         attachment.write( "Placement, Players, Match Points, Win Percentage, Opponent WP\n" )
         length = len(standings[0])
         for i in range(length):
             attachment.write( f'{standings[0][i]}, {standings[1][i].name.replace(",", "")}, {standings[2][i]}, {trunk(standings[3][i])}, {trunk(standings[4][i])}\n' )
-    
+
     with open( "standings.txt", mode="r" ) as attachment:
         await ctx.send( content=f'{mention}, the standings for {tourn} are in the attached file.', file = discord.File( attachment, "standings.txt" ) )
 
@@ -879,11 +879,11 @@ async def cutTopXCoroFunc(ctx, mention, standings, tournObj, tourn, x):
         # Drop this player
         await tournObj.dropPlayer(standings[1][i].discordID, ctx.author.mention)
         playersDropped.append(standings[1][i].getMention())
-        
+
     newLine = "\n\t- "
     return f'{mention}, tournament {tourn} was cut to the top {x} players, the following players were dropped:{newLine}{f"{newLine}".join(playersDropped)}'
 
-commandSnippets["cut-to-top"] = "- cut-to-top: Cuts a tournament to the top X players." 
+commandSnippets["cut-to-top"] = "- cut-to-top: Cuts a tournament to the top X players."
 commandCategories["management"].append("cut-to-top")
 @bot.command(name='cut-to-top')
 async def cutToTopX( ctx, tourn = None, x = None):
@@ -894,16 +894,16 @@ async def cutToTopX( ctx, tourn = None, x = None):
 
     if not await isTournamentAdmin( ctx ): return
     adminMention = gld.getTournAdminRole().mention
-    
+
     if tourn is None or x is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament and the number of players to cut to.' )
         return
-    
+
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
         await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
-    
+
     # Validate the value of x
     try:
         x = int (x)
@@ -912,14 +912,14 @@ async def cutToTopX( ctx, tourn = None, x = None):
         return
     if x < 2:
         # Minimum to create a match
-        await ctx.send( f"{mention}, you cannot cut to less than 2 players." )        
+        await ctx.send( f"{mention}, you cannot cut to less than 2 players." )
         return
-    
+
     standings = tournObj.getStandings( )
     if x > len(standings[1]):
         await ctx.send( f"{mention}, there are not enough players with standings to make this cut." )
         return
-    
+
     # Get command confirmation
     if await hasCommandWaiting( ctx, ctx.author.id ):
         del( commandsToConfirm[ctx.author.id] )

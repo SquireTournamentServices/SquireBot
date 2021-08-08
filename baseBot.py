@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from Tournament import *
 
 
-# ---------------- Help Message Methods ---------------- 
+# ---------------- Help Message Methods ----------------
 
 LINK_TO_PLAYER_CMD_DOC   = "https://gitlab.com/monarch3/SquireBot/-/tree/development/docs/UserCommands.md"
 LINK_TO_JUDGE_CMD_DOC    = "https://gitlab.com/monarch3/SquireBot/-/tree/development/docs/JudgeCommands.md"
@@ -27,63 +27,63 @@ commandCategories = { "registration": [ ], "playing": [ ], "misc": [ ],
 
 async def sendAdminHelpMessage( ctx ) -> None:
     embed = discord.Embed( )
-    
+
     embed.add_field( name="\u200b", value="**__User Commands__**", inline = False )
 
     embed.add_field( name="**Registration**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["registration"] ]), inline=False )
     embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
     embed.add_field( name="**Miscellaneous**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
-    
+
     embed.add_field( name="\u200b", value="**__Judge Commands__**", inline = False )
 
     embed.add_field( name="**Registration**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-registration"] ]), inline=False )
     embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-playing"] ]), inline=False )
     embed.add_field( name="**Miscellaneous**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-misc"] ]),inline=False )
-    
+
     embed.add_field( name="\u200b", value="**__Admin Commands__**", inline = False )
 
     embed.add_field( name="**Manage Tournament**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["management"] ]), inline=False )
     embed.add_field( name="**Properties**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["properties"] ]), inline=False )
     embed.add_field( name="**Day-Of**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["day-of"] ]),inline=False )
-    
+
     embed.add_field( name="**__Additional Information__**", value=f'The full documentation for the judge commands can be found [here]({LINK_TO_JUDGE_CMD_DOC}) and admin commands [here]({LINK_TO_ADMIN_CMD_DOC}). The user commands are [here]({LINK_TO_PLAYER_CMD_DOC}), and the crash course is [here]({LINK_TO_PLAYER_CMD_DOC}). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!',inline=False )
-    
+
     await ctx.send( embed=embed )
     return
 
 async def sendJudgeHelpMessage( ctx ) -> None:
     embed = discord.Embed( )
-    
+
     embed.add_field( name="\u200b", value="**__User Commands__**", inline = False )
 
     embed.add_field( name="**Registration**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["registration"] ]), inline=False )
     embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
     embed.add_field( name="**Miscellaneous**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
-    
+
     embed.add_field( name="\u200b", value="**__Judge Commands__**", inline = False )
 
     embed.add_field( name="**Registration**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-registration"] ]), inline=False )
     embed.add_field( name="**Match**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-playing"] ]), inline=False )
     embed.add_field( name="**Miscellaneous**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["admin-misc"] ]),inline=False )
-    
+
     embed.add_field( name="**__Additional Information__**", value=f'The full documentation for the judge commands can be found [here]({LINK_TO_JUDGE_CMD_DOC}). The user commands are [here]({LINK_TO_PLAYER_CMD_DOC}), and the crash course is [here]({LINK_TO_CRASH_COURSE_DOC}). If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!',inline=False )
-    
+
     await ctx.send( embed=embed )
     return
 
 async def sendUserHelpMessage( ctx ) -> None:
     embed = discord.Embed( )
-    
+
     embed.add_field( name="**__Registration Commands__**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["registration"] ]), inline=False )
     embed.add_field( name="**__Match Commands__**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["playing"] ]), inline=False )
     embed.add_field( name="**__Miscellaneous Commands__**", value="\n".join([ commandSnippets[cmd] for cmd in commandCategories["misc"] ]),inline=False )
 
     embed.add_field( name="**__Additional Information__**", value=f'Additional information about each command can be found [here]({LINK_TO_PLAYER_CMD_DOC}). There is also a [crash course]({LINK_TO_CRASH_COURSE_DOC}) for new users. If you have ideas about how to improve this bot, [let us know](https://forms.gle/jt9Hpaz3ZcVNfeiRA)!',inline=False )
-    
+
     await ctx.send( embed=embed )
     return
 
-# ---------------- Command Util Methods ---------------- 
+# ---------------- Command Util Methods ----------------
 
 # Looks through all guilds, finds the guilds where the user is a member, and
 # gets the tournaments they are registered for
@@ -114,7 +114,7 @@ async def isAdmin( ctx, send: bool = True ) -> bool:
 
 async def isTournamentAdmin( ctx, send: bool = True ) -> bool:
     digest = False
-    
+
     adminMention = getTournamentAdminMention( ctx.message.guild )
     for role in ctx.author.roles:
         digest |= str(role).lower() == "tournament admin"
@@ -145,13 +145,13 @@ async def hasRegistered( tourn, plyr, ctx, send: bool = True ) -> bool:
     if send and not digest:
         await ctx.send( f'{ctx.author.mention}, you are not registered for {tourn.name}. Please register before trying to access the tournament.' )
     return digest
-        
+
 async def isActivePlayer( tourn, plyr, ctx, send: bool = True ) -> bool:
     digest = tournself.getPlayer(plyr).isActive( )
     if send and not digest:
         await ctx.send( f'{ctx.author.mention}, you registered for {tourn.name} but have been dropped. Contact tournament staff if you think this is an error.' )
     return digest
-    
+
 async def hasOpenMatch( tourn, plyr, ctx, send: bool = True ) -> bool:
     digest = tournself.getPlayer(plyr).hasOpenMatch( )
     if send and not digest:
@@ -174,11 +174,11 @@ async def createMisfortune( ctx ) -> None:
     if playerMatch is None:
         await ctx.send( f'{ctx.author.mention}, you are not in an open match, so you can not create any misfortune.' )
         return
-    
+
     await ctx.send( f'{ctx.author.mention}, you have created misfortune for {playerMatch.getMention()}. How will you all respond? (send via DM)' )
     for plyr in playerMatch.activePlayers:
         await tournself.getPlayer(plyr).sendMessage( content=f'Misfortune has been created in your match. Tell me how you will respond (with "!misfortune [number]")!' )
-    
+
     listOfMisfortunes.append( (ctx, playerMatch) )
 
 async def recordMisfortune( ctx, misfortune, num: int ) -> bool:
@@ -197,7 +197,7 @@ async def recordMisfortune( ctx, misfortune, num: int ) -> bool:
         misfortune[1].misfortunes = { }
         return True
     return False
-     
+
 
 def getJudgeMention( a_guild ) -> str:
     digest = ""
@@ -226,9 +226,9 @@ def splitMessage( msg: str, limit: int = 2000, delim: str = "\n" ) -> List[str]:
         else:
             digest.append( submsg )
     return digest
-    
 
-# ---------------- The Bot Base ---------------- 
+
+# ---------------- The Bot Base ----------------
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -236,7 +236,7 @@ MAX_COIN_FLIPS = int( os.getenv('MAX_COIN_FLIPS') )
 
 DEV_SERVER_ID: int = None
 if not os.getenv('DEV_SERVER_ID') is None:
-    DEV_SERVER_ID = int( os.getenv('DEV_SERVER_ID') )  
+    DEV_SERVER_ID = int( os.getenv('DEV_SERVER_ID') )
 
 ERROR_LOG_CHANNEL_ID: int = None
 if not os.getenv('ERROR_LOG_CHANNEL_ID') is None:
@@ -273,7 +273,7 @@ async def on_ready():
     await bot.wait_until_ready( )
     print(f'{bot.user.name} has connected to Discord!\n')
     for guild in bot.guilds:
-        print( f'This bot is connected to {guild.name} which has {len(guild.members)}!' ) 
+        print( f'This bot is connected to {guild.name} which has {len(guild.members)}!' )
         try:
             guildSettingsObjects[guild.id] = guildSettings( guild )
             if os.path.isdir( f'guilds/{guild.id}' ):
@@ -303,7 +303,7 @@ async def on_guild_join( guild ):
 async def on_command_error( ctx: discord.ext.commands.Context, error: Exception ):
     error = getattr(error, 'original', error)
     traceback.print_exception( type(error), error, error.__traceback__ )
-    
+
     mention = ctx.message.author.mention
     if isinstance( error, discord.ext.commands.CommandNotFound ):
         return
@@ -321,19 +321,19 @@ async def on_command_error( ctx: discord.ext.commands.Context, error: Exception 
 
     message: str = f'{getTime()}: An error has occured on the server {ctx.guild.name}. Below is the context of the error and traceback.\n\n'
     message     += f'{ctx.message.content}\n'
-    
+
     with open( "squireBotError.log", "a" ) as errorFile:
         errorFile.write( message + "".join(traceback.format_exception( type(error), error, error.__traceback__ )) )
-    
+
     devServer = bot.get_guild( DEV_SERVER_ID )
     if devServer is None:
         return
     errorChannel = devServer.get_channel( ERROR_LOG_CHANNEL_ID )
     if isinstance( errorChannel, discord.TextChannel ):
         await errorChannel.send( message + f'```{"".join(traceback.format_exception( type(error), error, error.__traceback__ ))}```' )
-    
+
     return
-    
+
 
 bot.remove_command( "help" )
 @bot.command(name='help')

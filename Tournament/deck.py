@@ -110,7 +110,7 @@ class deck:
         url = f"https://www.mtggoldfish.com/deck/download/{deck_id}"
 
         self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
-        
+
         if not self.validateDecklist( self.decklist ):
             raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
 
@@ -160,13 +160,13 @@ class deck:
             # Add card to decklist
             card = main_board[card_name]
             self.decklist += f'{card["quantity"]} {card_name}\n'
-            
-        side_board = deck_data["sideboard"]            
+
+        side_board = deck_data["sideboard"]
         for card_name in side_board:
             # Add card to decklist
             card = side_board[card_name]
             self.decklist += f'SB: {card["quantity"]} {card_name}\n'
-                
+
         if not self.validateDecklist( self.decklist ):
             raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
 
@@ -245,18 +245,18 @@ class deck:
                     card = [ card ]
                 if len( card ) == 1:
                     number = 1
-                    
+
                     name = card[0]
                     try:
-                        name   = cardsDB.getCard(name).getName().strip().lower()                        
+                        name   = cardsDB.getCard(name).getName().strip().lower()
                     except CardNotFoundError as ex:
                         pass
                 else:
                     number = int( card[0].strip() )
-                    
+
                     name = card[1]
                     try:
-                        name   = cardsDB.getCard(name).getName().strip().lower()                                        
+                        name   = cardsDB.getCard(name).getName().strip().lower()
                     except CardNotFoundError as ex:
                         pass
                 for i in range(number):

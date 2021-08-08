@@ -138,9 +138,9 @@ class player:
             isSideboard = "SB:" in card_
             if isSideboard:
                 card_ = card_.partition( "SB:" )[-1].strip()
-            
+
             cardName = card_.partition( " " )[-1].strip()
-                
+
             try:
                 tmpCard = cardsDB.getCard( cardName )
             except CardNotFoundError as ex:
