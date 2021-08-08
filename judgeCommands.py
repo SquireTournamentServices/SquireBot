@@ -31,16 +31,21 @@ async def adminAddPlayer( ctx, tourn = None, plyr = None ):
         return
     
     member = gld.getMember( plyr )
+    # A player can't be found, so a dummy player is added instead
     if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
+        if await hasCommandWaiting( ctx, ctx.author.id ):
+            del( commandsToConfirm[ctx.author.id] )
+        commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.addDummyPlayer( plyr ) )
+        await ctx.send( f'{mention}, there is not a player named {plyr!r}. You can add a dummy player in with that name. Is that what you want to do (!yes/!no)?' )
         return
-    
-    if member.id in tournObj.players and tournObj.players[member.id].isActive():
-        await ctx.send( f'{mention}, {plyr} is already registered for {tourn}.' )
+
+    plyr = tournObj.getPlayer( member.id )
+    if ( not plyr is None ) and plyr.isActive():
+        await ctx.send( f'{mention}, {plyr.getMention()} is already registered for {tourn}.' )
         return
 
     message = await tournObj.addPlayer( member, admin=True )
-    tournObj.players[member.id].saveXML( )
+    plyr.saveXML( )
     await ctx.send( f'{mention}, {message}' )
     await tournObj.updateInfoMessage()
 
@@ -55,7 +60,10 @@ async def adminAddDeck( ctx, tourn = None, plyr = None, ident = None ):
     if await isPrivateMessage( ctx ): return
 
     if not await isAdmin( ctx ): return
-    
+
+    if get_ID_from_mention( plyr ) != "":
+        plyr = get_ID_from_mention( plyr )
+
     if tourn is None or plyr is None or ident is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament, a player, a deck identifier, and a decklist in order to add a deck for someone.' )
         return
@@ -64,20 +72,7 @@ async def adminAddDeck( ctx, tourn = None, plyr = None, ident = None ):
     if tournObj is None: 
         await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
-    
-    member = gld.getMember( plyr )
-    if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
-        return
-    
-    if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
-        return
 
-    if not tournObj.players[member.id].isActive():
-        await ctx.send( f'{mention}, a player by {plyr!r} was found, and they have dropped from {tourn}. Make sure they re-register first.' )
-        return
-    
     index = ctx.message.content.find( ident ) + len(ident)
     decklist = re.sub( "^[^A-Za-z0-9\w\/]+", "", ctx.message.content[index:].replace('"', "") ).strip() 
     decklist = re.sub( "[^A-Za-z0-9\w\/]+$", "", decklist )
@@ -87,14 +82,8 @@ async def adminAddDeck( ctx, tourn = None, plyr = None, ident = None ):
         return
     
     print( ident, decklist )
-    message = ""
-    try:
-        message = await tournObj.addDeck( member.id, ident, decklist, admin=True )
-    except:
-        await ctx.send( f'{mention}, there was an error while processing the deck list. Make sure you follow the instructions for submitting a deck. To find them, use "!squirebot-help add-deck".' )
-        return
+    message = await tournObj.addDeckAdmin( plyr, ident, decklist )
 
-    tournObj.players[member.id].saveXML( )
     await ctx.send( f'{mention}, {message}' )
     await tournObj.updateInfoMessage()
 
@@ -168,10 +157,9 @@ async def adminListPlayers( ctx, tourn = None, num = None ):
         await ctx.send( f'{mention}, there are no players registered for the tournament {tourn}.' )
         return
     
-    # We check to see if the discordUser is None to see if the player has left the server.
     # TODO: There are plans to track players that leave
     # Moreover, the addition of dummy players will cause issues
-    playerNames = [ tournObj.players[plyr].getMention() for plyr in tournObj.players if tournObj.players[plyr].isActive() and not tournObj.players[plyr].discordUser is None ]
+    playerNames = [ plyr.getMention() for plyr in tournObj.players if plyr.isActive() ]
     if num == "n" or num == "num" or num == "number":
         await ctx.send( f'{mention}, there are {len(playerNames)} active players in {tourn}.' )
         return
@@ -378,7 +366,7 @@ async def giveTimeExtension( ctx, tourn = None, mtch = None, t = None ):
     tournObj.matches[mtch - 1].giveTimeExtension( t*60 )
     tournObj.matches[mtch - 1].saveXML( )
     for plyr in tournObj.matches[mtch - 1].activePlayers:
-        await tournObj.players[plyr].discordUser.send( content=f'Your match (#{mtch}) in {tourn} has been given a time extension of {t} minute{"" if t == 1 else "s"}.' )
+        await tournObjself.getPlayer(plyr).sendMessage( content=f'Your match (#{mtch}) in {tourn} has been given a time extension of {t} minute{"" if t == 1 else "s"}.' )
     await ctx.send( f'{mention}, you have given match #{mtch} a time extension of {t} minute{"" if t == 1 else "s"}.' )
 
 

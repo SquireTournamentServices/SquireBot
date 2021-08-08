@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+import uuid
 
 import discord
 
@@ -31,6 +32,7 @@ from .utils import *
 class match:
     # The class constructor
     def __init__( self, a_players: List[str]):
+        self.uuid = str( uuid4() )
         self.saveLocation = ""
 
         self.matchNumber = -1
@@ -94,6 +96,10 @@ class match:
     def isCertified( self ):
         return self.status == "certified"
     
+    def getUUID( self ) -> str:
+        """ Returns the unique idenifying ID string of the match. """
+        return self.uuid
+
     def getTimeLeft( self ) -> int:
         if self.isCertified() or self.stopTimer:
             return -1
@@ -263,6 +269,7 @@ class match:
             a_filename = self.saveLocation
         digest  = "<?xml version='1.0'?>\n"
         digest += f'<match roleID="{self.role.id if type(self.role) == discord.Role else str()}" VC_ID="{self.VC.id if type(self.VC) == discord.VoiceChannel else str()}">\n'
+        digest += f'\t<uuid>{self.uuid}</uuid>'
         digest += f'\t<number>{self.matchNumber}</number>\n'
         digest += f'\t<matchLength>{self.matchLength}</matchLength>\n'
         digest += f'\t<timeExtension>{self.timeExtension}</timeExtension>\n'
@@ -298,6 +305,7 @@ class match:
         xmlTree = ET.parse( a_filename )
         matchRoot = xmlTree.getroot()
         self.roleID = fromXML(matchRoot.attrib["roleID"])
+        self.uuid = fromXML(matchRoot.find( 'uuid' ).text)
         if self.roleID != "":
             self.roleID = int( fromXML( self.roleID ) )
         self.VC_ID = matchRoot.attrib["VC_ID"]

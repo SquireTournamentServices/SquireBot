@@ -129,7 +129,7 @@ async def addTriceName( ctx, tourn = None, name = None ):
         await ctx.send( f'{mention}, that name is too long.' )
         return
     
-    plyrObj = tournObj.players[ctx.author.id]
+    plyrObj = tournObj.getPlayer(ctx.author.id)
     oldname = plyrObj.triceName
     message = tournObj.setPlayerTriceName( ctx.author.id, name ) + "\n"
     errors = []
@@ -278,9 +278,9 @@ async def removeDecklist( ctx, tourn = None, ident = None ):
             return
         tournObj = tournaments[tournNames.index(tourn)]
 
-    deckName = tournObj.players[ctx.author.id].getDeckIdent( ident )
+    deckName = tournObj.getPlayer(ctx.author.id).getDeckIdent( ident )
     if deckName == "":
-        if len( tournObj.players[ctx.author.id].decks ) < 1:
+        if len( tournObj.getPlayer(ctx.author.id).decks ) < 1:
             await ctx.send( f'{mention}, you do not have any decks registered for {tourn}.' )
         else:
             await ctx.send( f'{mention}, you do not have a deck whose name or hash is {ident!r}. To see the decks you have registered, use !decks {tourn}' )
@@ -320,12 +320,12 @@ async def listDeck( ctx, tourn = None ):
             return
         tournObj = tournaments[tournNames.index(tourn)]
         
-    if len( tournObj.players[ctx.author.id].decks ) == 0:
+    if len( tournObj.getPlayer(ctx.author.id).decks ) == 0:
         await ctx.send( f'{mention}, you have not registered any decks for {tourn}.' )
         return
     
-    names  = [ deck for deck in tournObj.players[ctx.author.id].decks ]
-    hashes = [ str(deck.deckHash) for deck in tournObj.players[ctx.author.id].decks.values() ]
+    names  = [ deck for deck in tournObj.getPlayer(ctx.author.id).decks ]
+    hashes = [ str(deck.deckHash) for deck in tournObj.getPlayer(ctx.author.id).decks.values() ]
     embed = discord.Embed( )
     embed.add_field( name="Deck Names", value="\n".join(names) )
     embed.add_field( name="Deck Hashes", value="\n".join(hashes) )
@@ -400,11 +400,11 @@ async def queuePlayer( ctx, tourn = None ):
 
     if not await isTournRunning( tournObj, ctx ): return
 
-    if tournObj.players[ctx.author.id].hasOpenMatch( ):
+    if tournObj.getPlayer(ctx.author.id).hasOpenMatch( ):
         await ctx.send( f'{mention}, you are in a match that is not certified. Make sure that everone in your last match has certified the result with !confirm-result.' )
         return
     
-    if len(tournObj.players[ctx.author.id].decks) == 0:
+    if len(tournObj.getPlayer(ctx.author.id).decks) == 0:
         await ctx.send( f'{mention}, you have failed to submit a deck. As such, you cannot play in this tournament. If you believe this is an error, talk to tournament staff.' )
         return
         
@@ -482,7 +482,7 @@ async def matchResult( ctx, tourn = None, result = None ):
     if not await isActivePlayer( tournObj, ctx.author.id, ctx ): return
     if not await hasOpenMatch( tournObj, ctx.author.id, ctx ): return
     
-    playerMatch = tournObj.players[ctx.author.id].findOpenMatch()
+    playerMatch = tournObj.getPlayer(ctx.author.id).findOpenMatch()
     message = await tournObj.recordMatchResult( ctx.author.id, result, playerMatch.matchNumber )
     await ctx.send( message )
     await tournObj.updateInfoMessage()
@@ -520,7 +520,7 @@ async def confirmMatchResult( ctx, tourn = None ):
     if not await isActivePlayer( tournObj, ctx.author.id, ctx ): return
     if not await hasOpenMatch( tournObj, ctx.author.id, ctx ): return
     
-    playerMatch = tournObj.players[ctx.author.id].findOpenMatch( )
+    playerMatch = tournObj.getPlayer(ctx.author.id).findOpenMatch( )
     if playerMatch.status == "open":
         await ctx.send( f'{mention}, match #{playerMatch.matchNumber} is still open, no result has been recorded yet, so there is nothing to confirm.' )
         return
@@ -582,8 +582,9 @@ async def standings( ctx, tourn = None, printAll = None ):
         return
 
     name = ""
-    if ctx.author.id is tournObj.playes:
-        name = tournObj.players[ctx.author.id].getDisplayName()
+    plyr = tournObj.getPlayer(ctx.author.id)
+    if not plyr is None:
+        name = plyr.getDisplayName()
     
     if name in standings[1] and not printAll:
         index = standings[1].index(name)
@@ -594,12 +595,12 @@ async def standings( ctx, tourn = None, printAll = None ):
         for i in range(len(standings)):
             # player object to player names
             for j in range(len(standings[1])):
-                standings[1][j] = standings[1][j].discordUser.display_name
+                standings[1][j] = standings[1][j].getDisplayName( )
             standings[i] = standings[i][upper:lower]
-        
-    if ctx.author.id in tournObj.players:        
-        if tournObj.players[ctx.author.id] in standings[1] and not printAll:
-            index = standings[1].index(tournObj.players[ctx.author.id])
+
+    if not plyr is None:        
+        if plyr in standings[1] and not printAll:
+            index = standings[1].index(plyr)
             upper = index - 12
             lower = index + 12
             if upper < 0:
@@ -721,20 +722,20 @@ async def printDecklist( ctx, tourn = None, ident = None ):
         tournObj = tournaments[tournNames.index(tourn)]
     
 
-    deckName = tournObj.players[ctx.author.id].getDeckIdent( ident )
+    deckName = tournObj.getPlayer(ctx.author.id).getDeckIdent( ident )
     if deckName == "":
-        if len(tournObj.players[ctx.author.id].decks) == 0:
+        if len(tournObj.getPlayer(ctx.author.id).decks) == 0:
             await ctx.send( f'{mention}, you do not have any decks registered for {tourn}.' )
         else:
             await ctx.send( f'{mention}, you do not have a deck registered for {tourn} whose name/hash is {tourn!r}.' )
         return
 
     if await isPrivateMessage( ctx, send=False ):
-        await ctx.send( embed = await tournObj.players[ctx.author.id].getDeckEmbed( deckName ) )
+        await ctx.send( embed = await tournObj.getPlayer(ctx.author.id).getDeckEmbed( deckName ) )
     else:
         if await hasCommandWaiting( ctx, ctx.author.id ):
             del( commandsToConfirm[ctx.author.id] )
-        commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.players[ctx.author.id].getDeckEmbed( deckName ) )
+        commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.getPlayer(ctx.author.id).getDeckEmbed( deckName ) )
         await ctx.send( f'{mention}, since you are about to post your decklist publicly, you need to confirm your request. Are you sure you want to post it? (!yes/!no)' )
 
 

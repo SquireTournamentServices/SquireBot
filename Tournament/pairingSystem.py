@@ -12,10 +12,9 @@ from typing import List, Tuple
 # Local modules
 from .utils import *
 from .player import *
-from .pairingSystem import pairingSystem
 
 
-class pairingQueue( pairingSystem ):
+class pairingSystem:
     """ This class takes in player objects and pairs them together for match creation. """
     def __init__( self ):
         """ Constructor """

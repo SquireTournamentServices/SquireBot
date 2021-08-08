@@ -6,6 +6,7 @@ import threading
 import discord
 import asyncio
 import warnings
+import uuid
 
 from time import sleep
 from typing import List, Tuple
@@ -24,54 +25,14 @@ from .pairingQueue import *
 """
 class fluidRoundTournament(tournament):
     def __init__( self, name: str, hostGuildName: str, props: dict = { } ):     
-        self.name = name.replace("\.\./", "")
-        self.hostGuildName = hostGuildName
-        self.format    = props["format"] if "format" in props else "Pioneer"
-        
-        self.guild   = None
-        self.guildID = ""
-        self.role    = None
-        self.roleID  = ""
-        self.pairingsChannel = None
-        self.pairingsChannelID = ""
-        
-        self.infoMessageChannelID = None
-        self.infoMessageID = None
-        self.infoMessage = None
-        
-        self.regOpen      = True
-        self.tournStarted = False
-        self.tournEnded   = False
-        self.tournCancel  = False
-        
-        self.loop = asyncio.new_event_loop( )
-        self.fail_count = 0
-        
-        self.playersPerMatch   = int(props["match-size"]) if "match-size" in props else 2
-        self.matchLength       = int(props["match-length"])*60 if "match-length" in props else 60*60 # Length of matches in seconds
-        
+        super().__init__( name, hostGuildName, props )
         self.queue             = pairingQueue( )
         self.pairingsThreshold = self.playersPerMatch * 2 # + 3
         self.pairingWaitTime   = 5
         self.queueActivity     = [ ]
         self.highestPriority   = 0
         self.pairingsThread    = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
-        
-        self.deckCount = 1
 
-        self.players  = {}
-        
-        self.matches = []
-        
-        #Create bot class and store the game creation settings
-        self.triceBotEnabled = False
-        self.spectators_allowed = False
-        self.spectators_need_password = False 
-        self.spectators_can_chat = False 
-        self.spectators_can_see_hands = False 
-        self.only_registered = False
-        self.player_deck_verification = False
-                
         if len(props) != 0:
             self.setProperties(props)
     
@@ -87,35 +48,13 @@ class fluidRoundTournament(tournament):
 
     # ---------------- Embed Generators ---------------- 
     def getTournamentStatusEmbed( self ) -> discord.Embed:
-        digest: discord.Embed = discord.Embed( title = f'{self.name} Status' )
-        NL = "\n"
-        NLT = "\n\t"
-        
-        props = self.getProperties()
-        propsText = f'{self.name} has{"" if self.isActive() else " not"} started.\n' + "\n".join( [ f'{p}: {props[p]}' for p in props if not props[p] is None ] )
-        digest.add_field( name="**Settings Info.**", value=propsText )
-        
-        plyrsWithDecks = [ p for p in self.players if len(self.players[p].decks) > 0 ]
-        plyrsActive = [ p for p in self.players if self.players[p].isActive() ]
-        decksText = f'There are {len(plyrsActive)} players registered.'
-        if len(plyrsWithDecks) > 0:
-            decksText = decksText[:-1] + f', and {len(plyrsWithDecks)} of them have submitted decks.'
-        digest.add_field( name="**Player Count**", value=decksText )
-        
+        digest = super().getTournamentStatusEmbed( )
         queueMessage = f'There are {self.queue.size()} players in the queue.'
         queueStr  = f' The queue looks like:\n{str(self.queue)}' if self.queue.size() > 0 else ""
         if len(queueMessage) + len(queueStr) <= 1024:
             queueMessage += queueStr
         digest.add_field( name="**Queue Info.**", value=queueMessage )
         
-        openMatches = [ m for m in self.matches if m.isOpen() ]
-        uncertMatches = [ m for m in self.matches if m.isUncertified() ]
-        matchText  = f'There are {len(openMatches)} open matches and {len(uncertMatches)} uncertified matches.'
-        if len(openMatches) > 0:
-            matchText += f'{NL}**Open Matches**:{NLT}{NLT.join([ "#" + str(m.matchNumber) for m in openMatches ])}'
-        if len(uncertMatches) > 0:
-            matchText += f'{NL}**Uncertified Matches**:{NLT}{NLT.join([ "#" + str(m.matchNumber) for m in uncertMatches ])}'
-        digest.add_field( name="**Match Info.**", value=matchText )
         return digest
     
     # ---------------- Player Accessors ---------------- 
@@ -133,10 +72,10 @@ class fluidRoundTournament(tournament):
     def addPlayerToQueue( self, plyr: int ) -> None:
         if plyr not in self.players:
             return "<@{plyr}>, you are not registered for this tournament."
-        if not self.players[plyr].isActive( ):
-            return "{self.players[plyr].getMention()}, you are registered but are not an active player."
+        if not self.getPlayer(plyr).isActive( ):
+            return "{self.getPlayer(plyr).getMention()}, you are registered but are not an active player."
         
-        digest = self.queue.addPlayer( self.players[plyr] )
+        digest = self.queue.addPlayer( self.getPlayer(plyr) )
         self.queueActivity.append( (plyr, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
         if self.queue.readyToPair( self.pairingsThreshold ) and not self.pairingsThread.is_alive():
             self.pairingsThread = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
@@ -148,7 +87,7 @@ class fluidRoundTournament(tournament):
             return "<@{plyr}>, you are not registered for this tournament."
         self.saveOverview( )
         await self.updateInfoMessage( )
-        return self.queue.removePlayer( self.players[plyr] )
+        return self.queue.removePlayer( self.getPlayer(plyr) )
 
     # Wrapper for self._pairQueue so that it can be ran on a seperate thread
     def _launch_pairings( self, waitTime ):
@@ -189,6 +128,7 @@ class fluidRoundTournament(tournament):
             filename = f'{self.getSaveLocation()}/overview.xml'
         digest  = "<?xml version='1.0'?>\n"
         digest += '<tournament>\n'
+        digest += f'\t<uuid>{self.uuid}</uuid>'
         digest += f'\t<name>{self.name}</name>\n'
         digest += f'\t<guild id="{self.guild.id if type(self.guild) == discord.Guild else str()}">{self.hostGuildName}</guild>\n'
         digest += f'\t<role id="{self.role.id if type(self.role) == discord.Role else str()}"/>\n'
@@ -222,6 +162,7 @@ class fluidRoundTournament(tournament):
     def loadOverview( self, filename: str ) -> None:
         xmlTree = ET.parse( filename )
         tournRoot = xmlTree.getroot()
+        self.uuid = fromXML(tournRoot.find( 'uuid' ).text)
         self.name = fromXML(tournRoot.find( 'name' ).text)
         self.guildID   = int( fromXML(tournRoot.find( 'guild' ).attrib["id"]) )
         self.roleID    = int( fromXML(tournRoot.find( 'role' ).attrib["id"]) )

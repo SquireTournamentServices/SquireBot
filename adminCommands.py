@@ -370,8 +370,8 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
 
 
 # This method will soon be depricated and will be removed when the Swiss tournament type is added
-# commandSnippets["create-pairings-list"] = "- create-pairings-list : Creates a list of possible match pairings (unweighted)"
-# commandCategories["day-of"].append("create-pairings-list")
+commandSnippets["create-pairings-list"] = "- create-pairings-list : Creates a list of possible match pairings (unweighted)"
+commandCategories["day-of"].append("create-pairings-list")
 @bot.command(name='create-pairings-list')
 async def createPairingsList( ctx, tourn = None ):
     mention = ctx.author.mention
@@ -392,7 +392,7 @@ async def createPairingsList( ctx, tourn = None ):
         return
 
     queue = pairingQueue( )
-    for plyr in tournObj.players.values():
+    for plyr in tournObj.players:
         if not plyr.isActive():
             continue
         queue.addPlayer( plyr )
@@ -404,7 +404,7 @@ async def createPairingsList( ctx, tourn = None ):
     pairings = queue.createPairings( tournObj.playersPerMatch )
     for pairing in pairings:
         for plyr in pairing:
-            queue.removePlayer( tournObj.players[plyr] )
+            queue.removePlayer( tournObjself.getPlayer(plyr) )
 
     if queue.size() == 0:
         await ctx.send( f'{mention}, here is a list of possible pairings. No players are left unmatched.' )
@@ -417,7 +417,7 @@ async def createPairingsList( ctx, tourn = None ):
             await ctx.send( msg )
 
     await ctx.send( f'\nThese are the complete pairings.' )
-    queueStr = [ [ f'{tournObj.players[plyr].getMention()!r}' for plyr in pairing ] for pairing in pairings ]
+    queueStr = [ [ f'{tournObjself.getPlayer(plyr).getMention()!r}' for plyr in pairing ] for pairing in pairings ]
     message  = "\n".join( [ ", ".join( pairing ) for pairing in queueStr ] )
     for msg in splitMessage( message ):
         if msg == "":
@@ -532,7 +532,7 @@ async def adminGiveBye( ctx, tourn = None, plyr = None ):
     tournObj.addBye( member.id )
     tournObj.players[member.id].saveXML( )
     await ctx.send( f'{adminMention}, {plyr} has been given a bye by {mention}.' )
-    await tournObj.players[member.id].discordUser.send( content=f'You have been given a bye from the tournament admin for {tourn} on the server {ctx.guild.name}.' )
+    await tournObj.players[member.id].sendMessage( content=f'You have been given a bye from the tournament admin for {tourn} on the server {ctx.guild.name}.' )
 
 
 commandSnippets["remove-match"] = "- remove-match : Removes a match"
@@ -599,41 +599,6 @@ async def viewQueue( ctx, tourn = None ):
     message = await ctx.send( embed=tournInfo )
     tournObj.infoMessage = message
     tournObj.saveOverview()
-
-
-commandSnippets["view-queue"] = "- view-queue : Prints the currect matchmaking queue"
-commandCategories["day-of"].append("view-queue")
-@bot.command(name='view-queue')
-async def viewQueue( ctx, tourn = None ):
-    mention = ctx.author.mention
-    gld = guildSettingsObjects[ctx.guild.id]
-
-    if await isPrivateMessage( ctx ): return
-
-    if not await isTournamentAdmin( ctx ): return
-    adminMention = gld.getTournAdminRole().mention
-
-    if tourn is None:
-        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament to view the queue.' )
-        return
-
-    tournObj = gld.getTournament( tourn )
-    if tournObj is None:
-        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
-        return
-
-    if tournObj.queue.size() == 0:
-        await ctx.send( f'{mention}, the current matchmaking queue for {tourn} is empty.' )
-        return
-
-    embed = discord.Embed( title=f'Queue for {tourn}:' )
-
-    for i, lvl in enumerate( tournObj.queue.queue ):
-        if len(lvl) < 1:
-            continue
-        embed.add_field( name = f'Tier {i+1}:', value=", ".join( [ plyr.getMention() for plyr in lvl ] ) + "\n" )
-
-    await ctx.send( f'{mention}, here is the current matchmaking queue for {tourn}:', embed=embed )
 
 
 commandSnippets["tricebot-kick-player"] = "- tricebot-kick-player : Kicks a player from a cockatrice match when tricebot is enabled for that match"

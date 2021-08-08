@@ -8,6 +8,7 @@ import time
 import discord
 import asyncio
 import warnings
+import uuid
 
 
 from typing import List, Dict, Tuple
@@ -70,9 +71,10 @@ class guildSettings:
     # Judges and Admins need to specify players for many commands
     # To do this, they can specify a player's display name, mention, or Discord ID
     def getMember( self, ident: str ) -> discord.Member:
+        ID = get_ID_from_mention( ident )
         for member in self.guild.members:
             # Was a member's mention or id given?
-            if get_ID_from_mention( ident ) == str(member.id):
+            if ID == str(member.id):
                 return member
             # Was a display name given?
             if ident == member.display_name:

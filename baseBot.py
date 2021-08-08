@@ -147,13 +147,13 @@ async def hasRegistered( tourn, plyr, ctx, send: bool = True ) -> bool:
     return digest
         
 async def isActivePlayer( tourn, plyr, ctx, send: bool = True ) -> bool:
-    digest = tourn.players[plyr].isActive( )
+    digest = tournself.getPlayer(plyr).isActive( )
     if send and not digest:
         await ctx.send( f'{ctx.author.mention}, you registered for {tourn.name} but have been dropped. Contact tournament staff if you think this is an error.' )
     return digest
     
 async def hasOpenMatch( tourn, plyr, ctx, send: bool = True ) -> bool:
-    digest = tourn.players[plyr].hasOpenMatch( )
+    digest = tournself.getPlayer(plyr).hasOpenMatch( )
     if send and not digest:
         await ctx.send( f'{ctx.author.mention}, you are not an active player in a match. You do not need to do anything.' )
     return digest
@@ -177,7 +177,7 @@ async def createMisfortune( ctx ) -> None:
     
     await ctx.send( f'{ctx.author.mention}, you have created misfortune for {playerMatch.getMention()}. How will you all respond? (send via DM)' )
     for plyr in playerMatch.activePlayers:
-        await tourn.players[plyr].discordUser.send( content=f'Misfortune has been created in your match. Tell me how you will respond (with "!misfortune [number]")!' )
+        await tournself.getPlayer(plyr).sendMessage( content=f'Misfortune has been created in your match. Tell me how you will respond (with "!misfortune [number]")!' )
     
     listOfMisfortunes.append( (ctx, playerMatch) )
 
@@ -192,7 +192,7 @@ async def recordMisfortune( ctx, misfortune, num: int ) -> bool:
             if tourn.players[ctx.author.id].hasOpenMatch():
                 break
         newLine = "\n\t"
-        printout = newLine.join( [ f'{tourn.players[plyr].discordUser.mention}: {misfortune[1].misfortunes[plyr]}' for plyr in misfortune[1].misfortunes ] )
+        printout = newLine.join( [ f'{tournself.getPlayer(plyr).getMention()}: {misfortune[1].misfortunes[plyr]}' for plyr in misfortune[1].misfortunes ] )
         await misfortune[0].send( f'{misfortune[1].role.mention}, the results of your misfortune are in!{newLine}{printout}' )
         misfortune[1].misfortunes = { }
         return True
@@ -362,20 +362,16 @@ async def confirmCommand( ctx ):
     if not ctx.author.id in commandsToConfirm:
         await ctx.send( f'{ctx.author.mention}, there are no commands needing your confirmation.' )
         return
-    
+
     if commandsToConfirm[ctx.author.id][1] <= timeDiff( commandsToConfirm[ctx.author.id][0], getTime() ):
         await ctx.send( f'{ctx.author.mention}, you waited too long to confirm. If you still wish to confirm, run your prior command and then confirm.' )
         del( commandsToConfirm[ctx.author.id] )
         return
-    
+
     message = await commandsToConfirm[ctx.author.id][2]
     del( commandsToConfirm[ctx.author.id] )
-    
-    if type(message) is discord.Embed:
-        await ctx.send( embed=message )
-        return
 
-    await ctx.send( message )
+    await ctx.send( content=message["text"], embed=message["embed"] )
 
 
 @bot.command(name='no')
@@ -384,7 +380,7 @@ async def denyCommand( ctx ):
     if not ctx.author.id in commandsToConfirm:
         await ctx.send( f'{ctx.author.mention}, there are no commands needing your confirmation.' )
         return
-    
+
     await ctx.send( f'{ctx.author.mention}, your request has been cancelled.' )
 
     del( commandsToConfirm[ctx.author.id] )

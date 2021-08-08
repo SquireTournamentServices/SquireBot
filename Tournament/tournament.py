@@ -6,6 +6,7 @@ from time import sleep
 import asyncio
 import warnings
 import xml.etree.ElementTree as ET
+import uuid
 from typing import List, Dict, Tuple
 
 import discord
@@ -50,6 +51,7 @@ class tournament:
     # The tournament base class is not meant to be constructed, but this
     # constructor acts as a guide for the minimum a constructor needs
     def __init__( self, name: str, hostGuildName: str, props: dict = { } ):
+        self.uuid = str( uuid.uuid4() )
         self.name: str = name.replace("../", "")
         self.hostGuildName = hostGuildName
         self.format    = props["format"] if "format" in props else "Pioneer"
@@ -78,7 +80,7 @@ class tournament:
 
         self.deckCount = 1
 
-        self.players  = {}
+        self.players: List = [ ]
 
         self.matches = []
 
@@ -140,9 +142,9 @@ class tournament:
         if self.roleID != "":
             self.role = guild.get_role( self.roleID )
         for player in self.players:
-            ID = self.players[player].discordID
+            ID = player.getDiscordID()
             if ID != "":
-                self.players[player].addDiscordUser( self.guild.get_member( ID ) )
+                player.addDiscordUser( self.guild.get_member( ID ) )
         for mtch in self.matches:
             if mtch.roleID != "":
                 mtch.addMatchRole( guild.get_role( mtch.roleID ) )
@@ -154,6 +156,37 @@ class tournament:
             return
         await self.infoMessage.edit( embed = self.getTournamentStatusEmbed() )
         return
+
+    def getPlayerByDiscordID( self, ID: int ) -> player:
+        """ Gets a player by their Discord ID. """
+        for plyr in self.players:
+            if ID == plyr.discordID:
+                return plyr
+        return None
+
+    def getPlayerByName( self, name: str ) -> player:
+        """ Gets a player by their name. """
+        for plyr in self.players:
+            if name == plyr.name:
+                return plyr
+        return None
+
+    def getPlayerByUUID( self, uuid: str ) -> player:
+        """ Gets a player by their UUID (likely won't be used). """
+        for plyr in self.players:
+            if uuid == plyr.uuid:
+                return plyr
+        return None
+
+    def getPlayer( self, identifier ) -> player:
+        for plyr in self.players:
+            if identifier == plyr.discordID:
+                return plyr
+            if identifier == plyr.name:
+                return plyr
+            if identifier == plyr.uuid:
+                return plyr
+        return None
 
     # ---------------- Property Accessors ----------------
 
@@ -338,7 +371,7 @@ class tournament:
     # scoring systems are added
     def getStandings( self ) -> List[List]:
         rough = [ ]
-        for plyr in self.players.values():
+        for plyr in self.players:
             if not plyr.isActive( ):
                 continue
             if len(plyr.matches) == 0:
@@ -350,11 +383,11 @@ class tournament:
             # Opponent Match Win Percentage
             OWP = 0.0
             if len(plyr.opponents) > 0:
-                wins  = sum( [ self.players[opp].getNumberOfWins( ) for opp in plyr.opponents ] )
-                games = sum( [len(self.players[opp].getCertMatches( withBye=False )) for opp in plyr.opponents] )
+                wins  = sum( [ self.getPlayer(opp).getNumberOfWins( ) for opp in plyr.opponents ] )
+                games = sum( [len(self.getPlayer(opp).getCertMatches( withBye=False )) for opp in plyr.opponents] )
                 if games != 0:
                     OWP = wins/games
-                #OWP = sum( [ self.players[opp].getMatchWinPercentage( withBye=False ) for opp in plyr.opponents ] )/len(plyr.opponents)
+                #OWP = sum( [ self.getPlayer(opp).getMatchWinPercentage( withBye=False ) for opp in plyr.opponents ] )/len(plyr.opponents)
             rough.append( (points, MWP, OWP, plyr) )
 
         # sort() is stable, so relate order similar elements is preserved
@@ -375,13 +408,37 @@ class tournament:
     # ---------------- Embed Generators ----------------
     def getTournamentStatusEmbed( self ) -> discord.Embed:
         digest: discord.Embed = discord.Embed( title = f'{self.name} Status' )
+        NL = "\n"
+        NLT = "\n\t"
+        
+        props = self.getProperties()
+        propsText = f'{self.name} has{"" if self.isActive() else " not"} started.\n' + "\n".join( [ f'{p}: {props[p]}' for p in props if not props[p] is None ] )
+        digest.add_field( name="**Settings Info.**", value=propsText )
+        
+        plyrsWithDecks = [ p for p in self.players if len(p.decks) > 0 ]
+        plyrsActive = [ p for p in self.players if p.isActive() ]
+        decksText = f'There are {len(plyrsActive)} players registered.'
+        if len(plyrsWithDecks) > 0:
+            decksText = decksText[:-1] + f', and {len(plyrsWithDecks)} of them have submitted decks.'
+        digest.add_field( name="**Player Count**", value=decksText )
+        
+        openMatches = [ m for m in self.matches if m.isOpen() ]
+        uncertMatches = [ m for m in self.matches if m.isUncertified() ]
+        matchText  = f'There are {len(openMatches)} open matches and {len(uncertMatches)} uncertified matches.'
+        if len(openMatches) > 0:
+            matchText += f'{NL}**Open Matches**:{NLT}{NLT.join([ "#" + str(m.matchNumber) for m in openMatches ])}'
+        if len(uncertMatches) > 0:
+            matchText += f'{NL}**Uncertified Matches**:{NLT}{NLT.join([ "#" + str(m.matchNumber) for m in uncertMatches ])}'
+        digest.add_field( name="**Match Info.**", value=matchText )
         return digest
 
     def getPlayerProfileEmbed( self, plyr: int ) -> discord.Embed:
-        Player = self.players[plyr]
+        Player = self.getPlayer( plyr )
         digest = discord.Embed()
         bioInfo: str = f'Discord Name: {Player.getMention()}\n'
-        bioInfo += f'Discord ID: {Player.discordUser.id}\n'
+        discordID = Player.getDiscordID()
+        if not discordID is None:
+            bioInfo += f'Discord ID: {discordID}\n'
         if Player.triceName != "":
             bioInfo += f'Cockatrice Name: {Player.triceName}\n'
         bioInfo += f'Reg. Status: {"Registered" if Player.isActive() else "Dropped"}'
@@ -392,7 +449,7 @@ class tournament:
             players = mtch.activePlayers + mtch.droppedPlayers
             status = f'Status: {mtch.status}'
             if mtch.winner in self.players:
-                winner = f'Winner: {self.players[mtch.winner].getMention()}'
+                winner = f'Winner: {self.getPlayer(mtch.winner).getMention()}'
             else:
                 winner = f'Winner: {mtch.winner if mtch.winner else "N/A"}'
             oppens = "Opponents: " + ", ".join( [ f'<@{player}>' for player in players if player != plyr ] )
@@ -403,19 +460,19 @@ class tournament:
         digest = discord.Embed( )
         Match = self.matches[mtch]
         digest.add_field( name="Status", value=Match.status )
-        digest.add_field( name="Active Players", value="\u200b" + ", ".join( [ self.players[plyr].getMention() for plyr in Match.activePlayers ] ) )
+        digest.add_field( name="Active Players", value="\u200b" + ", ".join( [ self.getPlayer(plyr).getMention() for plyr in Match.activePlayers ] ) )
         if len(Match.droppedPlayers) != 0:
-            digest.add_field( name="Dropped Players", value=", ".join( [ self.players[plyr].getMention() for plyr in Match.droppedPlayers ] ) )
+            digest.add_field( name="Dropped Players", value=", ".join( [ self.getPlayer(plyr).getMention() for plyr in Match.droppedPlayers ] ) )
         if not ( Match.isCertified() or Match.stopTimer ):
             t = round(Match.getTimeLeft( ) / 60) 
             digest.add_field( name="Time Remaining", value=f'{t if t > 0 else 0} minutes' )
         if Match.winner != "":
             if Match.winner in self.players:
-                digest.add_field( name="Winner", value=self.players[Match.winner].getMention() )
+                digest.add_field( name="Winner", value=self.getPlayer(Match.winner).getMention() )
             else:
                 digest.add_field( name="Winner", value=Match.winner )
         if len(Match.confirmedPlayers) != 0:
-            digest.add_field( name="Confirmed Players", value=", ".join( [ self.players[plyr].getMention() for plyr in Match.confirmedPlayers ] ) )
+            digest.add_field( name="Confirmed Players", value=", ".join( [ self.getPlayer(plyr).getMention() for plyr in Match.confirmedPlayers ] ) )
 
         if Match.triceMatch:
             digest.add_field( name="Tricebot Match", value = f'Replay at: {Match.replayURL}\nPlayer deck verification is {"enabled" if Match.playerDeckVerification else "disabled "}' )
@@ -426,26 +483,38 @@ class tournament:
     def setPlayerTriceName( self, plyr: str, name: str ) -> str:
         if not plyr in self.players:
             return f'you are not registered for {self.name}. Use the !register {self.name} to register for this tournament.'
-        if not self.players[plyr].isActive():
+        if not self.getPlayer(plyr).isActive():
             return f'you are registered by are not an active player in {self.name}. If you believe this is an error, contact tournament staff.'
-        self.players[plyr].triceName = name
-        self.players[plyr].saveXML( )
+        self.getPlayer(plyr).triceName = name
+        self.getPlayer(plyr).saveXML( )
         return f'Your cockatrice name was set to {name} successfully.'
 
-    async def addDeck( self, plyr: int, deckName: str, decklist: str, admin: bool = False ) -> str:
+    async def addDeck( self, plyr: str, deckName: str, decklist: str ) -> str:
         if not plyr in self.players:
             return f'you are not registered for {self.name}. Use the !register {self.name} to register for this tournament.'
-        if not self.players[plyr].isActive():
+        if not self.getPlayer(plyr).isActive():
             return f'you are registered by are not an active player in {self.name}. If you believe this is an error, contact tournament staff.'
-        if not ( admin or self.regOpen ):
+        if not self.regOpen:
             return f'registration for {self.name} is closed, so you cannot submit a deck. If you believe this is an error, contact tournament staff.'
-        self.players[plyr].addDeck( deckName, decklist )
-        self.players[plyr].saveXML( )
-        deckHash = self.players[plyr].decks[deckName].deckHash
+        self.getPlayer(plyr).addDeck( deckName, decklist )
+        self.getPlayer(plyr).saveXML( )
+        deckHash = self.getPlayer(plyr).decks[deckName].deckHash
 
-        if admin:
-            await self.players[plyr].discordUser.send( content = f'A decklist has been submitted for {self.name} on your behalf. The name of the deck is "{deckName}" and the deck hash is "{deckHash}". Use the command "!decklist {deckName}" to see the list. Please contact tournament staff if there is an error.' )
-            return f'you have submitted a decklist for {self.players[plyr].getMention()}. The deck hash is {deckHash}.'
+        if isMoxFieldLink(decklist) or isTappedOutLink(decklist) or isMtgGoldfishLink(decklist):
+            message += f'\nPlease be aware that this website treats your commander as if it were in your mainboard.'
+        return message
+
+    async def addDeckAdmin( self, plyr: str, deckName: str, decklist: str ) -> str:
+        if not plyr in self.players:
+            return f'{plyr!r} is not registered for {self.name}. Use the !admin-register {self.name} {plyr!r} to register them.'
+        if not self.getPlayer(plyr).isActive():
+            return f'{plyr!r} is not an active in {self.name}.'
+        self.getPlayer(plyr).addDeck( deckName, decklist )
+        self.getPlayer(plyr).saveXML( )
+        deckHash = self.getPlayer(plyr).decks[deckName].deckHash
+
+        await self.getPlayer(plyr).sendMessage( content = f'A decklist has been submitted for {self.name} on your behalf. The name of the deck is "{deckName}" and the deck hash is "{deckHash}". Use the command "!decklist {deckName}" to see the list. Please contact tournament staff if there is an error.' )
+        return f'you have submitted a decklist for {self.getPlayer(plyr).getMention()}. The deck hash is {deckHash}.'
         message = f'your deck has been successfully registered in {self.name}. Your deck name is "{deckName}", and the deck hash is "{deckHash}". Make sure it matches your deck hash in Cockatrice. You can see your decklist by using !decklist "{deckName}" or !decklist {deckHash}.'
 
         if isMoxFieldLink(decklist) or isTappedOutLink(decklist) or isMtgGoldfishLink(decklist):
@@ -455,10 +524,10 @@ class tournament:
     async def removeDeck( self, plyr: int, deckName: str = "", author: str = "" ) -> str:
         if not plyr in self.players:
             return f'<@{plyr}>, you are not registered for {self.name}. Use !register {self.name} to register for this tournament.'
-        if not self.players[plyr].isActive():
+        if not self.getPlayer(plyr).isActive():
             return f'<@{plyr}>, you are registered by are not an active player in {self.name}. If you believe this is an error, contact tournament staff.'
 
-        digest = await self.players[plyr].removeDeck( deckName, author )
+        digest = await self.getPlayer(plyr).removeDeck( deckName, author )
         await self.updateInfoMessage()
         return digest
 
@@ -529,11 +598,11 @@ class tournament:
     async def prunePlayers( self, ctx ) -> str:
         await ctx.send( f'Pruning players starting... now!' )
         for plyr in self.players:
-            if len(self.players[plyr].decks) == 0:
+            if len(plyr.decks) == 0:
                 await self.dropPlayer( plyr )
-                await ctx.send( f'{self.players[plyr].getMention()} has been pruned.' )
-                await self.players[plyr].discordUser.send( content=f'You have been dropped from the tournament {self.name} on {ctx.guild.name} by tournament staff for not submitting a deck. If you believe this is an error, contact them immediately.' )
-                self.players[plyr].saveXML( )
+                await ctx.send( f'{plyr.getMention()} has been pruned.' )
+                await plyr.sendMessage( content=f'You have been dropped from the tournament {self.name} on {ctx.guild.name} by tournament staff for not submitting a deck. If you believe this is an error, contact them immediately.' )
+                plyr.saveXML( )
         return f'All players that did not submit a deck have been pruned.'
 
     async def addPlayer( self, discordUser, admin=False ) -> str:
@@ -544,35 +613,54 @@ class tournament:
         if not ( admin or self.regOpen ):
             return "registration for the tounament is closed. If you believe this to be incorrect, please contact the tournament staff."
         RE = ""
-        if discordUser.id in self.players:
-            self.players[discordUser.id].status = "active"
+        discordID = discordUser.id
+        if discordID in self.players:
+            self.getPlayer(discordID).activate()
             RE = "re-"
         else:
-            self.players[discordUser.id] = player( discordUser.display_name, discordUser.id )
+            newPlayer = player( discordUser.display_name, discordID )
+            self.players.append( newPlayer )
 
-        self.players[discordUser.id].saveLocation = f'{self.getSaveLocation()}/players/{discordUser.id}.xml'
-        self.players[discordUser.id].addDiscordUser( discordUser )
-        await self.players[discordUser.id].discordUser.add_roles( self.role )
-        self.players[discordUser.id].saveXML( )
+        self.getPlayer(discordID).saveLocation = f'{self.getSaveLocation()}/players/{discordID}.xml'
+        self.getPlayer(discordID).addDiscordUser( discordUser )
+        await self.getPlayer(discordID).addRole( self.role )
+        self.getPlayer(discordID).saveXML( )
         if admin:
-            await discordUser.send( content=f'You have been registered for {self.name}!' )
-            return f'you have {RE}registered {getMention()} for {self.name}'
+            await self.getPlayer(discordID).sendMessage( content=f'You have been registered for {self.name}!' )
+            return f'you have {RE}registered {self.getPlayer(discordID).getMention()} for {self.name}.'
         return f'you have been {RE}registered in {self.name}!'
 
+    async def addDummyPlayer( self, playerName ) -> str:
+        digest: dict = { "text": "", "embed": None }
+        RE = ""
+        if playerName in self.players:
+            self.getPlayer(playerName).activate()
+            RE = "re-"
+        else:
+            self.players.append( player( playerName, None ) )
+
+        self.getPlayer(playerName).saveLocation = f'{self.getSaveLocation()}/players/{playerName}.xml'
+        self.getPlayer(playerName).saveXML( )
+        digest["text"] = f'{self.getPlayer(playerName).getMention()} has been {RE}registered for {self.name}.'
+        await self.updateInfoMessage( )
+        return digest
+
     async def dropPlayer( self, plyr: str, author: str = "" ) -> None:
+        if not isinstance(plyr, player):
+            plyr = self.getPlayer( plyr )
         try:
-            await self.players[plyr].discordUser.remove_roles( self.role )
+            await plyr.removeRole( self.role )
         except AttributeError as e:
             pass # This is thrown when the discord object is None
-        await self.players[plyr].drop( )
-        self.players[plyr].saveXML()
+        await plyr.drop( )
+        plyr.saveXML()
         message = await self.removePlayerFromQueue( plyr )
         
         # The player was dropped by an admin, so two messages need to be sent
         # TODO: The admin half of this command needs to be its own method
         if author != "":
-            await self.players[plyr].discordUser.send( content=f'You have been dropped from {self.name} on {self.guild.name} by tournament staff. If you believe this is an error, check with them.' )
-            return f'{author}, {self.players[plyr].getMention()} has been dropped from the tournament.'
+            await self.getPlayer(plyr).sendMessage( content=f'You have been dropped from {self.name} on {self.guild.name} by tournament staff. If you believe this is an error, check with them.' )
+            return f'{author}, {self.getPlayer(plyr).getMention()} has been dropped from the tournament.'
         return message
 
     async def playerConfirmResult( self, plyr: str, matchNum: int, admin: bool = False ) -> None:
@@ -583,7 +671,7 @@ class tournament:
             await self.pairingsChannel.send( message )
             return f'you have certified the result of match #{matchNum} on behalf of {plyr}.' if admin else f'your confirmation has been logged.'
         if admin:
-            await self.players.discordUser.send( f'The result for match #{matchNum} in {self.name} has been confirmed on your behalf by tournament staff.' )
+            await self.players.sendMessage( content=f'The result for match #{matchNum} in {self.name} has been confirmed on your behalf by tournament staff.' )
         return message
 
     async def recordMatchResult( self, plyr: str, result: str, matchNum: int, admin: bool = False ) -> str:
@@ -598,12 +686,12 @@ class tournament:
 
     async def pruneDecks( self, ctx ) -> str:
         await ctx.send( f'Pruning decks starting... now!' )
-        for plyr in self.players.values():
+        for plyr in self.players:
             deckIdents = [ ident for ident in plyr.decks ]
             while len( plyr.decks ) > self.deckCount:
                 del( plyr.decks[deckIdents[0]] )
                 await ctx.send( f'The deck {deckIdents[0]} belonging to {plyr.getMention()} has been pruned.' )
-                await plyr.discordUser.send( content=f'Your deck {deckIdents[0]} has been pruned from the tournament {self.name} on {ctx.guild.name} by tournament staff.' )
+                await plyr.sendMessage( content=f'Your deck {deckIdents[0]} has been pruned from the tournament {self.name} on {ctx.guild.name} by tournament staff.' )
                 del( deckIdents[0] )
             plyr.saveXML( )
         await self.updateInfoMessage()
@@ -655,7 +743,7 @@ class tournament:
         if isinstance( self.guild, discord.Guild ):
             matchRole = await self.guild.create_role( name=f'Match {newMatch.matchNumber}' )
             overwrites = { self.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                           getAdminRole(self.guild): discord.PermissionOverwrite(read_messages=True),
+                           gAdminRole(self.guild): discord.PermissionOverwrite(read_messages=True),
                            getJudgeRole(self.guild): discord.PermissionOverwrite(read_messages=True),
                            matchRole: discord.PermissionOverwrite(read_messages=True) }
             matchCategory = discord.utils.get( self.guild.categories, name="Matches" )
@@ -688,11 +776,11 @@ class tournament:
                 deckHashes = []
                 if self.player_deck_verification:
                     for plyr in plyrs:
-                        name = self.players[plyr].triceName
+                        name = self.getPlayer(plyr).triceName
                         if name == "" or name is None:
                             name = "*"
                         playerNames.append(name)
-                        deckHashes.append( [dck.deckHash for dck in self.players[plyr].decks.values()] )
+                        deckHashes.append( [dck.deckHash for dck in self.getPlayer(plyr).decks.values()] )
 
                 #Try up to three times
                 while not creation_success and tries < max_tries:                    
@@ -724,13 +812,13 @@ class tournament:
         for plyr in plyrs:
             # TODO: This should be unready player
             await self.removePlayerFromQueue( plyr )
-            self.players[plyr].matches.append( newMatch )
+            self.getPlayer(plyr).matches.append( newMatch )
             for p in plyrs:
-                self.players[plyr].addOpponent( p )
+                self.getPlayer(plyr).addOpponent( p )
             if type( self.guild ) == discord.Guild:
-                self.players[plyr].saveXML()
-                await self.players[plyr].discordUser.add_roles( matchRole )
-                embed.add_field( name=self.players[plyr].getDisplayName(), value=self.players[plyr].pairingString() )
+                self.getPlayer(plyr).saveXML()
+                await self.getPlayer(plyr).addRole( matchRole )
+                embed.add_field( name=self.getPlayer(plyr).getDisplayName(), value=self.getPlayer(plyr).pairingString() )
 
         if type( self.guild ) is discord.Guild:
             await self.pairingsChannel.send( content=message, embed=embed )
@@ -757,7 +845,7 @@ class tournament:
         newMatch.matchNumber = len(self.matches)
         newMatch.saveLocation = f'{self.getSaveLocation()}/matches/match_{newMatch.matchNumber}.xml'
         newMatch.recordBye( )
-        self.players[plyr].matches.append( newMatch )
+        self.getPlayer(plyr).matches.append( newMatch )
         newMatch.saveXML( )
 
     async def removeMatch( self, matchNum: int, author: str = "" ) -> str:
@@ -765,11 +853,11 @@ class tournament:
             self.matches.sort( key=lambda x: x.matchNumber )
 
         for plyr in self.matches[matchNum - 1].activePlayers:
-            await self.players[plyr].removeMatch( matchNum )
-            await self.players[plyr].discordUser.send( content=f'You were a particpant in match #{matchNum} in the tournament {self.name} on the server {self.hostGuildName}. This match has been removed by tournament staff. If you think this is an error, contact them.' )
+            await self.getPlayer(plyr).removeMatch( matchNum )
+            await self.getPlayer(plyr).sendMessage( content=f'You were a particpant in match #{matchNum} in the tournament {self.name} on the server {self.hostGuildName}. This match has been removed by tournament staff. If you think this is an error, contact them.' )
         for plyr in self.matches[matchNum - 1].droppedPlayers:
-            await self.players[plyr].removeMatch( matchNum )
-            await self.players[plyr].discordUser.send( content=f'You were a particpant in match #{matchNum} in the tournament {self.name} on the server {self.hostGuildName}. This match has been removed by tournament staff. If you think this is an error, contact them.' )
+            await self.getPlayer(plyr).removeMatch( matchNum )
+            await self.getPlayer(plyr).sendMessage( content=f'You were a particpant in match #{matchNum} in the tournament {self.name} on the server {self.hostGuildName}. This match has been removed by tournament staff. If you think this is an error, contact them.' )
 
         await self.matches[matchNum - 1].killMatch( )
         self.matches[matchNum - 1].saveXML( )
@@ -819,7 +907,7 @@ class tournament:
            os.mkdir( f'{dirName}/players/' )
 
         for player in self.players:
-            self.players[player].saveXML( f'{dirName}/players/{toPathSafe(self.players[player].name)}.xml' )
+            player.saveXML( f'{dirName}/players/{toPathSafe(player.name)}.xml' )
 
     def saveMatches( self, dirName: str = "" ) -> None:
         if dirName == "":
@@ -843,10 +931,8 @@ class tournament:
         for playerFile in playerFiles:
             print( playerFile )
             newPlayer = player( "" )
-            newPlayer.saveLocation = playerFile
             newPlayer.loadXML( playerFile )
-            self.players[newPlayer.discordID] = newPlayer
-        print( list(self.players.keys()) )
+            self.players.append( newPlayer )
 
     def loadMatches( self, dirName: str ) -> None:
         matchFiles = [ f'{dirName}/{f}' for f in os.listdir(dirName) if os.path.isfile( f'{dirName}/{f}' ) ]
@@ -857,15 +943,15 @@ class tournament:
             self.matches.append( newMatch )
             for aPlayer in newMatch.activePlayers:
                 if aPlayer in self.players:
-                    self.players[aPlayer].addMatch( newMatch )
+                    self.getPlayer(aPlayer).addMatch( newMatch )
             for dPlayer in newMatch.droppedPlayers:
                 if dPlayer in self.players:
-                    self.players[dPlayer].addMatch( newMatch )
+                    self.getPlayer(dPlayer).addMatch( newMatch )
             if not ( self.matches[-1].isCertified() or self.matches[-1].isDead() ) and not self.matches[-1].stopTimer:
                 self.matches[-1].timer = threading.Thread( target=self._matchTimer, args=(self.matches[-1],) )
                 self.matches[-1].timer.start( )
         self.matches.sort( key= lambda x: x.matchNumber )
-        for plyr in self.players.values():
+        for plyr in self.players:
             plyr.matches.sort( key= lambda x: x.matchNumber )
 
 

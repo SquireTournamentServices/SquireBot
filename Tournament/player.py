@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+import uuid
 
 from typing import List
 
@@ -35,7 +36,8 @@ from .match import *
 
 class player:
     # The class constructor
-    def __init__( self, name: str = "", discordID: str = "" ):
+    def __init__( self, name: str = "", discordID: str = None ):
+        self.uuid = str( uuid.uuid4() )
         self.saveLocation = f'{name}.xml'
         self.discordUser = ""
         self.discordID = discordID
@@ -61,10 +63,21 @@ class player:
             return False
         digest  = ( self.name == other.name )
         digest &= ( self.discordID == other.discordID )
+        digest &= ( self.uuid == other.uuid )
         return digest
 
-    def isActive( self ):
+    def isActive( self ) -> bool:
+        """ Determines if the player is active or not. """
         return self.status == "active"
+
+    def activate( self ) -> None:
+        """ Sets the player's status to 'active'. """
+        self.status = "active"
+
+    def isDummy( self ) -> bool:
+        """ Determines if the player's discord user object exists or is None. """
+        # (dummy players do not have discord user objects)
+        return not isinstance( self.discordUser, discord.Member )
 
     def isValidOpponent( self, a_plyr: int ) -> bool:
         if a_plyr in self.opponents:
@@ -77,15 +90,40 @@ class player:
                 return False
         return True
 
-    def getMention( self ):
-        if type(self.discordUser) == discord.User or type(self.discordUser) == discord.Member:
-            return self.discordUser.mention
-        return f'<@{self.discordID}>'
+    def getUUID( self ) -> str:
+        """ Returns the unique identifying string of the player. """
+        return self.uuid
 
-    def getDisplayName( self ):
-        if type(self.discordUser) == discord.User or type(self.discordUser) == discord.Member:
-            return self.discordUser.display_name
-        return "\u200b" # Widthless whitespace char to prevent Embed issues
+    def getMention( self ) -> int:
+        if self.isDummy( ):
+            return self.name
+        return self.discordUser.mention
+
+    def getDiscordID( self ) -> int:
+        return self.discordID
+
+    def getDisplayName( self ) -> str:
+        if self.isDummy( ):
+            return self.name
+        return self.discordUser.display_name
+
+    async def sendMessage( self, content: str = None, embed: discord.Embed = None ) -> None:
+        """ If the player is not a dummy, a message is sent to their discord user object. """
+        if self.isDummy( ):
+            return
+        await self.discordUser.send( content=content, embed=embed )
+
+    async def addRole( self, role: discord.Role ) -> None:
+        """ If the player is not a dummy, a role is added to their discord user object. """
+        if self.isDummy( ):
+            return
+        await self.discordUser.add_roles( role )
+
+    async def removeRole( self, role: discord.Role ) -> None:
+        """ If the player is not a dummy, a role is removed from their discord user object. """
+        if self.isDummy( ):
+            return
+        await self.discordUser.remove_roles( role )
 
     def countByes( self ) -> int:
         return sum( 1 for mtch in self.matches if mtch.isBye() )
@@ -312,9 +350,10 @@ class player:
             a_filename = self.saveLocation
         digest  = "<?xml version='1.0'?>\n"
         digest += '<player>\n'
+        digest += f'\t<uuid>{toSafeXML(self.uuid)}</uuid>\n'
         digest += f'\t<name>{toSafeXML(self.name)}</name>\n'
         digest += f'\t<triceName>{toSafeXML(self.triceName)}</triceName>\n'
-        digest += f'\t<discord id="{toSafeXML(self.discordUser.id if type(self.discordUser) == discord.Member else str())}"/>\n'
+        digest += f'\t<discord id="{toSafeXML(self.getDiscordID())}"/>\n'
         digest += f'\t<status>{toSafeXML(self.status)}</status>\n'
         for ident in self.decks:
             digest += self.decks[ident].exportXMLString( '\t' )
@@ -326,6 +365,7 @@ class player:
     def loadXML( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
         self.saveLocation = a_filename
+        self.uuid = fromXML(xmlTree.getroot().find( 'uuid' ).text)
         self.name = fromXML(xmlTree.getroot().find( 'name' ).text)
         self.triceName = fromXML(xmlTree.getroot().find( 'triceName' ).text)
         if self.triceName is None:
@@ -333,6 +373,8 @@ class player:
         self.discordID  = fromXML(xmlTree.getroot().find( 'discord' ).attrib['id'])
         if self.discordID != "":
             self.discordID = int( self.discordID )
+        else:
+            self.discordID = None
         self.status = fromXML(xmlTree.getroot().find( "status" ).text)
         for deckTag in xmlTree.getroot().findall('deck'):
             self.decks[deckTag.attrib['ident']] = deck()
