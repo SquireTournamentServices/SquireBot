@@ -25,7 +25,7 @@ def createStandingsEmbeds( places: List[str], names: List[str], points: List[str
     values  = [ "\u200b", "\u200b", "\u200b" ]
 
     for i in range(length):
-        line = [ f'{places[i]}) <@{names[i].discordID}>\n', f'{points[i]},\t{trunk(GWP[i])}%\n', f'{trunk(OWP[i])}%\n' ]
+        line = [ f'{places[i]}) {names[i].getMention()}\n', f'{points[i]},\t{trunk(GWP[i])}%\n', f'{trunk(OWP[i])}%\n' ]
         line_lengths = [ len(s) for s in line ]
         if (len(values[0]) + line_lengths[0] <= limit) and (len(values[1]) + line_lengths[1] <= limit) and (len(values[2]) + line_lengths[2] <= limit):
             values  = [ values[i] + line[i] for i in range(len(values)) ]
@@ -97,6 +97,7 @@ commandCategories["registration"].append( "cockatrice-name" )
 async def addTriceName( ctx, tourn = None, name = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    ID = str( ctx.author.id )
 
     if await isPrivateMessage( ctx ): return
 
@@ -128,9 +129,9 @@ async def addTriceName( ctx, tourn = None, name = None ):
         await ctx.send( f'{mention}, that name is too long.' )
         return
 
-    plyrObj = tournObj.getPlayer(ctx.author.id)
+    plyrObj = tournObj.getPlayer( ID )
     oldname = plyrObj.triceName
-    message = tournObj.setPlayerTriceName( ctx.author.id, name ) + "\n"
+    message = tournObj.setPlayerTriceName( ID, name ) + "\n"
     errors = []
 
     for match in plyrObj.matches:
@@ -166,6 +167,7 @@ commandCategories["registration"].append( "add-deck" )
 @bot.command(name='add-deck')
 async def submitDecklist( ctx, tourn = None, ident = None ):
     mention = ctx.author.mention
+    ID = str( ctx.author.id )
 
     private = await isPrivateMessage( ctx, send=False )
 
@@ -234,7 +236,7 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
         await ctx.send( f'{mention}, not enough information provided: Please provide your deckname and decklist to add a deck.' )
         return
 
-    message = await tournObj.addDeck( ctx.author.id, ident, decklist )
+    message = await tournObj.addDeck( ID, ident, decklist )
     await ctx.send( f'{mention}, {message}' )
     if not private:
         await ctx.author.send( f'For future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
@@ -245,6 +247,7 @@ commandCategories["registration"].append( "remove-deck" )
 @bot.command(name='remove-deck')
 async def removeDecklist( ctx, tourn = None, ident = None ):
     mention = ctx.author.mention
+    ID = str( ctx.author.id )
 
     if tourn is None:
         await ctx.send( f'{mention}, not enough information provided: Please provide your deckname or deck hash to remove your deck.' )
@@ -274,9 +277,9 @@ async def removeDecklist( ctx, tourn = None, ident = None ):
 
     # TODO: Determining the deck name should be done in the removeDeck call
     # The bot should only interface with the tournament class
-    deckName = tournObj.getPlayer(ctx.author.id).getDeckIdent( ident )
+    deckName = tournObj.getPlayer(ID).getDeckIdent( ident )
     if deckName == "":
-        if len( tournObj.getPlayer(ctx.author.id).decks ) < 1:
+        if len( tournObj.getPlayer(ID).decks ) < 1:
             await ctx.send( f'{mention}, you do not have any decks registered for {tourn}.' )
         else:
             await ctx.send( f'{mention}, you do not have a deck whose name or hash is {ident!r}. To see the decks you have registered, use !decks {tourn}' )
@@ -294,6 +297,7 @@ commandCategories["registration"].append( "decks" )
 @bot.command(name='decks')
 async def listDeck( ctx, tourn = None ):
     mention = ctx.author.mention
+    ID = str( ctx.author.id )
 
     private = await isPrivateMessage( ctx, send=False )
 
@@ -316,13 +320,13 @@ async def listDeck( ctx, tourn = None ):
             return
         tournObj = tournaments[tournNames.index(tourn)]
 
-    if len( tournObj.getPlayer(ctx.author.id).decks ) == 0:
+    if len( tournObj.getPlayer(ID).decks ) == 0:
         await ctx.send( f'{mention}, you have not registered any decks for {tourn}.' )
         return
 
     # TODO: This should be a tournament method
-    names  = [ deck for deck in tournObj.getPlayer(ctx.author.id).decks ]
-    hashes = [ str(deck.deckHash) for deck in tournObj.getPlayer(ctx.author.id).decks.values() ]
+    names  = [ deck for deck in tournObj.getPlayer(ID).decks ]
+    hashes = [ str(deck.deckHash) for deck in tournObj.getPlayer(ID).decks.values() ]
     embed = discord.Embed( )
     embed.add_field( name="Deck Names", value="\n".join(names) )
     embed.add_field( name="Deck Hashes", value="\n".join(hashes) )
@@ -336,6 +340,7 @@ commandCategories["registration"].append( "drop" )
 async def dropTournament( ctx, tourn = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    ID = str( ctx.author.id )
 
     if await isPrivateMessage( ctx ): return
 
@@ -359,7 +364,7 @@ async def dropTournament( ctx, tourn = None ):
     if await hasCommandWaiting( ctx, ctx.author.id ):
         del( commandsToConfirm[ctx.author.id] )
 
-    commandsToConfirm[ctx.author.id] = (getTime(), 30, tournObj.dropPlayer( ctx.author.id ) )
+    commandsToConfirm[ctx.author.id] = (getTime(), 30, tournObj.dropPlayer( ID ) )
     await ctx.send( f'{mention}, in order to drop from {tourn}, you need to confirm your request. Are you sure you want to drop? (!yes/!no)' )
 
 
@@ -369,6 +374,7 @@ commandCategories["playing"].append( "lfg" )
 async def queuePlayer( ctx, tourn = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    ID = str( ctx.author.id )
 
     if await isPrivateMessage( ctx ): return
 
@@ -389,7 +395,7 @@ async def queuePlayer( ctx, tourn = None ):
             await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server.' )
             return
 
-    response = await tournObj.addPlayerToQueue( ctx.author.id )
+    response = await tournObj.addPlayerToQueue( ID )
     await response.send( ctx )
 
 commandSnippets["leave-lfg"] ="- leave-lfg : Removes you from the matchmaking queue"
@@ -397,6 +403,7 @@ commandCategories["playing"].append( "leave-lfg" )
 @bot.command(name='leave-lfg')
 async def dequeuePlayer( ctx, tourn = None ):
     mention = ctx.author.mention
+    ID = str( ctx.author.id )
 
     if await isPrivateMessage( ctx ): return
     gld = guildSettingsObjects[ctx.guild.id]
@@ -418,7 +425,7 @@ async def dequeuePlayer( ctx, tourn = None ):
             await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server.' )
             return
 
-    response = await tournObj.removePlayerFromQueue( ctx.author.id )
+    response = await tournObj.removePlayerFromQueue( ID )
     await response.send( ctx )
 
 
@@ -428,6 +435,7 @@ commandCategories["playing"].append( "match-result" )
 async def matchResult( ctx, tourn = None, result = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    ID = str( ctx.author.id )
 
     if await isPrivateMessage( ctx ): return
 
@@ -453,7 +461,7 @@ async def matchResult( ctx, tourn = None, result = None ):
             await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server".' )
             return
 
-    response = await tournObj.recordMatchResult( ctx.author.id, result )
+    response = await tournObj.recordMatchResult( ID, result )
     await response.send( ctx )
 
 
@@ -463,6 +471,7 @@ commandCategories["playing"].append( "confirm-result" )
 async def confirmMatchResult( ctx, tourn = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    ID = str( ctx.author.id )
 
     if await isPrivateMessage( ctx ): return
 
@@ -483,7 +492,7 @@ async def confirmMatchResult( ctx, tourn = None ):
             await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server".' )
             return
 
-    response = await tournObj.playerConfirmResult( ctx.author.idr)
+    response = await tournObj.playerConfirmResult( ID )
     await response.send( ctx )
 
 
@@ -493,6 +502,7 @@ commandCategories["misc"].append( "standings" )
 async def standings( ctx, tourn = None, printAll = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    ID = str( ctx.author.id )
 
     if await isPrivateMessage( ctx ): return
 
@@ -535,7 +545,7 @@ async def standings( ctx, tourn = None, printAll = None ):
         return
 
     name = ""
-    plyr = tournObj.getPlayer(ctx.author.id)
+    plyr = tournObj.getPlayer(ID)
     if not plyr is None:
         name = plyr.getDisplayName()
 
@@ -572,12 +582,13 @@ commandCategories["misc"].append( "misfortune" )
 @bot.command(name='misfortune')
 async def misfortune( ctx, num = None ):
     mention = ctx.author.mention
+    ID = str( ctx.author.id )
 
     playerMatch = ""
     count = 0
 
     for mtch in listOfMisfortunes:
-        if ctx.author.id in mtch[1].activePlayers:
+        if ID in mtch[1].activePlayers:
             playerMatch = mtch[1]
             break
         count += 1
@@ -650,6 +661,7 @@ commandCategories["misc"].append( "decklist" )
 @bot.command(name='decklist')
 async def printDecklist( ctx, tourn = None, ident = None ):
     mention = ctx.author.mention
+    ID = str( ctx.author.id )
 
     private = await isPrivateMessage( ctx, send = False )
 
@@ -675,20 +687,20 @@ async def printDecklist( ctx, tourn = None, ident = None ):
         tournObj = tournaments[tournNames.index(tourn)]
 
 
-    deckName = tournObj.getPlayer(ctx.author.id).getDeckIdent( ident )
+    deckName = tournObj.getPlayer(ID).getDeckIdent( ident )
     if deckName == "":
-        if len(tournObj.getPlayer(ctx.author.id).decks) == 0:
+        if len(tournObj.getPlayer(ID).decks) == 0:
             await ctx.send( f'{mention}, you do not have any decks registered for {tourn}.' )
         else:
             await ctx.send( f'{mention}, you do not have a deck registered for {tourn} whose name/hash is {tourn!r}.' )
         return
 
     if await isPrivateMessage( ctx, send=False ):
-        await ctx.send( embed = await tournObj.getPlayer(ctx.author.id).getDeckEmbed( deckName ) )
+        await ctx.send( embed = await tournObj.getPlayer(ID).getDeckEmbed( deckName ) )
     else:
         if await hasCommandWaiting( ctx, ctx.author.id ):
             del( commandsToConfirm[ctx.author.id] )
-        commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.getDeckEmbed(ctx.author.id, deckName) )
+        commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.getDeckEmbed(ID, deckName) )
         await ctx.send( f'{mention}, since you are about to post your decklist publicly, you need to confirm your request. Are you sure you want to post it? (!yes/!no)' )
 
 

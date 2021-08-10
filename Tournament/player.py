@@ -323,10 +323,13 @@ class player:
     # Tallies the number of matches that the player is in, has won, and have been certified.
     def getMatchPoints( self, withBye: bool=True ) -> float:
         digest = 0
+        # TODO: Yet another location where circular dependencies would very helpful
         certMatches = self.getCertMatches( withBye )
         for mtch in certMatches:
-            if mtch.winner == self.discordID:
+            if mtch.winner == self.name:
                 digest += 3 #4
+            elif mtch.winner == self.discordID:
+                digest += 3
             elif withBye and mtch.isBye():
                 digest += 3
             elif mtch.isDraw():

@@ -32,7 +32,7 @@ from .utils import *
 class match:
     # The class constructor
     def __init__( self, a_players: List[str]):
-        self.uuid = str( uuid4() )
+        self.uuid = str( uuid.uuid4() )
         self.saveLocation = ""
 
         self.matchNumber = -1
@@ -189,12 +189,12 @@ class match:
 
     async def confirmResultAdmin( self, a_player: str, mention: str ) -> str:
         digest = { }
-        if not (plyr in self.activePlayers or plyr in self.droppedPlayers):
-            digest["message"] = f'{mention}, there is no player {plyr!r} in match #{self.matchNumber}.'
+        if not (a_player in self.activePlayers or a_player in self.droppedPlayers):
+            digest["message"] = f'{mention}, there is no player {a_player!r} in match #{self.matchNumber}.'
         elif a_player in self.confirmedPlayers:
-            digest["message"] = f'{mention}, {plyr} has already confirmed the result of match #{self.matchNumber}.'
+            digest["message"] = f'{mention}, {a_player} has already confirmed the result of match #{self.matchNumber}.'
         elif a_player in self.droppedPlayers:
-            digest["message"] = f'{mention}, {plyr} has already drop from the match #{self.matchNumber}.'
+            digest["message"] = f'{mention}, {a_player} has already drop from the match #{self.matchNumber}.'
         else:
             self.confirmedPlayers.append( a_player )
             digest["message"] = f'{mention}, you have logged the confirmation of <@{a_player}>.'
@@ -355,11 +355,11 @@ class match:
         self.winner = fromXML( matchRoot.find( "winner" ).attrib["name"] )
         if self.winner != "" and not ( "a draw" in self.winner ) and not self.isBye():
             print( self.winner )
-            self.winner = int(self.winner)
+            self.winner = self.winner
         for player in matchRoot.find("activePlayers"):
-            self.activePlayers.append( int( fromXML( player.attrib["name"] ) ) )
+            self.activePlayers.append( fromXML( player.attrib["name"] ) )
         for player in matchRoot.find("droppedPlayers"):
-            self.droppedPlayers.append( int( fromXML( player.attrib["name"] ) ) )
+            self.droppedPlayers.append( fromXML( player.attrib["name"] ) )
         for player in matchRoot.find("confirmedPlayers"):
-            self.confirmedPlayers.append( int( fromXML( player.attrib["name"] ) ) )
+            self.confirmedPlayers.append( fromXML( player.attrib["name"] ) )
 

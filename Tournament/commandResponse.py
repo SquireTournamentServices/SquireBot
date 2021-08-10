@@ -33,7 +33,5 @@ class commandResponse:
         """ Takes a messageable object and send a message contain the stored info. """
         if not isinstance( messageable, discord.abc.Messageable ):
             return
-        print( self.content )
-        print( self.embed )
         await messageable.send( content=self.content, embed=self.embed )
 

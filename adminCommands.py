@@ -322,6 +322,7 @@ commandCategories["day-of"].append("create-match")
 async def adminCreatePairing( ctx, tourn = None, *plyrs ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    plyrs = [ get_ID_from_mention( plyr ) for plyr in plyrs ]
 
     if await isPrivateMessage( ctx ): return
 
@@ -349,7 +350,7 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
     message = ""
     # This should be done in the tournament class, but will require a not method that wraps the addMatch function
     for plyr in plyrs:
-        Plyr = tournObj.getPlayer( plyr )
+        Plyr = tournObj.getPlayer( get_ID_from_mention(plyr) )
         if Plyr is None:
             message += f'{mention}, a player by {plyr!r} is not registerd for {tourn}.\n'
         if not Plyr.isActive():
@@ -359,7 +360,7 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
         await ctx.send( content=f'{message}So, the match could not be created.' )
         return
 
-    await tournObj.addMatch( [ member.id for member in members ] )
+    await tournObj.addMatch( plyrs )
     tournObj.matches[-1].saveXML( )
     tournObj.saveOverview( )
     await ctx.send( f'{mention}, the players you specified for the match are now paired. Their match number is #{tournObj.matches[-1].matchNumber}.' )
@@ -460,6 +461,7 @@ commandCategories["day-of"].append("admin-drop")
 async def adminDropPlayer( ctx, tourn = None, plyr = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    plyr = get_ID_from_mention( plyr )
 
     if await isPrivateMessage( ctx ): return
 
@@ -488,6 +490,7 @@ commandCategories["day-of"].append("give-bye")
 async def adminGiveBye( ctx, tourn = None, plyr = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    plyr = get_ID_from_mention( plyr )
 
     if await isPrivateMessage( ctx ): return
 
@@ -503,7 +506,7 @@ async def adminGiveBye( ctx, tourn = None, plyr = None ):
         await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
-    response = tournObj.addBye( plyr, mention )
+    response = await tournObj.addBye( plyr, mention )
     await response.send( ctx )
 
 
@@ -682,6 +685,7 @@ commandCategories["day-of"].append("tricebot-update-player")
 async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None, plyr = None, newTriceName = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    plyr = get_ID_from_mention( plry )
 
     if await isPrivateMessage( ctx ): return
 
@@ -856,7 +860,7 @@ async def cutTopXCoroFunc(ctx, mention, standings, tournObj, tourn, x):
 
     newLine = "\n\t- "
     digest.setContent( f'{mention}, {tourn} was cut to the top {x} players, the following players were dropped:{newLine}{newLine.join(playersDropped)}' )
-    return
+    return digest
 
 commandSnippets["cut-to-top"] = "- cut-to-top: Cuts a tournament to the top X players."
 commandCategories["management"].append("cut-to-top")

@@ -72,8 +72,8 @@ async def adminAddDeck( ctx, tourn = None, plyr = None, ident = None ):
         await ctx.send( f'{mention}, not enough information provided: Please provide your deckname and decklist to add a deck.' )
         return
 
-    message = await tournObj.addDeckAdmin( plyr, ident, decklist, mention)
-    await ctx.send( content=message )
+    response = await tournObj.addDeckAdmin( plyr, ident, decklist, mention)
+    await response.send( ctx )
 
 
 commandSnippets["admin-remove-deck"] = "- admin-remove-deck : Removes a deck for a player in a tournament"
@@ -82,6 +82,7 @@ commandCategories["admin-registration"].append("admin-remove-deck")
 async def adminRemoveDeck( ctx, tourn = None, plyr = None, ident = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    plyr = get_ID_from_mention( plyr )
 
     if await isPrivateMessage( ctx ): return
 
@@ -152,6 +153,7 @@ commandCategories["admin-misc"].append("player-profile")
 async def adminPlayerProfile( ctx, tourn = None, plyr = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    plyr = get_ID_from_mention( plyr )
 
     if await isPrivateMessage( ctx ): return
 
@@ -166,16 +168,7 @@ async def adminPlayerProfile( ctx, tourn = None, plyr = None ):
         await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
 
-    member = gld.getMember( plyr )
-    if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
-        return
-
-    if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
-        return
-
-    response = tournObj.getPlayerProfileEmbed( plyr )
+    response = tournObj.getPlayerProfileEmbed( plyr, mention )
     await response.send( ctx )
 
 
@@ -185,6 +178,7 @@ commandCategories["admin-playing"].append("admin-match-result")
 async def adminMatchResult( ctx, tourn = None, plyr = None, mtch = None, result = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    plyr = get_ID_from_mention( plyr )
 
     if await isPrivateMessage( ctx ): return
 
@@ -219,6 +213,7 @@ commandCategories["admin-playing"].append("admin-confirm-result")
 async def adminConfirmResult( ctx, tourn = None, plyr = None, mtch = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    plyr = get_ID_from_mention( plyr )
 
     if await isPrivateMessage( ctx ): return
 
@@ -244,7 +239,7 @@ async def adminConfirmResult( ctx, tourn = None, plyr = None, mtch = None ):
         await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
 
-    response = await tournObj.playerConfirmResultAdmin( plyr, Match.matchNumber, mention )
+    response = await tournObj.playerConfirmResultAdmin( plyr, mtch, mention )
     await response.send( ctx )
 
 
@@ -306,6 +301,7 @@ commandCategories["admin-misc"].append( "admin-decklist" )
 async def adminPrintDecklist( ctx, tourn = None, plyr = None, ident = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    plyr = get_ID_from_mention( plyr )
 
     if await isPrivateMessage( ctx ): return
 
@@ -318,12 +314,6 @@ async def adminPrintDecklist( ctx, tourn = None, plyr = None, ident = None ):
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
         await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
-        return
-
-    # TODO: This has been tagged elsewhere, but determining the deck name should be done by the tournament class
-    deckName = tournObj.players[member.id].getDeckIdent( ident )
-    if deckName == "":
-        await ctx.send( f'{mention}, {plyr} does not have any decks registered for {tourn}.' )
         return
 
     response = await tournObj.getDeckEmbed( deckName )
