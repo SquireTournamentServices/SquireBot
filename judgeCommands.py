@@ -101,23 +101,10 @@ async def adminRemoveDeck( ctx, tourn = None, plyr = None, ident = None ):
         await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
         return
 
-    if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
-        return
-
-    if not tournObj.players[member.id].isActive():
-        await ctx.send( f'{mention}, a player by {plyr!r} was found, and they have dropped from {tourn}. Make sure they re-register first.' )
-        return
-
-    deckName = tournObj.players[member.id].getDeckIdent( ident )
-    if deckName == "":
-        await ctx.send( f'{mention}, it appears that {plyr} does not have a deck whose name nor hash is {ident!r} registered for {tourn}.' )
-        return
-
     if await hasCommandWaiting( ctx, ctx.author.id ):
         del( commandsToConfirm[ctx.author.id] )
 
-    commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.players.removeDeck( member.id, deckName, mention ) )
+    commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.removeDeckAdmin( member.id, deckName, mention ) )
     await ctx.send( f'{mention}, in order to remove the deck {deckName} from {member.mention}, confirmation is needed. Are you sure you want to remove the deck (!yes/!no)?' )
 
 
@@ -188,7 +175,8 @@ async def adminPlayerProfile( ctx, tourn = None, plyr = None ):
         await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
         return
 
-    await ctx.send( content=f'{mention}, the following is the profile for {plyr}:', embed=tournObj.getPlayerProfileEmbed(member.id) )
+    response = tournObj.getPlayerProfileEmbed( plyr )
+    await response.send( ctx )
 
 
 commandSnippets["admin-match-result"] = "- admin-match-result : Record the result of a match for a player"
@@ -211,19 +199,6 @@ async def adminMatchResult( ctx, tourn = None, plyr = None, mtch = None, result 
         await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
 
-    member = gld.getMember( plyr )
-    if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
-        return
-
-    if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
-        return
-
-    if not tournObj.players[member.id].isActive():
-        await ctx.send( f'{mention}, a player by {plyr!r} was found, and they have dropped from {tourn}. Make sure they re-register first.' )
-        return
-
     try:
         mtch = int( mtch )
     except ValueError:
@@ -234,15 +209,8 @@ async def adminMatchResult( ctx, tourn = None, plyr = None, mtch = None, result 
         await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
 
-    Match = tournObj.players[member.id].getMatch( mtch )
-    if Match.matchNumber == -1:
-        await ctx.send( f'{mention}, {member.mention} is not a player in Match #{mtch}. Double check the match number.' )
-        return
-
-    message = await tournObj.recordMatchResult( member.id, result, mtch, admin=True )
-    Match.saveXML( )
-    await ctx.send( message )
-    await tournObj.updateInfoMessage()
+    response = await tournObj.recordMatchResultAdmin( plyr, result, mtch, mention )
+    await response.send( ctx )
 
 
 commandSnippets["admin-confirm-result"] = "- admin-confirm-result : Confirms the result of a match on a player's behalf"
@@ -265,46 +233,19 @@ async def adminConfirmResult( ctx, tourn = None, plyr = None, mtch = None ):
         await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
 
-    member = gld.getMember( plyr )
-    if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
-        return
-
-    if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
-        return
-
-    if not tournObj.players[member.id].isActive():
-        await ctx.send( f'{mention}, a player by {plyr!r} was found, and they have dropped from {tourn}. Make sure they re-register first.' )
-        return
-
     try:
         mtch = int( mtch )
     except ValueError:
         await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
         return
 
+    # TODO: This should probably be handled by the tournament class
     if mtch > len(tournObj.matches):
         await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
 
-    Match = tournObj.players[member.id].getMatch( mtch )
-    if Match.matchNumber == -1:
-        await ctx.send( f'{mention}, {member.mention} is not a player in Match #{mtch}. Double check the match number.' )
-        return
-
-    if Match.isCertified( ):
-        await ctx.send( f'{mention}, match #{mtch} is already certified. There is no need confirm the result again.' )
-        return
-    if member.id in Match.confirmedPlayers:
-        await ctx.send( f'{mention}, match #{mtch} is not certified, but {plyr} has already certified the result. There is no need to do this twice.' )
-        return
-
-    message = await tournObj.playerConfirmResult( member.id, Match.matchNumber )
-    Match.saveXML( )
-    await ctx.send( f'{mention}, {message}.' )
-    await tournObj.updateInfoMessage()
-
+    response = await tournObj.playerConfirmResultAdmin( plyr, Match.matchNumber, mention )
+    await response.send( ctx )
 
 
 commandSnippets["give-time-extension"] = "- give-time-extension : Give a match more time in their match"
@@ -351,10 +292,11 @@ async def giveTimeExtension( ctx, tourn = None, mtch = None, t = None ):
         await ctx.send( f'{mention}, you can not give time extension of less than one minute in length.' )
         return
 
+    # TODO: Gross... this should be handled by the tournament class
     tournObj.matches[mtch - 1].giveTimeExtension( t*60 )
     tournObj.matches[mtch - 1].saveXML( )
     for plyr in tournObj.matches[mtch - 1].activePlayers:
-        await tournObjself.getPlayer(plyr).sendMessage( content=f'Your match (#{mtch}) in {tourn} has been given a time extension of {t} minute{"" if t == 1 else "s"}.' )
+        await plyr.sendMessage( content=f'Your match (#{mtch}) in {tourn} has been given a time extension of {t} minute{"" if t == 1 else "s"}.' )
     await ctx.send( f'{mention}, you have given match #{mtch} a time extension of {t} minute{"" if t == 1 else "s"}.' )
 
 
@@ -378,21 +320,14 @@ async def adminPrintDecklist( ctx, tourn = None, plyr = None, ident = None ):
         await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
 
-    member = gld.getMember( plyr )
-    if member is None:
-        await ctx.send( f'{mention}, there is not a member of this server by {plyr!r}.' )
-        return
-
-    if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a player by {plyr!r} was found, but they have not registered for {tourn}. Make sure they register first.' )
-        return
-
+    # TODO: This has been tagged elsewhere, but determining the deck name should be done by the tournament class
     deckName = tournObj.players[member.id].getDeckIdent( ident )
     if deckName == "":
         await ctx.send( f'{mention}, {plyr} does not have any decks registered for {tourn}.' )
         return
 
-    await ctx.send( embed = await tournObj.players[member.id].getDeckEmbed( deckName ) )
+    response = await tournObj.getDeckEmbed( deckName )
+    await response.send( ctx )
 
 
 commandSnippets["match-status"] = "- match-status : View the currect status of a match"
