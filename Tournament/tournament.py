@@ -1072,9 +1072,36 @@ class tournament:
         print( "No tournament type being saved." )
         return None
 
-    def saveOverview( self, filename: str = "" ):
-        print( "No overview being saved." )
-        return None
+    def _getInnerXMLString( self ) -> str:
+        digest += f'\t<uuid>{self.uuid}</uuid>'
+        digest += f'\t<name>{self.name}</name>\n'
+        digest += f'\t<guild id="{self.guild.id if type(self.guild) == discord.Guild else str()}">{self.hostGuildName}</guild>\n'
+        digest += f'\t<role id="{self.role.id if type(self.role) == discord.Role else str()}"/>\n'
+        digest += f'\t<pairingsChannel id="{self.pairingsChannel.id}"/>\n'
+        if not self.infoMessage is None:
+            digest += f'\t<infoMessage channel="{self.infoMessage.channel.id}" id="{self.infoMessage.id}"/>\n'
+        digest += f'\t<format>{self.format}</format>\n'
+        digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
+        digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
+        digest += f'\t<deckCount>{self.deckCount}</deckCount>\n'
+        digest += f'\t<matchLength>{self.matchLength}</matchLength>\n'
+        digest += f'\t<triceBotEnabled>{self.triceBotEnabled}</triceBotEnabled>\n'
+        digest += f'\t<spectatorsAllowed>{self.spectators_allowed}</spectatorsAllowed>\n'
+        digest += f'\t<spectatorsNeedPassword>{self.spectators_need_password}</spectatorsNeedPassword>\n'
+        digest += f'\t<spectatorsCanChat>{self.spectators_can_chat}</spectatorsCanChat>\n'
+        digest += f'\t<spectatorsCanSeeHands>{self.spectators_can_see_hands}</spectatorsCanSeeHands>\n'
+        digest += f'\t<onlyRegistered>{self.only_registered}</onlyRegistered>\n'
+        digest += f'\t<playerDeckVerification>{self.player_deck_verification}</playerDeckVerification>\n'
+        return digest
+
+    def saveOverview( self, filename: str = "" ) -> None:
+        if filename == "":
+            filename = f'{self.getSaveLocation()}/overview.xml'
+        with open( filename, 'w+' ) as xmlfile:
+            xmlfile.write( "<?xml version='1.0'?>\n" )
+            xmlfile.write( "<tournament>\n" )
+            xmlfile.write( toSafeXML(self._getInnerXMLString()) )
+            xmlfile.write( "</tournament>" )
 
     def savePlayers( self, dirName: str = "" ) -> None:
         if dirName == "":
@@ -1100,7 +1127,32 @@ class tournament:
         self.loadMatches( f'{dirName}/matches/' )
 
     def loadOverview( self, filename: str ) -> None:
-        return None
+        xmlTree = ET.parse( filename )
+        tournRoot = xmlTree.getroot()
+        self.uuid = fromXML(tournRoot.find( 'uuid' ).text)
+        self.name = fromXML(tournRoot.find( 'name' ).text)
+        self.guildID   = int( fromXML(tournRoot.find( 'guild' ).attrib["id"]) )
+        self.roleID    = int( fromXML(tournRoot.find( 'role' ).attrib["id"]) )
+        self.pairingsChannelID = int( fromXML(tournRoot.find( 'pairingsChannel' ).attrib["id"]) )
+        if not tournRoot.find( 'infoMessage' ) is None:
+            self.infoMessageChannelID = int( fromXML(tournRoot.find( 'infoMessage' ).attrib["channel"]) )
+            self.infoMessageID = int( fromXML(tournRoot.find( 'infoMessage' ).attrib["id"]) )
+
+        self.format    = fromXML(tournRoot.find( 'format' ).text)
+        self.deckCount = int( fromXML(tournRoot.find( 'deckCount' ).text) )
+
+        self.regOpen      = str_to_bool( fromXML(tournRoot.find( 'regOpen' ).text ))
+        self.tournStarted = str_to_bool( fromXML(tournRoot.find( 'status' ).attrib['started'] ))
+        self.tournEnded   = str_to_bool( fromXML(tournRoot.find( 'status' ).attrib['ended'] ))
+        self.tournCancel  = str_to_bool( fromXML(tournRoot.find( 'status' ).attrib['canceled'] ))
+
+        self.triceBotEnabled = str_to_bool( fromXML(tournRoot.find( "triceBotEnabled" ).text ) )
+        self.spectators_allowed = str_to_bool( fromXML(tournRoot.find( "spectatorsAllowed" ).text ) )
+        self.spectators_need_password = str_to_bool( fromXML(tournRoot.find( "spectatorsNeedPassword" ).text ) )
+        self.spectators_can_chat = str_to_bool( fromXML(tournRoot.find( "spectatorsCanChat" ).text ) )
+        self.spectators_can_see_hands = str_to_bool( fromXML(tournRoot.find( "spectatorsCanSeeHands" ).text ) )
+        self.only_registered = str_to_bool( fromXML(tournRoot.find( "onlyRegistered" ).text ) )
+        self.player_deck_verification = str_to_bool( fromXML(tournRoot.find( "playerDeckVerification" ).text ) )
 
     def loadPlayers( self, dirName: str ) -> None:
         playerFiles = [ f'{dirName}/{f}' for f in os.listdir(dirName) if os.path.isfile( f'{dirName}/{f}' ) ]
