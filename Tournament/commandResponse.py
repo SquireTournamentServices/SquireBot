@@ -7,6 +7,8 @@ from .exceptions import *
 from .utils import *
 
 
+# TODO: This should support sending multiple messages if content is too long
+# Similarly, multiple embeds should be allowed
 class commandResponse:
     """ This is a simple class intended to communicate between the tournament class and the bot. """
     # The class constructor

@@ -341,27 +341,23 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
         await ctx.send( f'{mention}, {tourn} requires {tournObj.playersPerMatch} be in a match, but you specified {len(plyrs)} players.' )
         return
 
-    for i in range(0, len(plyrs)):
-        for j in range(i + 1, len(plyrs)):
-            if plyrs[i] == plyrs[j]:
-                await ctx.send(f'{mention}, you cannot have duplicate players in a match.')
-                return
+    # Sets can't have duplicate entries, so it filters them out
+    if len(set(plyrs)) != len(plyrs):
+        await ctx.send(f'{mention}, you cannot have duplicate players in a match.')
+        return
 
-    endCmd = False
-    members = [ gld.getMember( plyr ) for plyr in plyrs ]
-    for i in range(len(members)):
-        member = members[i]
-        if member is None:
-            await ctx.send( f'{mention}, a user by {plyrs[i]!r} was not found on this server.' )
-            endCmd = True
-        if not member.id in tournObj.players:
-            await ctx.send( f'{mention}, a user by {member.mention!r} was found in the server, but they are not active in {tourn}. They need to register first.' )
-            endCmd = True
-        if not tournObj.players[member.id].isActive():
-            await ctx.send( f'{mention}, a player by {member.mention!r} has registered, but they have dropped. They need to re-register.' )
-            endCmd = True
+    message = ""
+    # This should be done in the tournament class, but will require a not method that wraps the addMatch function
+    for plyr in plyrs:
+        Plyr = tournObj.getPlayer( plyr )
+        if Plyr is None:
+            message += f'{mention}, a player by {plyr!r} is not registerd for {tourn}.\n'
+        if not Plyr.isActive():
+            message += f'{mention}, {Plyr.getMention()} is registered but is not an active player in {tourn}.\n'
 
-    if endCmd: return
+    if len(message) != 0:
+        await ctx.send( content=f'{message}So, the match could not be created.' )
+        return
 
     await tournObj.addMatch( [ member.id for member in members ] )
     tournObj.matches[-1].saveXML( )
@@ -479,20 +475,11 @@ async def adminDropPlayer( ctx, tourn = None, plyr = None ):
         await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
-    member = gld.getMember( plyr )
-    if member is None:
-        await ctx.send( f'{mention}, a player by {plyr!r} could not be found on the server.' )
-        return
-
-    if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a user by {plyr!r} was found on the server, but they have not registered for {tourn!r}. They need to register first.' )
-        return
-
     if await hasCommandWaiting( ctx, ctx.author.id ):
         del( commandsToConfirm[ctx.author.id] )
 
     commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.dropPlayer( member.id, mention ) )
-    await ctx.send( f'{adminMention}, in order to drop {member.mention}, confirmation is needed. {mention}, are you sure you want to drop this player (!yes/!no)?' )
+    await ctx.send( f'{adminMention}, in order to drop {plyr}, confirmation is needed. {mention}, are you sure you want to drop this player (!yes/!no)?' )
 
 
 commandSnippets["give-bye"] = "- give-bye : Grants a bye to a player"
@@ -516,23 +503,8 @@ async def adminGiveBye( ctx, tourn = None, plyr = None ):
         await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
-    member = gld.getMember( plyr )
-    if member is None:
-        await ctx.send( f'{mention}, a player by {plyr!r} could not be found on the server.' )
-        return
-
-    if not member.id in tournObj.players:
-        await ctx.send( f'{mention}, a user by {plyr!r} was found on the server, but they have not registered for {tourn!r}. They need to register first.' )
-        return
-
-    if tournObj.players[member.id].hasOpenMatch( ):
-        await ctx.send( f'{mention}, {plyr} currently has an open match in the tournament. That match needs to be certified before they can be given a bye.' )
-        return
-
-    tournObj.addBye( member.id )
-    tournObj.players[member.id].saveXML( )
-    await ctx.send( f'{adminMention}, {plyr} has been given a bye by {mention}.' )
-    await tournObj.players[member.id].sendMessage( content=f'You have been given a bye from the tournament admin for {tourn} on the server {ctx.guild.name}.' )
+    response = tournObj.addBye( plyr, mention )
+    await response.send( ctx )
 
 
 commandSnippets["remove-match"] = "- remove-match : Removes a match"
@@ -562,6 +534,7 @@ async def adminRemoveMatch( ctx, tourn = None, mtch = None ):
         await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
         return
 
+    # TODO: Tagging this to remember to moving this into the tournament method
     if mtch > len(tournObj.matches):
         await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
@@ -874,6 +847,7 @@ async def rawStandings( ctx, tourn = None ):
 
 async def cutTopXCoroFunc(ctx, mention, standings, tournObj, tourn, x):
     # Cut the players
+    digest = commandResponse( )
     playersDropped = []
     for i in range(x, len(standings[1])):
         # Drop this player
@@ -881,7 +855,8 @@ async def cutTopXCoroFunc(ctx, mention, standings, tournObj, tourn, x):
         playersDropped.append(standings[1][i].getMention())
 
     newLine = "\n\t- "
-    return f'{mention}, tournament {tourn} was cut to the top {x} players, the following players were dropped:{newLine}{f"{newLine}".join(playersDropped)}'
+    digest.setContent( f'{mention}, {tourn} was cut to the top {x} players, the following players were dropped:{newLine}{newLine.join(playersDropped)}' )
+    return
 
 commandSnippets["cut-to-top"] = "- cut-to-top: Cuts a tournament to the top X players."
 commandCategories["management"].append("cut-to-top")

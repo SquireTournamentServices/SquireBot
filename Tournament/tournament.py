@@ -626,14 +626,19 @@ class tournament:
     # ---------------- Player Management ----------------
 
     async def prunePlayers( self, ctx ) -> str:
-        await ctx.send( f'Pruning players starting... now!' )
+        digest = commandResponse( )
+        await ctx.send( f'Pruning players starting. This may take some time...' )
         for plyr in self.players:
+            # TODO: This needs to be generalized. Not all tournament require a deck. There will also be a check-in feature eventually.
+            # This should check if the player is ready to play.
             if len(plyr.decks) == 0:
                 await self.dropPlayer( plyr )
                 await ctx.send( f'{plyr.getMention()} has been pruned.' )
-                await plyr.sendMessage( content=f'You have been dropped from the tournament {self.name} on {ctx.guild.name} by tournament staff for not submitting a deck. If you believe this is an error, contact them immediately.' )
+                await plyr.sendMessage( content=f'You did not complete registration for {self.name}, so you have been dropped by tournament staff. If you believe this is an error, contact them immediately.' )
                 plyr.saveXML( )
-        return f'All players that did not submit a deck have been pruned.'
+        await self.updateInfoMessage( )
+        digest.setContent( f'All players that did not submit a deck have been pruned.' )
+        return digest
 
     async def addPlayer( self, discordUser ) -> str:
         if not self.regOpen:
@@ -724,13 +729,18 @@ class tournament:
         Plyr = self.getPlayer( plyr )
         if Plyr is None:
             digest.setContent( f'{mention}, {plyr!r} is not registered for {self.name}.' )
-            return digest
-        await Plyr.removeRole( self.role )
-        await Plyr.drop( )
-        Plyr.saveXML()
-        await self.removePlayerFromQueue( Plyr )
-        await Plyr.sendMessage( content=f'You have been dropped from {self.name} on {self.guild.name} by tournament staff. If you believe this is an error, check with them.' )
-        digest.setContent( f'{mention}, {Plyr.getMention()} has been dropped from the tournament.' )
+        elif not Plyr.isActive():
+            digest.setContent( f'{mention}, {Plyr.getMention()} is not an active player in {self.name}.' )
+        else:
+            # TODO: Dropping a player should remove the role
+            await Plyr.removeRole( self.role )
+            await Plyr.drop( )
+            Plyr.saveXML()
+            await self.removePlayerFromQueue( Plyr )
+            await self.updateInfoMessage( )
+            await Plyr.sendMessage( content=f'You have been dropped from {self.name} on {self.guild.name} by tournament staff. If you believe this is an error, check with them.' )
+            digest.setContent( f'{mention}, {Plyr.getMention()} has been dropped from {self.name}.' )
+
         return digest
 
     async def playerConfirmResult( self, plyr: str ) -> commandResponse:
@@ -812,17 +822,19 @@ class tournament:
         return digest
 
     async def pruneDecks( self, ctx ) -> str:
-        await ctx.send( f'Pruning decks starting... now!' )
+        digest = commandResponse( )
+        await ctx.send( f'Pruning decks starting. This may take some time...' )
         for plyr in self.players:
             deckIdents = [ ident for ident in plyr.decks ]
             while len( plyr.decks ) > self.deckCount:
                 del( plyr.decks[deckIdents[0]] )
-                await ctx.send( f'The deck {deckIdents[0]} belonging to {plyr.getMention()} has been pruned.' )
-                await plyr.sendMessage( content=f'Your deck {deckIdents[0]} has been pruned from the tournament {self.name} on {ctx.guild.name} by tournament staff.' )
+                await ctx.send( f'The deck {deckIdents[0]!r} belonging to {plyr.getMention()} has been pruned.' )
+                await plyr.sendMessage( content=f'You submitted too many decks for {self.name}, so your deck {deckIdents[0]!r} has been pruned by tournament staff.' )
                 del( deckIdents[0] )
             plyr.saveXML( )
         await self.updateInfoMessage()
-        return f'Decks have been pruned. All players have at most {self.deckCount} deck{"" if self.deckCount == 1 else "s"}.'
+        digest.setContent( f'Decks have been pruned. All players have at most {self.deckCount} deck{"" if self.deckCount == 1 else "s"}.' )
+        return digest
 
     # ---------------- Match Management ----------------
     async def _sendMatchWarning( self, msg: str ) -> None:
@@ -860,13 +872,12 @@ class tournament:
         mtch.saveXML( )
 
     async def addMatch( self, plyrs: List ) -> None:
-        for plyr in plyrs:
-            self.queueActivity.append( (plyr, getTime() ) )
         newMatch = match( plyrs )
         self.matches.append( newMatch )
         newMatch.matchNumber = len(self.matches)
         newMatch.matchLength = self.matchLength
         newMatch.saveLocation = f'{self.getSaveLocation()}/matches/match_{newMatch.matchNumber}.xml'
+        # TODO: Why is this being checked...
         if isinstance( self.guild, discord.Guild ):
             matchRole = await self.guild.create_role( name=f'Match {newMatch.matchNumber}' )
             overwrites = { self.guild.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -965,32 +976,52 @@ class tournament:
         match = self.matches[a_matchNum - 1]
         return trice_bot.kickPlayer(match.gameID, playerName)
 
-    async def addBye( self, plyr: str ) -> None:
-        await self.removePlayerFromQueue( plyr )
-        newMatch = match( [ plyr ] )
-        self.matches.append( newMatch )
-        newMatch.matchNumber = len(self.matches)
-        newMatch.saveLocation = f'{self.getSaveLocation()}/matches/match_{newMatch.matchNumber}.xml'
-        newMatch.recordBye( )
-        self.getPlayer(plyr).matches.append( newMatch )
-        newMatch.saveXML( )
+    async def addBye( self, plyr: str, mention: str ) -> None:
+        digest = commandResponse( )
+        Plyr = self.getPlayer( plyr )
+        if Plyr is None:
+            digest.setContent( f'{mention}, {plyr!r} is not registered for {self.name}.' )
+        elif not Plyr.isActive():
+            digest.setContent( f'{mention}, {Plyr.getMention()} is not an active player in {self.name}.' )
+        elif Plyr.hasOpenMatch( ):
+            digest.setContent( f'{mention}, {Plyr.getMention()} has a open match that needs certified before they can be given a bye.' )
+        else:
+            await self.removePlayerFromQueue( plyr )
+            newMatch = match( [ plyr ] )
+            newMatch.matchNumber = len(self.matches)
+            newMatch.saveLocation = f'{self.getSaveLocation()}/matches/match_{newMatch.matchNumber}.xml'
+            newMatch.recordBye( )
+            self.matches.append( newMatch )
+            Plyr.matches.append( newMatch )
+            newMatch.saveXML( )
+            Plyr.saveXML( )
+            await self.updateInfoMessage( )
+            await Plyr.send( f'You have been given a bye from tournament staff of {self.name}.' )
+            digest.setContent( f'{mention}, {Plyr.getMention()} has been given a bye.' )
+
+        return digest
 
     async def removeMatch( self, matchNum: int, author: str = "" ) -> str:
+        digest = commandResponse( )
         if self.matches[matchNum - 1] != matchNum:
             self.matches.sort( key=lambda x: x.matchNumber )
 
+        # TODO: This is one of several places where player references in matches would be very helpful
         for plyr in self.matches[matchNum - 1].activePlayers:
-            await self.getPlayer(plyr).removeMatch( matchNum )
-            await self.getPlayer(plyr).sendMessage( content=f'You were a particpant in match #{matchNum} in the tournament {self.name} on the server {self.hostGuildName}. This match has been removed by tournament staff. If you think this is an error, contact them.' )
+            Plyr = self.getPlayer( plyr )
+            await Plyr.removeMatch( matchNum )
+            await Plyr.sendMessage( content=f'You were a particpant in match #{matchNum} in the tournament {self.name}. This match has been removed by tournament staff. If you think this is an error, contact them.' )
         for plyr in self.matches[matchNum - 1].droppedPlayers:
-            await self.getPlayer(plyr).removeMatch( matchNum )
-            await self.getPlayer(plyr).sendMessage( content=f'You were a particpant in match #{matchNum} in the tournament {self.name} on the server {self.hostGuildName}. This match has been removed by tournament staff. If you think this is an error, contact them.' )
+            Plyr = self.getPlayer( plyr )
+            await Plyr.removeMatch( matchNum )
+            await Plyr.sendMessage( content=f'You were a particpant in match #{matchNum} in the tournament {self.name} on the server {self.hostGuildName}. This match has been removed by tournament staff. If you think this is an error, contact them.' )
 
         await self.matches[matchNum - 1].killMatch( )
         self.matches[matchNum - 1].saveXML( )
 
         await self.updateInfoMessage()
-        return f'{author}, match #{matchNum} has been removed.'
+        digest.setContent( f'{author}, match #{matchNum} has been removed.' )
+        return digest
 
 
     # ---------------- Matchmaking Queue Methods ----------------
