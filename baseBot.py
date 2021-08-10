@@ -368,10 +368,10 @@ async def confirmCommand( ctx ):
         del( commandsToConfirm[ctx.author.id] )
         return
 
-    message = await commandsToConfirm[ctx.author.id][2]
+    responce = await commandsToConfirm[ctx.author.id][2]
     del( commandsToConfirm[ctx.author.id] )
 
-    await ctx.send( content=message["text"], embed=message["embed"] )
+    await responce.send( ctx )
 
 
 @bot.command(name='no')
@@ -381,8 +381,7 @@ async def denyCommand( ctx ):
         await ctx.send( f'{ctx.author.mention}, there are no commands needing your confirmation.' )
         return
 
-    await ctx.send( f'{ctx.author.mention}, your request has been cancelled.' )
-
     del( commandsToConfirm[ctx.author.id] )
+    await ctx.send( f'{ctx.author.mention}, your request has been cancelled.' )
 
 

@@ -35,19 +35,12 @@ async def adminAddPlayer( ctx, tourn = None, plyr = None ):
     if member is None:
         if await hasCommandWaiting( ctx, ctx.author.id ):
             del( commandsToConfirm[ctx.author.id] )
-        commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.addDummyPlayer( plyr ) )
+        commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.addDummyPlayer( plyr, mention ) )
         await ctx.send( f'{mention}, there is not a player named {plyr!r}. You can add a dummy player in with that name. Is that what you want to do (!yes/!no)?' )
         return
 
-    plyr = tournObj.getPlayer( member.id )
-    if ( not plyr is None ) and plyr.isActive():
-        await ctx.send( f'{mention}, {plyr.getMention()} is already registered for {tourn}.' )
-        return
-
-    message = await tournObj.addPlayer( member, admin=True )
-    plyr.saveXML( )
-    await ctx.send( f'{mention}, {message}' )
-    await tournObj.updateInfoMessage()
+    message = await tournObj.addPlayerAdmin( member, mention )
+    await ctx.send( content=message )
 
 
 commandSnippets["admin-add-deck"] = "- admin-add-deck : Registers a deck for a player in a tournament"
@@ -56,13 +49,11 @@ commandCategories["admin-registration"].append("admin-add-deck")
 async def adminAddDeck( ctx, tourn = None, plyr = None, ident = None ):
     mention = ctx.author.mention
     gld = guildSettingsObjects[ctx.guild.id]
+    plyr = get_ID_from_mention( plyr )
 
     if await isPrivateMessage( ctx ): return
 
     if not await isAdmin( ctx ): return
-
-    if get_ID_from_mention( plyr ) != "":
-        plyr = get_ID_from_mention( plyr )
 
     if tourn is None or plyr is None or ident is None:
         await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament, a player, a deck identifier, and a decklist in order to add a deck for someone.' )
@@ -81,11 +72,8 @@ async def adminAddDeck( ctx, tourn = None, plyr = None, ident = None ):
         await ctx.send( f'{mention}, not enough information provided: Please provide your deckname and decklist to add a deck.' )
         return
 
-    print( ident, decklist )
-    message = await tournObj.addDeckAdmin( plyr, ident, decklist )
-
-    await ctx.send( f'{mention}, {message}' )
-    await tournObj.updateInfoMessage()
+    message = await tournObj.addDeckAdmin( plyr, ident, decklist, mention)
+    await ctx.send( content=message )
 
 
 commandSnippets["admin-remove-deck"] = "- admin-remove-deck : Removes a deck for a player in a tournament"

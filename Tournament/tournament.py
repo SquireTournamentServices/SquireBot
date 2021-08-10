@@ -13,6 +13,7 @@ import discord
 from dotenv import load_dotenv
 
 from .tricebot import TriceBot
+from commandResponce import commandResponce
 from .utils import *
 from .match import match
 from .player import player
@@ -456,6 +457,15 @@ class tournament:
             digest.add_field( name=f'Match #{mtch.matchNumber}', value=f'{status}\n{winner}\n{oppens}' )
         return digest
 
+    async def getDeckEmbed( self, plyr: int, deckName: str ):
+        digest = commandResponce( )
+        Plyr = self.getPlayer( plyr )
+        if Plyr is None:
+            digest.setContent( f'{plyr!r} is not registered for {self.name}.' )
+        else:
+            digest.setEmbed( Plyr.getDeckEmbed( deckName ) )
+        return digest
+
     def getMatchEmbed( self, mtch: int ):
         digest = discord.Embed( )
         Match = self.matches[mtch]
@@ -481,54 +491,72 @@ class tournament:
 
     # ---------------- Player Accessors ----------------
     def setPlayerTriceName( self, plyr: str, name: str ) -> str:
-        if not plyr in self.players:
+        Plyr = self.getPlayer( plyr )
+        if Plyr is None:
             return f'you are not registered for {self.name}. Use the !register {self.name} to register for this tournament.'
-        if not self.getPlayer(plyr).isActive():
+        if not Plyr.isActive():
             return f'you are registered by are not an active player in {self.name}. If you believe this is an error, contact tournament staff.'
         self.getPlayer(plyr).triceName = name
         self.getPlayer(plyr).saveXML( )
         return f'Your cockatrice name was set to {name} successfully.'
 
     async def addDeck( self, plyr: str, deckName: str, decklist: str ) -> str:
-        if not plyr in self.players:
-            return f'you are not registered for {self.name}. Use the !register {self.name} to register for this tournament.'
-        if not self.getPlayer(plyr).isActive():
-            return f'you are registered by are not an active player in {self.name}. If you believe this is an error, contact tournament staff.'
+        Plyr = self.getPlayer( plyr )
         if not self.regOpen:
             return f'registration for {self.name} is closed, so you cannot submit a deck. If you believe this is an error, contact tournament staff.'
-        self.getPlayer(plyr).addDeck( deckName, decklist )
-        self.getPlayer(plyr).saveXML( )
+        if Plyr is None:
+            return f'you are not registered for {self.name}. Use the !register {self.name} to register for this tournament.'
+        if not Plyr.isActive():
+            return f'you are registered by are not an active player in {self.name}. If you believe this is an error, contact tournament staff.'
+        Plyr.addDeck( deckName, decklist )
+        Plyr.saveXML( )
         deckHash = self.getPlayer(plyr).decks[deckName].deckHash
 
-        if isMoxFieldLink(decklist) or isTappedOutLink(decklist) or isMtgGoldfishLink(decklist):
-            message += f'\nPlease be aware that this website treats your commander as if it were in your mainboard.'
-        return message
-
-    async def addDeckAdmin( self, plyr: str, deckName: str, decklist: str ) -> str:
-        if not plyr in self.players:
-            return f'{plyr!r} is not registered for {self.name}. Use the !admin-register {self.name} {plyr!r} to register them.'
-        if not self.getPlayer(plyr).isActive():
-            return f'{plyr!r} is not an active in {self.name}.'
-        self.getPlayer(plyr).addDeck( deckName, decklist )
-        self.getPlayer(plyr).saveXML( )
-        deckHash = self.getPlayer(plyr).decks[deckName].deckHash
-
-        await self.getPlayer(plyr).sendMessage( content = f'A decklist has been submitted for {self.name} on your behalf. The name of the deck is "{deckName}" and the deck hash is "{deckHash}". Use the command "!decklist {deckName}" to see the list. Please contact tournament staff if there is an error.' )
-        return f'you have submitted a decklist for {self.getPlayer(plyr).getMention()}. The deck hash is {deckHash}.'
         message = f'your deck has been successfully registered in {self.name}. Your deck name is "{deckName}", and the deck hash is "{deckHash}". Make sure it matches your deck hash in Cockatrice. You can see your decklist by using !decklist "{deckName}" or !decklist {deckHash}.'
-
         if isMoxFieldLink(decklist) or isTappedOutLink(decklist) or isMtgGoldfishLink(decklist):
             message += f'\nPlease be aware that this website treats your commander as if it were in your mainboard.'
+        await self.updateInfoMessage( )
         return message
+
+    async def addDeckAdmin( self, plyr: str, deckName: str, decklist: str, mention: str ) -> str:
+        """ Adds a deck to player from the admin's interface. """
+        Plyr = self.getPlayer( plyr )
+        if Plyr is None:
+            return f'{mention}, {plyr!r} is not registered for {self.name}. Use the !admin-register {self.name} {plyr!r} to register them.'
+        if not Plyr.isActive():
+            return f'{mention}, {plyr} is not an active in {self.name}.'
+        Plyr.addDeck( deckName, decklist )
+        Plyr.saveXML( )
+        deckHash = Plyr.decks[deckName].deckHash
+
+        await Plyr.sendMessage( content = f'A decklist has been submitted for {self.name} on your behalf. The name of the deck is "{deckName}" and the deck hash is "{deckHash}". Use the command "!decklist {deckName}" to see the list. Please contact tournament staff if there is an error.' )
+        await self.updateInfoMessage( )
+        return f'{mention}, you have submitted a decklist for {plyr}. The deck hash is {deckHash}.'
 
     async def removeDeck( self, plyr: int, deckName: str = "", author: str = "" ) -> str:
-        if not plyr in self.players:
-            return f'<@{plyr}>, you are not registered for {self.name}. Use !register {self.name} to register for this tournament.'
-        if not self.getPlayer(plyr).isActive():
-            return f'<@{plyr}>, you are registered by are not an active player in {self.name}. If you believe this is an error, contact tournament staff.'
+        digest = commandResponce( )
+        Plyr = self.getPlayer( plyr )
+        if Plyr is None:
+            digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
+        elif not Plyr.isActive():
+            digest.setContent( f'<@{plyr}>, you are not an active player in {self.name}.' )
+        else:
+            digest.setContent( await Plyr.removeDeck( deckName ) )
+            await self.updateInfoMessage()
 
-        digest = await self.getPlayer(plyr).removeDeck( deckName, author )
-        await self.updateInfoMessage()
+        return digest
+
+    async def removeDeckAdmin( self, plyr: int, deckName: str, mention: str) -> str:
+        digest = commandResponce( )
+        Plyr = self.getPlayer( plyr )
+        if Plyr is None:
+            digest.setContent( f'{mention}, {plyr!r} is not registered for {self.name}.' )
+        elif not Plyr.isActive():
+            digest.setContent( f'{mention}, {Plyr.getMention()} is not an active player in {self.name}.' )
+        else:
+            digest.setContent( await Plyr.removeDeckAdmin( deckName, mention ) )
+            await self.updateInfoMessage()
+
         return digest
 
 
@@ -605,65 +633,125 @@ class tournament:
                 plyr.saveXML( )
         return f'All players that did not submit a deck have been pruned.'
 
-    async def addPlayer( self, discordUser, admin=False ) -> str:
-        if not admin and self.tournCancel:
-            return "this tournament has been cancelled. If you believe this to be incorrect, please contact the tournament staff."
-        if not admin and self.tournEnded:
-            return "this tournament has already ended. If you believe this to be incorrect, please contact the tournament staff."
-        if not ( admin or self.regOpen ):
-            return "registration for the tounament is closed. If you believe this to be incorrect, please contact the tournament staff."
+    async def addPlayer( self, discordUser ) -> str:
+        if not self.regOpen:
+            return "{discordUser.mention}, registration for the tounament is closed. If you believe this to be incorrect, please contact the tournament staff."
+        if self.tournCancel:
+            return "{discordUser.mention}, this tournament has been cancelled. If you believe this to be incorrect, please contact the tournament staff."
+        if self.tournEnded:
+            return "{discordUser.mention}, this tournament has already ended. If you believe this to be incorrect, please contact the tournament staff."
         RE = ""
-        discordID = discordUser.id
-        if discordID in self.players:
-            self.getPlayer(discordID).activate()
+        plyr = self.getPlayer( discordUser.id )
+        if ( not plyr is None ) and plyr.isActive( ):
+            return f'{plyr.getMention()}, you are already an active player in {self.name}.'
+        elif not plyr is None:
+            plyr.activate()
             RE = "re-"
         else:
-            newPlayer = player( discordUser.display_name, discordID )
-            self.players.append( newPlayer )
+            plyr = player( discordUser.display_name, discordUser.id )
+            self.players.append( plyr )
 
-        self.getPlayer(discordID).saveLocation = f'{self.getSaveLocation()}/players/{discordID}.xml'
-        self.getPlayer(discordID).addDiscordUser( discordUser )
-        await self.getPlayer(discordID).addRole( self.role )
-        self.getPlayer(discordID).saveXML( )
-        if admin:
-            await self.getPlayer(discordID).sendMessage( content=f'You have been registered for {self.name}!' )
-            return f'you have {RE}registered {self.getPlayer(discordID).getMention()} for {self.name}.'
-        return f'you have been {RE}registered in {self.name}!'
+        plyr.saveLocation = f'{self.getSaveLocation()}/players/{discordUser.id}.xml'
+        plyr.addDiscordUser( discordUser )
+        await plyr.addRole( self.role )
+        plyr.saveXML( )
+        await self.updateInfoMessage( )
+        return f'{discordUser.mention}, you have been {RE}registered in {self.name}!'
 
-    async def addDummyPlayer( self, playerName ) -> str:
+    async def addPlayerAdmin( self, discordUser, mention: str ) -> str:
+        if self.tournCancel:
+            return "{mention}, this tournament has been cancelled. If you believe this to be incorrect, please contact the tournament staff."
+        if self.tournEnded:
+            return "{mention}, this tournament has already ended. If you believe this to be incorrect, please contact the tournament staff."
+        RE = ""
+        plyr = self.getPlayer( discordUser.id )
+        if ( not plyr is None ) and plyr.isActive( ):
+            return f'{mention}, {plyr.getMention()} is already an active player in {self.name}.'
+        elif not plyr is None:
+            plyr.activate()
+            RE = "re-"
+        else:
+            plyr = player( discordUser.display_name, discordUser.id )
+            self.players.append( plyr )
+
+        plyr.saveLocation = f'{self.getSaveLocation()}/players/{discordUser.id}.xml'
+        plyr.addDiscordUser( discordUser )
+        await plyr.addRole( self.role )
+        plyr.saveXML( )
+        await plyr.sendMessage( content=f'You have been registered for {self.name} by tournament staff!' )
+        await self.updateInfoMessage( )
+        return f'{mention}, you have {RE}registered {plyr.getMention()} for {self.name}.'
+
+    async def addDummyPlayer( self, playerName, mention: str ) -> str:
+        """ Adds a player without a discord user object to the tournament. """
         digest: dict = { "text": "", "embed": None }
+        plyr = getPlayer( playerName )
         RE = ""
-        if playerName in self.players:
-            self.getPlayer(playerName).activate()
+        if ( not plyr is None ) and plyr.isActive( ):
+            return f'{mention}, {plyr.getMention()} is already an active player in {self.name}.'
+        elif not plyr is None:
+            plyr.activate()
             RE = "re-"
         else:
-            self.players.append( player( playerName, None ) )
+            plyr = player( playerName, None )
+            self.players.append( plyr )
 
-        self.getPlayer(playerName).saveLocation = f'{self.getSaveLocation()}/players/{playerName}.xml'
-        self.getPlayer(playerName).saveXML( )
-        digest["text"] = f'{self.getPlayer(playerName).getMention()} has been {RE}registered for {self.name}.'
+        plyr.saveLocation = f'{self.getSaveLocation()}/players/{playerName}.xml'
+        plyr.saveXML( )
+        digest["text"] = f'{mention}, {plyr.getMention()} has been {RE}registered for {self.name}.'
         await self.updateInfoMessage( )
         return digest
 
-    async def dropPlayer( self, plyr: str, author: str = "" ) -> None:
-        if not isinstance(plyr, player):
-            plyr = self.getPlayer( plyr )
-        try:
+    async def dropPlayer( self, plyr: str ) -> Dict:
+        Plyr = self.getPlayer( plyr )
+        digest = commandResponce( )
+        if Plyr is None:
+            digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
+        elif not Plyr.isActive():
+            digest.setContent( f'<@{plyr}>, your are not an active player in {self.name}.' )
+        else:
             await plyr.removeRole( self.role )
-        except AttributeError as e:
-            pass # This is thrown when the discord object is None
+            await plyr.drop( )
+            plyr.saveXML()
+            digest.setContent( await self.removePlayerFromQueue( plyr ) )
+
+        return digest
+
+    async def dropPlayerAdmin( self, plyr: str, mention ) -> Dict:
+        digest = commandResponce( )
+        Plyr = self.getPlayer( plyr )
+        if Plyr is None:
+            digest.setContent( f'{mention}, {plyr!r} is not registered for {self.name}.' )
+            return digest
+        await plyr.removeRole( self.role )
         await plyr.drop( )
         plyr.saveXML()
-        message = await self.removePlayerFromQueue( plyr )
+        await self.removePlayerFromQueue( Plyr )
+        await Plyr.sendMessage( content=f'You have been dropped from {self.name} on {self.guild.name} by tournament staff. If you believe this is an error, check with them.' )
+        digest.setContent( f'{mention}, {Plyr.getMention()} has been dropped from the tournament.' )
+        return digest
 
-        # The player was dropped by an admin, so two messages need to be sent
-        # TODO: The admin half of this command needs to be its own method
-        if author != "":
-            await self.getPlayer(plyr).sendMessage( content=f'You have been dropped from {self.name} on {self.guild.name} by tournament staff. If you believe this is an error, check with them.' )
-            return f'{author}, {self.getPlayer(plyr).getMention()} has been dropped from the tournament.'
-        return message
+    async def playerConfirmResult( self, plyr: str ) -> commandResponce:
+        digest = commandResponce( )
+        Plyr = self.getPlayer( plyr )
+        if Plyr is None:
+            digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
+        elif not Plyr.isActive( ):
+            digest.setContent( f'<@{plyr}>, you are not an active player in {self.name}.' )
+        elif not Plyr.hasOpenMatch( ):
+            digest.setContent( f'<@{plyr}>, the results of all your matches are certified.' )
+        else:
+            mtch = Plyr.findOpenMatch( )
+            message = await mtch.confirmResult( plyr )
+            if "announcement" in message:
+                await self.pairingsChannel.send( message["announcement"] )
+                digest.setContent( message["message"] )
+            await self.updateInfoMessage( )
+            mtch.saveXML( )
 
-    async def playerConfirmResult( self, plyr: str, matchNum: int, admin: bool = False ) -> None:
+        return digest
+
+    async def playerConfirmResultAdmin( self, plyr: str ) -> commandResponce:
         if not plyr in self.players:
             return f'you are not registered in {self.name}.'
         message = await self.matches[matchNum - 1].confirmResult( plyr )
@@ -674,11 +762,30 @@ class tournament:
             await self.players.sendMessage( content=f'The result for match #{matchNum} in {self.name} has been confirmed on your behalf by tournament staff.' )
         return message
 
-    async def recordMatchResult( self, plyr: str, result: str, matchNum: int, admin: bool = False ) -> str:
-        if admin:
-            message = await self.matches[matchNum - 1].recordResultAdmin( plyr, result )
+    async def recordMatchResult( self, plyr: str, result: str ) -> commandResponce:
+        digest = commandResponce( )
+        Plyr = self.getPlayer( plyr )
+        if Plyr is None:
+            digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
+        elif not Plyr.isActive( ):
+            digest.setContent( f'<@{plyr}>, you are not an active player in {self.name}.' )
+        elif not Plyr.hasOpenMatch( ):
+            digest.setContent( f'<@{plyr}>, the results of all your matches are certified.' )
         else:
-            message = await self.matches[matchNum - 1].recordResult( plyr, result )
+            mtch = Plyr.findOpenMatch( )
+            message = await mtch.recordResult( plyr, result )
+            digest.setContent( message["message"] )
+            mtch.saveXML( )
+            await self.updateInfoMessage( )
+            if "announcement" in message:
+                await self.pairingsChannel.send( content=message["announcement"] )
+
+        return digest
+
+    async def recordMatchResultAdmin( self, plyr: str, result: str, matchNum: int ) -> commandResponce:
+        digest = commandResponce( )
+        Plyr = self.getPlayer( plyr )
+        message = await self.matches[matchNum - 1].recordResultAdmin( plyr, result )
 
         if "announcement" in message:
             await self.pairingsChannel.send( content=message["announcement"] )

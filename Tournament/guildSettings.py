@@ -277,8 +277,12 @@ class guildSettings:
     def getPlayerTournaments( self, user: discord.Member ) -> Dict:
         digest: list = [ ]
         for tourn in self.tournaments:
-            if user.id in tourn.players and tourn.players[user.id].isActive():
-                digest.append( tourn )
+            plyr = tourn.getPlayer( user.id )
+            if plyr is None:
+                continue
+            if not plyr.isActive( ):
+                continue
+            digest.append( tourn )
         return digest
 
     def _indexTournament( self, name: str ) -> int:

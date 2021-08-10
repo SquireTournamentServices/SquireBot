@@ -128,7 +128,7 @@ class player:
     def countByes( self ) -> int:
         return sum( 1 for mtch in self.matches if mtch.isBye() )
 
-    async def getDeckEmbed( self, a_deckname: str ) -> discord.Embed:
+    def getDeckEmbed( self, a_deckname: str ) -> discord.Embed:
         digest = discord.Embed( title=f"**{self.name}'s Deck,** **{a_deckname}**: **{self.decks[a_deckname].deckHash}**" )
 
         fieldVals: dict = { "Sideboard": [] }
@@ -288,15 +288,20 @@ class player:
 
     # A coroutine that returns a string for use in the generallized verification commands
     # An author is needed only when admin run the command
-    async def removeDeck( self, a_ident: str, author: str = "" ) -> str:
+    async def removeDeck( self, a_ident: str ) -> str:
         if not a_ident in self.decks:
-            return f'there is not deck whose name is {a_ident}.'
+            return f'{self.getMention()}, you do not have a deck registered whose name is {a_ident!r}.'
         del( self.decks[a_ident] )
         self.saveXML( )
-        if author != "":
-            await self.discordUser.send( content=f'Your deck {a_ident} has been removed by tournament admin.' )
-            return f'{author}, the deck {a_ident} has been removed from {self.getMention()}.'
-        return f'{self.getMention()}, your decklist whose name or deck hash was "{a_ident}" has been deleted.'
+        return f'{self.getMention()}, your decklist whose name was {a_ident!r} has been deleted.'
+
+    async def removeDeckAdmin( self, a_ident: str, mention ) -> str:
+        if not a_ident in self.decks:
+            return f'{mention}, {self.getMention()} does not have a deck whose name is {a_ident!r}.'
+        del( self.decks[a_ident] )
+        self.saveXML( )
+        await self.sendMessage( content=f'Your deck whose name was {a_ident!r} has been removed by tournament staff.' )
+        return f'{mention}, the deck whose name was {a_ident!r} has been removed from {self.getMention()}.'
 
     def getDeckIdent( self, ident: str = "" ) -> str:
         if ident in self.decks:

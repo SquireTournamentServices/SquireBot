@@ -1,5 +1,6 @@
 from .tricebot import *
 
+from .commandResponce import *
 from .deck import *
 from .match import *
 from .player import *

@@ -13,6 +13,7 @@ from typing import List, Tuple
 
 from .utils import *
 from .tournament import tournament
+from .commandResponce import commandResponce
 from .match import match
 from .player import player
 from .deck import deck
@@ -69,25 +70,45 @@ class fluidRoundTournament(tournament):
 
     # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing
     # This is a prime canidate for adjustments when players how copies of match results.
-    def addPlayerToQueue( self, plyr: int ) -> None:
-        if plyr not in self.players:
-            return "<@{plyr}>, you are not registered for this tournament."
-        if not self.getPlayer(plyr).isActive( ):
-            return "{self.getPlayer(plyr).getMention()}, you are registered but are not an active player."
+    def addPlayerToQueue( self, plyr: int ) -> commandResponce:
+        Plyr = self.getPlayer( plyr )
+        digest = commandResponce( )
+        if Plyr is None:
+            digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
+        elif not Plyr.isActive( ):
+            digest.setContent( f'<@{plyr}>, you are not an active player in {self.name}.' )
+        elif not self.isActive( ):
+            digest.setContent( f'<@{plyr}>, {self.name} has not started yet.' )
+        elif Plyr.hasOpenMatch( ):
+            digest.setContent( f'<@{plyr}>, you are in a match that is not certified. Make sure that everyone in your last match has confirmed the result.' )
+        elif len(Plyr.decks) == 0:
+            digest.setContent( f'<@{plyr}>, you have not submitted a deck for {self.name}. You need to do so before playing.' )
+        else:
+            digest.setContent( self.queue.addPlayer( Plyr ) )
+            self.queueActivity.append( (plyr, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
+            self.saveOverview( )
+            await self.updateInfoMessage( )
+            if self.queue.readyToPair( self.pairingsThreshold ) and not self.pairingsThread.is_alive():
+                self.pairingsThread = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
+                self.pairingsThread.start( )
 
-        digest = self.queue.addPlayer( self.getPlayer(plyr) )
-        self.queueActivity.append( (plyr, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f') ) )
-        if self.queue.readyToPair( self.pairingsThreshold ) and not self.pairingsThread.is_alive():
-            self.pairingsThread = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
-            self.pairingsThread.start( )
         return digest
 
-    async def removePlayerFromQueue( self, plyr: int ) -> None:
-        if plyr not in self.players:
-            return "<@{plyr}>, you are not registered for this tournament."
-        self.saveOverview( )
-        await self.updateInfoMessage( )
-        return self.queue.removePlayer( self.getPlayer(plyr) )
+    async def removePlayerFromQueue( self, plyr: int ) -> commandResponce:
+        Plyr = self.getPlayer( plyr )
+        digest = commandResponce( )
+        if Plyr is None:
+            digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
+        elif not Plyr.isActive( ):
+            digest.setContent( f'<@{plyr}>, you are not an active player in {self.name}.' )
+        elif not self.isActive( ):
+            digest.setContent( f'<@{plyr}>, {self.name} has not started yet.' )
+        else:
+            digest.setContent( self.queue.removePlayer( Plyr ) )
+            self.saveOverview( )
+            await self.updateInfoMessage( )
+
+        return digest
 
     # Wrapper for self._pairQueue so that it can be ran on a seperate thread
     def _launch_pairings( self, waitTime ):

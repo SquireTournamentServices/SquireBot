@@ -88,8 +88,7 @@ async def registerPlayer( ctx, tourn = None ):
         return
 
     message = await tournObj.addPlayer( ctx.author )
-    await ctx.send( f'{mention}, {message}' )
-    await tournObj.updateInfoMessage()
+    await ctx.send( content=message )
 
 
 commandSnippets["cockatrice-name"] = "- cockatrice-name : Adds your Cockatrice username to your profile"
@@ -110,7 +109,7 @@ async def addTriceName( ctx, tourn = None, name = None ):
         tourn = None
 
     if tourn is None:
-        tourns = gld.currentTournaments()
+        tourns = gld.getPlayerTournaments( ctx.author )
         if len( tourns ) < 1:
             await ctx.send( f'{mention}, you are not registered for any tournaments on this server. Please register for a tournament first. Use the !tournaments command to see what tournaments there are.' )
             return
@@ -191,14 +190,10 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
         tournObj = tournaments[tournNames.index(tourn)]
 
     if ident is None:
-        await ctx.send( f'{mention}, error there was no deck name in the command.' )
+        await ctx.send( f'{mention}, you need to give a deck name.' )
         return
     if mentionRegex.search(ident):
         await ctx.send( f'{mention}, you cannot have mentions in a deck name.' )
-        return
-
-    if not tournObj.regOpen:
-        await ctx.send( f'{mention}, registration for {tourn} is closed. If you believe this is an error, contact tournament staff.' )
         return
 
     # Check for cod file
@@ -213,7 +208,7 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
     decklist = re.sub( "^[^A-Za-z0-9\w\/]+", "", decklist.replace('"', "") ).strip()
     decklist = re.sub( "[^A-Za-z0-9\w\/]+$", "", decklist )
 
-    # The cod file will supercede you submitted decks
+    # The cod file will supercede your submitted decks
     if len(ctx.message.attachments) == 1:
         # Size < 1MiB
         attachment = ctx.message.attachments[0]
@@ -243,7 +238,6 @@ async def submitDecklist( ctx, tourn = None, ident = None ):
     await ctx.send( f'{mention}, {message}' )
     if not private:
         await ctx.author.send( f'For future reference, you can submit your decklist via private message so that you do not have to publicly post your decklist.' )
-    await tournObj.updateInfoMessage()
 
 
 commandSnippets["remove-deck"] = "- remove-deck : Removes a deck you registered (can be DM-ed)"
@@ -278,6 +272,8 @@ async def removeDecklist( ctx, tourn = None, ident = None ):
             return
         tournObj = tournaments[tournNames.index(tourn)]
 
+    # TODO: Determining the deck name should be done in the removeDeck call
+    # The bot should only interface with the tournament class
     deckName = tournObj.getPlayer(ctx.author.id).getDeckIdent( ident )
     if deckName == "":
         if len( tournObj.getPlayer(ctx.author.id).decks ) < 1:
@@ -324,6 +320,7 @@ async def listDeck( ctx, tourn = None ):
         await ctx.send( f'{mention}, you have not registered any decks for {tourn}.' )
         return
 
+    # TODO: This should be a tournament method
     names  = [ deck for deck in tournObj.getPlayer(ctx.author.id).decks ]
     hashes = [ str(deck.deckHash) for deck in tournObj.getPlayer(ctx.author.id).decks.values() ]
     embed = discord.Embed( )
@@ -359,9 +356,6 @@ async def dropTournament( ctx, tourn = None ):
             await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server.' )
             return
 
-    if not await hasRegistered( tournObj, ctx.author.id, ctx ): return
-    if not await isActivePlayer( tournObj, ctx.author.id, ctx ): return
-
     if await hasCommandWaiting( ctx, ctx.author.id ):
         del( commandsToConfirm[ctx.author.id] )
 
@@ -395,23 +389,8 @@ async def queuePlayer( ctx, tourn = None ):
             await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server.' )
             return
 
-    if not await hasRegistered( tournObj, ctx.author.id, ctx ): return
-    if not await isActivePlayer( tournObj, ctx.author.id, ctx ): return
-
-    if not await isTournRunning( tournObj, ctx ): return
-
-    if tournObj.getPlayer(ctx.author.id).hasOpenMatch( ):
-        await ctx.send( f'{mention}, you are in a match that is not certified. Make sure that everone in your last match has certified the result with !confirm-result.' )
-        return
-
-    if len(tournObj.getPlayer(ctx.author.id).decks) == 0:
-        await ctx.send( f'{mention}, you have failed to submit a deck. As such, you cannot play in this tournament. If you believe this is an error, talk to tournament staff.' )
-        return
-
-    message = tournObj.addPlayerToQueue( ctx.author.id )
-    tournObj.saveOverview( )
-    await ctx.send( f'{message}.' )
-    await tournObj.updateInfoMessage()
+    responce = tournObj.addPlayerToQueue( ctx.author.id )
+    await responce.send( ctx )
 
 commandSnippets["leave-lfg"] ="- leave-lfg : Removes you from the matchmaking queue"
 commandCategories["playing"].append( "leave-lfg" )
@@ -439,12 +418,8 @@ async def dequeuePlayer( ctx, tourn = None ):
             await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server.' )
             return
 
-    if not await hasRegistered( tournObj, ctx.author.id, ctx ): return
-    if not await isActivePlayer( tournObj, ctx.author.id, ctx ): return
-    if not await isTournRunning( tournObj, ctx ): return
-
-    message = await tournObj.removePlayerFromQueue( ctx.author.id )
-    await ctx.send( message )
+    responce = await tournObj.removePlayerFromQueue( ctx.author.id )
+    await responce.send( ctx )
 
 
 commandSnippets["match-result"] = "- match-result : Records you as the winner of your match or that the match was a draw"
@@ -478,16 +453,8 @@ async def matchResult( ctx, tourn = None, result = None ):
             await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server".' )
             return
 
-    if not await hasRegistered( tournObj, ctx.author.id, ctx ): return
-    if not await isActivePlayer( tournObj, ctx.author.id, ctx ): return
-    if not await hasOpenMatch( tournObj, ctx.author.id, ctx ): return
-
-    playerMatch = tournObj.getPlayer(ctx.author.id).findOpenMatch()
-    message = await tournObj.recordMatchResult( ctx.author.id, result, playerMatch.matchNumber )
-    await ctx.send( message )
-    await tournObj.updateInfoMessage()
-
-    playerMatch.saveXML( )
+    responce = await tournObj.recordMatchResult( ctx.author.id, result )
+    await responce.send( ctx )
 
 
 commandSnippets["confirm-result"] = "- confirm-result : Records that you agree with the declared result"
@@ -516,22 +483,8 @@ async def confirmMatchResult( ctx, tourn = None ):
             await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server".' )
             return
 
-    if not await hasRegistered( tournObj, ctx.author.id, ctx ): return
-    if not await isActivePlayer( tournObj, ctx.author.id, ctx ): return
-    if not await hasOpenMatch( tournObj, ctx.author.id, ctx ): return
-
-    playerMatch = tournObj.getPlayer(ctx.author.id).findOpenMatch( )
-    if playerMatch.status == "open":
-        await ctx.send( f'{mention}, match #{playerMatch.matchNumber} is still open, no result has been recorded yet, so there is nothing to confirm.' )
-        return
-    if ctx.author.id in playerMatch.confirmedPlayers:
-        await ctx.send( f'{mention}, you have already confirmed the result of match #{playerMatch.matchNumber}. Your opponents are still confirming.' )
-        return
-
-    message = await tournObj.playerConfirmResult( ctx.author.id, playerMatch.matchNumber )
-    playerMatch.saveXML( )
-    await ctx.send( f'{mention}, {message}' )
-    await tournObj.updateInfoMessage()
+    responce = await tournObj.playerConfirmResult( ctx.author.idr)
+    await responce.send( ctx )
 
 
 commandSnippets["standings"] = "- standings : Prints out the current standings"
@@ -735,7 +688,7 @@ async def printDecklist( ctx, tourn = None, ident = None ):
     else:
         if await hasCommandWaiting( ctx, ctx.author.id ):
             del( commandsToConfirm[ctx.author.id] )
-        commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.getPlayer(ctx.author.id).getDeckEmbed( deckName ) )
+        commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.getDeckEmbed(ctx.author.id, deckName) )
         await ctx.send( f'{mention}, since you are about to post your decklist publicly, you need to confirm your request. Are you sure you want to post it? (!yes/!no)' )
 
 

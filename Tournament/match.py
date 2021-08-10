@@ -173,15 +173,19 @@ class match:
     # Confirms the result for one player.
     # If all players have confirmed the result, the status of the match is status to "certified"
     async def confirmResult( self, a_player: str ) -> str:
+        digest = { }
         if self.status != "uncertified":
-            return f'a result for match #{self.matchNumber} has not been recorded.'
-        if not a_player in self.confirmedPlayers:
+            digest["message"] = f'<@{a_player}>, a result of match #{self.matchNumber} has not been recorded.'
+        elif a_player in self.confirmedPlayers:
+            digest["message"] = f'<@{a_player}>, you have already confirmed the result of match #{self.matchNumber}.'
+        else:
             self.confirmedPlayers.append( a_player )
-        if await self.confirmMatch( ):
-            self.stopTimer = True
-            return f'{self.getMention()}, your match has been certified. You can join the matchmaking queue again.'
-        #else:
-        #    return f'you have confirmed the result of match #{self.matchNumber}.'
+            digest["message"] = f'<@{a_player}>, your confirmation has been logged.'
+            if await self.confirmMatch( ):
+                self.stopTimer = True
+                digest["announcement"] = f'{self.getMention()}, your match has been certified. You can join the matchmaking queue again.'
+
+        return digest
 
     # Combines previous methods into a single method.  A player and "win",
     # "loss", or "draw" is specified and the result for that player is
