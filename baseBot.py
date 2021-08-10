@@ -368,10 +368,10 @@ async def confirmCommand( ctx ):
         del( commandsToConfirm[ctx.author.id] )
         return
 
-    responce = await commandsToConfirm[ctx.author.id][2]
+    response = await commandsToConfirm[ctx.author.id][2]
     del( commandsToConfirm[ctx.author.id] )
 
-    await responce.send( ctx )
+    await response.send( ctx )
 
 
 @bot.command(name='no')

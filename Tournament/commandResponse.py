@@ -27,9 +27,11 @@ class commandResponse:
             return
         self.embed = embed
 
-    async def send( self, messageable: discord.Messageable ):
+    async def send( self, messageable: discord.abc.Messageable ):
         """ Takes a messageable object and send a message contain the stored info. """
-        if not isinstance( messageable, discord.Messageable ):
+        if not isinstance( messageable, discord.abc.Messageable ):
             return
+        print( self.content )
+        print( self.embed )
         await messageable.send( content=self.content, embed=self.embed )
 

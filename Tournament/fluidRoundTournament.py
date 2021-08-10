@@ -13,7 +13,7 @@ from typing import List, Tuple
 
 from .utils import *
 from .tournament import tournament
-from .commandResponce import commandResponce
+from .commandResponse import commandResponse
 from .match import match
 from .player import player
 from .deck import deck
@@ -70,9 +70,9 @@ class fluidRoundTournament(tournament):
 
     # There will be a far more sofisticated pairing system in the future. Right now, the dummy version will have to do for testing
     # This is a prime canidate for adjustments when players how copies of match results.
-    def addPlayerToQueue( self, plyr: int ) -> commandResponce:
+    async def addPlayerToQueue( self, plyr: int ) -> commandResponse:
         Plyr = self.getPlayer( plyr )
-        digest = commandResponce( )
+        digest = commandResponse( )
         if Plyr is None:
             digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
         elif not Plyr.isActive( ):
@@ -94,9 +94,9 @@ class fluidRoundTournament(tournament):
 
         return digest
 
-    async def removePlayerFromQueue( self, plyr: int ) -> commandResponce:
+    async def removePlayerFromQueue( self, plyr: int ) -> commandResponse:
         Plyr = self.getPlayer( plyr )
-        digest = commandResponce( )
+        digest = commandResponse( )
         if Plyr is None:
             digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
         elif not Plyr.isActive( ):

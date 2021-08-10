@@ -110,11 +110,11 @@ async def addTriceName( ctx, tourn = None, name = None ):
 
     if tourn is None:
         tourns = gld.getPlayerTournaments( ctx.author )
-        if len( tourns ) < 1:
-            await ctx.send( f'{mention}, you are not registered for any tournaments on this server. Please register for a tournament first. Use the !tournaments command to see what tournaments there are.' )
-            return
-        elif len( tourns ) > 1:
+        if len( tourns ) > 1:
             await ctx.send( f'{mention}, you are registered for multiple tournaments on this server. Please specify which tournament you are playing in.' )
+            return
+        elif len( tourns ) < 1:
+            await ctx.send( f'{mention}, you are not registered for any tournaments on this server.' )
             return
         else:
             tourn = tourns[0].name
@@ -345,7 +345,7 @@ async def dropTournament( ctx, tourn = None ):
             await ctx.send( f'{mention}, there are multiple tournaments planned in this server. Please specify which tournament you are playing in.' )
             return
         elif len( tourns ) < 1:
-            await ctx.send( f'{mention}, there are no planned tournaments for this server. If you think this is an error, contact tournament staff.' )
+            await ctx.send( f'{mention}, you are not registered for any tournaments in server.' )
             return
         else:
             tournObj = tourns[0]
@@ -389,8 +389,8 @@ async def queuePlayer( ctx, tourn = None ):
             await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server.' )
             return
 
-    responce = tournObj.addPlayerToQueue( ctx.author.id )
-    await responce.send( ctx )
+    response = await tournObj.addPlayerToQueue( ctx.author.id )
+    await response.send( ctx )
 
 commandSnippets["leave-lfg"] ="- leave-lfg : Removes you from the matchmaking queue"
 commandCategories["playing"].append( "leave-lfg" )
@@ -418,8 +418,8 @@ async def dequeuePlayer( ctx, tourn = None ):
             await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server.' )
             return
 
-    responce = await tournObj.removePlayerFromQueue( ctx.author.id )
-    await responce.send( ctx )
+    response = await tournObj.removePlayerFromQueue( ctx.author.id )
+    await response.send( ctx )
 
 
 commandSnippets["match-result"] = "- match-result : Records you as the winner of your match or that the match was a draw"
@@ -453,8 +453,8 @@ async def matchResult( ctx, tourn = None, result = None ):
             await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server".' )
             return
 
-    responce = await tournObj.recordMatchResult( ctx.author.id, result )
-    await responce.send( ctx )
+    response = await tournObj.recordMatchResult( ctx.author.id, result )
+    await response.send( ctx )
 
 
 commandSnippets["confirm-result"] = "- confirm-result : Records that you agree with the declared result"
@@ -483,8 +483,8 @@ async def confirmMatchResult( ctx, tourn = None ):
             await ctx.send( f'{mention}, you are not registered in a tournament called {tourn!r} in this server".' )
             return
 
-    responce = await tournObj.playerConfirmResult( ctx.author.idr)
-    await responce.send( ctx )
+    response = await tournObj.playerConfirmResult( ctx.author.idr)
+    await response.send( ctx )
 
 
 commandSnippets["standings"] = "- standings : Prints out the current standings"

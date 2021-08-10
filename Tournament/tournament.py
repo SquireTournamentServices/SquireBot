@@ -13,7 +13,7 @@ import discord
 from dotenv import load_dotenv
 
 from .tricebot import TriceBot
-from commandResponce import commandResponce
+from .commandResponse import commandResponse
 from .utils import *
 from .match import match
 from .player import player
@@ -458,7 +458,7 @@ class tournament:
         return digest
 
     async def getDeckEmbed( self, plyr: int, deckName: str ):
-        digest = commandResponce( )
+        digest = commandResponse( )
         Plyr = self.getPlayer( plyr )
         if Plyr is None:
             digest.setContent( f'{plyr!r} is not registered for {self.name}.' )
@@ -534,7 +534,7 @@ class tournament:
         return f'{mention}, you have submitted a decklist for {plyr}. The deck hash is {deckHash}.'
 
     async def removeDeck( self, plyr: int, deckName: str = "", author: str = "" ) -> str:
-        digest = commandResponce( )
+        digest = commandResponse( )
         Plyr = self.getPlayer( plyr )
         if Plyr is None:
             digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
@@ -547,7 +547,7 @@ class tournament:
         return digest
 
     async def removeDeckAdmin( self, plyr: int, deckName: str, mention: str) -> str:
-        digest = commandResponce( )
+        digest = commandResponse( )
         Plyr = self.getPlayer( plyr )
         if Plyr is None:
             digest.setContent( f'{mention}, {plyr!r} is not registered for {self.name}.' )
@@ -704,35 +704,36 @@ class tournament:
 
     async def dropPlayer( self, plyr: str ) -> Dict:
         Plyr = self.getPlayer( plyr )
-        digest = commandResponce( )
+        digest = commandResponse( )
         if Plyr is None:
             digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
         elif not Plyr.isActive():
             digest.setContent( f'<@{plyr}>, your are not an active player in {self.name}.' )
         else:
-            await plyr.removeRole( self.role )
-            await plyr.drop( )
-            plyr.saveXML()
-            digest.setContent( await self.removePlayerFromQueue( plyr ) )
+            await Plyr.removeRole( self.role )
+            await Plyr.drop( )
+            Plyr.saveXML()
+            digest.setContent( f'<@{plyr}, you have been dropped from {self.name}.' )
+            await self.removePlayerFromQueue( plyr )
 
         return digest
 
     async def dropPlayerAdmin( self, plyr: str, mention ) -> Dict:
-        digest = commandResponce( )
+        digest = commandResponse( )
         Plyr = self.getPlayer( plyr )
         if Plyr is None:
             digest.setContent( f'{mention}, {plyr!r} is not registered for {self.name}.' )
             return digest
-        await plyr.removeRole( self.role )
-        await plyr.drop( )
-        plyr.saveXML()
+        await Plyr.removeRole( self.role )
+        await Plyr.drop( )
+        Plyr.saveXML()
         await self.removePlayerFromQueue( Plyr )
         await Plyr.sendMessage( content=f'You have been dropped from {self.name} on {self.guild.name} by tournament staff. If you believe this is an error, check with them.' )
         digest.setContent( f'{mention}, {Plyr.getMention()} has been dropped from the tournament.' )
         return digest
 
-    async def playerConfirmResult( self, plyr: str ) -> commandResponce:
-        digest = commandResponce( )
+    async def playerConfirmResult( self, plyr: str ) -> commandResponse:
+        digest = commandResponse( )
         Plyr = self.getPlayer( plyr )
         if Plyr is None:
             digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
@@ -751,7 +752,7 @@ class tournament:
 
         return digest
 
-    async def playerConfirmResultAdmin( self, plyr: str ) -> commandResponce:
+    async def playerConfirmResultAdmin( self, plyr: str ) -> commandResponse:
         if not plyr in self.players:
             return f'you are not registered in {self.name}.'
         message = await self.matches[matchNum - 1].confirmResult( plyr )
@@ -762,8 +763,8 @@ class tournament:
             await self.players.sendMessage( content=f'The result for match #{matchNum} in {self.name} has been confirmed on your behalf by tournament staff.' )
         return message
 
-    async def recordMatchResult( self, plyr: str, result: str ) -> commandResponce:
-        digest = commandResponce( )
+    async def recordMatchResult( self, plyr: str, result: str ) -> commandResponse:
+        digest = commandResponse( )
         Plyr = self.getPlayer( plyr )
         if Plyr is None:
             digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
@@ -782,8 +783,8 @@ class tournament:
 
         return digest
 
-    async def recordMatchResultAdmin( self, plyr: str, result: str, matchNum: int ) -> commandResponce:
-        digest = commandResponce( )
+    async def recordMatchResultAdmin( self, plyr: str, result: str, matchNum: int ) -> commandResponse:
+        digest = commandResponse( )
         Plyr = self.getPlayer( plyr )
         message = await self.matches[matchNum - 1].recordResultAdmin( plyr, result )
 
