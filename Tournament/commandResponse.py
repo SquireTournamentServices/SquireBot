@@ -17,6 +17,10 @@ class commandResponse:
         self.content = content
         self.embed   = embed
 
+    def isEmpty( self ) -> bool:
+        """ Determines if any data had been added to the response. """
+        return (self.content is None or self.content == "") and (self.embed is None)
+
     def setContent( self, content: str ) -> None:
         """ Sents the content member sting. """
         if not isinstance( content, str ):

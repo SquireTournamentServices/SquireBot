@@ -366,6 +366,37 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
     await ctx.send( f'{mention}, the players you specified for the match are now paired. Their match number is #{tournObj.matches[-1].matchNumber}.' )
 
 
+commandSnippets["pair-round"] = "- pair-round : Creates the pairings for the next round."
+commandCategories["day-of"].append("pair-round")
+@bot.command(name='pair-round')
+async def pairRound( ctx, tourn = None ):
+    mention = ctx.author.mention
+
+    if await isPrivateMessage( ctx ): return
+    gld = guildSettingsObjects[ctx.guild.id]
+
+    if not await isTournamentAdmin( ctx ): return
+    adminMention = gld.getTournAdminRole().mention
+
+    if tourn is None:
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament to pair it for its next round.' )
+        return
+
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
+        return
+
+    response = tournObj.createPairings( mention )
+    await response.send( ctx )
+
+    if await hasCommandWaiting( ctx, ctx.author.id ):
+        del( commandsToConfirm[ctx.author.id] )
+
+    commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.confirmPairings( mention ) )
+    await ctx.send( f'{adminMention}, in order to pair the next round, confirmation is needed. {mention}, are you sure you want to start the next round (!yes/!no)?' )
+
+
 # This method will soon be depricated and will be removed when the Swiss tournament type is added
 commandSnippets["create-pairings-list"] = "- create-pairings-list : Creates a list of possible match pairings (unweighted)"
 commandCategories["day-of"].append("create-pairings-list")

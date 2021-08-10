@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 
 from .tournament import *
 from .fluidRoundTournament import *
+from .swissTournament import *
 
 
 tournamentTypes = [ "fluidRoundTournament" ]
@@ -13,6 +14,8 @@ def getTournamentType( tournType: str, tournName: str = "", guildName: str = "",
     digest = None
     if tournType == "fluidroundtournament":
         digest = fluidRoundTournament( tournName, guildName, tournProps )
+    elif tournType == "swisstournament":
+        digest = swissTournament( tournName, guildName, tournProps )
     else:
         raise NotImplementedError( f'The type of "{tournType}" is not an implemented tournament type.' )
 

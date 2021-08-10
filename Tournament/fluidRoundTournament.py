@@ -94,15 +94,16 @@ class fluidRoundTournament(tournament):
 
         return digest
 
+    # TODO: This method need to be renamed
     async def removePlayerFromQueue( self, plyr: int ) -> commandResponse:
         Plyr = self.getPlayer( plyr )
         digest = commandResponse( )
         if Plyr is None:
             digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
         elif not Plyr.isActive( ):
-            digest.setContent( f'<@{plyr}>, you are not an active player in {self.name}.' )
+            digest.setContent( f'{Plyr.getMention()}, you are not an active player in {self.name}.' )
         elif not self.isActive( ):
-            digest.setContent( f'<@{plyr}>, {self.name} has not started yet.' )
+            digest.setContent( f'{Plyr.getMention()}, {self.name} has not started yet.' )
         else:
             digest.setContent( self.queue.removePlayer( Plyr ) )
             self.saveOverview( )

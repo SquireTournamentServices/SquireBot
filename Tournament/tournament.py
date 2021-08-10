@@ -724,13 +724,13 @@ class tournament:
         await self.updateInfoMessage( )
         return digest
 
-    async def dropPlayer( self, plyr: str ) -> Dict:
+    async def dropPlayer( self, plyr: str ) -> commandResponse:
         Plyr = self.getPlayer( plyr )
         digest = commandResponse( )
         if Plyr is None:
             digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
         elif not Plyr.isActive():
-            digest.setContent( f'<@{plyr}>, your are not an active player in {self.name}.' )
+            digest.setContent( f'{Plyr.getMention()}, you are not an active player in {self.name}.' )
         else:
             await Plyr.removeRole( self.role )
             await Plyr.drop( )
