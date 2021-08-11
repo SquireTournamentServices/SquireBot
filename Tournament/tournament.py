@@ -740,7 +740,7 @@ class tournament:
 
         return digest
 
-    async def dropPlayerAdmin( self, plyr: str, mention ) -> Dict:
+    async def dropPlayerAdmin( self, plyr: str, mention: str ) -> Dict:
         digest = commandResponse( )
         Plyr = self.getPlayer( plyr )
         if Plyr is None:

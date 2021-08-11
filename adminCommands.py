@@ -511,7 +511,7 @@ async def adminDropPlayer( ctx, tourn = None, plyr = None ):
     if await hasCommandWaiting( ctx, ctx.author.id ):
         del( commandsToConfirm[ctx.author.id] )
 
-    commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.dropPlayer( member.id, mention ) )
+    commandsToConfirm[ctx.author.id] = ( getTime(), 30, tournObj.dropPlayerAdmin( plyr, mention ) )
     await ctx.send( f'{adminMention}, in order to drop {plyr}, confirmation is needed. {mention}, are you sure you want to drop this player (!yes/!no)?' )
 
 
