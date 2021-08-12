@@ -956,14 +956,14 @@ class tournament:
                     if self.player_deck_verification:
                         newMatch.playerDeckVerification = True
 
-                    message += f'A cockatrice game was automatically made for you it is called {game_name }'
-                    message += f' and has a password of `"{game_password}"`\n'
+                    message += f'A cockatrice game was automatically made for you it is called {game_name}'
+                    message += f' and has a password of "`{game_password}`"\n'
 
                     #TODO: move replay download link? (fixme)
                     message += f'Replay download link {replay_download_link} (available on game end).\n'
                 else:
-                    #Game was not made
-                    message += "A cockatrice game was not automatically made for you.\n"
+                    #Game was not made due to an error with tricebot
+                    message += f"A cockatrice game was not automatically made for you. The status of tricebot can be found here: {EXTERN_URL}/status.\n"
 
         for plyr in plyrs:
             # TODO: This should be unready player
