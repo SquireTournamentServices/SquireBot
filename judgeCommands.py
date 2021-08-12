@@ -353,3 +353,41 @@ async def matchStatus( ctx, tourn = None, mtch = None ):
     await ctx.send( f'{mention}, here is the status of match #{mtch}:', embed=tournObj.getMatchEmbed( mtch-1 ) )
 
 
+commandSnippets["deck-check"] = "- deck-check : See all the decks of the players in a match."
+commandCategories["admin-misc"].append("deck-check")
+@bot.command(name='deck-check')
+async def matchStatus( ctx, tourn = None, mtch = None ):
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
+    if await isPrivateMessage( ctx ): return
+
+    if not await isAdmin( ctx ): return
+
+    if tourn == "" or mtch == "":
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament, a match number, and an amount of time.' )
+        return
+
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
+        return
+
+    try:
+        mtch = int( mtch )
+    except:
+        await ctx.send( f'{mention}, you did not provide a match number correctly. Please specify a match number using digits.' )
+        return
+
+    if mtch > len(tournObj.matches):
+        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
+        return
+
+    for plyr in tournObj.matches[mtch-1].activePlayers:
+        if len(plyr.decks) == 0:
+            await ctx.send( f'{mention}, {plyr.getMention()} does not have a deck registered.' )
+        for dck in plyr.decks:
+            await ctx.send( f'{mention}, here is the decklist for {dck} of {plyr.getMention()}:', embed=plyr.getDeckEmbed( dck ) )
+
+
+
