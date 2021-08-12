@@ -14,8 +14,8 @@ from typing import List, Tuple
 from .utils import *
 from .tournament import tournament
 from .commandResponse import commandResponse
-from .match import match
 from .player import player
+from .match import match
 from .deck import deck
 from .swissSystem import *
 
@@ -27,7 +27,7 @@ from .swissSystem import *
 class swissTournament(tournament):
     def __init__( self, name: str, hostGuildName: str, props: dict = { } ):
         super().__init__( name, hostGuildName, props )
-        self.pairingSystem     = swissSsystem( )
+        self.pairingSystem     = swissSystem( )
 
         if len(props) != 0:
             self.setProperties(props)
@@ -45,17 +45,16 @@ class swissTournament(tournament):
     # ---------------- Player Management ----------------
 
     # TODO: Ditto, rename method
-    async def removePlayerFromQueue( self, plyr: str ) -> commandResponse:
-        Plyr = self.getPlayer( plyr )
+    async def removePlayerFromQueue( self, plyr: player ) -> commandResponse:
         digest = commandResponse( )
-        if Plyr is None:
+        if plyr is None:
             digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
-        elif not Plyr.isActive( ):
-            digest.setContent( f'{Plyr.getMention()}, you are not an active player in {self.name}.' )
+        elif not plyr.isActive( ):
+            digest.setContent( f'{plyr.getMention()}, you are not an active player in {self.name}.' )
         elif not self.isActive( ):
-            digest.setContent( f'{Plyr.getMention()}, {self.name} has not started yet.' )
+            digest.setContent( f'{plyr.getMention()}, {self.name} has not started yet.' )
         else:
-            digest.setContent( self.pairingSystem.removePlayer( Plyr ) )
+            digest.setContent( self.pairingSystem.removePlayer( plyr ) )
             self.saveOverview( )
             await self.updateInfoMessage( )
 
@@ -72,9 +71,15 @@ class swissTournament(tournament):
             newLine = "\n\t- "
             digest.setContent( f'{mention}, below are the matches that are not certified. They their result needs to be confirmed before pairing the next round.{newLine}{newLine.join([mtch.matchNumber for mtch in uncertMatches ] )}' )
         else:
-            for plyr in self.players:
+            self.pairingSystem.queue = [ ]
+            standings = [ ]
+            if len(self.matches) == 0:
+                standings = [ p for p in self.players if p.isActive() ]
+            else:
+                standings = [ p for p in self.getStandings()[1] ]
+            for plyr in standings:
                 self.pairingSystem.addPlayer( plyr )
-            self.pairingSystem.createPairings( )
+            self.pairingSystem.createPairings( standings, self.playersPerMatch  )
             digest.setContent( f'{mention}, below are pairings and byes that will be created.' )
             digest.setEmbed( self.pairingSystem.getPairingsEmbed() )
 
@@ -83,8 +88,12 @@ class swissTournament(tournament):
     async def confirmPairings( self, mention: str ) -> commandResponse:
         """ Confirms that the stored round pairings are good. """
         digest = commandResponse( )
+        for plyr in self.pairingSystem.savedByes:
+            await self.addBye( plyr.uuid, mention )
+        for pairing in self.pairingSystem.savedPairings:
+            await self.addMatch( pairing )
         digest.setContent( f'{mention}, the round has been paired.' )
-        return
+        return digest
 
     # ---------------- XML Saving/Loading ----------------
 

@@ -15,8 +15,8 @@ from dotenv import load_dotenv
 from .tricebot import TriceBot
 from .commandResponse import commandResponse
 from .utils import *
-from .match import match
 from .player import player
+from .match import match
 from .deck import *
 
 
@@ -353,6 +353,8 @@ class tournament:
             digest += f'\n\n{self.name} does not have the following propert{"y" if len(filteredProps["undefined"]) == 1 else "ies"}:\n\t-'
             digest += "\n\t-".join( [ f'{p}: {props[p]}' for p in filteredProps["undefined"] ] )
 
+        self.saveOverview( )
+
         return digest
 
     def updatePairingsThreshold( self, count: int ) -> str:
@@ -385,8 +387,8 @@ class tournament:
             # Opponent Match Win Percentage
             OWP = 0.0
             if len(plyr.opponents) > 0:
-                wins  = sum( [ self.getPlayer(opp).getNumberOfWins( ) for opp in plyr.opponents ] )
-                games = sum( [len(self.getPlayer(opp).getCertMatches( withBye=False )) for opp in plyr.opponents] )
+                wins  = sum( [ opp.getNumberOfWins( ) for opp in plyr.opponents ] )
+                games = sum( [len(opp.getCertMatches( withBye=False )) for opp in plyr.opponents] )
                 if games != 0:
                     OWP = wins/games
                 #OWP = sum( [ self.getPlayer(opp).getMatchWinPercentage( withBye=False ) for opp in plyr.opponents ] )/len(plyr.opponents)
@@ -454,12 +456,11 @@ class tournament:
             for mtch in Plyr.matches:
                 players = mtch.activePlayers + mtch.droppedPlayers
                 status = f'Status: {mtch.status}'
-                Plyr = self.getPlayer( mtch.winner )
-                if Plyr is None:
-                    winner = f'Winner: {mtch.winner}'
-                else:
+                if isinstance(mtch.winner, player):
                     winner = f'Winner: {Plyr.getMention()}'
-                Plyrs = [ self.getPlayer( player ).getMention() for player in players if player != plyr ]
+                else:
+                    winner = f'Winner: {mtch.winner}'
+                Plyrs = [ player.getMention() for player in players if player != Plyr ]
                 oppens = "Opponents: " + ", ".join( Plyrs )
                 embed.add_field( name=f'Match #{mtch.matchNumber}', value=f'{status}\n{winner}\n{oppens}' )
             digest.setEmbed( embed )
@@ -484,20 +485,19 @@ class tournament:
         digest = discord.Embed( )
         Match = self.matches[mtch]
         digest.add_field( name="Status", value=Match.status )
-        digest.add_field( name="Active Players", value="\u200b" + ", ".join( [ self.getPlayer(plyr).getMention() for plyr in Match.activePlayers ] ) )
+        digest.add_field( name="Active Players", value="\u200b" + ", ".join( [ plyr.getMention() for plyr in Match.activePlayers ] ) )
         if len(Match.droppedPlayers) != 0:
-            digest.add_field( name="Dropped Players", value=", ".join( [ self.getPlayer(plyr).getMention() for plyr in Match.droppedPlayers ] ) )
+            digest.add_field( name="Dropped Players", value=", ".join( [ plyr.getMention() for plyr in Match.droppedPlayers ] ) )
         if not ( Match.isCertified() or Match.stopTimer ):
             t = round(Match.getTimeLeft( ) / 60)
             digest.add_field( name="Time Remaining", value=f'{t if t > 0 else 0} minutes' )
         if Match.winner != "":
-            Plyr = self.getPlayer( Match.winner )
-            if not Plyr is None:
-                digest.add_field( name="Winner", value=Plyr.getMention() )
+            if isinstance(Match.winner, player):
+                digest.add_field( name="Winner", value=Match.winner.getMention() )
             else:
                 digest.add_field( name="Winner", value=Match.winner )
         if len(Match.confirmedPlayers) != 0:
-            digest.add_field( name="Confirmed Players", value=", ".join( [ self.getPlayer(plyr).getMention() for plyr in Match.confirmedPlayers ] ) )
+            digest.add_field( name="Confirmed Players", value=", ".join( [ plyr.getMention() for plyr in Match.confirmedPlayers ] ) )
 
         if Match.triceMatch:
             digest.add_field( name="Tricebot Match", value = f'Replay at: {Match.replayURL}\nPlayer deck verification is {"enabled" if Match.playerDeckVerification else "disabled "}' )
@@ -765,12 +765,12 @@ class tournament:
         if Plyr is None:
             digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
         elif not Plyr.isActive( ):
-            digest.setContent( f'<@{plyr}>, you are not an active player in {self.name}.' )
+            digest.setContent( f'{Plyr.getMention()}, you are not an active player in {self.name}.' )
         elif not Plyr.hasOpenMatch( ):
-            digest.setContent( f'<@{plyr}>, the results of all your matches are certified.' )
+            digest.setContent( f'{Plyr.getMention()}, the results of all your matches are certified.' )
         else:
             mtch = Plyr.findOpenMatch( )
-            message = await mtch.confirmResult( plyr )
+            message = await mtch.confirmResult( Plyr )
             if "announcement" in message:
                 await self.pairingsChannel.send( message["announcement"] )
                 digest.setContent( message["message"] )
@@ -790,7 +790,7 @@ class tournament:
             digest.setContent( f'{mention}, all the matches that {Plyr.getMention()} is a part of are certified.' )
         else:
             # TODO: This should use the getMatch method
-            message = await self.matches[matchNum - 1].confirmResultAdmin( plyr, mention )
+            message = await self.matches[matchNum - 1].confirmResultAdmin( Plyr, mention )
             digest.setContent( message["message"] )
             self.matches[matchNum - 1].saveXML( )
             await self.updateInfoMessage( )
@@ -810,7 +810,7 @@ class tournament:
             digest.setContent( f'<@{plyr}>, the results of all your matches are certified.' )
         else:
             mtch = Plyr.findOpenMatch( )
-            message = await mtch.recordResult( plyr, result )
+            message = await mtch.recordResult( Plyr, result )
             digest.setContent( message["message"] )
             mtch.saveXML( )
             await self.updateInfoMessage( )
@@ -830,7 +830,7 @@ class tournament:
             digest.setContent( f'{mention}, all the matches that {Plyr.getMention()} is a part of are certified.' )
         else:
             # TODO: This should use the getMatch method
-            message = await self.matches[matchNum - 1].recordResultAdmin( plyr, result, mention )
+            message = await self.matches[matchNum - 1].recordResultAdmin( Plyr, result, mention )
             digest.setContent( message["message"] )
             self.matches[matchNum - 1].saveXML( )
             await self.updateInfoMessage( )
@@ -890,6 +890,7 @@ class tournament:
         mtch.saveXML( )
 
     async def addMatch( self, plyrs: List ) -> None:
+        print( "Creating a new match." )
         newMatch = match( plyrs )
         self.matches.append( newMatch )
         newMatch.matchNumber = len(self.matches)
@@ -968,13 +969,15 @@ class tournament:
         for plyr in plyrs:
             # TODO: This should be unready player
             await self.removePlayerFromQueue( plyr )
-            self.getPlayer(plyr).matches.append( newMatch )
+            plyr.matches.append( newMatch )
             for p in plyrs:
-                self.getPlayer(plyr).addOpponent( p )
+                plyr.addOpponent( p )
             if type( self.guild ) == discord.Guild:
-                self.getPlayer(plyr).saveXML()
-                await self.getPlayer(plyr).addRole( matchRole )
-                embed.add_field( name=self.getPlayer(plyr).getDisplayName(), value=self.getPlayer(plyr).pairingString() )
+                await plyr.addRole( matchRole )
+                embed.add_field( name=plyr.getDisplayName(), value=plyr.pairingString() )
+
+        for plyr in plyrs:
+            plyr.saveXML()
 
         if type( self.guild ) is discord.Guild:
             await self.pairingsChannel.send( content=message, embed=embed )
@@ -1004,8 +1007,8 @@ class tournament:
         elif Plyr.hasOpenMatch( ):
             digest.setContent( f'{mention}, {Plyr.getMention()} has a open match that needs certified before they can be given a bye.' )
         else:
-            await self.removePlayerFromQueue( plyr )
-            newMatch = match( [ plyr ] )
+            await self.removePlayerFromQueue( Plyr )
+            newMatch = match( [ Plyr ] )
             newMatch.matchNumber = len(self.matches)
             newMatch.saveLocation = f'{self.getSaveLocation()}/matches/match_{newMatch.matchNumber}.xml'
             newMatch.recordBye( )
@@ -1073,7 +1076,7 @@ class tournament:
         return None
 
     def _getInnerXMLString( self ) -> str:
-        digest += f'\t<uuid>{self.uuid}</uuid>'
+        digest  = f'\t<uuid>{self.uuid}</uuid>'
         digest += f'\t<name>{self.name}</name>\n'
         digest += f'\t<guild id="{self.guild.id if type(self.guild) == discord.Guild else str()}">{self.hostGuildName}</guild>\n'
         digest += f'\t<role id="{self.role.id if type(self.role) == discord.Role else str()}"/>\n'
@@ -1084,6 +1087,7 @@ class tournament:
         digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
         digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
         digest += f'\t<deckCount>{self.deckCount}</deckCount>\n'
+        digest += f'\t<matchSize>{self.playersPerMatch}</matchSize>\n'
         digest += f'\t<matchLength>{self.matchLength}</matchLength>\n'
         digest += f'\t<triceBotEnabled>{self.triceBotEnabled}</triceBotEnabled>\n'
         digest += f'\t<spectatorsAllowed>{self.spectators_allowed}</spectatorsAllowed>\n'
@@ -1141,6 +1145,9 @@ class tournament:
         self.format    = fromXML(tournRoot.find( 'format' ).text)
         self.deckCount = int( fromXML(tournRoot.find( 'deckCount' ).text) )
 
+        self.playersPerMatch = int( fromXML(tournRoot.find("matchSize").text) )
+        self.matchLength     = int( fromXML(tournRoot.find("matchLength").text) )
+
         self.regOpen      = str_to_bool( fromXML(tournRoot.find( 'regOpen' ).text ))
         self.tournStarted = str_to_bool( fromXML(tournRoot.find( 'status' ).attrib['started'] ))
         self.tournEnded   = str_to_bool( fromXML(tournRoot.find( 'status' ).attrib['ended'] ))
@@ -1168,15 +1175,17 @@ class tournament:
             newMatch = match( [] )
             newMatch.saveLocation = matchFile
             newMatch.loadXML( matchFile )
+            newMatch.activePlayers = [ self.getPlayer(plyr) for plyr in newMatch.activePlayers ]
+            newMatch.droppedPlayers = [ self.getPlayer(plyr) for plyr in newMatch.droppedPlayers ]
+            newMatch.confirmedPlayers = [ self.getPlayer(plyr) for plyr in newMatch.confirmedPlayers ]
+            winner = self.getPlayer( newMatch.winner )
+            if isinstance( winner, player ):
+                newMatch.winner = winner
             self.matches.append( newMatch )
             for aPlayer in newMatch.activePlayers:
-                Plyr = self.getPlayer( aPlayer )
-                if not Plyr is None:
-                    Plyr.addMatch( newMatch )
+                aPlayer.addMatch( newMatch )
             for dPlayer in newMatch.droppedPlayers:
-                Plyr = self.getPlayer( dPlayer )
-                if not Plyr is None:
-                    Plyr.addMatch( newMatch )
+                dPlayer.addMatch( newMatch )
             if not ( self.matches[-1].isCertified() or self.matches[-1].isDead() ) and not self.matches[-1].stopTimer:
                 self.matches[-1].timer = threading.Thread( target=self._matchTimer, args=(self.matches[-1],) )
                 self.matches[-1].timer.start( )

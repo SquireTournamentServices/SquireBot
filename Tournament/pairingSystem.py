@@ -141,7 +141,6 @@ class pairingSystem:
             # Would the new queue be smaller than the match size
             if size - len(tries[-1])*matchSize < matchSize:
                 break
-        print( tries )
         tries.sort( key=lambda x: len(x) )
         # Since the tries have been sorted, the last one will be the one with
         # the most pairings

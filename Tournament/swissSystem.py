@@ -2,12 +2,13 @@
 # Imports of standard libraries
 
 # Partial imports from standard libraries
-from random import shuffle
+import random
 
 # Include typing help
 from typing import List, Tuple
 
 # External libraries
+import discord
 
 # Local modules
 from .utils import *
@@ -49,7 +50,7 @@ class swissSystem:
     def _shuffle( self ) -> List:
         """ Returns a copy of the current queue, but with each level shuffled """
         digest: List = self._copyQueue( )
-        shuffle( digest )
+        random.shuffle( digest )
         return digest
 
     def _trim( self ) -> None:
@@ -82,30 +83,77 @@ class swissSystem:
         """ Determines if there are enough people to create pairings """
         return True
 
+    def _isValidGroup( self, plyrs: List ) -> bool:
+        """ Determines if a group of players are all mutually valid opponents. """
+        # Creates each pair of player and determines if they can be paired
+        # together and logically ANDs the results
+        return Intersection( [ A.isValidOpponent(B) for i, A in enumerate(plyrs) for B in plyrs[i+1:] ] )
+
+    def _attemptPairing( self, players: List, matchSize: int ) -> List[List]:
+        """ Creates a potential list of pairings."""
+        digest: List = [ ]
+        copyOfPlayers = [ p for p in players ]
+        random.shuffle( copyOfPlayers )
+        # The pairings process can begin
+        pairingFound = True
+        # There has to be a more pythonic way of doing...
+        while pairingFound and len(copyOfPlayers) != 0:
+            pairingFound = False
+            pairing = [ copyOfPlayers[0] ]
+            del copyOfPlayers[0]
+            for plyr in copyOfPlayers:
+                pairing.append( plyr )
+                if not self._isValidGroup( pairing ):
+                    del pairing[-1]
+                if len(pairing) == matchSize:
+                    digest.append( pairing )
+                    pairingFound = True
+                    break
+            if pairingFound:
+                for plyr in digest[-1][1:]:
+                    copyOfPlayers.remove( plyr )
+
+        return digest
+
     # This simply pairs the queue. Players are removed by the tournament
-    def createPairings( self, matchSize: int, standings: List ) -> List:
+    def createPairings( self, standings: List, matchSize: int ) -> List:
         """ Pairs the players in the queue """
         # Standings should be in first-to-last-place order (descending score)
         standings.reverse()
+        self.savedByes: List = [ ]
+        self.savedPairings: List = [ ]
         for i in range(len(standings)%matchSize):
             self.savedByes.append( standings[0] )
             del standings[0]
-        shuffle( standings )
-        self.savedByes = standings[:len(standings)]
-        if matchSize > self.size():
-            return [ ]
-        size = self.size()
         tries : List = [ ]
-        for _ in range( 25 ):
-            tries.append( self._attemptPairing( matchSize ) )
+        for _ in range( 250 ):
+            tries.append( self._attemptPairing( standings, matchSize ) )
             # Would the new queue be smaller than the match size
-            if size - len(tries[-1])*matchSize < matchSize:
+            if matchSize*len(tries[-1]) == len(standings):
                 break
-        print( tries )
-        tries.sort( key=lambda x: len(x) )
-        # Since the tries have been sorted, the last one will be the one with
-        # the most pairings
-        return [ [ plyr.discordID for plyr in pairing ] for pairing in tries[-1] ]
+        # In the unlikely event that proper pairings can't be formed, 
+        # Players are paired together, regardless of thier past opponents
+        if matchSize*len(tries[-1]) != len(standings):
+            for i in range(len(standings))[::4]:
+                self.savedPairings.append( [ standings[i  ],
+                                             standings[i+1],
+                                             standings[i+2],
+                                             standings[i+3] ] )
+        else:
+            self.savedPairings = tries[-1]
+
+        return [ [ plyr.uuid for plyr in pairing ] for pairing in self.savedPairings ]
+
+    def getPairingsEmbed( self ) -> discord.Embed:
+        digest = discord.Embed( title="**Pairings for the Next Round**" )
+        if len(self.savedByes) > 0:
+            digest.add_field( name="**Byes**", value=", ".join( [plyr.getMention() for plyr in self.savedByes] ) )
+        else:
+            digest.add_field( name="**Byes**", value="There are no byes." )
+        for i, pairing in enumerate( self.savedPairings ):
+            digest.add_field( name=f'**Table #{i+1}:**', value=", ".join( [plyr.getMention() for plyr in pairing] ) )
+        return digest
+
 
     # Note that there is not a load method. Players are added back in by the tournament when its load method is called.
     def exportToXML( self, indent: str ) -> str:

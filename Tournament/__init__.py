@@ -2,8 +2,8 @@ from .tricebot import *
 
 from .commandResponse import *
 from .deck import *
-from .match import *
 from .player import *
+from .match import *
 from .tournament import *
 from .fluidRoundTournament import *
 from .swissTournament import *

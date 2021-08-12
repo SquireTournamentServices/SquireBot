@@ -349,18 +349,19 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
 
     message = ""
     # This should be done in the tournament class, but will require a not method that wraps the addMatch function
+    Plyrs = [ ]
     for plyr in plyrs:
-        Plyr = tournObj.getPlayer( get_ID_from_mention(plyr) )
-        if Plyr is None:
+        Plyrs.append( tournObj.getPlayer( get_ID_from_mention(plyr) ) )
+        if Plyrs[-1] is None:
             message += f'{mention}, a player by {plyr!r} is not registerd for {tourn}.\n'
-        if not Plyr.isActive():
-            message += f'{mention}, {Plyr.getMention()} is registered but is not an active player in {tourn}.\n'
+        if not Plyrs[-1].isActive():
+            message += f'{mention}, {Plyrs[-1].getMention()} is registered but is not an active player in {tourn}.\n'
 
     if len(message) != 0:
         await ctx.send( content=f'{message}So, the match could not be created.' )
         return
 
-    await tournObj.addMatch( plyrs )
+    await tournObj.addMatch( Plyrs )
     tournObj.matches[-1].saveXML( )
     tournObj.saveOverview( )
     await ctx.send( f'{mention}, the players you specified for the match are now paired. Their match number is #{tournObj.matches[-1].matchNumber}.' )
@@ -432,7 +433,7 @@ async def createPairingsList( ctx, tourn = None ):
     pairings = queue.createPairings( tournObj.playersPerMatch )
     for pairing in pairings:
         for plyr in pairing:
-            queue.removePlayer( tournObjself.getPlayer(plyr) )
+            queue.removePlayer( tournObj.getPlayer(plyr) )
 
     if queue.size() == 0:
         await ctx.send( f'{mention}, here is a list of possible pairings. No players are left unmatched.' )
@@ -445,8 +446,8 @@ async def createPairingsList( ctx, tourn = None ):
             await ctx.send( msg )
 
     await ctx.send( f'\nThese are the complete pairings.' )
-    queueStr = [ [ f'{tournObjself.getPlayer(plyr).getMention()!r}' for plyr in pairing ] for pairing in pairings ]
-    message  = "\n".join( [ ", ".join( pairing ) for pairing in queueStr ] )
+    queueStr = [ [ f'{tournObj.getPlayer(plyr).getMention()}' for plyr in pairing ] for pairing in pairings ]
+    message  = "\n".join( [ " ".join( pairing ) for pairing in queueStr ] )
     for msg in splitMessage( message ):
         if msg == "":
             break
