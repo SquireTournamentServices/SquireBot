@@ -71,11 +71,15 @@ class match:
 
     def __str__( self ):
         digest  = f'Match #{self.matchNumber}\n'
-        digest += f'Active players: {", ".join([ "<@" + str(p) + ">" for p in self.activePlayers ])}\n'
-        digest += f'Dropped players: {", ".join([ "<@" + str(p) + ">" for p in self.droppedPlayers ])}\n'
-        digest += f'ConfirmedPlayers: {", ".join([ "<@" + str(p) + ">" for p in self.confirmedPlayers ])}\n'
+        digest += f'Active players: {", ".join([ p.getMention() for p in self.activePlayers ])}\n'
+        digest += f'Dropped players: {", ".join([ p.getMention() for p in self.droppedPlayers ])}\n'
+        digest += f'ConfirmedPlayers: {", ".join([ p.getMention() for p in self.confirmedPlayers ])}\n'
         digest += f'Match status: {self.status}\n'
-        digest += f'Match winner: <@{self.winner}>'
+        # TODO: Make a winnerToStr method
+        if isinstance(self.winner, player):
+            digest += f'Match winner: {self.winner.getMention()}>'
+        else:
+            digest += f'Match winner: self.winner>'
         return digest
 
     def isOpen( self ) -> bool:
@@ -172,32 +176,32 @@ class match:
 
     # Confirms the result for one player.
     # If all players have confirmed the result, the status of the match is status to "certified"
-    async def confirmResult( self, a_player: str ) -> str:
+    async def confirmResult( self, a_player: "player" ) -> str:
         digest = { }
         if self.status != "uncertified":
-            digest["message"] = f'<@{a_player}>, a result of match #{self.matchNumber} has not been recorded.'
+            digest["message"] = f'{a_player.getMention()}, a result of match #{self.matchNumber} has not been recorded.'
         elif a_player in self.confirmedPlayers:
-            digest["message"] = f'<@{a_player}>, you have already confirmed the result of match #{self.matchNumber}.'
+            digest["message"] = f'{a_player.getMention()}, you have already confirmed the result of match #{self.matchNumber}.'
         else:
             self.confirmedPlayers.append( a_player )
-            digest["message"] = f'<@{a_player}>, your confirmation has been logged.'
+            digest["message"] = f'{a_player.getMention()}, your confirmation has been logged.'
             if await self.confirmMatch( ):
                 self.stopTimer = True
                 digest["announcement"] = f'{self.getMention()}, your match has been certified. You can join the matchmaking queue again.'
 
         return digest
 
-    async def confirmResultAdmin( self, a_player: str, mention: str ) -> str:
+    async def confirmResultAdmin( self, a_player: "player", mention: str ) -> str:
         digest = { }
         if not (a_player in self.activePlayers or a_player in self.droppedPlayers):
             digest["message"] = f'{mention}, there is no player {a_player!r} in match #{self.matchNumber}.'
         elif a_player in self.confirmedPlayers:
-            digest["message"] = f'{mention}, {a_player} has already confirmed the result of match #{self.matchNumber}.'
+            digest["message"] = f'{mention}, {a_player.getMention()} has already confirmed the result of match #{self.matchNumber}.'
         elif a_player in self.droppedPlayers:
-            digest["message"] = f'{mention}, {a_player} has already drop from the match #{self.matchNumber}.'
+            digest["message"] = f'{mention}, {a_player.getMention()} has already drop from the match #{self.matchNumber}.'
         else:
             self.confirmedPlayers.append( a_player )
-            digest["message"] = f'{mention}, you have logged the confirmation of <@{a_player}>.'
+            digest["message"] = f'{mention}, you have logged the confirmation of {a_player.getMention()}.'
             if await self.confirmMatch( ):
                 self.stopTimer = True
                 digest["announcement"] = f'{self.getMention()}, your match has been certified. You can join the matchmaking queue again.'
@@ -210,7 +214,7 @@ class match:
     # here.  It is intended that any derived class use this method to handle
     # the recording on results in order to provide a single interface for the
     # tournament classes to use
-    async def recordResult( self, plyr: str, result: str ) -> Dict[str, str]:
+    async def recordResult( self, plyr: "player", result: str ) -> Dict[str, str]:
         digest = { "message": "" }
         if self.isCertified():
             digest["message"] = f'Match #{self.matchNumber} is already certified. Talk to a tournament official to change the result of this match.'
@@ -219,15 +223,15 @@ class match:
         if "win" == result or "winner" == result:
             self.winner = plyr
             self.confirmedPlayers = [ plyr ]
-            digest["message"] = f'<@{plyr}> has recorded themself as the winner of match #{self.matchNumber}. {self.getMention()}, please confirm with "!confirm-result".'
+            digest["message"] = f'{plyr.getMention()} has recorded themself as the winner of match #{self.matchNumber}. {self.getMention()}, please confirm with "!confirm-result".'
         elif "draw" == result:
             self.winner = "This match is a draw."
             self.confirmedPlayers = [ plyr ]
-            digest["message"] = f'<@{plyr}> has recorded match #{self.matchNumber} as a draw. {self.getMention()}, please confirm with "!confirm-result".'
+            digest["message"] = f'{plyr.getMention()} has recorded match #{self.matchNumber} as a draw. {self.getMention()}, please confirm with "!confirm-result".'
         elif "loss" == result or "loser" == result:
             self.droppedPlayers.append( plyr )
-            del( self.activePlayers[ self.activePlayers.index(plyr) ] )
-            digest["message"] = f'<@{plyr}>, you have been recorded as losing match #{self.matchNumber}. You will not be able to join the queue until this match is finished, but you will not need to confirm the result.'
+            self.activePlayers.remove( plyr )
+            digest["message"] = f'{plyr.getMention()}, you have been recorded as losing match #{self.matchNumber}. You will not be able to join the queue until this match is finished, but you will not need to confirm the result.'
         else:
             digest["message"] = f'You have given an invalid result. The possible match results are "win", "draw", and "loss".'
 
@@ -243,7 +247,7 @@ class match:
 
         return digest
 
-    async def recordResultAdmin( self, plyr: str, result: str, mention: str ) -> Dict[str, str]:
+    async def recordResultAdmin( self, plyr: "player", result: str, mention: str ) -> Dict[str, str]:
         digest = { "message": "" }
 
         if not (plyr in self.activePlayers or plyr in self.droppedPlayers):
@@ -253,13 +257,13 @@ class match:
         # TODO: Each of these pieces should probably be its own method
         if "win" == result or "winner" == result:
             self.winner = plyr
-            digest["announcement"] = f'{self.getMention()}, <@{plyr}> has been recorded as the winner of this match.'
+            digest["announcement"] = f'{self.getMention()}, {plyr.getMention()} has been recorded as the winner of this match.'
             if not self.isCertified( ):
                 self.confirmedPlayers = [ plyr ]
                 digest["announcement"] += ' Please confirm with "!confirm-result"'
             else:
                 digest["announcement"] += ' There is no need to re-confirm the result.'
-            digest["message"] = f'{mention}, <@{plyr}> has recorded as the winner of match #{self.matchNumber}.'
+            digest["message"] = f'{mention}, {plyr.getMention()} has recorded as the winner of match #{self.matchNumber}.'
         elif "draw" == result:
             self.winner = "This match is a draw."
             digest["announcement"] = f'{self.getMention()}, this match has been recorded as a draw.'
@@ -272,9 +276,9 @@ class match:
         elif "loss" == result or "loser" == result:
             # TODO: A player that double-drops can cause issues
             self.droppedPlayers.append( plyr )
-            del( self.activePlayers[ self.activePlayers.index(plyr) ] )
-            digest["announcement"] = f'<@{plyr}>, you have been recorded as losing match #{self.matchNumber}. You will not be able to join the queue until this match is finished, but you will not need to confirm the result.'
-            digest["message"] = f'{mention}, <@{plyr}> has recorded as a loser of match #{self.matchNumber}.'
+            self.activePlayers.remove( plyr )
+            digest["announcement"] = f'{plyr.getMention()}, you have been recorded as losing match #{self.matchNumber}. You will not be able to join the queue until this match is finished, but you will not need to confirm the result.'
+            digest["message"] = f'{mention}, {plyr.getMention()} has recorded as a loser of match #{self.matchNumber}.'
         else:
             digest["message"] = f'{mention}, you have given an invalid result. The possible match results are "win", "draw", and "loss".'
 
@@ -309,18 +313,21 @@ class match:
         digest += f'\t<playerDeckVerification>{self.playerDeckVerification}</playerDeckVerification>\n'
         digest += f'\t<gameID>{self.gameID}</gameID>\n'
         digest += f'\t<replayURL>{self.replayURL}</replayURL>\n'
-        digest += f'\t<winner name="{self.winner}"/>\n'
+        if isinstance(self.winner, player):
+            digest += f'\t<winner name="{self.winner.getUUID()}"/>\n'
+        else:
+            digest += f'\t<winner name="{self.winner}"/>\n'
         digest += '\t<activePlayers>\n'
-        for player in self.activePlayers:
-            digest += f'\t\t<player name="{player}"/>\n'
+        for plyr in self.activePlayers:
+            digest += f'\t\t<player name="{plyr.getUUID()}"/>\n'
         digest += '\t</activePlayers>\n'
         digest += '\t<droppedPlayers>\n'
-        for player in self.droppedPlayers:
-            digest += f'\t\t<player name="{player}"/>\n'
+        for plyr in self.droppedPlayers:
+            digest += f'\t\t<player name="{plyr.getUUID()}"/>\n'
         digest += '\t</droppedPlayers>\n'
         digest += '\t<confirmedPlayers>\n'
-        for player in self.confirmedPlayers:
-            digest += f'\t\t<player name="{player}"/>\n'
+        for plyr in self.confirmedPlayers:
+            digest += f'\t\t<player name="{plyr.getUUID()}"/>\n'
         digest += '\t</confirmedPlayers>\n'
         digest += '</match>'
         with open( a_filename, "w+" ) as savefile:
@@ -354,7 +361,6 @@ class match:
         self.sentFinalWarning   = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["final"  ] ) )
         self.winner = fromXML( matchRoot.find( "winner" ).attrib["name"] )
         if self.winner != "" and not ( "a draw" in self.winner ) and not self.isBye():
-            print( self.winner )
             self.winner = self.winner
         for player in matchRoot.find("activePlayers"):
             self.activePlayers.append( fromXML( player.attrib["name"] ) )
@@ -363,3 +369,5 @@ class match:
         for player in matchRoot.find("confirmedPlayers"):
             self.confirmedPlayers.append( fromXML( player.attrib["name"] ) )
 
+
+from .player import player

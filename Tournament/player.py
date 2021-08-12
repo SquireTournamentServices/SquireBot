@@ -7,7 +7,6 @@ from .exceptions import *
 from .utils import *
 from .deck import *
 from .cardDB import *
-from .match import *
 
 
 """
@@ -46,7 +45,7 @@ class player:
         self.status  = "active"
         self.decks   = { }
         self.matches = [ ]
-        self.opponents = set( )
+        self.opponents: List = [ ]
 
     def __str__( self ):
         newLine = "\n\t- "
@@ -79,7 +78,7 @@ class player:
         # (dummy players do not have discord user objects)
         return not isinstance( self.discordUser, discord.Member )
 
-    def isValidOpponent( self, a_plyr: int ) -> bool:
+    def isValidOpponent( self, a_plyr: 'player' ) -> bool:
         if a_plyr in self.opponents:
             return False
         return True
@@ -191,9 +190,9 @@ class player:
             digest |= not mtch.isCertified( )
         return digest
 
-    def addOpponent( self, a_plyr: int ) -> None:
-        if a_plyr != self.discordID:
-            self.opponents.add( a_plyr )
+    def addOpponent( self, a_plyr: "player" ) -> None:
+        if not ( a_plyr == self or a_plyr in self.opponents ):
+            self.opponents.append( a_plyr )
 
     def removeOpponent( self, a_plyr ) -> None:
         if a_plyr in self.opponents:
@@ -214,14 +213,14 @@ class player:
         del( self.matches[i] )
         self.saveXML( )
 
-    def addMatch( self, a_mtch: match ) -> None:
+    def addMatch( self, a_mtch: "match" ) -> None:
         self.matches.append( a_mtch )
         for plyr in a_mtch.activePlayers:
             self.addOpponent( plyr )
         for plyr in a_mtch.droppedPlayers:
             self.addOpponent( plyr )
 
-    def getMatch( self, a_matchNum: int ) -> match:
+    def getMatch( self, a_matchNum: int ) -> "match":
         for mtch in self.matches:
             if mtch.matchNumber == a_matchNum:
                 return mtch
@@ -237,12 +236,10 @@ class player:
             digest -= 1
         return digest
 
-    def findOpenMatch( self ) -> match:
+    def findOpenMatch( self ) -> "match":
         index = self.findOpenMatchIndex( )
         if index == 1:
-            # print( f'The reported index was one. Returning an empty match.' )
             return match( [] )
-        # print( f'The reported index was not one. Returning an the correct match.' )
         return self.matches[index]
 
     def findOpenMatchNumber( self ) -> int:
@@ -323,13 +320,10 @@ class player:
     # Tallies the number of matches that the player is in, has won, and have been certified.
     def getMatchPoints( self, withBye: bool=True ) -> float:
         digest = 0
-        # TODO: Yet another location where circular dependencies would very helpful
         certMatches = self.getCertMatches( withBye )
         for mtch in certMatches:
-            if mtch.winner == self.name:
+            if mtch.winner == self:
                 digest += 3 #4
-            elif mtch.winner == self.discordID:
-                digest += 3
             elif withBye and mtch.isBye():
                 digest += 3
             elif mtch.isDraw():
@@ -348,7 +342,7 @@ class player:
         return digest #if digest >= 1./3 else 1./3
 
     def getNumberOfWins( self ) -> int:
-        return sum( [ 1 if mtch.winner == self.discordID else 0 for mtch in self.matches if mtch.isCertified( ) ] )
+        return sum( [ 1 if mtch.winner == self else 0 for mtch in self.getCertMatches() ] )
 
     # Saves the overview of the player and their deck(s)
     # Matches aren't saved with the player. They are save seperately.
@@ -388,4 +382,5 @@ class player:
             self.decks[deckTag.attrib['ident']] = deck()
             self.decks[deckTag.attrib['ident']].importFromETree( deckTag )
 
+from .match import *
 

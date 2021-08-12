@@ -142,11 +142,10 @@ class pairingQueue( pairingSystem ):
             # Would the new queue be smaller than the match size
             if size - len(tries[-1])*matchSize < matchSize:
                 break
-        print( tries )
         tries.sort( key=lambda x: len(x) )
         # Since the tries have been sorted, the last one will be the one with
         # the most pairings
-        return [ [ plyr.discordID for plyr in pairing ] for pairing in tries[-1] ]
+        return [ [ plyr.getUUID() for plyr in pairing ] for pairing in tries[-1] ]
 
     # Note that there is not a load method. Players are added back in by the tournament when its load method is called.
     def exportToXML( self, indent: str ) -> str:

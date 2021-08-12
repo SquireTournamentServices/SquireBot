@@ -14,8 +14,8 @@ from typing import List, Tuple
 from .utils import *
 from .tournament import tournament
 from .commandResponse import commandResponse
-from .match import match
 from .player import player
+from .match import match
 from .deck import deck
 from .pairingQueue import *
 
@@ -114,7 +114,6 @@ class fluidRoundTournament(tournament):
     # Wrapper for self._pairQueue so that it can be ran on a seperate thread
     def _launch_pairings( self, waitTime ):
         sleep( waitTime )
-        print( self.queue )
         fut_pairings = asyncio.run_coroutine_threadsafe( self._pairQueue(waitTime), self.loop )
         fut_pairings.result( )
 
@@ -122,7 +121,6 @@ class fluidRoundTournament(tournament):
         startingStr = str( self.queue )
         pairings: List = self.queue.createPairings( self.playersPerMatch )
         for pairing in pairings:
-            print( pairing )
             await self.addMatch( pairing )
 
         endStr = str( self.queue )
