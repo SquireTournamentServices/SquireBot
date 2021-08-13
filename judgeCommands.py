@@ -316,7 +316,7 @@ async def adminPrintDecklist( ctx, tourn = None, plyr = None, ident = None ):
         await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
 
-    response = await tournObj.getDeckEmbed( deckName )
+    response = await tournObj.getDeckEmbed( ident )
     await response.send( ctx )
 
 
