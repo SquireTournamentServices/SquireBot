@@ -15,7 +15,7 @@ variables:
 
 before_script:
   - python -V  # Print out python version for debugging
-  - pip3 install dotenv discord.py
+  - pip3 install python-dotenv discord.py
 
 test:
   script:
