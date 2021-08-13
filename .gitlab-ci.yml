@@ -20,3 +20,7 @@ before_script:
 test:
   script:
     - cd tests && bash runTests.sh
+  allow_failure:
+    exit_codes:
+    - 1
+    - 2
