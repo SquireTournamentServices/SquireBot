@@ -19,7 +19,8 @@ class TestRunner:
         self.testCases = testCases
         self.passedTests = []
         self.failedTests = []
-        
+    
+    # Returns true if all the tests passed
     def executeTests(self) -> bool:
         self.passedTests = []
         self.failedTests = []

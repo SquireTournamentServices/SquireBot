@@ -8,12 +8,14 @@ sys.path.insert( 0, projectBaseDir )
 
 from cardDBTest import *
 from queueTest import *
+from deckTest import *
 from test import *
 
 def runTests():
     testCases = []
     testCases.append(CardDBTest())
     testCases.append(QueueTest())
+    testCases.append(DeckTests())
     
     tests = TestRunner(testCases)
     print("[TEST RUNNER]: Running tests...")

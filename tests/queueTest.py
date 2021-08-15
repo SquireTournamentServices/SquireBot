@@ -1,5 +1,3 @@
-import os
-import sys
 from Tournament import *
 from test import *
 
