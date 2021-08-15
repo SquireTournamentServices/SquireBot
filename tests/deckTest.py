@@ -1,3 +1,4 @@
+import os
 from Tournament import *
 from test import *
 
@@ -13,6 +14,7 @@ class DeckTests(TestCase):
         subTests.append(TappedOutTest())
         subTests.append(MtgGoldfishTest())
         subTests.append(BaseCaseTest())
+        subTests.append(ExistingDataTest())
         
         testRunner = TestRunner(subTests)
         
@@ -46,7 +48,29 @@ class MtgGoldfishTest(TestCase):
         
     def test(self):
         return True
+
+class ExistingDataTest(TestCase):
+    def __init__(self):
+        self.testName = "Tournament/deck.py test existing data (summer bloom 2021 decks) for hash regression"
     
+    def test(self):
+        path = os.getcwd() + "/test-data-decks"
+        for filename in os.listdir(path):
+            with open(os.path.join(path, filename), 'r') as f:
+                decklist = f.read()
+                try:
+                    testdeck = deck(filename, decklist)
+                except Exception as e:
+                    # Catch exception
+                    print(f"Error with deck with expected hash {filename} has the wrong hash. Decklist '''{decklist}'''.")
+                    raise e
+                
+                if filename != testdeck.deckHash:
+                    print(f"Error with deck with expected hash {filename} has the wrong hash. Decklist '''{decklist}'''. Actual hash: {testdeck.deckHash} Cards: {testdeck.cards}")
+                    return False
+                    
+        return True
+
 class BaseCaseTest(TestCase):
     def __init__(self):
         self.testName = "Tournament/deck.py base case tests"
