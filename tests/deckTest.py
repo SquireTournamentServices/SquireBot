@@ -44,9 +44,19 @@ class TappedOutTest(TestCase):
 
 class MtgGoldfishTest(TestCase):
     def __init__(self):
-        self.testName = "Tournament/deck.py mtgoldfish tests"
+        self.testName = "Tournament/deck.py mtgoldfish tests (top 6 from summer bloom 2021)"
         
     def test(self):
+        # Top six from summer bloom 2021
+        decklinks = ["https://www.moxfield.com/decks/otJGTVMYLE2Tu7dY2eCf3A", "https://www.moxfield.com/decks/BcN9es_OAUaArNr9Yb6-bQ", "https://www.moxfield.com/decks/YlXoO8U2N0qZq7mLrhDqtA", "https://www.moxfield.com/decks/jPilLqEhgk2t1li2haDpCQ", "https://www.moxfield.com/decks/qW5f_UJGBUOxSyhx0sY_Mw", "https://www.moxfield.com/decks/iNtkQTBHW0es9Z_PpE2InA"]
+        deckhashes = ["t7rdfct8", "kinva7iq", "s44prtc8", "0sbns7o2", "qvb0eogv", "i0p34cdo"]
+        
+        assert(len(decklinks) == len(deckhashes))
+        for i in range(0, len(decklinks)):
+            testdeck = deck("testdeck", decklinks[i])
+            if(testdeck.deckHash != deckhashes[i]):
+                print(f"Error with moxfield decklist {decklinks[i]}. Hash is {testdeck.deckHash} expecting {deckhashes[i]}. Decklist: '''{testdeck.decklist}'''")
+                return False        
         return True
 
 class ExistingDataTest(TestCase):
