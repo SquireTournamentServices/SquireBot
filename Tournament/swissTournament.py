@@ -29,9 +29,6 @@ class swissTournament(tournament):
         super().__init__( name, hostGuildName, props )
         self.pairingSystem     = swissSystem( )
 
-        if len(props) != 0:
-            self.setProperties(props)
-
     # ---------------- Property Accessors ----------------
 
     # ---------------- Misc ----------------

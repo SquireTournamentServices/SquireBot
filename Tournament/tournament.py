@@ -1100,8 +1100,8 @@ class tournament:
 
     def saveOverview( self, filename: str = "" ) -> None:
         if filename == "":
-            filename = f'{self.getSaveLocation()}/overview.xml'
-        with open( filename, 'w+' ) as xmlfile:
+            filename = f'{self.getSaveLocation()}overview.xml'
+        with open( filename, 'w' ) as xmlfile:
             xmlfile.write( "<?xml version='1.0'?>\n" )
             xmlfile.write( "<tournament>\n" )
             xmlfile.write( toSafeXML(self._getInnerXMLString()) )
