@@ -79,7 +79,9 @@ async def createTournament( ctx, tournName = None, tournType = None, *args ):
 
     await ctx.send( f'{adminMention}, a new tournament called {tournName} was created{trice} by {mention}:\n{message}' )
 
-    gld.getTournament( tournName ).saveTournament()
+    # This call broke the command if there were tournament properties as they invoke saveOverview()
+    # I have moved it to the guild settings to fix this specific bug.
+    #gld.getTournament( tournName ).saveTournament()
 
 
 commandSnippets["update-properties"] = "- update-properties : Changes the properties of a tournament."

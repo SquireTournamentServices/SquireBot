@@ -34,9 +34,6 @@ class fluidRoundTournament(tournament):
         self.highestPriority   = 0
         self.pairingsThread    = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
 
-        if len(props) != 0:
-            self.setProperties(props)
-
     # ---------------- Property Accessors ----------------
 
     def updatePairingsThreshold( self, count: int ) -> None:

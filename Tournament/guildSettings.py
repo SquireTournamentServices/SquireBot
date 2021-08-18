@@ -245,9 +245,12 @@ class guildSettings:
         if props is None:
             props: Dict = { }
         tourn = getTournamentType( tournType, name, self.guild.name, {} )
+        await tourn.addDiscordGuild( self.guild )
+        tourn.saveTournament(tourn.getSaveLocation())
+        
         props = self._mergeProperties( props, tourn )
         digest = tourn.setProperties( props )
-        await tourn.addDiscordGuild( self.guild )
+        
         tourn.loop = self.eventLoop
         self.tournaments.append( tourn )
         return digest
