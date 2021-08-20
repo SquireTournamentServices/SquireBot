@@ -582,7 +582,7 @@ async def standings( ctx, tourn = None, printAll = None ):
         return
 
     name = ""
-    if ctx.author.id is tournObj.playes:
+    if ctx.author.id is tournObj.players:
         name = tournObj.players[ctx.author.id].getDisplayName()
     
     if name in standings[1] and not printAll:
