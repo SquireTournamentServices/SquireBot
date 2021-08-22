@@ -41,17 +41,7 @@ class TriceBot:
         if not abs:
             print(resp)
         return resp
-
-    def reqBin(self, urlpostfix: str, data: str, abs: bool = False) -> str:
-        print(data)
-        url = urlpostfix
-        if not abs:
-            url = f'{self.apiURL}/{url}'
-        resp = requests.get(url, timeout=7.0, data=data,  verify=False).content
-        if not abs:
-            print(resp)
-        return resp
-
+    
     def checkauthkey(self):
         return self.req("api/checkauthkey", self.authToken) == "1"
 
