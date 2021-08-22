@@ -100,7 +100,6 @@ class tournament:
         if len(props) != 0:
             self.setProperties(props, save=False)
 
-
     def getSaveLocation( self ) -> str:
         digest: str = ""
         if self.isDead():
@@ -605,7 +604,7 @@ class tournament:
                 await self.role.delete(reason="Tournament has ended")
             except Exception as e:
                 print(e)
-                
+
     async def endTourn( self, adminMention: str = "", author: str = "" ) -> str:
         if not self.tournStarted:
             return f'{self.name} has not started, so it cannot be ended. However, it can be cancelled.'

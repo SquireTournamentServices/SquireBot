@@ -77,9 +77,8 @@ class match:
         return self.uuid < other.uuid
 
     def __eq__( self, other ):
-        if other is match:
+        if type(other) != match:
             return False
-        # TODO: This needs to be include more of the member values.
         return self.uuid == other.uuid and self.matchNumber == other.matchNumber
 
     def __str__( self ):
