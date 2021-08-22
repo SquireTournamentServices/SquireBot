@@ -259,8 +259,10 @@ class guildSettings:
     # TODO: The end and cancel tournament methods should be combined
     async def endTournament( self, name: str, author: str ) -> str:
         tourn = self.getTournament( name )
-        digest = await tourn.cancelTourn( self.d_tournAdminRole.mention, author )
+        content = await tourn.cancelTourn( self.d_tournAdminRole.mention, author )
         del self.tournaments[ self._indexTournament(name) ]
+        digest = commandResponse( )
+        digest.setContent(content)
         return digest
 
     # Returns a dictionary of current tournaments with tournament names as keys
