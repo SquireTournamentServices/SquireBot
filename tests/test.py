@@ -8,6 +8,7 @@ class TestCase:
     testName = None
     
     def __init__(self):
+        #self.testName = "Test name"
         pass
     
     def test(self) -> bool:

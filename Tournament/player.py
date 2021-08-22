@@ -57,6 +57,9 @@ class player:
         digest += f'Matches:{newLine}{newLine.join( [ str(mtch) for mtch in self.matches ] )}'
         return digest
 
+    def __lt__(self, other):
+        return self.uuid < other.uuid
+    
     def __eq__( self, other: 'player' ):
         if type(other) != player:
             return False

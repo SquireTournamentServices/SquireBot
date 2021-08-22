@@ -1,3 +1,5 @@
 .env
 # card db cache
 *.json
+# tmp test data
+guilds/

@@ -83,7 +83,7 @@ class tournament:
 
         self.players: List = [ ]
 
-        self.matches = []
+        self.matches: List = [ ]
 
         #Create bot class and store the game creation settings
         self.triceBotEnabled = False
@@ -95,7 +95,7 @@ class tournament:
         self.player_deck_verification = False
 
         if len(props) != 0:
-            self.setProperties(props)
+            self.setProperties(props, save=False)
 
     def getSaveLocation( self ) -> str:
         digest: str = ""
@@ -307,7 +307,7 @@ class tournament:
 
     # Sets properties that can be changed directly by users
     # TODO: Consider a properies member instead of individual members (fixme)
-    def setProperties( self, props: Dict ) -> str:
+    def setProperties( self, props: Dict, save: bool = False ) -> str:
         digest: str = ""
 
         if len(props) == 0:
@@ -352,8 +352,9 @@ class tournament:
         if len(filteredProps["undefined"]) > 0:
             digest += f'\n\n{self.name} does not have the following propert{"y" if len(filteredProps["undefined"]) == 1 else "ies"}:\n\t-'
             digest += "\n\t-".join( [ f'{p}: {props[p]}' for p in filteredProps["undefined"] ] )
-
-        self.saveOverview( )
+        
+        if save:
+            self.saveOverview( )
 
         return digest
 
@@ -674,7 +675,7 @@ class tournament:
             plyr = player( discordUser.display_name, discordUser.id )
             self.players.append( plyr )
 
-        plyr.saveLocation = f'{self.getSaveLocation()}/players/{discordUser.id}.xml'
+        plyr.saveLocation = f'{self.getSaveLocation()}/players/{plyr.uuid}.xml'
         plyr.addDiscordUser( discordUser )
         await plyr.addRole( self.role )
         plyr.saveXML( )
@@ -695,7 +696,7 @@ class tournament:
             plyr = player( discordUser.display_name, discordUser.id )
             self.players.append( plyr )
 
-        plyr.saveLocation = f'{self.getSaveLocation()}/players/{discordUser.id}.xml'
+        plyr.saveLocation = f'{self.getSaveLocation()}/players/{toSafeXML(plyr.uuid)}.xml'
         plyr.addDiscordUser( discordUser )
         await plyr.addRole( self.role )
         plyr.saveXML( )
@@ -896,6 +897,7 @@ class tournament:
         newMatch.matchNumber = len(self.matches)
         newMatch.matchLength = self.matchLength
         newMatch.saveLocation = f'{self.getSaveLocation()}/matches/match_{newMatch.matchNumber}.xml'
+        newMatch.timer = threading.Thread( target=self._matchTimer, args=(newMatch,) )
         # TODO: Why is this being checked...
         if isinstance( self.guild, discord.Guild ):
             matchRole = await self.guild.create_role( name=f'Match {newMatch.matchNumber}' )
@@ -911,7 +913,6 @@ class tournament:
 
             newMatch.VC    = await matchCategory.create_voice_channel( name=game_name, overwrites=overwrites )
             newMatch.role  = matchRole
-            newMatch.timer = threading.Thread( target=self._matchTimer, args=(newMatch,) )
 
             message = f'\n{matchRole.mention} of {self.name}, you have been paired. A voice channel has been created for you. Below is information about your opponents.\n'
             embed   = discord.Embed( )
@@ -982,7 +983,7 @@ class tournament:
         if type( self.guild ) is discord.Guild:
             await self.pairingsChannel.send( content=message, embed=embed )
 
-        newMatch.timer.start( )
+        newMatch.timer.start()
         newMatch.saveXML()
         await self.updateInfoMessage()
 
@@ -1078,8 +1079,8 @@ class tournament:
     def _getInnerXMLString( self ) -> str:
         digest  = f'\t<uuid>{self.uuid}</uuid>'
         digest += f'\t<name>{self.name}</name>\n'
-        digest += f'\t<guild id="{self.guild.id if type(self.guild) == discord.Guild else str()}">{self.hostGuildName}</guild>\n'
-        digest += f'\t<role id="{self.role.id if type(self.role) == discord.Role else str()}"/>\n'
+        digest += f'\t<guild id="{self.guild.id}">{self.hostGuildName}</guild>\n'
+        digest += f'\t<role id="{self.role.id}"/>\n'
         digest += f'\t<pairingsChannel id="{self.pairingsChannel.id}"/>\n'
         if not self.infoMessage is None:
             digest += f'\t<infoMessage channel="{self.infoMessage.channel.id}" id="{self.infoMessage.id}"/>\n'
@@ -1114,7 +1115,7 @@ class tournament:
            os.mkdir( f'{dirName}/players/' )
 
         for player in self.players:
-            player.saveXML( f'{dirName}/players/{toPathSafe(player.name)}.xml' )
+            player.saveXML( f'{dirName}/players/{toPathSafe(player.uuid)}.xml' )
 
     def saveMatches( self, dirName: str = "" ) -> None:
         if dirName == "":

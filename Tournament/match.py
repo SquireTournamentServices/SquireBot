@@ -69,6 +69,14 @@ class match:
 
         self.stopTimer = False
 
+    def __lt__(self, other):
+        return self.uuid < other.uuid
+    
+    def __eq__( self, other ):
+        if type(other) != match:
+            return False
+        return self.uuid == other.uuid and self.matchNumber == other.matchNumber
+
     def __str__( self ):
         digest  = f'Match #{self.matchNumber}\n'
         digest += f'Active players: {", ".join([ p.getMention() for p in self.activePlayers ])}\n'

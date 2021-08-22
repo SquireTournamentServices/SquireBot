@@ -64,7 +64,7 @@ class ExistingDataTest(TestCase):
         self.testName = "Tournament/deck.py test existing data (summer bloom 2021 decks) for hash regression"
     
     def test(self):
-        path = os.getcwd() + "/test-data-decks"
+        path = f"{os.getcwd()}/test-data-decks"
         for filename in os.listdir(path):
             with open(os.path.join(path, filename), 'r') as f:
                 decklist = f.read()
