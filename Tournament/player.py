@@ -38,7 +38,7 @@ class player:
     def __init__( self, name: str = "", discordID: str = None ):
         self.uuid = str( uuid.uuid4() )
         self.saveLocation = f'{name}.xml'
-        self.discordUser = ""
+        self.discordUser = None
         self.discordID = discordID
         self.name = name
         self.triceName = ""
@@ -63,9 +63,19 @@ class player:
     def __eq__( self, other: 'player' ):
         if type(other) != player:
             return False
-        digest  = ( self.name == other.name )
+        digest  = ( self.uuid == other.uuid )
+        digest &= ( self.status == other.status )
+        digest &= ( self.name == other.name )
+        digest &= ( self.triceName == other.triceName )
         digest &= ( self.discordID == other.discordID )
-        digest &= ( self.uuid == other.uuid )
+        for name, deck in self.decks.items():
+            digest &= ( name in other.decks )
+            if digest:
+                digest &= ( deck == other.decks[name] )
+        digest &= ( self.opponents == other.opponents )
+        digest &= ( len(self.matches) == len(other.matches) )
+        if digest:
+            digest &= Intersection( [ i == j for i, j in zip(self.matches, other.matches) ] )
         return digest
 
     def isActive( self ) -> bool:
