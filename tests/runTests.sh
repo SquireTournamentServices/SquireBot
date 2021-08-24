@@ -10,6 +10,8 @@ then
     exit 1
 fi
 
+find . | grep .py$ | xargs --verbose -n 1 python3 -m pylint
+
 cd tests
 
 # Run tests
