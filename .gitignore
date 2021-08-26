@@ -13,4 +13,5 @@ squireBotError.log
 squireLog
 standings.txt
 .coverage
+*/htmlcov
 
