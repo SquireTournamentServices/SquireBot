@@ -123,4 +123,3 @@ class MatchRegistry:
             #    self.matches[-1].timer = threading.Thread( target=self._matchTimer, args=(self.matches[-1],) )
             #    self.matches[-1].timer.start( )
 
-

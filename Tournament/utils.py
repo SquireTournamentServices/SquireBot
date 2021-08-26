@@ -129,7 +129,7 @@ def generatePropsDict( *args ) -> Dict:
     return digest
 
 
-PROBLEM_PATH_CHARS = [ "/" ]
+PROBLEM_PATH_CHARS = [ '"', "'", "<", ">", "&", "~", "/" ]
 
 
 def isUUID( ID: str ) -> bool:
@@ -152,11 +152,12 @@ def toPathSafe(name: str) -> bool:
     return digest
 
 
-PROBLEM_XML_CHARS = { "&": "&amp;",\
-                      '"' : "&quot;",\
-                      "'" : "&apos;",\
-                      "<" : "&lt;",\
-                      ">" : "&gt;"}
+PROBLEM_XML_CHARS = { "&": "&amp;",
+                      "'": "&apos;",
+                      '"': "&quot;",
+                      "<": "&lt;",
+                      ">": "&gt;",
+                    }
 
 def toSafeXML( inputXML: str ) -> str:
     """ Adds XML escape chars where needed """
