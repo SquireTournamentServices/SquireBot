@@ -70,8 +70,7 @@ class player:
         digest &= ( self.discordID == other.discordID )
         for name, deck in self.decks.items():
             digest &= ( name in other.decks )
-            if digest:
-                digest &= ( deck == other.decks[name] )
+            digest &= ( deck == other.getDeck(name) )
         digest &= ( self.opponents == other.opponents )
         digest &= ( len(self.matches) == len(other.matches) )
         if digest:
@@ -291,7 +290,7 @@ class player:
     # Addes a deck to the list of decks
     def addDeck( self, a_ident: str = "", a_decklist: str = "" ) -> None:
         # Removes an deck instead of overwriting it to keep self.decks in chrono order
-        print( a_ident, a_decklist )
+        #print( a_ident, a_decklist )
         if a_ident in self.decks:
             del( self.decks[a_ident] )
         self.decks[a_ident] = deck( a_ident, a_decklist )
@@ -313,13 +312,18 @@ class player:
         await self.sendMessage( content=f'Your deck whose name was {a_ident!r} has been removed by tournament staff.' )
         return f'{mention}, the deck whose name was {a_ident!r} has been removed from {self.getMention()}.'
 
+    def getDeck( self, ident: str ) -> deck:
+        if not ident in self.decks:
+            return None
+        return self.decks[ident]
+
     def getDeckIdent( self, ident: str = "" ) -> str:
         if ident in self.decks:
             return ident
         for name in self.decks:
             if ident == self.decks[name].deckHash:
                 return name
-        return ""
+        return None
 
     def getCertMatches( self, withBye: bool=True ):
         digest = [ ]
@@ -365,16 +369,16 @@ class player:
             a_filename = self.saveLocation
         digest  = "<?xml version='1.0'?>\n"
         digest += '<player>\n'
-        digest += f'\t<uuid>{toSafeXML(self.uuid)}</uuid>\n'
-        digest += f'\t<name>{toSafeXML(self.name)}</name>\n'
-        digest += f'\t<triceName>{toSafeXML(self.triceName)}</triceName>\n'
-        digest += f'\t<discord id="{toSafeXML(self.getDiscordID())}"/>\n'
-        digest += f'\t<status>{toSafeXML(self.status)}</status>\n'
+        digest += f'\t<uuid>{self.uuid}</uuid>\n'
+        digest += f'\t<name>{self.name}</name>\n'
+        digest += f'\t<triceName>{self.triceName}</triceName>\n'
+        digest += f'\t<discord id="{self.getDiscordID()}"/>\n'
+        digest += f'\t<status>{self.status}</status>\n'
         for ident in self.decks:
             digest += self.decks[ident].exportXMLString( '\t' )
         digest += '</player>'
         with open( a_filename, 'w+' ) as xmlFile:
-            xmlFile.write( digest )
+            xmlFile.write( toSafeXML(digest) )
 
     # Loads an xml file saved with the class after construction
     def loadXML( self, a_filename: str ) -> None:
@@ -386,10 +390,10 @@ class player:
         if self.triceName is None:
             self.triceName = ""
         self.discordID  = fromXML(xmlTree.getroot().find( 'discord' ).attrib['id'])
-        if self.discordID != "":
-            self.discordID = int( self.discordID )
-        else:
+        if self.discordID in [ "", "None" ]:
             self.discordID = None
+        else:
+            self.discordID = int( self.discordID )
         self.status = fromXML(xmlTree.getroot().find( "status" ).text)
         for deckTag in xmlTree.getroot().findall('deck'):
             self.decks[deckTag.attrib['ident']] = deck()

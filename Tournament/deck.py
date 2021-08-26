@@ -93,6 +93,14 @@ class deck:
     def __str__( self ):
         return f'{self.ident}: {self.deckHash}'
 
+    def __eq__( self, other ):
+        if not isinstance( other, deck ):
+            return False
+        digest = ( self.ident == other.ident )
+        digest &= ( len(self.cards) == len(other.cards) )
+        digest &= ( set(self.cards) == set(other.cards) )
+        return digest
+
     def validateDecklist( self, decklist: str ) -> bool:
         """ A(n almost) static method that determines if a decklist will cause problems"""
         for card in decklist.strip().split("\n"):

@@ -3,3 +3,4 @@
 *.json
 # tmp test data
 guilds/
+.converge

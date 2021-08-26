@@ -55,6 +55,8 @@ def Union( vals: List ) -> bool:
 
 def Intersection( vals: List ) -> bool:
     """ Applies a logical AND to a list of bools """
+    if len(vals) == 0:
+        return True
     digest = vals[0]
     for val in vals[1:]:
         digest &= val
@@ -127,17 +129,11 @@ def generatePropsDict( *args ) -> Dict:
     return digest
 
 
-problemChars = { '"': "&quot",
-                 "'": "&apos",
-                 "<": "&lt",
-                 ">": "&gt",
-                 "&": "&amp"
-               }
+PROBLEM_PATH_CHARS = [ '"', "'", "<", ">", "&", "~", "/" ]
 
 def isPathSafeName(name: str) -> bool:
     """ Checks to see if a name can be a file/dir """
-    digest = ("~" in name) or ("/" in name)
-    for char in problemChars:
+    for char in PROBLEM_PATH_CHARS:
         digest |= (char in name)
     return digest
 
@@ -145,23 +141,26 @@ def toPathSafe(name: str) -> bool:
     """ Changes a name to be a safe file/dir name """
     #bad chars are xml chars, "~", and "../" as it is a directory buggerer
     digest = name.replace("~", "_").replace("/", "_")
-    for char in problemChars:
+    for char in PROBLEM_PATH_CHARS:
         digest = digest.replace(char, "_")
     return digest
+
+
+PROBLEM_XML_CHARS = { "&": "&amp;" }
 
 def toSafeXML( inputXML: str ) -> str:
     """ Adds XML escape chars where needed """
     if inputXML is None:
         return "" # Check for None
     digest = str(inputXML)
-    for char in problemChars:
-        digest.replace(char, problemChars[char])
+    for old, new in PROBLEM_XML_CHARS.items():
+        digest = digest.replace(old, new)
     return digest
 
 def fromXML( inputXML: str ) -> str:
     """ Expands XML escape chars (because the XML library doesn't) """
     digest = str(inputXML)
-    for char in problemChars:
-        digest.replace(problemChars[char], char)
+    for new, old in PROBLEM_XML_CHARS.items():
+        digest = digest.replace(old, new)
     return digest
 
