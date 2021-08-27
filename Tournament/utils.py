@@ -69,19 +69,19 @@ def timeDiff( tOne: str, tTwo: str ) -> float:
     digest = diff.days*24*60*60 + diff.seconds + diff.microseconds*10**-6
     return abs(digest)
 
-def getAdminRole( duild: discord.Guild ):
+def getAdminRole( guild: discord.Guild ):
     """ TODO: Soon to be depricated method """
     ret = ""
-    for role in duild.roles:
+    for role in guild.roles:
         if str(role).lower() == "tournament admin":
             ret = role
             break
     return ret
 
-def getJudgeRole( duild: discord.Guild ):
+def getJudgeRole( guild: discord.Guild ):
     """ TODO: Soon to be depricated method """
     digest = ""
-    for role in duild.roles:
+    for role in guild.roles:
         if str(role).lower() == "judge":
             digest = role
             break

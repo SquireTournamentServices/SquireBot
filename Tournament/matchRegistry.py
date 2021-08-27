@@ -5,6 +5,7 @@ from typing import List
 import discord
 
 from match import match
+from playerRegistry import PlayerRegistry
 from utils import *
 
 
@@ -14,10 +15,17 @@ class MatchRegistry:
     def __init__( self ):
         """ The constructor. """
         self.matches: List = [ ]
+        self.playerReg = None
 
     def __str___( self ):
         """ Returns a string representation of the registry. """
         return "The match registry doesn't have a string method yet."
+
+    # ---------------- Accessors ----------------
+
+    def setPlayerRegistry( self, plyrReg: PlayerRegistry ) -> None:
+        """ Setter for the player registry. """
+        self.playerReg = plyrReg
 
     # ---------------- Meta-Accessors ----------------
     # I.e. accessors for lists of matches
@@ -79,12 +87,28 @@ class MatchRegistry:
 
     # ---------------- Saving and Loading ----------------
 
-    def saveMatches( self, location: str = "" ) -> None:
+    def saveMatches( self, location: str ) -> None:
         """ Saves all matches' xml files. """
-        pass
+        for mtch in self.matches:
+            mtch.saveXML( f'{location}/matches/match_{match.getMatchNumber()}.xml' )
 
     def loadMatches( self, location: str ) -> None:
         """ Given a directory, saves the match files in that directory. """
-        pass
+        matchFiles = [ f'{location}/{f}' for f in os.listdir(dirName) if os.path.isfile( f'{dirName}/{f}' ) ]
+        for matchFile in matchFiles:
+            newMatch = match( -1 )
+            newMatch.saveLocation = matchFile
+            newMatch.loadXML( matchFile )
+            newMatch.activePlayers = [ self.playerReg.getPlayer(plyr) for plyr in newMatch.activePlayers ]
+            newMatch.droppedPlayers = [ self.playerReg.getPlayer(plyr) for plyr in newMatch.droppedPlayers ]
+            newMatch.confirmedPlayers = [ self.playerReg.getPlayer(plyr) for plyr in newMatch.confirmedPlayers ]
+            winner = self.playerReg.getPlayer( newMatch.winner )
+            self.matches.append( newMatch )
+            for plyr in newMatch.players:
+                plyr.addMatch( newMatch )
+            # TODO: The timer system should be stored here, but there should be a better method than threading
+            #if not ( self.matches[-1].isCertified() or self.matches[-1].isDead() ) and not self.matches[-1].stopTimer:
+            #    self.matches[-1].timer = threading.Thread( target=self._matchTimer, args=(self.matches[-1],) )
+            #    self.matches[-1].timer.start( )
 
 
