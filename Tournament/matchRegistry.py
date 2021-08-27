@@ -1,8 +1,8 @@
 """ This module contains the MatchRegistry class which manages the list of matches for the tournament. """
 
-import discord
-
 from typing import List
+
+import discord
 
 from match import match
 from utils import *
@@ -14,40 +14,68 @@ class MatchRegistry:
     def __init__( self ):
         """ The constructor. """
         self.matches: List = [ ]
-        pass
 
     def __str___( self ):
         """ Returns a string representation of the registry. """
-        return "The match register doesn't have a string method yet."
+        return "The match registry doesn't have a string method yet."
 
     # ---------------- Meta-Accessors ----------------
     # I.e. accessors for lists of matches
 
+    def _getNextMatchNumber( self ) -> int:
+        digest = 0
+        for mtch in self.matches:
+            if mtch.getMatchNumber() > digest:
+                digest = mtch.getMatchNumber
+        return digest + 1
+
     def getActiveMatches( self ) -> List:
         """ Returns a list of matches that have not be finalized. """
-        pass
+        return [ mtch for mtch in self.matches if mtch.isActive() ]
 
     def getCertifiedMatches( self ) -> List:
         """ Returns a list of matches that have been finalized. """
-        pass
+        return [ mtch for mtch in self.matches if mtch.isCertified() ]
 
     def getUncertifiedMatches( self ) -> List:
         """ Returns a list of matches where someone claimed victory, but are uncertified. """
-        pass
+        return [ mtch for mtch in self.matches if mtch.isUncertified() ]
+
+    def getByeMatches( self ) -> List:
+        """ Returns a list of matches that are byes. """
+        return [ mtch for mtch in self.matches if mtch.isBye() ]
 
     # ---------------- Match Management ----------------
 
     def createMatch( self ) -> match:
         """ Creates a new match, stores it, and returns a reference to it. """
-        pass
+        digest = match( self._getNextMatchNumber() )
+        self.matches.append( digest )
+        return digest
 
-    def addMatch( self, mtch: match ) -> None:
-        """ Adds a player to the list of players. """
-        return
+    def _getMatchViaUUID( self, ID: str ) -> match:
+        """ Find the match with the same UUID or returns None. """
+        digest = None
+        for mtch in self.matches:
+            if ID == mtch.getUUID():
+                digest = mtch
+                break
+        return digest
+
+    def _getMatchViaUUID( self, num: str ) -> match:
+        """ Find the match with the same match number or returns None. """
+        digest = None
+        for mtch in self.matches:
+            if num == mtch.getMatchNumber():
+                digest = mtch
+                break
+        return digest
 
     def getMatch( self, ident ) -> match:
-        """ Gets a player for the list of players or returns None. """
-        pass
+        """ Gets a match from the list of matches or returns None. """
+        if isUUID( ident ):
+            return self._getMatchViaUUID( ident )
+        return self._getMatchViaMatchNumber( ident )
 
     # ---------------- Saving and Loading ----------------
 

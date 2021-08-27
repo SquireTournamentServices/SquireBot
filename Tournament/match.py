@@ -31,11 +31,11 @@ class MatchResult(IntEnum):
 class match:
     """ This class stores information about a match, such as its players, winner, and status. """`
     # The class constructor
-    def __init__( self, a_players: List[str] = None ):
+    def __init__( self, matchNumber: int, a_players: List[str] = None ):
         self.uuid = str( uuid.uuid4() )
         self.saveLocation = ""
 
-        self.matchNumber = -1
+        self.matchNumber = matchNumber
 
         self.activePlayers    = [ ] if a_players is None else a_players
         self.droppedPlayers   = [ ]
@@ -161,6 +161,10 @@ class match:
         if type(self.role) == discord.Role:
             return self.role.mention
         return f'Match #{self.matchNumber}'
+
+    def getMatchNumber( self ) -> int:
+        """ Returns the match number for the match. """
+        return self.matchNumber
 
     def giveTimeExtension( self, t: int ) -> None:
         """ Adds a time extension to the match. """
