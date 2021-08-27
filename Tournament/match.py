@@ -77,8 +77,9 @@ class match:
         return self.uuid < other.uuid
 
     def __eq__( self, other ):
-        if type(other) != match:
+        if isinstance( other, match ):
             return False
+        # TODO: This needs to be include more of the member values.
         return self.uuid == other.uuid and self.matchNumber == other.matchNumber
 
     def __str__( self ):
@@ -483,6 +484,5 @@ class match:
             self.droppedPlayers.append( fromXML( plyr.text ) )
         for plyr in matchRoot.find("confirmedPlayers"):
             self.confirmedPlayers.append( fromXML( plyr.text ) )
-
 
 from .player import player
