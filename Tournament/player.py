@@ -2,11 +2,21 @@ import xml.etree.ElementTree as ET
 import uuid
 
 from typing import List
+from enum import IntEnum, auto
 
 from .exceptions import *
 from .utils import *
 from .deck import *
 from .cardDB import *
+
+
+class PlayerStatus( IntEnum ):
+    """ This enum contains the possible registeration states of the player. """
+    SIGNED_UP = auto()
+    CHECKED_IN = auto()
+    DROPPED = auto()
+    CUT = auto()
+    UNKNOWN = auto()
 
 
 """
@@ -35,14 +45,14 @@ from .cardDB import *
 
 class player:
     # The class constructor
-    def __init__( self, name: str = "", discordID: str = None ):
+    def __init__( self, name: str, discordID: str = None ):
         self.uuid = str( uuid.uuid4() )
         self.saveLocation = f'{name}.xml'
         self.discordUser = None
         self.discordID = discordID
         self.name = name
         self.triceName = ""
-        self.status  = "active"
+        self.status = PlayerStatus.SIGNED_UP
         self.decks   = { }
         self.matches = [ ]
         self.opponents: List = [ ]
@@ -52,14 +62,14 @@ class player:
         digest  = f'Player Name: {self.name}\n'
         digest += f'Disord Nickname: {self.getMention()}\n'
         digest += f'Cockatrice Username: {self.triceName}\n'
-        digest += f'Status: {self.status}\n'
+        digest += f'Status: {self._getStatusString()}\n'
         digest += f'Decks:{newLine}{newLine.join( [ str(self.decks[ident]) for ident in self.decks ] )}\n'
         digest += f'Matches:{newLine}{newLine.join( [ str(mtch) for mtch in self.matches ] )}'
         return digest
 
     def __lt__(self, other):
         return self.uuid < other.uuid
-    
+
     def __eq__( self, other: 'player' ):
         if type(other) != player:
             return False
@@ -77,13 +87,26 @@ class player:
             digest &= Intersection( [ i == j for i, j in zip(self.matches, other.matches) ] )
         return digest
 
+    def _getStatusString( self ) -> str:
+        """ Returns a string containing status information. """
+        if self.status == Player.SIGNED_UP:
+            return "Signed Up"
+        elif self.status == Player.CHECKED_IN:
+            return "Checked In"
+        elif self.status == Player.DROPPED:
+            return "Dropped"
+        elif self.status == Player.CUT:
+            return "Cut"
+        else:
+            return "Unknown Status"
+
     def isActive( self ) -> bool:
         """ Determines if the player is active or not. """
-        return self.status == "active"
+        return self.status == PlayerStatus.SIGNED_UP or self.status == PlayerStatus.CHECKED_IN
 
     def activate( self ) -> None:
         """ Sets the player's status to 'active'. """
-        self.status = "active"
+        self.status = PlayerStatus.SIGNED_UP
 
     def isDummy( self ) -> bool:
         """ Determines if the player's discord user object exists or is None. """
@@ -112,6 +135,10 @@ class player:
 
     def getDiscordID( self ) -> int:
         return self.discordID
+
+    def getName( self ) -> str:
+        """ Returns the name of the player. """
+        return self.name
 
     def getDisplayName( self ) -> str:
         if self.isDummy( ):
@@ -192,10 +219,6 @@ class player:
     def addDiscordUser( self, a_discordUser ) -> None:
         self.discordUser = a_discordUser
 
-    # Updates the status of the player
-    def updateStatus( self, a_status: str ) -> None:
-        self.status = a_status
-
     def hasOpenMatch( self ) -> bool:
         digest = False
         for mtch in self.matches:
@@ -261,7 +284,7 @@ class player:
         return self.matches[index].matchNumber
 
     async def drop( self ) -> None:
-        self.status = "dropped"
+        self.status = PlayerStatus.DROPPED
         digest = []
         for match in self.matches:
             if match.status != "certified":
@@ -373,7 +396,7 @@ class player:
         digest += f'\t<name>{self.name}</name>\n'
         digest += f'\t<triceName>{self.triceName}</triceName>\n'
         digest += f'\t<discord id="{self.getDiscordID()}"/>\n'
-        digest += f'\t<status>{self.status}</status>\n'
+        digest += f'\t<status>{self.status.name}</status>\n'
         for ident in self.decks:
             digest += self.decks[ident].exportXMLString( '\t' )
         digest += '</player>'
@@ -394,7 +417,7 @@ class player:
             self.discordID = None
         else:
             self.discordID = int( self.discordID )
-        self.status = fromXML(xmlTree.getroot().find( "status" ).text)
+        self.status = PlayerStatus[fromXML(xmlTree.getroot().find( "status" ).text)]
         for deckTag in xmlTree.getroot().findall('deck'):
             self.decks[deckTag.attrib['ident']] = deck()
             self.decks[deckTag.attrib['ident']].importFromETree( deckTag )

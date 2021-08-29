@@ -70,7 +70,7 @@ class MatchRegistry:
                 break
         return digest
 
-    def _getMatchViaUUID( self, num: str ) -> match:
+    def _getMatchViaMatchNumber( self, num: str ) -> match:
         """ Find the match with the same match number or returns None. """
         digest = None
         for mtch in self.matches:
@@ -94,7 +94,7 @@ class MatchRegistry:
 
     def loadMatches( self, location: str ) -> None:
         """ Given a directory, saves the match files in that directory. """
-        matchFiles = [ f'{location}/{f}' for f in os.listdir(dirName) if os.path.isfile( f'{dirName}/{f}' ) ]
+        matchFiles = [ f'{location}/{f}' for f in os.listdir(location) if os.path.isfile( f'{location}/{f}' ) ]
         for matchFile in matchFiles:
             newMatch = match( -1 )
             newMatch.saveLocation = matchFile
