@@ -9,14 +9,19 @@ sys.path.insert( 0, projectBaseDir )
 from Tournament import *
 
 
-tourn = tournamentSelector( "PWPAugust21/tournamentType.xml", "PWPAugust21", "PWP" )
-tourn.loadTournament( "PWPAugust21" )
+tournDir = sys.argv[1]
+
+if tournDir[-1] == "/":
+    del tournDir[-1]
+
+tourn = tournamentSelector( f'{tournDir}/tournamentType.xml', f'{tournDir}', "PWP" )
+tourn.loadTournament( f'{tournDir}' )
 print( tourn.players )
 
 
 decks = [ ]
 
-with open( "PWP_August21_PlayerData.csv", "w" ) as output:
+with open( f'{tournDir}_PlayerData.csv', "w" ) as output:
     activePlayers = [ plyr for plyr in tourn.players.values() if plyr.isActive() ]
     output.write( ", ".join( [ plyr.name for plyr in activePlayers ] ) )
     output.write( "\n" )
@@ -39,7 +44,7 @@ with open( "PWP_August21_PlayerData.csv", "w" ) as output:
         output.write( ", ".join( [ d[i] for d in decks ] ) )
         output.write( "\n" )
 
-with open( "PWP_August21_MatchData.csv", "w" ) as output:
+with open( f'{tournDir}_MatchData.csv', "w" ) as output:
     output.write( "Match Number:, Winner:, Player #1, Player #2, Player #3:, Player #4:\n" )
     for mtch in tourn.matches:
         digest  = f'{mtch.matchNumber}, '

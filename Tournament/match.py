@@ -29,7 +29,7 @@ class MatchResult(IntEnum):
 
 
 class match:
-    """ This class stores information about a match, such as its players, winner, and status. """`
+    """ This class stores information about a match, such as its players, winner, and status. """
     # The class constructor
     def __init__( self, matchNumber: int ):
         self.uuid = str( uuid.uuid4() )
