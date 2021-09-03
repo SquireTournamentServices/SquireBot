@@ -913,8 +913,9 @@ class tournament:
             newMatch.role  = matchRole
             newMatch.timer = threading.Thread( target=self._matchTimer, args=(newMatch,) )
 
-            message = f'\n{matchRole.mention} of {self.name}, you have been paired. A voice channel has been created for you. Below is information about your opponents.\n'
+            message = f'\n{matchRole.mention} of {self.name}, you have been paired.\n'
             embed   = discord.Embed( )
+            embed.add_field(name = "Voice Channel", value = f"<#{newMatch.VC.id}>", inline=False)
 
             if self.triceBotEnabled:
                 #This causes the replay to get saved into a folder
@@ -956,15 +957,11 @@ class tournament:
 
                     if self.player_deck_verification:
                         newMatch.playerDeckVerification = True
-
-                    message += f'A cockatrice game was automatically made for you it is called {game_name}'
-                    message += f' and has a password of "`{game_password}`"\n'
-
-                    #TODO: move replay download link? (fixme)
-                    message += f'Replay download link {replay_download_link} (available on game end).\n'
+                    
+                    embed.add_field(name="Tricebot", value=f"Game Name: `{game_name}`\nGame Password: `{game_password}`\nGame Status: {replay_download_link}", inline=False)
                 else:
                     #Game was not made due to an error with tricebot
-                    message += f"A cockatrice game was not automatically made for you. The status of tricebot can be found here: {EXTERN_URL}/status.\n"
+                    embed.add_field(name="Tricebot", value=f"An error occurred whilst making the game.\nThe status of tricebot can be found here: {EXTERN_URL}/status.", inline=False)
 
         for plyr in plyrs:
             # TODO: This should be unready player
