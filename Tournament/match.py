@@ -12,7 +12,7 @@ from .utils import *
 
 class MatchStatus(IntEnum):
     """ This enum contains the possible statuses of a match. """
-    ACTIVE = auto()
+    OPEN = auto()
     UNCERT = auto()
     CERTIFIED = auto()
     DEAD   = auto()
@@ -49,7 +49,7 @@ class match:
         self.VC     = None
         self.VC_ID  = None
 
-        self.status = MatchStatus.ACTIVE
+        self.status = MatchStatus.OPEN
         self.result = MatchResult.NONE
         self.winner = None
 
@@ -75,7 +75,7 @@ class match:
         return self.uuid < other.uuid
 
     def __eq__( self, other ):
-        if isinstance( other, match ):
+        if other is match:
             return False
         # TODO: This needs to be include more of the member values.
         return self.uuid == other.uuid and self.matchNumber == other.matchNumber
@@ -86,14 +86,14 @@ class match:
         digest += f'Active players: {", ".join([ p.getMention() for p in self.activePlayers ])}\n'
         digest += f'Dropped players: {", ".join([ p.getMention() for p in self.droppedPlayers ])}\n'
         digest += f'ConfirmedPlayers: {", ".join([ p.getMention() for p in self.confirmedPlayers ])}\n'
-        digest += f'Match status: {self._getStatusString()}\n'
-        digest += f'Match winner: {self._getWinnerString()}'
+        digest += f'Match status: {self.getStatusString()}\n'
+        digest += f'Match winner: {self.getWinnerString()}'
         return digest
 
-    def _getStatusString( self ) -> str:
+    def getStatusString( self ) -> str:
         """ Returns a string containing information about the status of the match. """
-        if self.status == MatchStatus.ACTIVE:
-            return "Active"
+        if self.status == MatchStatus.OPEN:
+            return "Open"
         elif self.status == MatchStatus.UNCERT:
             return "Uncertified"
         elif self.status == MatchStatus.CERTIFIED:
@@ -105,15 +105,15 @@ class match:
         else:
             return "Unknown"
 
-    def _getWinnerString( self ) -> str:
+    def getWinnerString( self ) -> str:
         """ Returns a string containing information about the outcome of the match. """
-        if self.result == MatchStatus.NONE:
+        if self.result == MatchResult.NONE:
             return "None"
-        elif self.result == MatchStatus.WINNER:
+        elif self.result == MatchResult.WINNER:
             return self.winner.getMention()
-        elif self.result == MatchStatus.BYE:
+        elif self.result == MatchResult.BYE:
             return "This match was a bye."
-        elif self.result == MatchStatus.DRAW:
+        elif self.result == MatchResult.DRAW:
             return "This match was a draw."
         else:
             # Should never happen
@@ -121,7 +121,7 @@ class match:
 
     def isOpen( self ) -> bool:
         """ Determines if the match is active. """
-        return self.status == MatchStatus.ACTIVE
+        return self.status == MatchStatus.OPEN
 
     def isUncertified( self ) -> bool:
         """ Determines if the match is uncertified. """
@@ -177,6 +177,7 @@ class match:
         if timeLeft + t >  60 and self.sentOneMinWarning:
             self.sentOneMinWarning = False
         self.timeExtension += t
+        self.saveXML()
 
     def addPlayer( self, plyr: "player" ) -> None:
         """ Adds a player to the match if no result has been recorded and they aren't already a player. """
@@ -204,6 +205,7 @@ class match:
         if isinstance( self.role, discord.Role ):
             await self.role.delete()
 
+        self.players          = [ ]
         self.activePlayers    = [ ]
         self.droppedPlayers   = [ ]
         self.confirmedPlayers = [ ]
@@ -218,6 +220,7 @@ class match:
         self.result = MatchResult.DEAD
         self.endTime = getTime( )
         self.stopTimer = True
+        self.saveXML( )
 
     async def confirmMatch( self ) -> bool:
         """ If all conditions are met, the match becomes certified. """

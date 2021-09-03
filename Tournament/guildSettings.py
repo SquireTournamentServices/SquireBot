@@ -282,7 +282,7 @@ class guildSettings:
     def getPlayerTournaments( self, user: discord.Member ) -> Dict:
         digest: list = [ ]
         for tourn in self.tournaments:
-            plyr = tourn.getPlayer( str(user.id) )
+            plyr = tourn.getPlayer( user.id )
             if plyr is None:
                 continue
             if not plyr.isActive( ):

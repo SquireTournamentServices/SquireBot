@@ -14,6 +14,7 @@ from typing import List, Tuple
 from .utils import *
 from .tournament import tournament
 from .commandResponse import commandResponse
+from .playerRegistry import PlayerRegistry
 from .player import player
 from .match import match
 from .deck import deck
@@ -71,7 +72,7 @@ class swissTournament(tournament):
             self.pairingSystem.queue = [ ]
             standings = [ ]
             if len(self.matches) == 0:
-                standings = [ p for p in self.players if p.isActive() ]
+                standings = self.playerReg.getActivePlayers()
             else:
                 standings = [ p for p in self.getStandings()[1] ]
             for plyr in standings:

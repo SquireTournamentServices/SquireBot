@@ -62,16 +62,27 @@ class player:
         digest  = f'Player Name: {self.name}\n'
         digest += f'Disord Nickname: {self.getMention()}\n'
         digest += f'Cockatrice Username: {self.triceName}\n'
-        digest += f'Status: {self._getStatusString()}\n'
+        digest += f'Status: {self.getStatusString()}\n'
         digest += f'Decks:{newLine}{newLine.join( [ str(self.decks[ident]) for ident in self.decks ] )}\n'
         digest += f'Matches:{newLine}{newLine.join( [ str(mtch) for mtch in self.matches ] )}'
+        return digest
+
+    def __repr__( self ):
+        """ Repr method for debugging. """
+        digest  = str( self.uuid ) + "\n"
+        digest += str( self.discordUser ) + "\n"
+        digest += str( self.discordID ) + "\n"
+        digest += str( self.name ) + "\n"
+        digest += str( self.triceName ) + "\n"
+        digest += str( self.status ) + "\n"
+        digest += str( self.decks ) + "\n"
         return digest
 
     def __lt__(self, other):
         return self.uuid < other.uuid
 
     def __eq__( self, other: 'player' ):
-        if type(other) != player:
+        if other is player:
             return False
         digest  = ( self.uuid == other.uuid )
         digest &= ( self.status == other.status )
@@ -81,21 +92,20 @@ class player:
         for name, deck in self.decks.items():
             digest &= ( name in other.decks )
             digest &= ( deck == other.getDeck(name) )
-        digest &= ( self.opponents == other.opponents )
         digest &= ( len(self.matches) == len(other.matches) )
         if digest:
             digest &= Intersection( [ i == j for i, j in zip(self.matches, other.matches) ] )
         return digest
 
-    def _getStatusString( self ) -> str:
+    def getStatusString( self ) -> str:
         """ Returns a string containing status information. """
-        if self.status == Player.SIGNED_UP:
+        if self.status == PlayerStatus.SIGNED_UP:
             return "Signed Up"
-        elif self.status == Player.CHECKED_IN:
+        elif self.status == PlayerStatus.CHECKED_IN:
             return "Checked In"
-        elif self.status == Player.DROPPED:
+        elif self.status == PlayerStatus.DROPPED:
             return "Dropped"
-        elif self.status == Player.CUT:
+        elif self.status == PlayerStatus.CUT:
             return "Cut"
         else:
             return "Unknown Status"
@@ -133,8 +143,12 @@ class player:
             return self.name
         return self.discordUser.mention
 
-    def getDiscordID( self ) -> int:
-        return self.discordID
+    def getDiscordID( self ) -> str:
+        if not str(self.discordID) in ["", "None"]:
+            return str(self.discordID)
+        elif self.discordUser is None:
+            return None
+        return str(self.discordUser.id)
 
     def getName( self ) -> str:
         """ Returns the name of the player. """
@@ -250,9 +264,7 @@ class player:
 
     def addMatch( self, a_mtch: "match" ) -> None:
         self.matches.append( a_mtch )
-        for plyr in a_mtch.activePlayers:
-            self.addOpponent( plyr )
-        for plyr in a_mtch.droppedPlayers:
+        for plyr in a_mtch.players:
             self.addOpponent( plyr )
 
     def getMatch( self, a_matchNum: int ) -> "match":
@@ -408,6 +420,7 @@ class player:
         xmlTree = ET.parse( a_filename )
         self.saveLocation = a_filename
         self.uuid = fromXML(xmlTree.getroot().find( 'uuid' ).text)
+        self.status = PlayerStatus[fromXML(xmlTree.getroot().find( "status" ).text)]
         self.name = fromXML(xmlTree.getroot().find( 'name' ).text)
         self.triceName = fromXML(xmlTree.getroot().find( 'triceName' ).text)
         if self.triceName is None:
@@ -417,7 +430,6 @@ class player:
             self.discordID = None
         else:
             self.discordID = int( self.discordID )
-        self.status = PlayerStatus[fromXML(xmlTree.getroot().find( "status" ).text)]
         for deckTag in xmlTree.getroot().findall('deck'):
             self.decks[deckTag.attrib['ident']] = deck()
             self.decks[deckTag.attrib['ident']].importFromETree( deckTag )

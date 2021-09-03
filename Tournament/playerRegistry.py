@@ -1,11 +1,14 @@
 """ This module contains the PlayerRegistry class which manages the list of players for the tournament. """
 
+import os
+import sys
+
 import discord
 
 from typing import List
 
-from player import player
-from utils import *
+from .player import player
+from .utils import *
 
 
 class PlayerRegistry:
@@ -13,7 +16,7 @@ class PlayerRegistry:
 
     def __init__( self ):
         """ The constructor. """
-        self.player: List = [ ]
+        self.players: List = [ ]
         # TODO: Properties that get checked to see if a player is fully registered will go here
 
     def __str___( self ):
@@ -24,6 +27,9 @@ class PlayerRegistry:
 
     def getPlayer( self, ident: str ) -> player:
         """ Gets a player from the list of players or returns None. """
+        if isinstance( ident, int ):
+            ident = str(ident)
+
         if ident == "" or ( not isinstance(ident, str) ):
             return None
 
@@ -38,7 +44,7 @@ class PlayerRegistry:
         """ Gets a player from the list of players based on that player's name. """
         digest = None
         for plyr in self.players:
-            if ID == plyr.getName():
+            if name == plyr.getName():
                 digest = plyr
                 break
         return digest
@@ -63,7 +69,11 @@ class PlayerRegistry:
 
     # ---------------- Meta-Accessors ----------------
 
-    def getCurrentPlayers( self ) -> List:
+    def getPlayers( self ) -> List:
+        """ Returns a copy of the full list of players. """
+        return [ plyr for plyr in self.players ]
+
+    def getActivePlayers( self ) -> List:
         """ Returns a list of players that have not dropped or been cut. """
         return [ plyr for plyr in self.players if plyr.isActive() ]
 

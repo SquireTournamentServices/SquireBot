@@ -1,12 +1,15 @@
 """ This module contains the MatchRegistry class which manages the list of matches for the tournament. """
 
+import os
+import sys
+
 from typing import List
 
 import discord
 
-from match import match
-from playerRegistry import PlayerRegistry
-from utils import *
+from .match import match
+from .playerRegistry import PlayerRegistry
+from .utils import *
 
 
 class MatchRegistry:
@@ -26,40 +29,6 @@ class MatchRegistry:
     def setPlayerRegistry( self, plyrReg: PlayerRegistry ) -> None:
         """ Setter for the player registry. """
         self.playerReg = plyrReg
-
-    # ---------------- Meta-Accessors ----------------
-    # I.e. accessors for lists of matches
-
-    def _getNextMatchNumber( self ) -> int:
-        digest = 0
-        for mtch in self.matches:
-            if mtch.getMatchNumber() > digest:
-                digest = mtch.getMatchNumber
-        return digest + 1
-
-    def getActiveMatches( self ) -> List:
-        """ Returns a list of matches that have not be finalized. """
-        return [ mtch for mtch in self.matches if mtch.isActive() ]
-
-    def getCertifiedMatches( self ) -> List:
-        """ Returns a list of matches that have been finalized. """
-        return [ mtch for mtch in self.matches if mtch.isCertified() ]
-
-    def getUncertifiedMatches( self ) -> List:
-        """ Returns a list of matches where someone claimed victory, but are uncertified. """
-        return [ mtch for mtch in self.matches if mtch.isUncertified() ]
-
-    def getByeMatches( self ) -> List:
-        """ Returns a list of matches that are byes. """
-        return [ mtch for mtch in self.matches if mtch.isBye() ]
-
-    # ---------------- Match Management ----------------
-
-    def createMatch( self ) -> match:
-        """ Creates a new match, stores it, and returns a reference to it. """
-        digest = match( self._getNextMatchNumber() )
-        self.matches.append( digest )
-        return digest
 
     def _getMatchViaUUID( self, ID: str ) -> match:
         """ Find the match with the same UUID or returns None. """
@@ -85,6 +54,48 @@ class MatchRegistry:
             return self._getMatchViaUUID( ident )
         return self._getMatchViaMatchNumber( ident )
 
+    # ---------------- Meta-Accessors ----------------
+    # I.e. accessors for lists of matches
+
+    def _getNextMatchNumber( self ) -> int:
+        digest = 0
+        for mtch in self.matches:
+            if mtch.getMatchNumber() > digest:
+                digest = mtch.getMatchNumber()
+        return digest + 1
+
+    def getMatchCount( self ) -> int:
+        """ Returns the number of matches. """
+        return len(self.matches)
+
+    def getMatches( self ) -> List:
+        """ Returns a copy of the full list of matches. """
+        return [ mtch for mtch in self.matches ]
+
+    def getOpenMatches( self ) -> List:
+        """ Returns a list of matches that have not be finalized. """
+        return [ mtch for mtch in self.matches if mtch.isOpen() ]
+
+    def getCertifiedMatches( self ) -> List:
+        """ Returns a list of matches that have been finalized. """
+        return [ mtch for mtch in self.matches if mtch.isCertified() ]
+
+    def getUncertifiedMatches( self ) -> List:
+        """ Returns a list of matches where someone claimed victory, but are uncertified. """
+        return [ mtch for mtch in self.matches if mtch.isUncertified() ]
+
+    def getByeMatches( self ) -> List:
+        """ Returns a list of matches that are byes. """
+        return [ mtch for mtch in self.matches if mtch.isBye() ]
+
+    # ---------------- Match Management ----------------
+
+    def createMatch( self ) -> match:
+        """ Creates a new match, stores it, and returns a reference to it. """
+        digest = match( self._getNextMatchNumber() )
+        self.matches.append( digest )
+        return digest
+
     # ---------------- Saving and Loading ----------------
 
     def saveMatches( self, location: str ) -> None:
@@ -99,10 +110,11 @@ class MatchRegistry:
             newMatch = match( -1 )
             newMatch.saveLocation = matchFile
             newMatch.loadXML( matchFile )
+            newMatch.players = [ self.playerReg.getPlayer(plyr) for plyr in newMatch.players ]
             newMatch.activePlayers = [ self.playerReg.getPlayer(plyr) for plyr in newMatch.activePlayers ]
             newMatch.droppedPlayers = [ self.playerReg.getPlayer(plyr) for plyr in newMatch.droppedPlayers ]
             newMatch.confirmedPlayers = [ self.playerReg.getPlayer(plyr) for plyr in newMatch.confirmedPlayers ]
-            winner = self.playerReg.getPlayer( newMatch.winner )
+            newMatch.winner = self.playerReg.getPlayer( newMatch.winner )
             self.matches.append( newMatch )
             for plyr in newMatch.players:
                 plyr.addMatch( newMatch )

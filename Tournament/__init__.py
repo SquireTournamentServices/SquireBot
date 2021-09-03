@@ -2,7 +2,9 @@ from .tricebot import *
 
 from .commandResponse import *
 from .deck import *
+from .playerRegistry import *
 from .player import *
+from .matchRegistry import *
 from .match import *
 from .tournament import *
 from .fluidRoundTournament import *

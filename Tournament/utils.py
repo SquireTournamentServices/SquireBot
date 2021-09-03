@@ -131,8 +131,14 @@ def generatePropsDict( *args ) -> Dict:
 
 PROBLEM_PATH_CHARS = [ '"', "'", "<", ">", "&", "~", "/" ]
 
+
+def isUUID( ID: str ) -> bool:
+    """ Returns if a string is a UUID. """
+    return not ( re.match( "^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$", ID ) is None )
+
 def isPathSafeName(name: str) -> bool:
     """ Checks to see if a name can be a file/dir """
+    digest = False
     for char in PROBLEM_PATH_CHARS:
         digest |= (char in name)
     return digest
