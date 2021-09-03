@@ -100,6 +100,7 @@ class tournament:
         if len(props) != 0:
             self.setProperties(props, save=False)
 
+
     def getSaveLocation( self ) -> str:
         digest: str = ""
         if self.isDead():
