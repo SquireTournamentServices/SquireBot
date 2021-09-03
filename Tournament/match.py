@@ -48,6 +48,8 @@ class match:
         self.roleID = None
         self.VC     = None
         self.VC_ID  = None
+        self.textChannel = ""
+        self.textChannel_ID = ""
 
         self.status = MatchStatus.OPEN
         self.result = MatchResult.NONE
@@ -193,6 +195,9 @@ class match:
         """ Adds a discord role to the match to store. """
         self.role = a_role
 
+    def addmatchTextChannel( self, a_TC: discord.TextChannel ) -> None:
+        self.textChannel = a_TC
+
     def addMatchVC( self, a_VC: discord.VoiceChannel ) -> None:
         """ Adds a discord voice channel to the match to store. """
         self.VC = a_VC
@@ -214,6 +219,8 @@ class match:
         self.roleID = None
         self.VC     = None
         self.VC_ID  = None
+        self.textChannel = ""
+        self.textChannel_ID = ""
 
         self.winner = None
         self.status = MatchStatus.DEAD
@@ -436,7 +443,7 @@ class match:
         digest += self._getInnerXMLString( )
         digest += '</match>'
         with open( a_filename, "w+" ) as savefile:
-            savefile.write( toSafeXML(digest) )
+            savefile.write( digest )
 
     def loadXML( self, a_filename: str ) -> None:
         """ Loads the match data from an XML file. """
@@ -450,6 +457,9 @@ class match:
         self.VC_ID = matchRoot.attrib["VC_ID"]
         if self.VC_ID != "":
             self.VC_ID = int( fromXML( self.VC_ID ) )
+        self.textChannel_ID = matchRoot.attrib["text_channel_ID"]
+        if self.textChannel_ID != "":
+            self.textChannel_ID = int( fromXML( self.textChannel_ID ) )
         self.matchNumber   = int( fromXML( matchRoot.find( "number" ).text ) )
         self.timeExtension = int( fromXML( matchRoot.find("timeExtension").text ) )
         self.matchLength   = int( fromXML( matchRoot.find( "matchLength" ).text ) )
