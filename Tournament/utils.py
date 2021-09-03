@@ -127,11 +127,11 @@ def generatePropsDict( *args ) -> Dict:
     return digest
 
 
-problemChars = { '"': "&quot",
-                 "'": "&apos",
-                 "<": "&lt",
-                 ">": "&gt",
-                 "&": "&amp"
+problemChars = { '"': "&quot;",
+                 "'": "&apos;",
+                 "<": "&lt;",
+                 ">": "&gt;",
+                 "&": "&amp;"
                }
 
 def isPathSafeName(name: str) -> bool:
@@ -155,13 +155,13 @@ def toSafeXML( inputXML: str ) -> str:
         return "" # Check for None
     digest = str(inputXML)
     for char in problemChars:
-        digest.replace(char, problemChars[char])
+        digest = digest.replace(char, problemChars[char])
     return digest
 
 def fromXML( inputXML: str ) -> str:
     """ Expands XML escape chars (because the XML library doesn't) """
     digest = str(inputXML)
     for char in problemChars:
-        digest.replace(problemChars[char], char)
+        digest = digest.replace(problemChars[char], char)
     return digest
 

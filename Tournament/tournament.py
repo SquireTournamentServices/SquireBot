@@ -48,7 +48,7 @@ class tournament:
                          "match-size", "pairings-channel", "standings-channel",
                          "tricebot-enabled", "spectators-allowed", "spectators-need-password",
                          "spectators-can-chat", "spectators-can-see-hands",
-                         "only-registered", "player-deck-verification" ]
+                         "only-registered", "player-deck-verification", "create-text-channel" ]
     # The tournament base class is not meant to be constructed, but this
     # constructor acts as a guide for the minimum a constructor needs
     def __init__( self, name: str, hostGuildName: str, props: dict = { } ):
@@ -93,6 +93,7 @@ class tournament:
         self.spectators_can_see_hands = False
         self.only_registered = False
         self.player_deck_verification = False
+        self.create_text_channel = False
 
         if len(props) != 0:
             self.setProperties(props)
@@ -151,6 +152,8 @@ class tournament:
                 mtch.addMatchRole( guild.get_role( mtch.roleID ) )
             if mtch.VC_ID != "":
                 mtch.addMatchVC( guild.get_channel( mtch.VC_ID ) )
+            if mtch.textChannel_ID != "":
+                mtch.addmatchTextChannel( guild.get_channel(mtch.textChannel_ID) )
 
     async def updateInfoMessage( self ) -> None:
         if self.infoMessage is None:
@@ -284,6 +287,12 @@ class tournament:
                     digest["successes"][prop] = str_to_bool(props[prop])
                 else:
                     digest["failures"][prop] = props[prop]
+            elif prop == "create-text-channel":
+                # This needs to be a bool
+                if not ( str_to_bool(props[prop]) is None ):
+                    digest["successes"][prop] = str_to_bool(props[prop])
+                else:
+                    digest["failures"][prop] = props[prop]
             else:
                 digest["undefined"][prop] = props[prop]
 
@@ -303,6 +312,7 @@ class tournament:
         digest["spectators-can-see-hands"] = self.spectators_can_see_hands if self.spectators_can_see_hands else None
         digest["only-registered"] = self.only_registered if self.only_registered else None
         digest["player-deck-verification"] = self.player_deck_verification if self.player_deck_verification else None
+        digest["create-text-channel"] = self.create_text_channel if self.create_text_channel else None
         return digest
 
     # Sets properties that can be changed directly by users
@@ -340,6 +350,8 @@ class tournament:
                 self.only_registered = filteredProps["successes"][prop]
             elif prop == "player-deck-verification":
                 self.player_deck_verification = filteredProps["successes"][prop]
+            elif prop == "create-text-channel":
+                self.create_text_channel = filteredProps["successes"][prop]
 
         if len(filteredProps["successes"]) == 0:
             digest += "No properties were successfully updated."
@@ -605,6 +617,11 @@ class tournament:
             if type( match.VC ) == discord.VoiceChannel:
                 try:
                     await match.VC.delete( )
+                except:
+                    pass
+            if type( match.textChannel ) == discord.TextChannel:
+                try:
+                    await match.textChannel.delete( )
                 except:
                     pass
             if type( match.role ) == discord.Role:
@@ -915,7 +932,11 @@ class tournament:
 
             message = f'\n{matchRole.mention} of {self.name}, you have been paired.\n'
             embed   = discord.Embed( )
-            embed.add_field(name = "Voice Channel", value = f"<#{newMatch.VC.id}>", inline=False)
+            embed.add_field(name = "Voice Channel", value = f"<#{newMatch.VC.id}>", inline = self.create_text_channel)
+            
+            if self.create_text_channel:
+                newMatch.textChannel = await matchCategory.create_text_channel( name=game_name, overwrites=overwrites )
+                embed.add_field(name = "Text Channel", value = f"<#{newMatch.textChannel.id}>", inline = False)
 
             if self.triceBotEnabled:
                 #This causes the replay to get saved into a folder
@@ -1074,13 +1095,13 @@ class tournament:
 
     def _getInnerXMLString( self ) -> str:
         digest  = f'\t<uuid>{self.uuid}</uuid>'
-        digest += f'\t<name>{self.name}</name>\n'
+        digest += f'\t<name>{toSafeXML(self.name)}</name>\n'
         digest += f'\t<guild id="{self.guild.id if type(self.guild) == discord.Guild else str()}">{self.hostGuildName}</guild>\n'
         digest += f'\t<role id="{self.role.id if type(self.role) == discord.Role else str()}"/>\n'
         digest += f'\t<pairingsChannel id="{self.pairingsChannel.id}"/>\n'
         if not self.infoMessage is None:
             digest += f'\t<infoMessage channel="{self.infoMessage.channel.id}" id="{self.infoMessage.id}"/>\n'
-        digest += f'\t<format>{self.format}</format>\n'
+        digest += f'\t<format>{toSafeXML(self.format)}</format>\n'
         digest += f'\t<regOpen>{self.regOpen}</regOpen>\n'
         digest += f'\t<status started="{self.tournStarted}" ended="{self.tournEnded}" canceled="{self.tournCancel}"/>\n'
         digest += f'\t<deckCount>{self.deckCount}</deckCount>\n'
@@ -1093,6 +1114,7 @@ class tournament:
         digest += f'\t<spectatorsCanSeeHands>{self.spectators_can_see_hands}</spectatorsCanSeeHands>\n'
         digest += f'\t<onlyRegistered>{self.only_registered}</onlyRegistered>\n'
         digest += f'\t<playerDeckVerification>{self.player_deck_verification}</playerDeckVerification>\n'
+        digest += f'\t<createTextChannel>{self.create_text_channel}</createTextChannel>\n'
         return digest
 
     def saveOverview( self, filename: str = "" ) -> None:
@@ -1101,7 +1123,7 @@ class tournament:
         with open( filename, 'w' ) as xmlfile:
             xmlfile.write( "<?xml version='1.0'?>\n" )
             xmlfile.write( "<tournament>\n" )
-            xmlfile.write( toSafeXML(self._getInnerXMLString()) )
+            xmlfile.write( self._getInnerXMLString() )
             xmlfile.write( "</tournament>" )
 
     def savePlayers( self, dirName: str = "" ) -> None:
@@ -1157,6 +1179,7 @@ class tournament:
         self.spectators_can_see_hands = str_to_bool( fromXML(tournRoot.find( "spectatorsCanSeeHands" ).text ) )
         self.only_registered = str_to_bool( fromXML(tournRoot.find( "onlyRegistered" ).text ) )
         self.player_deck_verification = str_to_bool( fromXML(tournRoot.find( "playerDeckVerification" ).text ) )
+        self.create_text_channel = str_to_bool(  fromXML( tournRoot.find( "createTextChannel" ).text ) )
 
     def loadPlayers( self, dirName: str ) -> None:
         playerFiles = [ f'{dirName}/{f}' for f in os.listdir(dirName) if os.path.isfile( f'{dirName}/{f}' ) ]

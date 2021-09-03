@@ -409,5 +409,6 @@ class guildSettings:
                 self.tournaments.append( tourn )
             except Exception as e:
                 print(f"Error loading {tournDir} ({e})")
+                print(traceback.format_exc())
 
 

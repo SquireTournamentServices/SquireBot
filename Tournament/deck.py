@@ -204,9 +204,9 @@ class deck:
         Since decks are contained in the player object, exporting an xml string is more helpful
         """
         lineStart = f'\n{indent}\t'
-        digest = f'{indent}<deck ident="{self.ident}">'
+        digest = f'{indent}<deck ident="{toSafeXML(self.ident)}">'
         for card in self.cards:
-            digest += f'{lineStart}<card name="{card}"/>'
+            digest += f'{lineStart}<card name="{toSafeXML(card)}"/>'
         digest += f'\n{indent}</deck>\n'
         return digest
 

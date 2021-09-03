@@ -47,6 +47,8 @@ class match:
         self.roleID = ""
         self.VC     = ""
         self.VC_ID  = ""
+        self.textChannel = ""
+        self.textChannel_ID = ""
 
         self.status = "open"
         self.winner = ""
@@ -128,12 +130,17 @@ class match:
     def addMatchRole( self, a_role: discord.Role ) -> None:
         self.role = a_role
 
+    def addmatchTextChannel( self, a_TC: discord.TextChannel ) -> None:
+        self.textChannel = a_TC
+
     def addMatchVC( self, a_VC: discord.VoiceChannel ) -> None:
         self.VC = a_VC
 
     async def killMatch( self ) -> None:
         if type( self.VC ) == discord.VoiceChannel:
             await self.VC.delete()
+        if type( self.textChannel ) == discord.TextChannel:
+            await self.textChannel.delete()
         if type( self.role ) == discord.Role:
             await self.role.delete()
 
@@ -145,6 +152,8 @@ class match:
         self.roleID = ""
         self.VC     = ""
         self.VC_ID  = ""
+        self.textChannel = ""
+        self.textChannel_ID = ""
 
         self.winner = ""
         self.status = "dead"
@@ -299,7 +308,7 @@ class match:
         if a_filename == "":
             a_filename = self.saveLocation
         digest  = "<?xml version='1.0'?>\n"
-        digest += f'<match roleID="{self.role.id if type(self.role) == discord.Role else str()}" VC_ID="{self.VC.id if type(self.VC) == discord.VoiceChannel else str()}">\n'
+        digest += f'<match roleID="{self.role.id if type(self.role) == discord.Role else str()}" VC_ID="{self.VC.id if type(self.VC) == discord.VoiceChannel else str()}" text_channel_ID="{self.textChannel.id if type(self.textChannel) == discord.TextChannel else str()}">\n'
         digest += f'\t<uuid>{self.uuid}</uuid>'
         digest += f'\t<number>{self.matchNumber}</number>\n'
         digest += f'\t<matchLength>{self.matchLength}</matchLength>\n'
@@ -312,7 +321,7 @@ class match:
         digest += f'\t<triceMatch>{self.triceMatch}</triceMatch>\n'
         digest += f'\t<playerDeckVerification>{self.playerDeckVerification}</playerDeckVerification>\n'
         digest += f'\t<gameID>{self.gameID}</gameID>\n'
-        digest += f'\t<replayURL>{self.replayURL}</replayURL>\n'
+        digest += f'\t<replayURL>{toSafeXML(self.replayURL)}</replayURL>\n'
         if isinstance(self.winner, player):
             digest += f'\t<winner name="{self.winner.getUUID()}"/>\n'
         else:
@@ -331,7 +340,7 @@ class match:
         digest += '\t</confirmedPlayers>\n'
         digest += '</match>'
         with open( a_filename, "w+" ) as savefile:
-            savefile.write( toSafeXML(digest) )
+            savefile.write( digest )
 
     # Loads a match from an xml file saved with this class
     def loadXML( self, a_filename: str ) -> None:
@@ -345,6 +354,9 @@ class match:
         self.VC_ID = matchRoot.attrib["VC_ID"]
         if self.VC_ID != "":
             self.VC_ID = int( fromXML( self.VC_ID ) )
+        self.textChannel_ID = matchRoot.attrib["text_channel_ID"]
+        if self.textChannel_ID != "":
+            self.textChannel_ID = int( fromXML( self.textChannel_ID ) )
         self.matchNumber   = int( fromXML( matchRoot.find( "number" ).text ) )
         self.timeExtension = int( fromXML( matchRoot.find("timeExtension").text ) )
         self.matchLength   = int( fromXML( matchRoot.find( "matchLength" ).text ) )
