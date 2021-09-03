@@ -129,7 +129,7 @@ def generatePropsDict( *args ) -> Dict:
     return digest
 
 
-PROBLEM_PATH_CHARS = [ '"', "'", "<", ">", "&", "~", "/" ]
+PROBLEM_PATH_CHARS = [ "/" ]
 
 
 def isUUID( ID: str ) -> bool:

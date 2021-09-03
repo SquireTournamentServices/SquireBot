@@ -2,8 +2,6 @@
 
 import discord
 
-import typing import List
-
 from playerRegister import PlayerRegistry
 from matchRegister import MatchRegistry
 from utils import *
