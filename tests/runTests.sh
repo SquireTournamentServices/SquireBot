@@ -2,23 +2,23 @@
 # Check syntax
 cd ../
 find . | grep .py$ | xargs --verbose -n 1 python3 -m py_compile
-echo $?
 code=$?
-if [ $code -ge 1 ]
+echo $code
+if (( $code >= 1 ));
 then
     echo "Invalid Syntax (see output above)"
     exit 1
 fi
 
-find . | grep .py$ | xargs --verbose -n 1 python3 -m pylint
+#find . | grep .py$ | xargs --verbose -n 1 python3 -m pylint
 
 cd tests
 
 # Run tests
 python3 testRunner.py
-echo $?
 code=$?
-if [ $code -ge 1 ]
+echo $code
+if (( $code >= 1 ));
 then
     echo "Some tests failed (see output above)"
     exit 2
