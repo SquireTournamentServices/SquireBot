@@ -955,11 +955,11 @@ class tournament:
                 deckHashes = []
                 if self.player_deck_verification:
                     for plyr in plyrs:
-                        name = self.getPlayer(plyr).triceName
+                        name = plyr.triceName
                         if name == "" or name is None:
                             name = "*"
                         playerNames.append(name)
-                        deckHashes.append( [dck.deckHash for dck in self.getPlayer(plyr).decks.values()] )
+                        deckHashes.append( [dck.deckHash for dck in plyr.decks.values()] )
 
                 #Try up to three times
                 while not creation_success and tries < max_tries:
