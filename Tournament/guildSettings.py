@@ -261,7 +261,7 @@ class guildSettings:
         tourn = self.getTournament( name )
         digest = await tourn.cancelTourn( self.d_tournAdminRole.mention, author )
         del self.tournaments[ self._indexTournament(name) ]
-        return digest
+        return commandResponse(content=digest)
 
     # Returns a dictionary of current tournaments with tournament names as keys
     # and tournament objects as values
