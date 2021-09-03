@@ -404,9 +404,12 @@ class guildSettings:
     async def loadTournaments( self, dirName: str ) -> None:
         tournDirs: list = [ f'{dirName}/{tournName}/' for tournName in os.listdir(dirName) if os.path.isdir( f'{dirName}/{tournName}/' ) ]
         for tournDir in tournDirs:
-            tourn = tournamentSelector( f'{tournDir}/tournamentType.xml', tournDir.split("/")[-2], self.guild.name, {} )
-            tourn.loadTournament( tournDir )
-            await tourn.assignGuild( self.guild )
-            self.tournaments.append( tourn )
+            try:
+                tourn = tournamentSelector( f'{tournDir}/tournamentType.xml', tournDir.split("/")[-2], self.guild.name, {} )
+                tourn.loadTournament( tournDir )
+                await tourn.assignGuild( self.guild )
+                self.tournaments.append( tourn )
+            except Exception as e:
+                print(f"Error loading {tournDir} ({e})")
 
 
