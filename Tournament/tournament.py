@@ -568,9 +568,9 @@ class tournament:
             self.regOpen = status
             return ""
         elif self.tournEnded:
-            return "This tournament has already ended. As such, registeration can't be opened."
+            return "This tournament has already ended. As such, registration can't be opened."
         elif self.tournCancel:
-            return "This tournament has been cancelled. As such, registeration can't be opened."
+            return "This tournament has been cancelled. As such, registration can't be opened."
 
     def startTourn( self ) -> str:
         if not (self.tournStarted or self.tournEnded or self.tournCancel):
