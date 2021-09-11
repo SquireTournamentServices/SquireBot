@@ -616,25 +616,25 @@ class tournament:
             match.stopTimer = True
             if type( match.VC ) == discord.VoiceChannel:
                 try:
-                    await match.VC.delete( )
-                except:
-                    pass
+                    await match.VC.delete(reason="Tournament has ended")
+                except Exception as e:
+                    print(e)
             if type( match.textChannel ) == discord.TextChannel:
                 try:
-                    await match.textChannel.delete( )
-                except:
-                    pass
+                    await match.textChannel.delete(reason="Tournament has ended")
+                except Exception as e:
+                    print(e)
             if type( match.role ) == discord.Role:
                 try:
-                    await match.role.delete( )
-                except:
-                    pass
+                    await match.role.delete(reason="Tournament has ended")
+                except Exception as e:
+                    print(e)
         if type( self.role ) == discord.Role:
             try:
-                await self.role.delete( )
-            except:
-                pass
-
+                await self.role.delete(reason="Tournament has ended")
+            except Exception as e:
+                print(e)
+                
     async def endTourn( self, adminMention: str = "", author: str = "" ) -> str:
         if not self.tournStarted:
             return f'{self.name} has not started, so it cannot be ended. However, it can be cancelled.'

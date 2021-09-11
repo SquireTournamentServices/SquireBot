@@ -138,11 +138,11 @@ class match:
 
     async def killMatch( self ) -> None:
         if type( self.VC ) == discord.VoiceChannel:
-            await self.VC.delete()
+            await self.VC.delete(reason="Match killed")
         if type( self.textChannel ) == discord.TextChannel:
-            await self.textChannel.delete()
+            await self.textChannel.delete(reason="Match killed")
         if type( self.role ) == discord.Role:
-            await self.role.delete()
+            await self.role.delete(reason="Match killed")
 
         self.activePlayers    = [ ]
         self.droppedPlayers   = [ ]
@@ -174,7 +174,9 @@ class match:
             self.endTime = getTime( )
             self.stopTimer = True
             if type( self.VC ) == discord.VoiceChannel:
-                await self.VC.delete()
+                await self.VC.delete(reason="Match result confirmed")
+            if type( self.textChannel ) == discord.TextChannel:
+                await self.textChannel.delete(reason="Match result confirmed")
         return digest
 
     def recordBye( self ) -> None:
