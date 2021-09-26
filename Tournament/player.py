@@ -367,7 +367,6 @@ class player:
     def loadXML( self, a_filename: str ) -> None:
         xmlTree = ET.parse( a_filename )
         self.saveLocation = a_filename
-        self.uuid = fromXML(xmlTree.getroot().find( 'uuid' ).text)
         self.name = fromXML(xmlTree.getroot().find( 'name' ).text)
         self.triceName = fromXML(xmlTree.getroot().find( 'triceName' ).text)
         if self.triceName is None:
@@ -381,6 +380,12 @@ class player:
         for deckTag in xmlTree.getroot().findall('deck'):
             self.decks[deckTag.attrib['ident']] = deck()
             self.decks[deckTag.attrib['ident']].importFromETree( deckTag )
+        uu = xmlTree.getroot().find( 'uuid' )
+        if uu is None:
+            self.uuid = str ( uuid.uuid4() )
+            self.saveXML( a_filename )
+        else:
+            self.uuid = fromXML(uu.text)
 
 from .match import *
 
