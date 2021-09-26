@@ -1152,7 +1152,12 @@ class tournament:
     def loadOverview( self, filename: str ) -> None:
         xmlTree = ET.parse( filename )
         tournRoot = xmlTree.getroot()
-        self.uuid = fromXML(tournRoot.find( 'uuid' ).text)
+        uu = xmlTree.getroot().find( 'uuid' )
+        if uu is None:
+            self.uuid = str ( uuid.uuid4() )
+            self.saveXML( a_filename )
+        else:
+            self.uuid = fromXML(uu.text)
         self.name = fromXML(tournRoot.find( 'name' ).text)
         self.guildID   = int( fromXML(tournRoot.find( 'guild' ).attrib["id"]) )
         self.roleID    = int( fromXML(tournRoot.find( 'role' ).attrib["id"]) )
