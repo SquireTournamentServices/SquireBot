@@ -1163,7 +1163,11 @@ class tournament:
         self.format    = fromXML(tournRoot.find( 'format' ).text)
         self.deckCount = int( fromXML(tournRoot.find( 'deckCount' ).text) )
 
-        self.playersPerMatch = int( fromXML(tournRoot.find("matchSize").text) )
+        ms = tournRoot.find("matchSize")
+        if ms is None:
+            self.playersPerMatch = 2
+        else:
+            self.playersPerMatch = int( fromXML (ms.text) )
         self.matchLength     = int( fromXML(tournRoot.find("matchLength").text) )
 
         self.regOpen      = str_to_bool( fromXML(tournRoot.find( 'regOpen' ).text ))
@@ -1178,11 +1182,14 @@ class tournament:
         self.spectators_can_see_hands = str_to_bool( fromXML(tournRoot.find( "spectatorsCanSeeHands" ).text ) )
         self.only_registered = str_to_bool( fromXML(tournRoot.find( "onlyRegistered" ).text ) )
         self.player_deck_verification = str_to_bool( fromXML(tournRoot.find( "playerDeckVerification" ).text ) )
-        self.create_text_channel = str_to_bool(  fromXML( tournRoot.find( "createTextChannel" ).text ) )
+        cc = tournRoot.find( "createTextChannel" ) 
+        if cc is None:
+            self.create_text_channel = False
+        else:
+            self.create_text_channel = str_to_bool(  fromXML (cc.text ) )
         uu = xmlTree.getroot().find( 'uuid' )
         if uu is None:
             self.uuid = str ( uuid.uuid4() )
-            self.saveOverview( filename )
         else:
             self.uuid = fromXML(uu.text)
 
