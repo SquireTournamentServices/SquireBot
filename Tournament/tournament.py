@@ -1152,12 +1152,6 @@ class tournament:
     def loadOverview( self, filename: str ) -> None:
         xmlTree = ET.parse( filename )
         tournRoot = xmlTree.getroot()
-        uu = xmlTree.getroot().find( 'uuid' )
-        if uu is None:
-            self.uuid = str ( uuid.uuid4() )
-            self.saveXML( a_filename )
-        else:
-            self.uuid = fromXML(uu.text)
         self.name = fromXML(tournRoot.find( 'name' ).text)
         self.guildID   = int( fromXML(tournRoot.find( 'guild' ).attrib["id"]) )
         self.roleID    = int( fromXML(tournRoot.find( 'role' ).attrib["id"]) )
@@ -1185,6 +1179,12 @@ class tournament:
         self.only_registered = str_to_bool( fromXML(tournRoot.find( "onlyRegistered" ).text ) )
         self.player_deck_verification = str_to_bool( fromXML(tournRoot.find( "playerDeckVerification" ).text ) )
         self.create_text_channel = str_to_bool(  fromXML( tournRoot.find( "createTextChannel" ).text ) )
+        uu = xmlTree.getroot().find( 'uuid' )
+        if uu is None:
+            self.uuid = str ( uuid.uuid4() )
+            self.saveOverview( filename )
+        else:
+            self.uuid = fromXML(uu.text)
 
     def loadPlayers( self, dirName: str ) -> None:
         playerFiles = [ f'{dirName}/{f}' for f in os.listdir(dirName) if os.path.isfile( f'{dirName}/{f}' ) ]
