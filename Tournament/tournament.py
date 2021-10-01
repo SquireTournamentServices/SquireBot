@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 from .tricebot import TriceBot
 from .commandResponse import commandResponse
 from .utils import *
+from .pairingSystem import *
 from .playerRegistry import PlayerRegistry
 from .matchRegistry import MatchRegistry
 from .player import player
@@ -86,6 +87,9 @@ class tournament:
         self.playerReg = PlayerRegistry( )
         self.matchReg = MatchRegistry( )
         self.matchReg.setPlayerRegistry( self.playerReg )
+        self.pairingSys = pairingSystem( )
+        self.pairingSys.setMatchReg( self.matchReg )
+        self.pairingSys.setPlayerReg( self.playerReg )
 
         #Create bot class and store the game creation settings
         self.triceBotEnabled = False
@@ -461,7 +465,7 @@ class tournament:
     def getMatchEmbed( self, mtch: int, mention: str = "" ) -> commandResponse:
         digest = commandResponse( )
         embed = discord.Embed( )
-        Match = self.matcheReg.getMatch( mtch )
+        Match = self.matchReg.getMatch( mtch )
         if Match is None:
             digest.setContent( f'There is no match whose match number is {mtch}.' )
             return digest
@@ -776,11 +780,11 @@ class tournament:
             digest.setContent( f'{mention}, all the matches that {Plyr.getMention()} is a part of are certified.' )
             return digest
 
-        Match = await self.matchReg.getMatch( matchNum - 1 )
+        Match = self.matchReg.getMatch( matchNum )
         if Match is None:
             digest.setContent( f'{mention}, there is not match whose match number is {matchNum}.' )
             return digest
-        message = Match.confirmResultAdmin( Plyr, mention )
+        message = await Match.confirmResultAdmin( Plyr, mention )
         digest.setContent( message["message"] )
         Match.saveXML( )
         await self.updateInfoMessage( )
@@ -1025,6 +1029,7 @@ class tournament:
             newMatch.addPlayer( Plyr )
             newMatch.saveLocation = f'{self.getSaveLocation()}/matches/match_{newMatch.matchNumber}.xml'
             newMatch.recordBye( )
+            newMatch.saveXML( )
             await self.updateInfoMessage( )
             await Plyr.sendMessage( f'You have been given a bye from tournament staff of {self.name}.' )
             digest.setContent( f'{mention}, {Plyr.getMention()} has been given a bye.' )

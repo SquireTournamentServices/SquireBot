@@ -12,14 +12,18 @@ from typing import List, Tuple
 # Local modules
 from .utils import *
 from .player import *
+from .match import *
+from .matchRegistry import *
+from .playerRegistry import *
 
 
 class pairingSystem:
     """ This class takes in player objects and pairs them together for match creation. """
     def __init__( self ):
         """ Constructor """
-        self.queue: List[List] = [ [ ] ]
-        return
+        self.queue: List = [ ]
+        self.matchReg: matchRegistry = None
+        self.playerReg: playerRegistry = None
 
     def __str__( self ):
         """ Returns a string representation of the queue. """
@@ -27,6 +31,12 @@ class pairingSystem:
         for lvl in self.queue:
             levels.append( ", ".join( [ plyr.getMention() for plyr in lvl ] ) )
         return "\n".join( [ f'Tier {i+1}: {lvl}' for i, lvl in enumerate(levels) if len(lvl) > 0 ] )
+
+    def setMatchReg( self, reg: MatchRegistry ) -> None:
+        self.matchReg = reg
+
+    def setPlayerReg( self, reg: PlayerRegistry ) -> None:
+        self.playerReg = reg
 
     def size( self ) -> int:
         """ Calculates the number of people in the queue """
@@ -73,34 +83,7 @@ class pairingSystem:
 
     def _attemptPairing( self, matchSize: int ) -> List[List]:
         """ Creates a potential list of pairings """
-        digest: List = [ ]
-        # The queue gets shuffled, each tier is sorted so that players with
-        # byes are prioritized, linearized, and then reversed
-        queue: List = [ ]
-        for lvl in self._shuffle():
-            lvl.sort( key=lambda p: p.countByes() )
-            queue.append( lvl )
-        queue = list( reversed( self._linearize( queue ) ) )
-        # The pairings process can begin
-        pairingFound = True
-        # There has to be a more pythonic way of doing...
-        while pairingFound and len(queue) >= matchSize:
-            pairingFound = False
-            pairing = [ queue[0] ]
-            del queue[0]
-            for plyr in queue:
-                pairing.append( plyr )
-                if not self._isValidGroup( pairing ):
-                    del pairing[-1]
-                if len(pairing) == matchSize:
-                    digest.append( pairing )
-                    pairingFound = True
-                    break
-            if pairingFound:
-                for plyr in digest[-1][1:]:
-                    queue.remove( plyr )
-
-        return digest
+        return [ ]
 
     def bump( self ) -> None:
         """ Adds an empty list to the begin of the queue. """

@@ -540,7 +540,7 @@ async def standings( ctx, tourn = None, printAll = None ):
         return
 
     standings = tournObj.getStandings( )
-    if len(tournObj.players) < 1:
+    if len(tournObj.playerReg.players) < 1:
         await ctx.send( "There are no players registered in this tournament." )
         return
 

@@ -325,7 +325,7 @@ async def matchStatus( ctx, tourn = None, mtch = None ):
         await ctx.send( f'{mention}, you did not provide a match number correctly. Please specify a match number using digits.' )
         return
 
-    response = tournObj.getMatchEmbed( mtch )
+    response = tournObj.getMatchEmbed( mtch, mention )
     await response.send( ctx )
 
 

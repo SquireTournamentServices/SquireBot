@@ -143,7 +143,7 @@ class match:
 
     def isDraw( self ) -> bool:
         """ Determines if the match was a draw. """
-        return self.winner == MatchResult.DRAW
+        return self.result == MatchResult.DRAW
 
     def getUUID( self ) -> str:
         """ Returns the unique idenifying ID string of the match. """
@@ -418,19 +418,19 @@ class match:
         digest += f'\t<replayURL>{self.replayURL}</replayURL>\n'
         digest += '\t<players>\n'
         for plyr in self.players:
-            digest += f'\t\t<player name="{plyr.getName()}">{plyr.getUUID()}</player>/>\n'
+            digest += f'\t\t<player name="{plyr.getName()}">{plyr.getUUID()}</player>\n'
         digest += '\t</players>\n'
         digest += '\t<activePlayers>\n'
         for plyr in self.activePlayers:
-            digest += f'\t\t<player name="{plyr.getName()}">{plyr.getUUID()}</player>/>\n'
+            digest += f'\t\t<player name="{plyr.getName()}">{plyr.getUUID()}</player>\n'
         digest += '\t</activePlayers>\n'
         digest += '\t<droppedPlayers>\n'
         for plyr in self.droppedPlayers:
-            digest += f'\t\t<player name="{plyr.getName()}">{plyr.getUUID()}</player>/>\n'
+            digest += f'\t\t<player name="{plyr.getName()}">{plyr.getUUID()}</player>\n'
         digest += '\t</droppedPlayers>\n'
         digest += '\t<confirmedPlayers>\n'
         for plyr in self.confirmedPlayers:
-            digest += f'\t\t<player name="{plyr.getName()}">{plyr.getUUID()}</player>/>\n'
+            digest += f'\t\t<player name="{plyr.getName()}">{plyr.getUUID()}</player>\n'
         digest += '\t</confirmedPlayers>\n'
         return digest
 
@@ -457,9 +457,6 @@ class match:
         self.VC_ID = matchRoot.attrib["VC_ID"]
         if self.VC_ID != "":
             self.VC_ID = int( fromXML( self.VC_ID ) )
-        self.textChannel_ID = matchRoot.attrib["text_channel_ID"]
-        if self.textChannel_ID != "":
-            self.textChannel_ID = int( fromXML( self.textChannel_ID ) )
         self.matchNumber   = int( fromXML( matchRoot.find( "number" ).text ) )
         self.timeExtension = int( fromXML( matchRoot.find("timeExtension").text ) )
         self.matchLength   = int( fromXML( matchRoot.find( "matchLength" ).text ) )

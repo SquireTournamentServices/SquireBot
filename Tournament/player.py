@@ -82,7 +82,7 @@ class player:
         return self.uuid < other.uuid
 
     def __eq__( self, other: 'player' ):
-        if other is player:
+        if not isinstance( other, player ):
             return False
         digest  = ( self.uuid == other.uuid )
         digest &= ( self.status == other.status )
@@ -405,15 +405,15 @@ class player:
         digest  = "<?xml version='1.0'?>\n"
         digest += '<player>\n'
         digest += f'\t<uuid>{self.uuid}</uuid>\n'
-        digest += f'\t<name>{self.name}</name>\n'
-        digest += f'\t<triceName>{self.triceName}</triceName>\n'
+        digest += f'\t<name>{toSafeXML(self.name)}</name>\n'
+        digest += f'\t<triceName>{toSafeXML(self.triceName)}</triceName>\n'
         digest += f'\t<discord id="{self.getDiscordID()}"/>\n'
         digest += f'\t<status>{self.status.name}</status>\n'
         for ident in self.decks:
             digest += self.decks[ident].exportXMLString( '\t' )
         digest += '</player>'
         with open( a_filename, 'w+' ) as xmlFile:
-            xmlFile.write( toSafeXML(digest) )
+            xmlFile.write( digest )
 
     # Loads an xml file saved with the class after construction
     def loadXML( self, a_filename: str ) -> None:

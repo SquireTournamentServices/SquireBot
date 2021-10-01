@@ -389,6 +389,10 @@ async def pairRound( ctx, tourn = None ):
         await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
         return
 
+    if len(tournObj.matchReg.getUncertifiedMatches()) + len(tournObj.matchReg.getOpenMatches()) != 0:
+        await ctx.send( f'{mention}, there are matches that have not finished yet. All results for the round must confirmed before the next round can begin.' )
+        return
+
     response = tournObj.createPairings( mention )
     await response.send( ctx )
 

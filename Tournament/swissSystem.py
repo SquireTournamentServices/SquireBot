@@ -13,9 +13,10 @@ import discord
 # Local modules
 from .utils import *
 from .player import *
+from .pairingSystem import *
 
 
-class swissSystem:
+class swissSystem( pairingSystem ):
     """ This class takes in player objects and pairs them together for match creation. """
     def __init__( self ):
         """ Constructor """
@@ -76,7 +77,7 @@ class swissSystem:
         """ Removes a player from the queue """
         if not self._isInQueue( plyr ):
             return f'{plyr.getMention()}, you are not in the pairings.'
-        queue.remove(plyr)
+        self.queue.remove(plyr)
         return f'{plyr.getMention()}, you have been removed from the pairings.'
 
     def readyToPair( self, threshold: int ) -> bool:
@@ -131,7 +132,7 @@ class swissSystem:
             # Would the new queue be smaller than the match size
             if matchSize*len(tries[-1]) == len(standings):
                 break
-        # In the unlikely event that proper pairings can't be formed, 
+        # In the unlikely event that proper pairings can't be formed,
         # Players are paired together, regardless of thier past opponents
         if matchSize*len(tries[-1]) != len(standings):
             for i in range(len(standings))[::4]:

@@ -50,7 +50,7 @@ class MatchRegistry:
 
     def getMatch( self, ident ) -> match:
         """ Gets a match from the list of matches or returns None. """
-        if isUUID( ident ):
+        if isinstance( ident, str ) and isUUID( ident ):
             return self._getMatchViaUUID( ident )
         return self._getMatchViaMatchNumber( ident )
 
