@@ -47,7 +47,7 @@ class swissTournament(tournament):
     # ---------------- Player Management ----------------
 
     # TODO: Ditto, rename method
-    async def removePlayerFromQueue( self, plyrID: player ) -> commandResponse:
+    async def removePlayerFromQueue( self, plyr: player ) -> commandResponse:
         digest = commandResponse( )
         if plyr is None:
             digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
