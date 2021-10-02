@@ -725,7 +725,7 @@ class tournament:
             await Plyr.drop( )
             Plyr.saveXML()
             digest.setContent( f'<@{plyr}>, you have been dropped from {self.name}.' )
-            await self.removePlayerFromQueue( plyr )
+            await self.removePlayerFromQueue( Plyr )
 
         return digest
 

@@ -39,8 +39,8 @@ async def adminAddPlayer( ctx, tourn = None, plyr = None ):
         await ctx.send( f'{mention}, there is not a player named {plyr!r}. You can add a dummy player in with that name. Is that what you want to do (!yes/!no)?' )
         return
 
-    message = await tournObj.addPlayerAdmin( member, mention )
-    await ctx.send( content=message )
+    response = await tournObj.addPlayerAdmin( member, mention )
+    response.send( ctx )
 
 
 commandSnippets["admin-add-deck"] = "- admin-add-deck : Registers a deck for a player in a tournament"
