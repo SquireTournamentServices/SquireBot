@@ -263,6 +263,8 @@ class player:
         self.saveXML( )
 
     def addMatch( self, a_mtch: "match" ) -> None:
+        if a_mtch in self.matches:
+            return
         self.matches.append( a_mtch )
         for plyr in a_mtch.players:
             self.addOpponent( plyr )

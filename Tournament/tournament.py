@@ -986,9 +986,6 @@ class tournament:
         for plyr in plyrs:
             # TODO: This should be unready player
             await self.removePlayerFromQueue( plyr )
-            plyr.matches.append( newMatch )
-            for p in plyrs:
-                plyr.addOpponent( p )
             if type( self.guild ) == discord.Guild:
                 await plyr.addRole( matchRole )
                 embed.add_field( name=plyr.getDisplayName(), value=plyr.pairingString() )
