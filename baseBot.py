@@ -424,7 +424,11 @@ async def on_ready():
             if endTime is None or endTime == "None":
                 endTime = getTime()
             
-            cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension) Values (%s, %s, NULL, %s, NULL, NULL, %s, %s, %s);", (match.uuid, tournament.uuid, replayURL, match.startTime, endTime, match.timeExtension))
+            puuid = ""
+            if tournament.getPlayer(match.winner) is not None:
+                puuid = tournament.getPlayer(match.winner).puuid
+            
+            cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension) Values (%s, %s, %s, %s, NULL, NULL, %s, %s, %s);", (match.uuid, tournament.uuid, puuid, replayURL, match.startTime, endTime, match.timeExtension))
         
     # Add match players                        
     for tournament in tournaments:

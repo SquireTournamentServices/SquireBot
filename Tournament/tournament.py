@@ -1214,10 +1214,10 @@ class tournament:
             if isinstance( winner, player ):
                 newMatch.winner = winner
             self.matches.append( newMatch )
-            for aPlayer in newMatch.activePlayers:
-                aPlayer.addMatch( newMatch )
-            for dPlayer in newMatch.droppedPlayers:
-                dPlayer.addMatch( newMatch )
+            #for aPlayer in newMatch.activePlayers:
+            #    aPlayer.addMatch( newMatch )
+            #for dPlayer in newMatch.droppedPlayers:
+            #    dPlayer.addMatch( newMatch )
             if not ( self.matches[-1].isCertified() or self.matches[-1].isDead() ) and not self.matches[-1].stopTimer:
                 self.matches[-1].timer = threading.Thread( target=self._matchTimer, args=(self.matches[-1],) )
                 self.matches[-1].timer.start( )
