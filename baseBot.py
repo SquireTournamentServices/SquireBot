@@ -428,11 +428,11 @@ async def on_ready():
                 endTime = getTime()
             
             if match.winner is not None and not isinstance(match.winner, str):
-                print(f"Added {match.winner.puuid}")
+                print(f"Added {match.winner.puuid} (case 1)")
                 cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension) Values (%s, %s, %s, %s, NULL, NULL, %s, %s, %s);", (match.uuid, tournament.uuid, match.winner.puuid, replayURL, match.startTime, endTime, match.timeExtension))
             elif tournament.getPlayer(match.winner) is not None:
                 puuid = tournament.getPlayer(match.winner).puuid
-                print(f"Added {puuid}")
+                print(f"Added {puuid} (case 2)")
                 cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension) Values (%s, %s, %s, %s, NULL, NULL, %s, %s, %s);", (match.uuid, tournament.uuid, puuid, replayURL, match.startTime, endTime, match.timeExtension))
             else:
                 print("Added but draw/bye")

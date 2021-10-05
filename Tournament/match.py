@@ -381,11 +381,12 @@ class match:
         #self.sentOneMinWarning  = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["oneMin" ] ) )
         #self.sentFiveMinWarning = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["fiveMin"] ) )
         #self.sentFinalWarning   = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["final"  ] ) )
-        self.winner = fromXML( matchRoot.find( "winner" ).text )
-        if self.winner == "" or self.winner is None:
+        if "name" in matchRoot.find("winner").attrib:
             self.winner = fromXML( matchRoot.find( "winner" ).attrib["name"])
+        else:
+            self.winner = fromXML( matchRoot.find( "winner" ).text )
 
-        if self.winner == "None" or self.winner == "This match is a bye" or self.winner == "This match is a draw":
+        if self.winner == "None" or self.winner == "" or self.winner == "This match is a bye" or self.winner == "This match is a draw":
             self.winner = None
             
         for player in matchRoot.find("activePlayers"):
