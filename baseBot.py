@@ -310,7 +310,7 @@ async def on_ready():
                 for player in tourn.players:
                     add = True
                     for player2 in players:
-                        if (player.discordID != "" and player.discordID == player2.discordid) or player.name == player2.name:
+                        if (player.discordID is None and player.discordID == player2.discordid) or player.name == player2.name:
                             add = False
                             player.puuid = player2.uuid
                             player.tuuid = tourn.uuid
