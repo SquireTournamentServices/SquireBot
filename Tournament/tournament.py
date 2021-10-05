@@ -185,7 +185,7 @@ class tournament:
     def getPlayer( self, identifier: str ) -> player:
         identifier = str( identifier )
         for plyr in self.players:
-            if identifier == str(plyr.discordID):
+            if identifier == str(plyr.discordID) and plyr.discordID is not None:
                 return plyr
             if identifier == plyr.name:
                 return plyr
