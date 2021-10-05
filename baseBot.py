@@ -424,7 +424,7 @@ async def on_ready():
             if endTime is None or endTime == "None":
                 endTime = getTime()
             
-            puuid = ""
+            puuid = "NULL"
             if tournament.getPlayer(match.winner) is not None:
                 puuid = tournament.getPlayer(match.winner).puuid
             
