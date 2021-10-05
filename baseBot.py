@@ -359,8 +359,11 @@ async def on_ready():
     # Add player-tournaments to the databases
     for player in players:
         print(f"Adding tournamentplayer entries for {player.name}")
+        tids = []
         for p in player.tplayers:
-            cursor.execute("INSERT INTO TournamentPlayers Values (%s, %s);", (p.tuuid,  player.uuid))
+            if p.tuuid not in tids:
+                cursor.execute("INSERT INTO TournamentPlayers Values (%s, %s);", (p.tuuid,  player.uuid))
+                tids.append(p.tuuid)
     
     # Add decks to the database
     for player in players:
