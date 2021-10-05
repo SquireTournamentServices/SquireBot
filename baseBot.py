@@ -1,9 +1,12 @@
 import os
 import traceback
-
+import datetime
 import discord
 import random
 import re
+import sys
+import uuid
+import psycopg2
 from random import getrandbits
 from discord import Activity, ActivityType
 from discord.ext import commands
@@ -267,27 +270,175 @@ async def on_member_remove( member ):
             await member.send( message )
 
 
+class dbPlayer:
+    def __init__(self, uuid, name, discordid, tplayers):
+        self.uuid = uuid
+        self.name = name
+        self.discordid = discordid
+        self.tplayers = tplayers
+
 # When ready, the bot needs to looks at each pre-loaded tournament and add a discord user to each player.
 @bot.event
 async def on_ready():
     await bot.wait_until_ready( )
-    print(f'{bot.user.name} has connected to Discord!\n')
+    players = []
+    tournaments = []
+    
+    playerCount = 0
+    
+    print("Getting tournament data")
     for guild in bot.guilds:
         print( f'This bot is connected to {guild.name} which has {len(guild.members)}!' )
+        playerCount += len(guild.members)
+        
+        # Read tournament data
         try:
             guildSettingsObjects[guild.id] = guildSettings( guild )
             if os.path.isdir( f'guilds/{guild.id}' ):
                 await guildSettingsObjects[guild.id].load( f'guilds/{guild.id}/' )
-            else:
-                guildSettingsObjects[guild.id].save( f'guilds/{guild.id}/' )
-            guildSettingsObjects[guild.id].setEventLoop( bot.loop )
+            #else:
+                #guildSettingsObjects[guild.id].save( f'guilds/{guild.id}/' )
+            #guildSettingsObjects[guild.id].setEventLoop( bot.loop )
+                      
+            # Merge all players
             for tourn in guildSettingsObjects[guild.id].tournaments:
-                await tourn.updateInfoMessage()
+                print(f"Loading data for {tourn.name}")
+                tournaments.append(tourn)
+                
+                # get all dbPlayers
+                for player in tourn.players:
+                    add = True
+                    for player2 in players:
+                        if player.discordID == player2.discordid and player.name == player2.name:
+                            add = False
+                            player.puuid = player2.uuid
+                            player.tuuid = tourn.uuid
+                            player2.tplayers.append(player)
+                            break
+                    if add:
+                        print(f"New player {player.name} found")
+                        player.puuid = player.uuid
+                        player.tuuid = tourn.uuid
+                        players.append(dbPlayer(player.uuid, player.name, player.discordID, [player]))
+                            
         except Exception as ex:
             print(f'Error loading settings for {guild.name}')
             print(ex)
             traceback.print_exception(type(ex), ex, ex.__traceback__)
-    print( "" )
+            
+    print(f"There are {playerCount} players")
+    
+    # Read database details
+    userfile = open("/home/danny/monarchdata/user.txt", "r")
+    userfiledata = userfile.read().split("\n")
+    userfile.close()
+
+    username = userfiledata[0]
+    password = userfiledata[1]
+            
+    # Connect to the database
+    conn = psycopg2.connect(database="monarchdb", user=username, password=password, host="127.0.0.1", port="5432")
+    cursor = conn.cursor()
+            
+    # Add players to the database
+    for player in players:        
+        print(f"Adding player {player.name}(<@{player.discordid}>)")
+        cursor.execute("INSERT INTO Players Values (%s, %s, %s);", (player.uuid, player.name[0:30], player.discordid))
+            
+    # Add tournaments to the database
+    for tournament in tournaments:
+        print(f"Adding tournament {tournament.name}")
+        format = tournament.format.lower()
+        if format == "edh":
+            format = "cedh"
+        
+        cursor.execute("INSERT INTO Tournaments (TournamentID, Format, Location, Structure, Date, TournamentName) Values (%s, %s, %s, %s, %s, %s);", (tournament.uuid, format, "discord", "fluid", getTime(), tournament.name))
+    
+    # Add player-tournaments to the databases
+    for player in players:
+        print(f"Adding tournamentplayer entries for {player.name}")
+        for p in player.tplayers:
+            cursor.execute("INSERT INTO TournamentPlayers Values (%s, %s);", (p.tuuid,  player.uuid))
+    
+    # Add decks to the database
+    for player in players:
+        print(f"Adding decks for {player.name}")
+        for p in player.tplayers:
+            for deck_ in p.decks:
+                deck = p.decks[deck_]
+                deckID = str( uuid.uuid4() )
+                deck.deckID = deckID
+                cursor.execute("INSERT INTO Decks Values (%s, %s, %s, %s);", (deckID, player.uuid, p.tuuid, deck.ident[0:30]))
+            
+    # Add card-decks to the database
+    for player in players:
+        print(f"Adding deckcards for {player.name}")
+        for p in player.tplayers:
+            for deck_ in p.decks:
+                deck = p.decks[deck_]
+                for card in deck.cards:
+                    sb = "SB:" in card
+                    card_ = None
+                    if not "SB:" in card:
+                        try:
+                            int( card[0] )
+                            card = card.split(" ", 1)
+                        except IndexError:
+                            card = [ card ]
+                        if len( card ) == 1:
+                            number = 1
+
+                            name = card[0]
+                            try:
+                                card_   = cardsDB.getCard(name)
+                            except CardNotFoundError as ex:
+                                pass
+                        else:
+                            number = int( card[0].strip() )
+
+                            name = card[1]
+                            try:
+                                card_   = cardsDB.getCard(name)
+                            except CardNotFoundError as ex:
+                                pass
+                    else:
+                        card = card.split(" ", 2)
+                        number = int( card[1].strip() )
+                        name = card[2]
+                        try:
+                            card_   = cardsDB.getCard(name)
+                        except CardNotFoundError as ex:
+                            pass
+                    if card_ is not None:
+                        cursor.execute("INSERT INTO DeckCards Values (%s, %s, %s, %s, %s);", (deck.deckID, card_.uuid, number, True, sb))
+                
+    # Add matches
+    for tournament in tournaments:
+        for match in tournament.matches:
+            print(f"Adding tournamentmatches {tournament.name} match {match.matchNumber}")
+            replayURL = "NULL"
+            if match.replayURL != "":
+                replayURL = match.replayURL
+            
+            endTime = match.endTime
+            if endTime is None or endTime == "None":
+                endTime = getTime()
+            
+            cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension) Values (%s, %s, NULL, %s, NULL, NULL, %s, %s, %s);", (match.uuid, tournament.uuid, replayURL, match.startTime, endTime, match.timeExtension))
+        
+    # Add match players                        
+    for tournament in tournaments:
+        print(f"Adding tournamentmatchs {tournament.name}")
+        for match in tournament.matches:
+            for player in match.confirmedPlayers:
+                cursor.execute("INSERT INTO MatchPlayers Values (%s, %s);", (player.puuid, match.uuid))
+            
+    conn.commit()
+    conn.close()
+    
+    print("Successfully added all data to the database")
+    
+    sys.exit(0)
 
 # When the bot is added to a new guild, a settings object needs to be added for that guild
 @bot.event

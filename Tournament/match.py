@@ -350,13 +350,17 @@ class match:
         xmlTree = ET.parse( a_filename )
         matchRoot = xmlTree.getroot()
         self.roleID = fromXML(matchRoot.attrib["roleID"])
-        self.uuid = fromXML(matchRoot.find( 'uuid' ).text)
+        id = matchRoot.find( 'uuid' )
+        if id is not None:
+            self.uuid = fromXML(id.text)
+        else:
+            self.uuid =str( uuid.uuid4() )
         if self.roleID != "":
             self.roleID = int( fromXML( self.roleID ) )
         self.VC_ID = matchRoot.attrib["VC_ID"]
         if self.VC_ID != "":
             self.VC_ID = int( fromXML( self.VC_ID ) )
-        self.textChannel_ID = matchRoot.attrib["text_channel_ID"]
+        #self.textChannel_ID = matchRoot.attrib["text_channel_ID"]
         if self.textChannel_ID != "":
             self.textChannel_ID = int( fromXML( self.textChannel_ID ) )
         self.matchNumber   = int( fromXML( matchRoot.find( "number" ).text ) )
@@ -373,7 +377,7 @@ class match:
         self.sentOneMinWarning  = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["oneMin" ] ) )
         self.sentFiveMinWarning = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["fiveMin"] ) )
         self.sentFinalWarning   = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["final"  ] ) )
-        self.winner = fromXML( matchRoot.find( "winner" ).attrib["name"] )
+        self.winner = fromXML( matchRoot.find( "winner" ).text )
         if self.winner != "" and not ( "a draw" in self.winner ) and not self.isBye():
             self.winner = self.winner
         for player in matchRoot.find("activePlayers"):

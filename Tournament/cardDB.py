@@ -16,7 +16,8 @@ from threading import Thread
 from .exceptions import *
 
 class card:
-    def __init__(self, name: str, layout: str, types: List[str]):
+    def __init__(self, uuid, name: str, layout: str, types: List[str]): 
+        self.uuid = uuid
         self.name = name.strip()
         if layout in ["modal_dfc", "transform", "flip"]:
             self.name = self.name.split("//")[0].strip()
@@ -89,7 +90,7 @@ class cardDB:
                     name = self.normaliseCardName(card_["name"])
 
                     if not name in tempCards:
-                        cardObject = card(card_["name"], card_["layout"], card_["types"])
+                        cardObject = card(card_["uuid"], card_["name"], card_["layout"], card_["types"])
                         if ("face" in card_) and (card_["face"] != "a"):
                             continue # Rear of the card is ignored
 

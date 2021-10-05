@@ -367,7 +367,7 @@ class guildSettings:
     async def load( self, dirName: str ) -> None:
         self.saveLoction = dirName
         self.loadSettings( f'{dirName}/settings.xml' )
-        await self.loadTournaments( f'{dirName}/currentTournaments' )
+        await self.loadTournaments( f'{dirName}/closedTournaments' )
 
     def loadSettings( self, filename: str ) -> None:
         xmlTree = ET.parse( filename )

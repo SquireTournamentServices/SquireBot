@@ -164,10 +164,10 @@ class fluidRoundTournament(tournament):
         for act in acts:
             self.queueActivity.append( ( fromXML( act.attrib['player'] ), fromXML(act.attrib['time'] ) ) )
         players = tournRoot.find( 'queue' ).findall( 'player' )
-        for plyr in players:
-            self.queue.addPlayer( self.players[int(fromXML(plyr.attrib['name']))], int(plyr.attrib['priority']) )
-        if self.queue.readyToPair( self.pairingsThreshold ) and not self.pairingsThread.is_alive( ):
-            self.pairingsThread = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
-            self.pairingsThread.start( )
+        #for plyr in players:
+        #    self.queue.addPlayer( self.players[int(fromXML(plyr.attrib['name']))], #int(plyr.attrib['priority']) )
+        #if self.queue.readyToPair( self.pairingsThreshold ) and not #self.pairingsThread.is_alive( ):
+        #    self.pairingsThread = threading.Thread( target=self._launch_pairings, #args=(self.pairingWaitTime,) )
+        #    self.pairingsThread.start( )
 
 
