@@ -428,7 +428,7 @@ async def on_ready():
                 endTime = getTime()
             
             print(f"-> {match.winner.uuid}")
-            if isinstance(match.winner, type(player())):
+            if match.winner is not None and not isinstance(match.winner, str):
                 print("Added")
                 cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension) Values (%s, %s, %s, %s, NULL, NULL, %s, %s, %s);", (match.uuid, tournament.uuid, match.winner.puuid, replayURL, match.startTime, endTime, match.timeExtension))
             if tournament.getPlayer(match.winner) is not None:
