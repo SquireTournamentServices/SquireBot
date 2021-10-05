@@ -304,6 +304,7 @@ async def on_ready():
             for tourn in guildSettingsObjects[guild.id].tournaments:
                 print(f"Loading data for {tourn.name}")
                 tournaments.append(tourn)
+                tourn.uuid = str(uuid.uuid4())
                 
                 # get all dbPlayers
                 for player in tourn.players:
@@ -317,9 +318,10 @@ async def on_ready():
                             break
                     if add:
                         print(f"New player {player.name} found")
-                        player.puuid = player.uuid
+                        puuid = str(uuid.uuid4())
+                        player.puuid = puuid
                         player.tuuid = tourn.uuid
-                        players.append(dbPlayer(player.uuid, player.name, player.discordID, [player]))
+                        players.append(dbPlayer(puuid, player.name, player.discordID, [player]))
                             
         except Exception as ex:
             print(f'Error loading settings for {guild.name}')
@@ -344,7 +346,7 @@ async def on_ready():
     for player in players:        
         print(f"Adding player {player.name}(<@{player.discordid}>)")
         cursor.execute("INSERT INTO Players Values (%s, %s, %s);", (player.uuid, player.name[0:30], player.discordid))
-            
+    
     # Add tournaments to the database
     for tournament in tournaments:
         print(f"Adding tournament {tournament.name}")
@@ -415,6 +417,7 @@ async def on_ready():
     # Add matches
     for tournament in tournaments:
         for match in tournament.matches:
+            match.uuid = str(uuid.uuid4())
             print(f"Adding tournamentmatches {tournament.name} match {match.matchNumber}")
             replayURL = "NULL"
             if match.replayURL != "":
@@ -424,24 +427,30 @@ async def on_ready():
             if endTime is None or endTime == "None":
                 endTime = getTime()
             
-            puuid = "NULL"
+            print(f"-> {match.winner.uuid}")
+            if isinstance(match.winner, type(player())):
+                print("Added")
+                cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension) Values (%s, %s, %s, %s, NULL, NULL, %s, %s, %s);", (match.uuid, tournament.uuid, match.winner.puuid, replayURL, match.startTime, endTime, match.timeExtension))
             if tournament.getPlayer(match.winner) is not None:
+                print("Added")
                 puuid = tournament.getPlayer(match.winner).puuid
-            
-            cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension) Values (%s, %s, %s, %s, NULL, NULL, %s, %s, %s);", (match.uuid, tournament.uuid, puuid, replayURL, match.startTime, endTime, match.timeExtension))
+                cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension) Values (%s, %s, %s, %s, NULL, NULL, %s, %s, %s);", (match.uuid, tournament.uuid, puuid, replayURL, match.startTime, endTime, match.timeExtension))
+            else:
+                print("Added")
+                cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension) Values (%s, %s, NULL, %s, NULL, NULL, %s, %s, %s);", (match.uuid, tournament.uuid, replayURL, match.startTime, endTime, match.timeExtension))
         
     # Add match players                        
     for tournament in tournaments:
-        print(f"Adding tournamentmatchs {tournament.name}")
+        print(f"Adding matchplayers {tournament.name}")
         for match in tournament.matches:
             for player in match.confirmedPlayers:
-                cursor.execute("INSERT INTO MatchPlayers Values (%s, %s);", (player.puuid, match.uuid))
+                if player is not None:
+                    cursor.execute("INSERT INTO MatchPlayers Values (%s, %s);", (player.puuid, match.uuid))
             
     conn.commit()
     conn.close()
     
-    print("Successfully added all data to the database")
-    
+    print("Successfully added all data to the database")    
     sys.exit(0)
 
 # When the bot is added to a new guild, a settings object needs to be added for that guild

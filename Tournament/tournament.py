@@ -133,27 +133,27 @@ class tournament:
         self.guild = guild
         self.guildID = guild.id
         self.hostGuildName = guild.name
-        self.pairingsChannel = guild.get_channel( self.pairingsChannelID )
-        infoChannel = None
-        if isinstance(self.infoMessageChannelID, int):
-            infoChannel = self.guild.get_channel( self.infoMessageChannelID )
-        if (not infoChannel is None) and isinstance(self.infoMessageID, int):
-            self.infoMessage = await infoChannel.fetch_message( self.infoMessageID )
-        if self.pairingsChannel is None:
-            self.pairingsChannel = discord.utils.get( guild.channels, name="match-pairings" )
+        #self.pairingsChannel = guild.get_channel( self.pairingsChannelID )
+        #infoChannel = None
+        #if isinstance(self.infoMessageChannelID, int):
+        #    infoChannel = self.guild.get_channel( self.infoMessageChannelID )
+        #if (not infoChannel is None) and isinstance(self.infoMessageID, int):
+        #     self.infoMessage = await infoChannel.fetch_message( self.infoMessageID )
+        #if self.pairingsChannel is None:
+        #    self.pairingsChannel = discord.utils.get( guild.channels, name="match-pairings" )
         if self.roleID != "":
             self.role = guild.get_role( self.roleID )
         for player in self.players:
             ID = player.getDiscordID()
             if ID != "":
                 player.addDiscordUser( self.guild.get_member( ID ) )
-        for mtch in self.matches:
-            if mtch.roleID != "":
-                mtch.addMatchRole( guild.get_role( mtch.roleID ) )
-            if mtch.VC_ID != "":
-                mtch.addMatchVC( guild.get_channel( mtch.VC_ID ) )
-            if mtch.textChannel_ID != "":
-                mtch.addmatchTextChannel( guild.get_channel(mtch.textChannel_ID) )
+        #for mtch in self.matches:
+            #if mtch.roleID != "":
+            #    mtch.addMatchRole( guild.get_role( mtch.roleID ) )
+            #if mtch.VC_ID != "":
+            #    mtch.addMatchVC( guild.get_channel( mtch.VC_ID ) )
+            #if mtch.textChannel_ID != "":
+            #    mtch.addmatchTextChannel( guild.get_channel(mtch.textChannel_ID) )
 
     async def updateInfoMessage( self ) -> None:
         if self.infoMessage is None:
@@ -1155,10 +1155,10 @@ class tournament:
         self.name = fromXML(tournRoot.find( 'name' ).text)
         self.guildID   = int( fromXML(tournRoot.find( 'guild' ).attrib["id"]) )
         self.roleID    = int( fromXML(tournRoot.find( 'role' ).attrib["id"]) )
-        self.pairingsChannelID = int( fromXML(tournRoot.find( 'pairingsChannel' ).attrib["id"]) )
-        if not tournRoot.find( 'infoMessage' ) is None:
-            self.infoMessageChannelID = int( fromXML(tournRoot.find( 'infoMessage' ).attrib["channel"]) )
-            self.infoMessageID = int( fromXML(tournRoot.find( 'infoMessage' ).attrib["id"]) )
+        #self.pairingsChannelID = int( fromXML(tournRoot.find( 'pairingsChannel' ).attrib["id"]) )
+        #if not tournRoot.find( 'infoMessage' ) is None:
+        #    self.infoMessageChannelID = int( fromXML(tournRoot.find( 'infoMessage' ).attrib["channel"]) )
+        #    self.infoMessageID = int( fromXML(tournRoot.find( 'infoMessage' ).attrib["id"]) )
 
         self.format    = fromXML(tournRoot.find( 'format' ).text)
         self.deckCount = int( fromXML(tournRoot.find( 'deckCount' ).text) )
@@ -1168,20 +1168,20 @@ class tournament:
             self.playersPerMatch = 2
         else:
             self.playersPerMatch = int( fromXML (ms.text) )
-        self.matchLength     = int( fromXML(tournRoot.find("matchLength").text) )
+        #self.matchLength     = int( fromXML(tournRoot.find("matchLength").text) )
 
         self.regOpen      = str_to_bool( fromXML(tournRoot.find( 'regOpen' ).text ))
         self.tournStarted = str_to_bool( fromXML(tournRoot.find( 'status' ).attrib['started'] ))
         self.tournEnded   = str_to_bool( fromXML(tournRoot.find( 'status' ).attrib['ended'] ))
         self.tournCancel  = str_to_bool( fromXML(tournRoot.find( 'status' ).attrib['canceled'] ))
 
-        self.triceBotEnabled = str_to_bool( fromXML(tournRoot.find( "triceBotEnabled" ).text ) )
-        self.spectators_allowed = str_to_bool( fromXML(tournRoot.find( "spectatorsAllowed" ).text ) )
-        self.spectators_need_password = str_to_bool( fromXML(tournRoot.find( "spectatorsNeedPassword" ).text ) )
-        self.spectators_can_chat = str_to_bool( fromXML(tournRoot.find( "spectatorsCanChat" ).text ) )
-        self.spectators_can_see_hands = str_to_bool( fromXML(tournRoot.find( "spectatorsCanSeeHands" ).text ) )
-        self.only_registered = str_to_bool( fromXML(tournRoot.find( "onlyRegistered" ).text ) )
-        self.player_deck_verification = str_to_bool( fromXML(tournRoot.find( "playerDeckVerification" ).text ) )
+        #self.triceBotEnabled = str_to_bool( fromXML(tournRoot.find( "triceBotEnabled" ).text ) )
+        #self.spectators_allowed = str_to_bool( fromXML(tournRoot.find( "spectatorsAllowed" ).text ) )
+        #self.spectators_need_password = str_to_bool( fromXML(tournRoot.find( "spectatorsNeedPassword" ).text ) )
+        #self.spectators_can_chat = str_to_bool( fromXML(tournRoot.find( "spectatorsCanChat" ).text ) )
+        #self.spectators_can_see_hands = str_to_bool( fromXML(tournRoot.find( "spectatorsCanSeeHands" ).text ) )
+        #self.only_registered = str_to_bool( fromXML(tournRoot.find( "onlyRegistered" ).text ) )
+        #self.player_deck_verification = str_to_bool( fromXML(tournRoot.find( "playerDeckVerification" ).text ) )
         cc = tournRoot.find( "createTextChannel" ) 
         if cc is None:
             self.create_text_channel = False

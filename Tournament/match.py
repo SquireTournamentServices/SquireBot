@@ -365,21 +365,29 @@ class match:
             self.textChannel_ID = int( fromXML( self.textChannel_ID ) )
         self.matchNumber   = int( fromXML( matchRoot.find( "number" ).text ) )
         self.timeExtension = int( fromXML( matchRoot.find("timeExtension").text ) )
-        self.matchLength   = int( fromXML( matchRoot.find( "matchLength" ).text ) )
+        #self.matchLength   = int( fromXML( matchRoot.find( "matchLength" ).text ) )
         self.stopTimer = str_to_bool( fromXML( matchRoot.find("stopTimer").text ) )
         self.startTime = fromXML( matchRoot.find( "startTime") .text )
         self.endTime = fromXML( matchRoot.find( "endTime" ).text )
         self.status = fromXML( matchRoot.find( "status" ).text )
-        self.triceMatch = str_to_bool( fromXML( matchRoot.find(  "triceMatch" ).text ) )
-        self.playerDeckVerification = str_to_bool( fromXML ( matchRoot.find( "playerDeckVerification" ).text ) )
-        self.gameID = int( fromXML( matchRoot.find( "gameID" ).text ) )
-        self.replayURL = fromXML( matchRoot.find( "replayURL" ).text )
-        self.sentOneMinWarning  = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["oneMin" ] ) )
-        self.sentFiveMinWarning = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["fiveMin"] ) )
-        self.sentFinalWarning   = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["final"  ] ) )
+        #self.triceMatch = str_to_bool( fromXML( matchRoot.find(  "triceMatch" ).text ) )
+        #self.playerDeckVerification = str_to_bool( fromXML ( matchRoot.find( "playerDeckVerification" ).text ) )
+        #self.gameID = int( fromXML( matchRoot.find( "gameID" ).text ) )
+        url = matchRoot.find( "replayURL" )
+        if url is not None:
+            self.replayURL = fromXML( url.text )
+        else:
+            self.replayURL = ""
+        #self.sentOneMinWarning  = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["oneMin" ] ) )
+        #self.sentFiveMinWarning = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["fiveMin"] ) )
+        #self.sentFinalWarning   = str_to_bool( fromXML( matchRoot.find( "sentWarnings" ).attrib["final"  ] ) )
         self.winner = fromXML( matchRoot.find( "winner" ).text )
-        if self.winner != "" and not ( "a draw" in self.winner ) and not self.isBye():
-            self.winner = self.winner
+        if self.winner == "" or self.winner is None:
+            self.winner = fromXML( matchRoot.find( "winner" ).attrib["name"])
+
+        if self.winner == "None" or self.winner == "This match is a bye" or self.winner == "This match is a draw":
+            self.winner = None
+            
         for player in matchRoot.find("activePlayers"):
             self.activePlayers.append( fromXML( player.attrib["name"] ) )
         for player in matchRoot.find("droppedPlayers"):
