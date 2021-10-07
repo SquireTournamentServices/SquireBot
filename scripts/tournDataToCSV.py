@@ -16,13 +16,13 @@ if tournDir[-1] == "/":
 
 tourn = tournamentSelector( f'{tournDir}/tournamentType.xml', f'{tournDir}', "PWP" )
 tourn.loadTournament( f'{tournDir}' )
-print( tourn.players )
+print( tourn.playerReg.getActivePlayers() )
 
 
 
 with open( f'{tournDir}_PlayerData.csv', "w" ) as output:
     cols = [ ]
-    activePlayers = [ plyr for plyr in tourn.players if plyr.isActive() ]
+    activePlayers = tourn.playerReg.getActivePlayers()
     for plyr in activePlayers:
         cols.append( [ plyr.name.replace( ",", "" ) ] )
         for name, dck in plyr.decks.items():
@@ -47,7 +47,7 @@ with open( f'{tournDir}_PlayerData.csv', "w" ) as output:
 
 with open( f'{tournDir}_MatchData.csv', "w" ) as output:
     output.write( "Match Number:, Winner:, Player #1, Player #2, Player #3:, Player #4:\n" )
-    for mtch in tourn.matches:
+    for mtch in tourn.matchReg.getMatches():
         digest  = f'{mtch.matchNumber}, '
         if isinstance( mtch.winner, player ):
             digest += f'{mtch.winner.name.replace(",", "")}, '
