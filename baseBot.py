@@ -378,7 +378,10 @@ async def on_ready():
                 hash = deck.deckHash
                 deck_all = ""
                 for card in deck.cards:
-                    deck_all += cardsDB.getCard(card).getName()
+                    try:
+                        deck_all += cardsDB.getCard(card).getName()
+                    except CardNotFoundError as ex:
+                        pass
                 
                 if hash not in uniqueDecks:
                     deckID = str( uuid.uuid4() )
