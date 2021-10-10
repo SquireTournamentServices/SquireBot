@@ -468,7 +468,7 @@ async def on_ready():
                         except CardNotFoundError as ex:
                             pass
                     if card_ is not None:
-                        cursor.execute("INSERT INTO DeckCards Values (%s, %s, %s, %s, %s);", (deck.deckID, card_.uuid, number, True, sb))
+                        cursor.execute("INSERT INTO DeckCards Values (%s, %s, %s, %s);", (deck.deckID, card_.uuid, number, sb))
                 
     # Add matches
     for tournament in tournaments:
