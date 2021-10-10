@@ -339,7 +339,7 @@ async def on_ready():
     password = userfiledata[1]
             
     # Connect to the database
-    conn = psycopg2.connect(database="monarchdb", user=username, password=password, host="127.0.0.1", port="5432")
+    conn = psycopg2.connect(database="monarchdb", user=username, password=password, host="127.0.0.1", port="6446")
     cursor = conn.cursor()
             
     # Add players to the database
@@ -366,14 +366,34 @@ async def on_ready():
                 tids.append(p.tuuid)
     
     # Add decks to the database
+    # parallel arrays for hashes and ids
+    uniqueDecks = []
+    uniqueDeckHashes = []
+    uniqueDeckIDs = []
     for player in players:
         print(f"Adding decks for {player.name}")
         for p in player.tplayers:
             for deck_ in p.decks:
                 deck = p.decks[deck_]
-                deckID = str( uuid.uuid4() )
+                hash = deck.deckHash
+                deck_all = ""
+                for card in deck.cards:
+                    deck_all += cardsDB.getCard(card).getName()
+                
+                if hash not in uniqueDecks:
+                    deckID = str( uuid.uuid4() )
+                    uniqueDeckHashes.append(hash)
+                    uniqueDeckIDs.append(deckID)
+                    uniqueDecks.append(deck_all)
+                    cursor.execute("INSERT INTO Decks Values (%s, %s);", (deckID, hash))
+                else:
+                    for i in range(len(uniqueDecks)):
+                        if uniqueDecks[i] == deck_all:
+                            deckID = uniqueDeckIDs[i]
+                            break
+                
                 deck.deckID = deckID
-                cursor.execute("INSERT INTO Decks Values (%s, %s, %s, %s);", (deckID, player.uuid, p.tuuid, deck.ident[0:30]))
+                cursor.execute("INSERT INTO TournamentDecks Values (%s, %s, %s, %s);", (deckID, player.uuid, p.tuuid, deck.ident[0:30]))
             
     # Add card-decks to the database
     for player in players:
