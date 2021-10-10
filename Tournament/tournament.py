@@ -873,7 +873,7 @@ class tournament:
 
     # ---------------- Match Management ----------------
     async def _sendMatchWarning( self, msg: str ) -> None:
-        await self.pairingsChannel.send( content=msg )
+        pass
 
     def _launch_match_warning( self, msg: str ) -> None:
         if self.loop.is_running( ):
