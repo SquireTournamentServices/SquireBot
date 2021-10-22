@@ -202,7 +202,7 @@ class player:
 
             if (not isSideboard) and (not getPrimaryType(tmpCard.types) in fieldVals ):
                 fieldVals[getPrimaryType(tmpCard.types)] = []
-            fieldVals["Sideboard" if isSideboard else getPrimaryType(tmpCard.types)].append( card_ )
+            fieldVals["Sideboard" if isSideboard else getPrimaryType(tmpCard.types)].append( cardsDB.getCard(card_).name )
         # The embed looks bad if the fields that form a row are vastly different lengths
         # So, they are sorted (except for the sideboard)
         fieldKeys: list = [ key for key in fieldVals if key != "Sideboard" ]
