@@ -268,6 +268,7 @@ class player:
         self.matches.append( a_mtch )
         for plyr in a_mtch.players:
             self.addOpponent( plyr )
+            plyr.addOpponent( self )
 
     def getMatch( self, a_matchNum: int ) -> "match":
         for mtch in self.matches:

@@ -70,7 +70,7 @@ class pairingQueue( pairingSystem ):
         """ Determines if a group of players are all mutually valid opponents. """
         # Creates each pair of player and determines if they can be paired
         # together and logically ANDs the results
-        return Intersection( [ A.isValidOpponent(B.discordID) for i, A in enumerate(plyrs) for B in plyrs[i+1:] ] )
+        return Intersection( [ A.isValidOpponent(B) for i, A in enumerate(plyrs) for B in plyrs[i+1:] ] )
 
     def _attemptPairing( self, matchSize: int ) -> List[List]:
         """ Creates a potential list of pairings """

@@ -90,9 +90,11 @@ class PlayerRegistry:
 
     def createPlayer( self, name: str ) -> player:
         """ Adds a player to the list of players. """
-        newPlayer = player( name )
-        self.players.append( newPlayer )
-        return newPlayer
+        if not self.getPlayer( name ) is None:
+            newPlayer = player( name )
+            self.players.append( newPlayer )
+            return newPlayer
+        return None
 
     def isFullyRegistered( self, plyr: player ) -> bool:
         """ Checks to see if a plyr is fully registered. """
