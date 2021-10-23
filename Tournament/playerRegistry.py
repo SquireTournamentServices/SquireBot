@@ -90,7 +90,7 @@ class PlayerRegistry:
 
     def createPlayer( self, name: str ) -> player:
         """ Adds a player to the list of players. """
-        if not self.getPlayer( name ) is None:
+        if self.getPlayer( name ) is None:
             newPlayer = player( name )
             self.players.append( newPlayer )
             return newPlayer
