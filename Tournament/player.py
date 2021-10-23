@@ -392,8 +392,8 @@ class player:
         certMatches = self.getCertMatches( withBye )
         if len( certMatches ) == 0:
             return 0.0
-        digest = self.getNumberOfWins( )/( len(certMatches)*1.0 )
-        #digest = self.getMatchPoints( withBye )/( len(certMatches)*4. )
+        #digest = self.getNumberOfWins( )/( len(certMatches)*1.0 )
+        digest = self.getMatchPoints( withBye )/( 3.0*len(certMatches) )
         return digest #if digest >= 1./3 else 1./3
 
     def getNumberOfWins( self ) -> int:

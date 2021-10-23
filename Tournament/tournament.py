@@ -761,7 +761,7 @@ class tournament:
             message = await mtch.confirmResult( Plyr )
             if "announcement" in message:
                 await self.pairingsChannel.send( message["announcement"] )
-                digest.setContent( message["message"] )
+            digest.setContent( message["message"] )
             await self.updateInfoMessage( )
             mtch.saveXML( )
 
