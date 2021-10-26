@@ -377,7 +377,7 @@ async def on_ready():
                 deck = p.decks[deck_]
                 hash = deck.deckHash
                 deck_all = ""
-                for card in deck.cards:
+                for card in deck.cards.sort():
                     sb = "SB:" in card
                     card_ = None
                     if not "SB:" in card:
