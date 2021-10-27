@@ -377,6 +377,8 @@ async def on_ready():
                 deck = p.decks[deck_]
                 hash = deck.deckHash
                 deck_all = ""
+                for i in range(len(deck.cards)):
+                   deck.cards[i] = deck.cards[i].lower().replace("  ", "").strip()
                 deck.cards.sort()
                 for card in deck.cards:
                     sb = "SB:" in card
@@ -385,7 +387,7 @@ async def on_ready():
                         try:
                             int( card[0] )
                             card = card.split(" ", 1)
-                        except IndexError:
+                        except Exception:
                             card = [ card ]
                         if len( card ) == 1:
                             number = 1
@@ -413,8 +415,15 @@ async def on_ready():
                             pass
                     if card_ is not None:
                         deck_all += card_.name
-                
-                if hash not in uniqueDecks:
+                # If the deck is unique then add it to the database
+                duplicateHash = False
+                if hash in uniqueDeckHashes:
+	                for i in range(len(uniqueDecks)):
+	                    if uniqueDeckHashes[i] == hash:
+                             if uniqueDecks[i] != deck_all:
+                                 duplicateHash = True
+                                 break
+                if (hash not in uniqueDeckHashes) or duplicateHash:
                     deckID = str( uuid.uuid4() )
                     uniqueDeckHashes.append(hash)
                     uniqueDeckIDs.append(deckID)
@@ -425,7 +434,7 @@ async def on_ready():
                         if uniqueDecks[i] == deck_all:
                             deckID = uniqueDeckIDs[i]
                             break
-                
+                # Add the player deck to the database
                 deck.deckID = deckID
                 cursor.execute("INSERT INTO TournamentDecks Values (%s, %s, %s, %s);", (deckID, player.uuid, p.tuuid, deck.ident[0:30]))
             
@@ -442,7 +451,7 @@ async def on_ready():
                         try:
                             int( card[0] )
                             card = card.split(" ", 1)
-                        except IndexError:
+                        except Exception:
                             card = [ card ]
                         if len( card ) == 1:
                             number = 1
@@ -603,5 +612,3 @@ async def denyCommand( ctx ):
 
     del( commandsToConfirm[ctx.author.id] )
     await ctx.send( f'{ctx.author.mention}, your request has been cancelled.' )
-
-
