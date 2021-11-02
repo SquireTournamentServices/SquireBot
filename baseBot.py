@@ -5,6 +5,7 @@ import discord
 import random
 import re
 import sys
+import subprocess
 import uuid
 import psycopg2
 from random import getrandbits
@@ -362,7 +363,10 @@ async def on_ready():
         tids = []
         for p in player.tplayers:
             if p.tuuid not in tids:
-                cursor.execute("INSERT INTO TournamentPlayers Values (%s, %s);", (p.tuuid,  player.uuid))
+                if p.triceName is not None and p.triceName != "" and p.triceName != "None":
+                    cursor.execute("INSERT INTO TournamentPlayers Values (%s, %s, %s);", (p.tuuid, player.uuid, player.triceName))
+                else:                    
+                    cursor.execute("INSERT INTO TournamentPlayers Values (%s, %s, NULL);", (p.tuuid, player.uuid))
                 tids.append(p.tuuid)
     
     # Add decks to the database
@@ -445,8 +449,8 @@ async def on_ready():
             for deck_ in p.decks:
                 deck = p.decks[deck_]
                 for card in deck.cards:
-                    sb = "SB:" in card
                     card_ = None
+                    sb = False
                     if not "SB:" in card:
                         try:
                             int( card[0] )
@@ -470,6 +474,7 @@ async def on_ready():
                             except CardNotFoundError as ex:
                                 pass
                     else:
+                        sb = True
                         card = card.split(" ", 2)
                         number = int( card[1].strip() )
                         name = card[2]
@@ -495,14 +500,14 @@ async def on_ready():
             
             if match.winner is not None and not isinstance(match.winner, str):
                 print(f"Added {match.winner.puuid} (case 1)")
-                cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension) Values (%s, %s, %s, %s, NULL, NULL, %s, %s, %s);", (match.uuid, tournament.uuid, match.winner.puuid, replayURL, match.startTime, endTime, match.timeExtension))
+                cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension, MatchNumber, TriceMatch) Values (%s, %s, %s, %s, NULL, NULL, %s, %s, %s, %s, %s);", (match.uuid, tournament.uuid, match.winner.puuid, replayURL, match.startTime, endTime, match.timeExtension, match.matchNumber, match.triceMatch))
             elif tournament.getPlayer(match.winner) is not None:
                 puuid = tournament.getPlayer(match.winner).puuid
                 print(f"Added {puuid} (case 2)")
-                cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension) Values (%s, %s, %s, %s, NULL, NULL, %s, %s, %s);", (match.uuid, tournament.uuid, puuid, replayURL, match.startTime, endTime, match.timeExtension))
+                cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension, MatchNumber, TriceMatch) Values (%s, %s, %s, %s, NULL, NULL, %s, %s, %s, %s, %s);", (match.uuid, tournament.uuid, puuid, replayURL, match.startTime, endTime, match.timeExtension, match.matchNumber, match.triceMatch))
             else:
                 print("Added but draw/bye")
-                cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension) Values (%s, %s, NULL, %s, NULL, NULL, %s, %s, %s);", (match.uuid, tournament.uuid, replayURL, match.startTime, endTime, match.timeExtension))
+                cursor.execute("INSERT INTO Matches (MatchID, TournamentID, WinnerID, ReplayURL, Turns, Spectators, StartTime, EndTime, TimeExtension, MatchNumber, TriceMatch) Values (%s, %s, NULL, %s, NULL, NULL, %s, %s, %s, %s, %s);", (match.uuid, tournament.uuid, replayURL, match.startTime, endTime, match.timeExtension, match.matchNumber, match.triceMatch))
         
     # Add match players                        
     for tournament in tournaments:
@@ -510,13 +515,63 @@ async def on_ready():
         for match in tournament.matches:
             for player in match.confirmedPlayers:
                 if player is not None:
-                    cursor.execute("INSERT INTO MatchPlayers Values (%s, %s);", (player.puuid, match.uuid))
-            
+                    cursor.execute("INSERT INTO MatchPlayers Values (%s, %s, NULL);", (player.puuid, match.uuid))
+                    
+    # Parse trice replay data
+    for tournament in tournaments:
+        for match in tournament.matches:
+            if match.triceMatch:
+                # Get replay
+                replay = f"/home/danny/TriceBot/replays/{match.replayURL.split("replays/")[1]}"
+                
+                # Parse match with replay analysis tool
+                proc = subprocess.Popen(["java", "-jar", "replaytool.jar", replay], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                
+                out, err = proc.communicate()
+                exitcode = proc.returncode
+                
+                if exitcode != 0:
+                    print(f"Error with replay analysis for match {match.replayURL}.\n{out}\n{err}")                    
+                    continue
+                
+                players = []
+                deckHashes = []
+                spectators = 0
+                turnsTaken = 0
+                for line in out.split("\n"):
+                    start = line.split(":")[0]
+                    rest = line.split(":")[1:]
+                    if start == "spectators":
+                        spectators = int(rest)
+                    elif start == "player":
+                        players.append(rest.split(" ")[0])
+                        deckHashes.append(rest.split(" ")[1])
+                    elif start == "turnstaken":
+                        turnsTaken = int(rest)
+                
+                # Get the deck ids from hashes
+                deckIds = []
+                for i in range(len(deckHashes)):
+                    for hash in uniqueDeckHashes:
+                        if hash == deckHashes[i]:
+                            deckIds[i] = uniqueDeckIDs[i]
+                            break
+                
+                # Add turns and spectators
+                cursor.execute("UPDATE Matches SET Turns=%s Spectators=%s WHERE matches.matchid=%s;", (turns, spectators, match.uuid))
+                
+                # Assign decks played to players
+                for player in match.players:
+                    if p.triceName is not None and p.triceName != "" and p.triceName != "None":
+                        for i in range(len(players)):
+                            if players[i] == p.triceName:
+                                cursor.execute("UPDATE MatchPlayers SET DeckID=%s WHERE matchplayers.playerid=%s and matchplayers.matchid=%s;", (deckIDs[i], player.puuid, match.uuid))
+                
     conn.commit()
     conn.close()
     
-    print("Successfully added all data to the database")    
-    sys.exit(0)
+    print("Successfully added all data to the database")
+    bot.close()
 
 # When the bot is added to a new guild, a settings object needs to be added for that guild
 @bot.event
