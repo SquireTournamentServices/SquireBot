@@ -372,8 +372,12 @@ class guildSettings:
         await self.loadTournaments( f'{dirName}/currentTournaments' )
 
     def loadSettings( self, filename: str ) -> None:
-        xmlTree = ET.parse( filename )
-        root    = xmlTree.getroot()
+        try:
+            xmlTree = ET.parse( filename )
+            root    = xmlTree.getroot()
+        except:
+            # THis means it is a legacy server
+            return
 
         try:
             self.d_judgeRole       = self.guild.get_role( int(fromXML(root.find('judgeRole').attrib['id'])) )
