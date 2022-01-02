@@ -109,7 +109,7 @@ class fluidRoundTournament(tournament):
         return digest
 
     # Wrapper for self._pairQueue so that it can be ran on a seperate thread
-    def _launch_pairings( self, waitTime ):
+    def createPairings( self, waitTime ):
         sleep( waitTime )
         print( "Launching task" )
         fut_pairings = asyncio.run_coroutine_threadsafe( self._pairQueue(waitTime), self.loop )
