@@ -323,31 +323,31 @@ class guildSettings:
             filename = f'{self.saveLocation}/settings.xml'
         digest  = "<?xml version='1.0'?>\n"
         digest += '<settings>\n'
-        digest += f'\t<guild name="{self.guild.name}" id="{self.guild.id}"/>\n'
+        digest += f'\t<guild name="{toSafeXML(self.guild.name)}" id="{self.guild.id}"/>\n'
         if self.d_judgeRole is None:
             digest += f'\t<judgeRole name="None" id="None"/>\n'
         else:
-            digest += f'\t<judgeRole name="{self.d_judgeRole.name}" id="{self.d_judgeRole.id}"/>\n'
+            digest += f'\t<judgeRole name="{toSafeXML(self.d_judgeRole.name)}" id="{self.d_judgeRole.id}"/>\n'
 
         if self.d_tournAdminRole is None:
             digest += f'\t<tournAdminRole name="None" id="None"/>\n'
         else:
-            digest += f'\t<tournAdminRole name="{self.d_tournAdminRole.name}" id="{self.d_tournAdminRole.id}"/>\n'
+            digest += f'\t<tournAdminRole name="{toSafeXML(self.d_tournAdminRole.name)}" id="{self.d_tournAdminRole.id}"/>\n'
 
         if self.d_pairingsChannel is None:
             digest += f'\t<pairingsChannel name="None" id="None"/>\n'
         else:
-            digest += f'\t<pairingsChannel name="{self.d_pairingsChannel.name}" id="{self.d_pairingsChannel.id}"/>\n'
+            digest += f'\t<pairingsChannel name="{toSafeXML(self.d_pairingsChannel.name)}" id="{self.d_pairingsChannel.id}"/>\n'
 
         if self.d_standingsChannel is None:
             digest += f'\t<standingsChannel name="None" id="None"/>\n'
         else:
-            digest += f'\t<standingsChannel name="{self.d_standingsChannel.name}" id="{self.d_standingsChannel.id}"/>\n'
+            digest += f'\t<standingsChannel name="{toSafeXML(self.d_standingsChannel.name)}" id="{self.d_standingsChannel.id}"/>\n'
 
         if self.d_VCCatergory is None:
             digest += f'\t<VCCatergory name="None" id="None"/>\n'
         else:
-            digest += f'\t<VCCatergory name="{self.d_VCCatergory.name}" id="{self.d_VCCatergory.id}"/>\n'
+            digest += f'\t<VCCatergory name="{toSafeXML(self.d_VCCatergory.name)}" id="{self.d_VCCatergory.id}"/>\n'
 
         digest += f'\t<tournType default="{self.d_tournType}"/>\n'
         digest += f'\t<properties '
@@ -357,7 +357,7 @@ class guildSettings:
         digest += '</settings>\n'
 
         with open( filename, 'w+' ) as xmlfile:
-            xmlfile.write( toSafeXML(digest) )
+            xmlfile.write( digest )
 
     def saveTournaments( self, filename: str = "" ) -> None:
         if filename == "":
