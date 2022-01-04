@@ -364,9 +364,8 @@ async def adminCreatePairing( ctx, tourn = None, *plyrs ):
         return
 
     await tournObj.addMatch( Plyrs )
-    tournObj.matches[-1].saveXML( )
     tournObj.saveOverview( )
-    await ctx.send( f'{mention}, the players you specified for the match are now paired. Their match number is #{tournObj.matches[-1].matchNumber}.' )
+    await ctx.send( f'{mention}, the players you specified for the match are now paired. Their match number is #{tournObj.matchReg.getMatchCount()}.' )
 
 
 commandSnippets["pair-round"] = "- pair-round : Creates the pairings for the next round."
@@ -388,6 +387,10 @@ async def pairRound( ctx, tourn = None ):
     tournObj = gld.getTournament( tourn )
     if tournObj is None:
         await ctx.send( f'{mention}, there is not a tournament called {tourn!r} on this server.' )
+        return
+
+    if len(tournObj.matchReg.getUncertifiedMatches()) + len(tournObj.matchReg.getOpenMatches()) != 0:
+        await ctx.send( f'{mention}, there are matches that have not finished yet. All results for the round must confirmed before the next round can begin.' )
         return
 
     response = tournObj.createPairings( mention )
@@ -571,11 +574,6 @@ async def adminRemoveMatch( ctx, tourn = None, mtch = None ):
         await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
         return
 
-    # TODO: Tagging this to remember to moving this into the tournament method
-    if mtch > len(tournObj.matches):
-        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
-        return
-
     if await hasCommandWaiting( ctx, ctx.author.id ):
         del( commandsToConfirm[ctx.author.id] )
 
@@ -638,11 +636,11 @@ async def tricebotKickPlayer( ctx, tourn = None, mtch = None, playerName = None 
         await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
         return
 
-    if mtch > len(tournObj.matches):
-        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
-        return
+    Match = tournObj.getMatch( mtch )
 
-    Match = tournObj.matches[mtch - 1]
+    if Match is None:
+        await ctx.send( f'{mention}, there is no match whose match number is {mtch}.' )
+        return
 
     if not Match.triceMatch:
         await ctx.send( f'{mention}, that match is not a match with tricebot enabled.' )
@@ -691,11 +689,11 @@ async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None ):
         await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
         return
 
-    if mtch > len(tournObj.matches):
-        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
-        return
+    Match = tournObj.getMatch( mtch )
 
-    Match = tournObj.matches[mtch - 1]
+    if Match is None:
+        await ctx.send( f'{mention}, there is no match whose match number is {mtch}.' )
+        return
 
     if not Match.triceMatch:
         await ctx.send( f'{mention}, that match is not a match with tricebot enabled.' )
@@ -742,11 +740,11 @@ async def triceBotUpdatePlayer( ctx, tourn = None, mtch = None, plyr = None, new
         await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
         return
 
-    if mtch > len(tournObj.matches):
-        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
-        return
+    Match = tournObj.getMatch( mtch )
 
-    Match = tournObj.matches[mtch - 1]
+    if Match is None:
+        await ctx.send( f'{mention}, there is no match whose match number is {mtch}.' )
+        return
 
     if not Match.triceMatch:
         await ctx.send( f'{mention}, that match is not a match with tricebot enabled.' )
@@ -814,7 +812,7 @@ async def downloadReplays( ctx, tourn = None ):
     replayURLs = []
 
     # Iterate over matches
-    for match in tournObj.matches:
+    for match in tournObj.getMatches():
         if match.triceMatch and match.replayURL != "":
             replayURLs.append(match.replayURL)
 

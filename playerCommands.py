@@ -540,7 +540,7 @@ async def standings( ctx, tourn = None, printAll = None ):
         return
 
     standings = tournObj.getStandings( )
-    if len(tournObj.players) < 1:
+    if len(tournObj.playerReg.players) < 1:
         await ctx.send( "There are no players registered in this tournament." )
         return
 
@@ -695,8 +695,8 @@ async def printDecklist( ctx, tourn = None, ident = None ):
             await ctx.send( f'{mention}, you do not have a deck registered for {tourn} whose name/hash is {tourn!r}.' )
         return
 
-    if await isPrivateMessage( ctx, send=False ):
-        await ctx.send( embed = await tournObj.getPlayer(ID).getDeckEmbed( deckName ) )
+    if private:
+        await ctx.send( embed = await tournObj.getDeckEmbed(ID, deckName ) )
     else:
         if await hasCommandWaiting( ctx, ctx.author.id ):
             del( commandsToConfirm[ctx.author.id] )

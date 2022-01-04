@@ -247,10 +247,10 @@ class guildSettings:
         tourn = getTournamentType( tournType, name, self.guild.name, {} )
         await tourn.addDiscordGuild( self.guild )
         tourn.saveTournament(tourn.getSaveLocation())
-        
+
         props = self._mergeProperties( props, tourn )
         digest = tourn.setProperties( props )
-        
+
         tourn.loop = self.eventLoop
         self.tournaments.append( tourn )
         return digest
@@ -259,9 +259,11 @@ class guildSettings:
     # TODO: The end and cancel tournament methods should be combined
     async def endTournament( self, name: str, author: str ) -> str:
         tourn = self.getTournament( name )
-        digest = await tourn.cancelTourn( self.d_tournAdminRole.mention, author )
+        content = await tourn.cancelTourn( self.d_tournAdminRole.mention, author )
         del self.tournaments[ self._indexTournament(name) ]
-        return commandResponse(content=digest)
+        digest = commandResponse( )
+        digest.setContent(content)
+        return digest
 
     # Returns a dictionary of current tournaments with tournament names as keys
     # and tournament objects as values
@@ -280,7 +282,7 @@ class guildSettings:
     def getPlayerTournaments( self, user: discord.Member ) -> Dict:
         digest: list = [ ]
         for tourn in self.tournaments:
-            plyr = tourn.getPlayer( str(user.id) )
+            plyr = tourn.getPlayer( user.id )
             if plyr is None:
                 continue
             if not plyr.isActive( ):
@@ -321,31 +323,31 @@ class guildSettings:
             filename = f'{self.saveLocation}/settings.xml'
         digest  = "<?xml version='1.0'?>\n"
         digest += '<settings>\n'
-        digest += f'\t<guild name="{self.guild.name}" id="{self.guild.id}"/>\n'
+        digest += f'\t<guild name="{toSafeXML(self.guild.name)}" id="{self.guild.id}"/>\n'
         if self.d_judgeRole is None:
             digest += f'\t<judgeRole name="None" id="None"/>\n'
         else:
-            digest += f'\t<judgeRole name="{self.d_judgeRole.name}" id="{self.d_judgeRole.id}"/>\n'
+            digest += f'\t<judgeRole name="{toSafeXML(self.d_judgeRole.name)}" id="{self.d_judgeRole.id}"/>\n'
 
         if self.d_tournAdminRole is None:
             digest += f'\t<tournAdminRole name="None" id="None"/>\n'
         else:
-            digest += f'\t<tournAdminRole name="{self.d_tournAdminRole.name}" id="{self.d_tournAdminRole.id}"/>\n'
+            digest += f'\t<tournAdminRole name="{toSafeXML(self.d_tournAdminRole.name)}" id="{self.d_tournAdminRole.id}"/>\n'
 
         if self.d_pairingsChannel is None:
             digest += f'\t<pairingsChannel name="None" id="None"/>\n'
         else:
-            digest += f'\t<pairingsChannel name="{self.d_pairingsChannel.name}" id="{self.d_pairingsChannel.id}"/>\n'
+            digest += f'\t<pairingsChannel name="{toSafeXML(self.d_pairingsChannel.name)}" id="{self.d_pairingsChannel.id}"/>\n'
 
         if self.d_standingsChannel is None:
             digest += f'\t<standingsChannel name="None" id="None"/>\n'
         else:
-            digest += f'\t<standingsChannel name="{self.d_standingsChannel.name}" id="{self.d_standingsChannel.id}"/>\n'
+            digest += f'\t<standingsChannel name="{toSafeXML(self.d_standingsChannel.name)}" id="{self.d_standingsChannel.id}"/>\n'
 
         if self.d_VCCatergory is None:
             digest += f'\t<VCCatergory name="None" id="None"/>\n'
         else:
-            digest += f'\t<VCCatergory name="{self.d_VCCatergory.name}" id="{self.d_VCCatergory.id}"/>\n'
+            digest += f'\t<VCCatergory name="{toSafeXML(self.d_VCCatergory.name)}" id="{self.d_VCCatergory.id}"/>\n'
 
         digest += f'\t<tournType default="{self.d_tournType}"/>\n'
         digest += f'\t<properties '
@@ -355,7 +357,7 @@ class guildSettings:
         digest += '</settings>\n'
 
         with open( filename, 'w+' ) as xmlfile:
-            xmlfile.write( toSafeXML(digest) )
+            xmlfile.write( digest )
 
     def saveTournaments( self, filename: str = "" ) -> None:
         if filename == "":
@@ -370,8 +372,12 @@ class guildSettings:
         await self.loadTournaments( f'{dirName}/currentTournaments' )
 
     def loadSettings( self, filename: str ) -> None:
-        xmlTree = ET.parse( filename )
-        root    = xmlTree.getroot()
+        try:
+            xmlTree = ET.parse( filename )
+            root    = xmlTree.getroot()
+        except:
+            # THis means it is a legacy server
+            return
 
         try:
             self.d_judgeRole       = self.guild.get_role( int(fromXML(root.find('judgeRole').attrib['id'])) )

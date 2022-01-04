@@ -35,7 +35,7 @@ def str_to_bool( newBool: str ) -> bool:
     return None
 
 def trunk( score ) -> str:
-    """ Trunkates doubles to 2 decimal places """
+    """ Truncates doubles to 2 decimal places """
     if not isinstance(score, str):
         score = str(score)
     score = score.split(".")
@@ -55,6 +55,8 @@ def Union( vals: List ) -> bool:
 
 def Intersection( vals: List ) -> bool:
     """ Applies a logical AND to a list of bools """
+    if len(vals) == 0:
+        return True
     digest = vals[0]
     for val in vals[1:]:
         digest &= val
@@ -67,19 +69,19 @@ def timeDiff( tOne: str, tTwo: str ) -> float:
     digest = diff.days*24*60*60 + diff.seconds + diff.microseconds*10**-6
     return abs(digest)
 
-def getAdminRole( duild: discord.Guild ):
+def getAdminRole( guild: discord.Guild ):
     """ TODO: Soon to be depricated method """
     ret = ""
-    for role in duild.roles:
+    for role in guild.roles:
         if str(role).lower() == "tournament admin":
             ret = role
             break
     return ret
 
-def getJudgeRole( duild: discord.Guild ):
+def getJudgeRole( guild: discord.Guild ):
     """ TODO: Soon to be depricated method """
     digest = ""
-    for role in duild.roles:
+    for role in guild.roles:
         if str(role).lower() == "judge":
             digest = role
             break
@@ -127,17 +129,17 @@ def generatePropsDict( *args ) -> Dict:
     return digest
 
 
-problemChars = { '"': "&quot;",
-                 "'": "&apos;",
-                 "<": "&lt;",
-                 ">": "&gt;",
-                 "&": "&amp;"
-               }
+PROBLEM_PATH_CHARS = [ "/" ]
+
+
+def isUUID( ID: str ) -> bool:
+    """ Returns if a string is a UUID. """
+    return not ( re.match( "^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$", ID ) is None )
 
 def isPathSafeName(name: str) -> bool:
     """ Checks to see if a name can be a file/dir """
-    digest = ("~" in name) or ("/" in name)
-    for char in problemChars:
+    digest = False
+    for char in PROBLEM_PATH_CHARS:
         digest |= (char in name)
     return digest
 
@@ -145,23 +147,31 @@ def toPathSafe(name: str) -> bool:
     """ Changes a name to be a safe file/dir name """
     #bad chars are xml chars, "~", and "../" as it is a directory buggerer
     digest = name.replace("~", "_").replace("/", "_")
-    for char in problemChars:
+    for char in PROBLEM_PATH_CHARS:
         digest = digest.replace(char, "_")
     return digest
+
+
+PROBLEM_XML_CHARS = { "&": "&amp;",
+                      "'": "&apos;",
+                      '"': "&quot;",
+                      "<": "&lt;",
+                      ">": "&gt;",
+                    }
 
 def toSafeXML( inputXML: str ) -> str:
     """ Adds XML escape chars where needed """
     if inputXML is None:
         return "" # Check for None
     digest = str(inputXML)
-    for char in problemChars:
-        digest = digest.replace(char, problemChars[char])
+    for old, new in PROBLEM_XML_CHARS.items():
+        digest = digest.replace(old, new)
     return digest
 
 def fromXML( inputXML: str ) -> str:
     """ Expands XML escape chars (because the XML library doesn't) """
     digest = str(inputXML)
-    for char in problemChars:
-        digest = digest.replace(problemChars[char], char)
+    for new, old in PROBLEM_XML_CHARS.items():
+        digest = digest.replace(old, new)
     return digest
 

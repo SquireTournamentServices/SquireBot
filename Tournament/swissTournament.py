@@ -14,6 +14,9 @@ from typing import List, Tuple
 from .utils import *
 from .tournament import tournament
 from .commandResponse import commandResponse
+from .playerRegistry import PlayerRegistry
+from .matchRegistry import MatchRegistry
+from .swissSystem import *
 from .player import player
 from .match import match
 from .deck import deck
@@ -28,6 +31,8 @@ class swissTournament(tournament):
     def __init__( self, name: str, hostGuildName: str, props: dict = { } ):
         super().__init__( name, hostGuildName, props )
         self.pairingSystem     = swissSystem( )
+        self.pairingSystem.setMatchReg( self.matchReg )
+        self.pairingSystem.setPlayerReg( self.playerReg )
 
     # ---------------- Property Accessors ----------------
 
@@ -63,15 +68,15 @@ class swissTournament(tournament):
     def createPairings( self, mention: str ) -> commandResponse:
         """ Creates the pairings for the next round. Needs confirmation for matches are created. """
         digest = commandResponse( )
-        uncertMatches = [ mtch for mtch in self.matches if not mtch.isCertified() ]
+        uncertMatches = self.matchReg.getUncertifiedMatches()
         if len(uncertMatches) != 0:
             newLine = "\n\t- "
             digest.setContent( f'{mention}, below are the matches that are not certified. They their result needs to be confirmed before pairing the next round.{newLine}{newLine.join([mtch.matchNumber for mtch in uncertMatches ] )}' )
         else:
             self.pairingSystem.queue = [ ]
             standings = [ ]
-            if len(self.matches) == 0:
-                standings = [ p for p in self.players if p.isActive() ]
+            if self.matchReg.getMatchCount() == 0:
+                standings = self.playerReg.getActivePlayers()
             else:
                 standings = [ p for p in self.getStandings()[1] ]
             for plyr in standings:

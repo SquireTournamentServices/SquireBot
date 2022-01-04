@@ -1,0 +1,95 @@
+1 Academy Ruins 
+1 Arcane Signet 
+1 Blasphemous Act 
+1 Blast Zone 
+1 Blood Crypt 
+1 Cackling Counterpart 
+1 Castle Vantress 
+1 Chaos Warp 
+1 Chrome Mox 
+1 Clearwater Pathway 
+1 Clever Impersonator 
+1 Clone 
+1 Clone Legion 
+1 Command Tower 
+1 Consecrated Sphinx 
+1 Curiosity 
+1 Cyclonic Rift 
+1 Dark Ritual 
+1 Deadly Rollick 
+1 Demonic Tutor 
+1 Dimir House Guard 
+1 Dockside Extortionist 
+1 Dramatic Reversal 
+1 Fabled Passage 
+1 Fabricate 
+1 Fellwar Stone 
+1 Fierce Guardianship 
+1 Fiery Emancipation 
+1 Finale of Promise 
+1 Followed Footsteps 
+1 Glasspool Mimic 
+1 Grim Tutor 
+1 Helm of the Host 
+1 Hullbreacher 
+3 Island 
+1 Isochron Scepter 
+1 Izzet Signet 
+1 Kess, Dissident Mage 
+1 Knowledge Pool 
+1 Leyline of Anticipation 
+1 Mana Confluence 
+1 Mana Crypt 
+1 Minamo, School at Water's Edge 
+1 Mirror Image 
+1 Misty Rainforest 
+3 Mountain 
+1 Mox Amber 
+1 Mox Opal 
+1 Mystic Remora 
+1 Mystical Tutor 
+1 Narset, Parter of Veils 
+1 Negate 
+1 Obosh, the Preypiercer 
+1 Ophidian Eye 
+1 Opposition Agent 
+1 Pact of Negation 
+1 Phyrexian Metamorph 
+1 Polluted Delta 
+1 Portal Mage 
+1 Ral, Storm Conduit 
+1 Reflecting Pool 
+1 Rhystic Study 
+1 Risk Factor 
+1 Rite of Replication 
+1 Riverglide Pathway 
+1 Sakashima of a Thousand Faces 
+1 Scroll Rack 
+1 Sensei's Divining Top 
+1 Snapcaster Mage 
+1 Sol Ring 
+1 Spark Double 
+1 Spellseeker 
+1 Steam Vents 
+1 Strionic Resonator 
+1 Stunt Double 
+1 Sublime Epiphany 
+1 Sulfur Falls 
+1 Sunbird's Invocation 
+1 Sunken Hollow 
+1 Sunken Ruins 
+2 Swamp 
+1 Swan Song 
+1 Sygg, River Cutthroat 
+1 Teferi, Mage of Zhalfir 
+1 Tezzeret the Seeker 
+1 Treasure Cruise 
+1 Underground Sea 
+1 Unwinding Clock 
+1 Vedalken Orrery 
+1 Verdant Catacombs 
+1 Vial Smasher the Fierce 
+1 Volcanic Island 
+1 Watery Grave 
+1 Wayfarer's Bauble 
+1 Wishclaw Talisman

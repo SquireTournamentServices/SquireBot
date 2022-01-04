@@ -39,8 +39,8 @@ async def adminAddPlayer( ctx, tourn = None, plyr = None ):
         await ctx.send( f'{mention}, there is not a player named {plyr!r}. You can add a dummy player in with that name. Is that what you want to do (!yes/!no)?' )
         return
 
-    message = await tournObj.addPlayerAdmin( member, mention )
-    await ctx.send( content=message )
+    response = await tournObj.addPlayerAdmin( member, mention )
+    response.send( ctx )
 
 
 commandSnippets["admin-add-deck"] = "- admin-add-deck : Registers a deck for a player in a tournament"
@@ -129,13 +129,13 @@ async def adminListPlayers( ctx, tourn = None, num = None ):
         await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
 
-    if len( tournObj.players ) == 0:
+    if len( tournObj.playerReg.getPlayers() ) == 0:
         await ctx.send( f'{mention}, there are no players registered for the tournament {tourn}.' )
         return
 
     # TODO: There are plans to track players that leave
     # Moreover, the addition of dummy players will cause issues
-    playerNames = [ plyr.getMention() for plyr in tournObj.players if plyr.isActive() ]
+    playerNames = [ plyr.getMention() for plyr in tournObj.playerReg.getActivePlayers() ]
     if num == "n" or num == "num" or num == "number":
         await ctx.send( f'{mention}, there are {len(playerNames)} active players in {tourn}.' )
         return
@@ -199,10 +199,6 @@ async def adminMatchResult( ctx, tourn = None, plyr = None, mtch = None, result 
         await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number as a number.' )
         return
 
-    if mtch > len(tournObj.matches):
-        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
-        return
-
     response = await tournObj.recordMatchResultAdmin( plyr, result, mtch, mention )
     await response.send( ctx )
 
@@ -232,11 +228,6 @@ async def adminConfirmResult( ctx, tourn = None, plyr = None, mtch = None ):
         mtch = int( mtch )
     except ValueError:
         await ctx.send( f'{mention}, you did not provide a match number. Please specify a match number using digits.' )
-        return
-
-    # TODO: This should probably be handled by the tournament class
-    if mtch > len(tournObj.matches):
-        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
         return
 
     response = await tournObj.playerConfirmResultAdmin( plyr, mtch, mention )
@@ -269,14 +260,6 @@ async def giveTimeExtension( ctx, tourn = None, mtch = None, t = None ):
         await ctx.send( f'{mention}, you did not provide a match number correctly. Please specify a match number using digits.' )
         return
 
-    if mtch > len(tournObj.matches):
-        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
-        return
-
-    if tournObj.matches[mtch - 1].stopTimer:
-        await ctx.send( f'{mention}, match #{mtch} does not have a timer set. Make sure the match is not already over.' )
-        return
-
     try:
         t = int( t )
     except:
@@ -287,12 +270,8 @@ async def giveTimeExtension( ctx, tourn = None, mtch = None, t = None ):
         await ctx.send( f'{mention}, you can not give time extension of less than one minute in length.' )
         return
 
-    # TODO: Gross... this should be handled by the tournament class
-    tournObj.matches[mtch - 1].giveTimeExtension( t*60 )
-    tournObj.matches[mtch - 1].saveXML( )
-    for plyr in tournObj.matches[mtch - 1].activePlayers:
-        await plyr.sendMessage( content=f'Your match (#{mtch}) in {tourn} has been given a time extension of {t} minute{"" if t == 1 else "s"}.' )
-    await ctx.send( f'{mention}, you have given match #{mtch} a time extension of {t} minute{"" if t == 1 else "s"}.' )
+    response = await tournObj.giveTimeExtension( mtch, t*60, mention )
+    await response.send( ctx )
 
 
 commandSnippets["admin-decklist"] = "- admin-decklist : Posts a decklist of a player"
@@ -316,7 +295,7 @@ async def adminPrintDecklist( ctx, tourn = None, plyr = None, ident = None ):
         await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
         return
 
-    response = await tournObj.getDeckEmbed( ident )
+    response = await tournObj.getDeckEmbed( plyr, ident, mention )
     await response.send( ctx )
 
 
@@ -346,11 +325,47 @@ async def matchStatus( ctx, tourn = None, mtch = None ):
         await ctx.send( f'{mention}, you did not provide a match number correctly. Please specify a match number using digits.' )
         return
 
-    if mtch > len(tournObj.matches):
-        await ctx.send( f'{mention}, the match number that you specified is greater than the number of matches. Double check the match number.' )
+    response = tournObj.getMatchEmbed( mtch, mention )
+    await response.send( ctx )
+
+
+commandSnippets["deck-check"] = "- deck-check : See all the decks of the players in a match."
+commandCategories["admin-misc"].append("deck-check")
+@bot.command(name='deck-check')
+async def matchStatus( ctx, tourn = None, mtch = None ):
+    mention = ctx.author.mention
+    gld = guildSettingsObjects[ctx.guild.id]
+
+    if await isPrivateMessage( ctx ): return
+
+    if not await isAdmin( ctx ): return
+
+    if tourn == "" or mtch == "":
+        await ctx.send( f'{mention}, you did not provide enough information. You need to specify a tournament, a match number, and an amount of time.' )
         return
 
-    await ctx.send( f'{mention}, here is the status of match #{mtch}:', embed=tournObj.getMatchEmbed( mtch-1 ) )
+    tournObj = gld.getTournament( tourn )
+    if tournObj is None:
+        await ctx.send( f'{mention}, there is not tournament called {tourn!r} on this server.' )
+        return
+
+    try:
+        mtch = int( mtch )
+    except:
+        await ctx.send( f'{mention}, you did not provide a match number correctly. Please specify a match number using digits.' )
+        return
+
+    Match = tournObj.getMatch( mtch )
+    if Match is None:
+        await ctx.send( f'{mention}, there is no match whose match number is {mtch}.' )
+        return
+
+    for plyr in Match.activePlayers:
+        if len(plyr.decks) == 0:
+            await ctx.send( f'{mention}, {plyr.getMention()} does not have a deck registered.' )
+        for dck in plyr.decks:
+            await ctx.send( f'{mention}, here is the decklist for {dck} of {plyr.getMention()}:', embed=plyr.getDeckEmbed( dck ) )
+
 
 
 commandSnippets["deck-check"] = "- deck-check : See all the decks of the players in a match."

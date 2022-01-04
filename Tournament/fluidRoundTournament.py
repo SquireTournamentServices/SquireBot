@@ -107,10 +107,11 @@ class fluidRoundTournament(tournament):
             await self.updateInfoMessage( )
 
         return digest
-
+    
     # Wrapper for self._pairQueue so that it can be ran on a seperate thread
     def _launch_pairings( self, waitTime ):
         sleep( waitTime )
+        print( "Launching task" )
         fut_pairings = asyncio.run_coroutine_threadsafe( self._pairQueue(waitTime), self.loop )
         fut_pairings.result( )
 
@@ -165,7 +166,7 @@ class fluidRoundTournament(tournament):
             self.queueActivity.append( ( fromXML( act.attrib['player'] ), fromXML(act.attrib['time'] ) ) )
         players = tournRoot.find( 'queue' ).findall( 'player' )
         for plyr in players:
-            self.queue.addPlayer( self.players[int(fromXML(plyr.attrib['name']))], int(plyr.attrib['priority']) )
+            self.queue.addPlayer( self.playerReg.getPlayer( int(fromXML(plyr.attrib['name'])) ), int(plyr.attrib['priority']) )
         if self.queue.readyToPair( self.pairingsThreshold ) and not self.pairingsThread.is_alive( ):
             self.pairingsThread = threading.Thread( target=self._launch_pairings, args=(self.pairingWaitTime,) )
             self.pairingsThread.start( )

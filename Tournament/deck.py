@@ -86,13 +86,20 @@ class deck:
             if self.decklist == "":
                 self.cards = [ ]
             else:
-                self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
-                            self.parseNonAnnotatedTriceDecklist( )
+                self.cards = self.parseNonAnnotatedTriceDecklist( )
 
         self.updateDeckHash()
 
     def __str__( self ):
         return f'{self.ident}: {self.deckHash}'
+
+    def __eq__( self, other ):
+        if not isinstance( other, deck ):
+            return False
+        digest = ( self.ident == other.ident )
+        digest &= ( len(self.cards) == len(other.cards) )
+        digest &= ( set(self.cards) == set(other.cards) )
+        return digest
 
     def validateDecklist( self, decklist: str ) -> bool:
         """ A(n almost) static method that determines if a decklist will cause problems"""
@@ -114,7 +121,7 @@ class deck:
         if not self.validateDecklist( self.decklist ):
             raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
 
-        self.cards = self.parseAnnotatedTriceDecklist( )
+        self.cards = self.parseNonAnnotatedTriceDecklist( )
 
     def _loadTappedOutDeck(self, deckURL: str):
         groups = tappedoutLinkRegex.match(deckURL).groups()
@@ -138,8 +145,7 @@ class deck:
         if not self.validateDecklist( self.decklist ):
             raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
 
-        self.cards = self.parseAnnotatedTriceDecklist( ) if "\n//" in self.decklist else \
-            self.parseNonAnnotatedTriceDecklist( )
+        self.cards = self.parseNonAnnotatedTriceDecklist( )
 
     def _loadMoxFieldDeck(self, deckURL: str):
         self.decklist = ""
@@ -170,7 +176,7 @@ class deck:
         if not self.validateDecklist( self.decklist ):
             raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
 
-        self.cards = self.parseAnnotatedTriceDecklist()
+        self.cards = self.parseNonAnnotatedTriceDecklist()
 
     def _loadFromCodFile(self, fileData: str):
         # Init deck object
@@ -232,8 +238,8 @@ class deck:
         - The card has a number associated with it, so we store that many copies
             - Ex: "1 Izzet Charm" -> [ "izzet charm" ]
         """
-        if "" != self.decklist and not self.validDecklistRegex.search(self.decklist):
-            raise SyntaxError(f"Error deck list is not in the correct form {self.decklist}.")
+        #if "" != self.decklist and not self.validDecklistRegex.search(self.decklist):
+            #raise SyntaxError(f"Error deck list is not in the correct form {self.decklist}.")
 
         cards = []
         for card in self.cards:
@@ -297,21 +303,18 @@ class deck:
         """
         digest = []
         prefix = ""
+        isAnnotated = False
+        
         for line in self.decklist.strip().split("\n"):
-            line = line.strip()
-            if line == "":
-                prefix = "SB: "
+            if line[0:2] != "//":
+                line = line.strip()
+                if line == "":
+                    prefix = "SB: "
+                else:
+                    if line[0:3].lower() == "sb:" or isAnnotated:
+                        digest.append(line)
+                    else:
+                        digest.append(prefix + line)
             else:
-                digest.append(prefix + line)
+                isAnnotated = True
         return digest
-
-    def parseAnnotatedTriceDecklist( self ) -> List[str]:
-        """
-        Parses an annotated decklist from Cockatrice into a list of cards.
-        Unlike the nonannotated decklist, all sideboard cards have to correct prefix.
-        As such, we can grab all the line that aren't whitespace nor start with "//"
-        """
-        return [ line for line in self.decklist.strip().split("\n") \
-                    if line.strip() != "" and line[0:2] != "//" ]
-
-
