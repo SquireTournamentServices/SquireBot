@@ -404,10 +404,7 @@ class match:
             ] = f"{mention}, there is no player {plyr.getMention()} in match #{self.matchNumber}."
             return digest
         elif plyr == self.winner:
-            digest[
-                "message"
-            ] = f"{mention}, {plyr.getMention()} has already been recorded as the winner of match #{self.matchNumber}."
-            return digest
+            digest["announcement"] += " The match result was already recorded and has been overwritten."
 
         # TODO: Each of these pieces should probably be its own method
         if "win" == result or "winner" == result:
