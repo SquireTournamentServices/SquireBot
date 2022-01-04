@@ -496,7 +496,7 @@ async def adminCreatePairing(ctx, tourn=None, *plyrs):
             message += (
                 f"{mention}, a player by {plyr!r} is not registerd for {tourn}.\n"
             )
-        if not p.isActive():
+        elif not p.isActive():
             message += f"{mention}, {Plyrs[-1].getMention()} is registered but is not an active player in {tourn}.\n"
 
     if len(message) != 0:
