@@ -7,12 +7,11 @@ __pycache__/*.pyc
 .env
 references/
 references/*
-scripts/
-scripts*
 AllPrintings.json
 Tournament/AllPrintings.json
 squireBotError.log
 squireLog
 standings.txt
-
+.coverage
+*/htmlcov
 

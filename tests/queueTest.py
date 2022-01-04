@@ -1,32 +1,42 @@
-#! /usr/bin/python3
-import os
-import sys
-
-projectBaseDir = os.path.dirname(os.path.realpath(__file__)) + "/../"
-
-sys.path.insert( 0, projectBaseDir + 'Tournament')
-sys.path.insert( 0, projectBaseDir )
-
 from Tournament import *
+from test import *
 
-queue = pairingQueue( )
 
-players = [ player(i, f'[{i}]') for i in range(50) ]
+class QueueTest(TestCase):
+    def __init__(self):
+        self.testName = "Tournament/pairingQueue.py"
 
-for p in players:
-    queue.addPlayer( p )
+    def test(self):
+        PLAYERS = 50
+        THRESHOLD = 4
 
-print( queue )
+        queue = pairingQueue()
+        print(len(queue.queue))
+        assert len(queue.queue) == 1
 
-pairings = queue.createPairings( 4 )
+        players = dict()
+        for i in range(PLAYERS):
+            p = player(f"{i}", None)
+            players[p.uuid] = p
 
-for pairing in pairings:
-    for plyr in pairing:
-        queue.removePlayer( plyr )
+        for p in players.values():
+            queue.addPlayer(p)
 
-print( queue )
+        print(queue)
+        assert len(queue.queue[0]) == PLAYERS
 
-queue.bump()
+        pairings = queue.createPairings(THRESHOLD)
 
-print( queue )
+        for pairing in pairings:
+            for plyr in pairing:
+                queue.removePlayer(players[plyr])
 
+        print(queue)
+        assert len(queue.queue[0]) == PLAYERS % THRESHOLD
+
+        queue.bump()
+        assert len(queue.queue[1]) == PLAYERS % THRESHOLD
+
+        print(queue)
+
+        return True

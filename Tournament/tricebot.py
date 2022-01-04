@@ -4,19 +4,23 @@ import tempfile
 import requests
 import re
 
+
 class GameMade:
     def __init__(self, success: bool, gameID: int, replayName: str):
         self.success = success
         self.gameID = gameID
         self.replayName = replayName
 
+
 class TriceBot:
     # Set externURL to the domain address and apiURL to the loopback address in LAN configs
-    def __init__(self, authToken: str, apiURL: str="https://0.0.0.0:8000", externURL: str=""):
+    def __init__(
+        self, authToken: str, apiURL: str = "https://0.0.0.0:8000", externURL: str = ""
+    ):
         self.authToken = authToken
         self.apiURL = apiURL
 
-        if (externURL == ""):
+        if externURL == "":
             self.externURL = self.apiURL
         else:
             self.externURL = externURL
@@ -26,8 +30,8 @@ class TriceBot:
         print(data)
         url = urlpostfix
         if not abs:
-            url = f'{self.apiURL}/{url}'
-        resp = requests.get(url, timeout=7.0, data=data,  verify=False).text
+            url = f"{self.apiURL}/{url}"
+        resp = requests.get(url, timeout=7.0, data=data, verify=False).text
         if not abs:
             print(resp)
         return resp
@@ -36,21 +40,21 @@ class TriceBot:
         print(data)
         url = urlpostfix
         if not abs:
-            url = f'{self.apiURL}/{url}'
-        resp = requests.get(url, timeout=7.0, data=data,  verify=False).content
+            url = f"{self.apiURL}/{url}"
+        resp = requests.get(url, timeout=7.0, data=data, verify=False).content
         if not abs:
             print(resp)
         return resp
-    
+
     def checkauthkey(self):
         return self.req("api/checkauthkey", self.authToken) == "1"
 
     def getDownloadLink(self, replayName: str) -> str:
-        return f'{self.externURL}/{replayName}'
+        return f"{self.externURL}/{replayName}"
 
     # Returns the zip file which contains all of the downloaded files
     # Returns none if the zip file would be empty or if there was an IOError
-    def downloadReplays(self, replayURLs, replaysNotFound = []):
+    def downloadReplays(self, replayURLs, replaysNotFound=[]):
         # Download all the replays
         replayStrs = []
         replayNames = []
@@ -58,22 +62,29 @@ class TriceBot:
         # Iterate over each replay url
         for replayURL in replayURLs:
             try:
-                res = self.reqBin(replayURL.replace(self.externURL, self.apiURL), "", abs=True)
+                res = self.reqBin(
+                    replayURL.replace(self.externURL, self.apiURL), "", abs=True
+                )
                 split = replayURL.split("/")
                 name = urllib.parse.unquote(split[len(split) - 1])
                 try:
-                    if res.decode() == "error 404" or re.match("Not found \[.*\]", res.decode()) or re.match("<!DOCTYPE html>.*", res.decode()) or re.match("<html>.*", res.decode()):
+                    if (
+                        res.decode() == "error 404"
+                        or re.match("Not found \[.*\]", res.decode())
+                        or re.match("<!DOCTYPE html>.*", res.decode())
+                        or re.match("<html>.*", res.decode())
+                    ):
                         # Error file not found
                         replaysNotFound.append(name)
-                        #print(res == "error 404")
-                        #print(re.match("Not found \[.*\]", res))
-                        #print(re.match("<!DOCTYPE html>.*", res))
+                        # print(res == "error 404")
+                        # print(re.match("Not found \[.*\]", res))
+                        # print(re.match("<!DOCTYPE html>.*", res))
                     else:
                         # Create a temp file and write the data
                         replayStrs.append(res)
                         replayNames.append(name)
                 except UnicodeDecodeError as e:
-                    print(e) # This means we got binary :)
+                    print(e)  # This means we got binary :)
                     # Create a temp file and write the data
                     replayStrs.append(res)
                     replayNames.append(name)
@@ -84,15 +95,19 @@ class TriceBot:
 
         # Create zip file then close the temp files
         try:
-            if (len(replayStrs) == 0):
+            if len(replayStrs) == 0:
                 return None
-            tmpFile = tempfile.TemporaryFile(mode="wb+", suffix="tricebot.py", prefix="replaydownloads.zip")
-            #tmpFile = open("I hate python.zip", "wb+")
+            tmpFile = tempfile.TemporaryFile(
+                mode="wb+", suffix="tricebot.py", prefix="replaydownloads.zip"
+            )
+            # tmpFile = open("I hate python.zip", "wb+")
             zipf = zipfile.ZipFile(tmpFile, "w", zipfile.ZIP_DEFLATED)
             for i in range(0, len(replayStrs)):
                 replayStr = replayStrs[i]
                 name = replayNames[i]
-                zipf.writestr(name, replayStr, compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+                zipf.writestr(
+                    name, replayStr, compress_type=zipfile.ZIP_DEFLATED, compresslevel=9
+                )
             zipf.close()
             tmpFile.seek(0)
             return tmpFile
@@ -108,16 +123,16 @@ class TriceBot:
     # -1 if the game was not found
     # -2 if the player slot was not found
     def changePlayerInfo(self, gameID: int, oldPlayerName: str, newPlayerName: str):
-        body  = f'authtoken={self.authToken}\n'
-        body += f'oldplayername={oldPlayerName}\n'
-        body += f'newplayername={newPlayerName}\n'
-        body += f'gameid={gameID}'
+        body = f"authtoken={self.authToken}\n"
+        body += f"oldplayername={oldPlayerName}\n"
+        body += f"newplayername={newPlayerName}\n"
+        body += f"gameid={gameID}"
 
         res = ""
         try:
             res = self.req("api/updateplayerinfo", body)
         except OSError as exc:
-            #Network issues
+            # Network issues
             print("[TRICEBOT ERROR]: Netty error")
             res = "network error"
 
@@ -136,14 +151,14 @@ class TriceBot:
     # 0 auth token is bad, error 404 or network issue
     # -1 game not found
     def disablePlayerDeckVerificatoin(self, gameID: str) -> int:
-        body  = f'authtoken={self.authToken}\n'
-        body += f'gameid={gameID}'
+        body = f"authtoken={self.authToken}\n"
+        body += f"gameid={gameID}"
 
         res = ""
         try:
             res = self.req("api/disableplayerdeckverification", body)
         except OSError as exc:
-            #Network issues
+            # Network issues
             print("[TRICEBOT ERROR]: Netty error")
             res = "network error"
             return 0
@@ -161,9 +176,9 @@ class TriceBot:
     # -1 if player not found
     # -2 if an unknown error occurred
     def kickPlayer(self, gameID: int, name: str) -> int:
-        body  = f'authtoken={self.authToken}\n'
-        body += f'gameid={gameID}\n'
-        body += f'target={name}'
+        body = f"authtoken={self.authToken}\n"
+        body += f"gameid={gameID}\n"
+        body += f"target={name}"
 
         try:
             message = self.req("api/kickplayer", body)
@@ -173,53 +188,74 @@ class TriceBot:
             return 0
 
         # Check for server error
-        if (message == "timeout error" or message == "error 404" or message == "invalid auth token"):
+        if (
+            message == "timeout error"
+            or message == "error 404"
+            or message == "invalid auth token"
+        ):
             return 0
-        if (message == "success"):
+        if message == "success":
             return 1
-        elif (message == "error not found"):
+        elif message == "error not found":
             return -1
 
         return -2
 
-    def createGame(self, gamename: str, password: str, playercount: int, spectatorsallowed: bool, spectatorsneedpassword: bool, spectatorscanchat: bool, spectatorscanseehands: bool, onlyregistered: bool, playerdeckverification: bool, playernames, deckHashes):
+    def createGame(
+        self,
+        gamename: str,
+        password: str,
+        playercount: int,
+        spectatorsallowed: bool,
+        spectatorsneedpassword: bool,
+        spectatorscanchat: bool,
+        spectatorscanseehands: bool,
+        onlyregistered: bool,
+        playerdeckverification: bool,
+        playernames,
+        deckHashes,
+    ):
         if len(playernames) != len(deckHashes):
-            GameMade(False, -1, -1) # They must the same length dummy!
+            GameMade(False, -1, -1)  # They must the same length dummy!
 
-        body  = f'authtoken={self.authToken}\n'
+        body = f"authtoken={self.authToken}\n"
         body += f'gamename={gamename.replace(" ", "").replace("_", "")}\n'
-        body += f'password={password}\n'
-        body += f'playerCount={playercount}\n'
-        body += f'spectatorsAllowed={int(spectatorsallowed)}\n'
-        body += f'spectatorsNeedPassword={int(spectatorsneedpassword)}\n'
-        body += f'spectatorsCanChat={int(spectatorscanchat)}\n'
-        body += f'spectatorsCanSeeHands={int(spectatorscanseehands)}\n'
-        body += f'onlyRegistered={int(onlyregistered)}\n'
-        body += f'playerDeckVerification={int(playerdeckverification)}\n'
+        body += f"password={password}\n"
+        body += f"playerCount={playercount}\n"
+        body += f"spectatorsAllowed={int(spectatorsallowed)}\n"
+        body += f"spectatorsNeedPassword={int(spectatorsneedpassword)}\n"
+        body += f"spectatorsCanChat={int(spectatorscanchat)}\n"
+        body += f"spectatorsCanSeeHands={int(spectatorscanseehands)}\n"
+        body += f"onlyRegistered={int(onlyregistered)}\n"
+        body += f"playerDeckVerification={int(playerdeckverification)}\n"
 
         if playerdeckverification:
             for i in range(0, len(playernames)):
-                if playernames[i] == "" or playernames[i] == None: # No name
-                    body += f'playerName=*\n'
+                if playernames[i] == "" or playernames[i] == None:  # No name
+                    body += f"playerName=*\n"
                 else:
-                    body += f'playerName={playernames[i]}\n'
+                    body += f"playerName={playernames[i]}\n"
                     if len(deckHashes[i]) == 0:
-                        body += f'deckHash=*\n'
+                        body += f"deckHash=*\n"
                     else:
                         for deckHash in deckHashes[i]:
-                            body += f'deckHash={deckHash}\n'
+                            body += f"deckHash={deckHash}\n"
 
         try:
             message = self.req("api/creategame", body)
             print(message)
         except OSError as exc:
-            #Network issues
+            # Network issues
             print("[TRICEBOT ERROR]: Netty error")
             return GameMade(False, -1, "")
 
         # Check for server error
-        if (message.lower() == "timeout error") or (message.lower() == "error 404") or (message.lower() == "invalid auth token"):
-            #Server issues
+        if (
+            (message.lower() == "timeout error")
+            or (message.lower() == "error 404")
+            or (message.lower() == "invalid auth token")
+        ):
+            # Server issues
             print("[TRICEBOT ERROR]: " + message)
             return GameMade(False, -1, "")
 
@@ -233,7 +269,7 @@ class TriceBot:
             parts = line.split("=")
 
             # Check length
-            if len(parts) >= 2 :
+            if len(parts) >= 2:
                 tag = parts[0]
                 value = ""
                 for i in range(1, len(parts)):

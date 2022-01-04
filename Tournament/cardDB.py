@@ -15,6 +15,7 @@ from threading import Thread
 
 from .exceptions import *
 
+
 class card:
     def __init__(self, name: str, layout: str, types: List[str]):
         self.name = name.strip()
@@ -23,25 +24,31 @@ class card:
         self.types: list = types
 
     def __str__(self):
-        return f'{self.name}'
+        return f"{self.name}"
 
-    def getName( self ) -> str:
+    def getName(self) -> str:
         return self.name
 
-    def hasType( self, t: str ) -> bool:
+    def hasType(self, t: str) -> bool:
         return t in self.types
 
-    def getTypes( self ) -> List[str]:
+    def getTypes(self) -> List[str]:
         return self.types
 
-class cardsDBLoadingError ( Exception ):
+
+class cardsDBLoadingError(Exception):
     pass
 
+
 class cardDB:
-    def __init__(self, updateTime: int = 24*60*60, mtgjsonURL: str = "https://www.mtgjson.com/api/v5/AllPrintings.json.zip"):
+    def __init__(
+        self,
+        updateTime: int = 24 * 60 * 60,
+        mtgjsonURL: str = "https://www.mtgjson.com/api/v5/AllPrintings.json.zip",
+    ):
         self.lastUpdate = 0
         self.updateTime = updateTime
-        self.cards = dict( )
+        self.cards = dict()
         self.url = mtgjsonURL
         self.normaliseRegex = re.compile(",|\.|-|'")
         self.spacesRegex = re.compile(" +")
@@ -67,15 +74,21 @@ class cardDB:
     # Makes two strings easier to compare by removing excess whitespace,
     # commas, hyphens, apostrophes and full stops.
     def normaliseCardName(self, string: str):
-        return re.sub(self.spacesRegex, " ", re.sub(self.normaliseRegex, "", string)).split("//")[0].lower().strip().replace("û", "u")
+        return (
+            re.sub(self.spacesRegex, " ", re.sub(self.normaliseRegex, "", string))
+            .split("//")[0]
+            .lower()
+            .strip()
+            .replace("û", "u")
+        )
         # heck Lim-Dûl's Vault, it is the bane of my existence
 
     def needsUpdate(self) -> bool:
         return int(time()) - self.lastUpdate > self.updateTime
 
-    #@profile
+    # @profile
     def updateCardsFromJson(self, cardsJson: str) -> bool:
-        tempCards = dict( )
+        tempCards = dict()
         parseSuccess = True
 
         # Try parse, if it goes wrong cry
@@ -89,9 +102,11 @@ class cardDB:
                     name = self.normaliseCardName(card_["name"])
 
                     if not name in tempCards:
-                        cardObject = card(card_["name"], card_["layout"], card_["types"])
+                        cardObject = card(
+                            card_["name"], card_["layout"], card_["types"]
+                        )
                         if ("face" in card_) and (card_["face"] != "a"):
-                            continue # Rear of the card is ignored
+                            continue  # Rear of the card is ignored
 
                         tempCards[name] = cardObject
 
@@ -123,15 +138,17 @@ class cardDB:
         else:
             return False
 
-    #@profile
+    # @profile
     def updateCards(self) -> bool:
         compressedCacheName = self.cacheName + ".zip"
-        resp = requests.get(self.url, timeout=7.0, data="",  verify=False)
+        resp = requests.get(self.url, timeout=7.0, data="", verify=False)
 
         # Save zip file
-        tmpFile = tmpFile = tempfile.TemporaryFile(mode="wb+", suffix="cardDB.py", prefix=compressedCacheName)
+        tmpFile = tmpFile = tempfile.TemporaryFile(
+            mode="wb+", suffix="cardDB.py", prefix=compressedCacheName
+        )
         for chunk in resp.iter_content(chunk_size=512 * 1024):
-            if chunk: # filter out keep-alive new chunks
+            if chunk:  # filter out keep-alive new chunks
                 tmpFile.write(chunk)
 
         # Go to the start of the file before unzipping
@@ -157,7 +174,9 @@ class cardDB:
         if nameNormal in self.cards:
             return self.cards[nameNormal]
         else:
-            raise CardNotFoundError( f'{cardName} could not be found in the card database.' )
+            raise CardNotFoundError(
+                f"{cardName} could not be found in the card database."
+            )
 
 
 # Util methods for starting this db
@@ -168,18 +187,20 @@ def getFileLastModified(file_name: str) -> int:
         mtime = 0
     return mtime
 
+
 def updateDB(db):
     while True:
         sleep(db.updateTime)
         while db.needsUpdate():
             db.updateCards()
 
+
 def initCardDB():
     print("Creating card database...")
     db = cardDB()
     print(f"Created card database with {len(db.cards)} cards.")
 
-    cardUpdateThread = Thread(target = updateDB, args = (db,))
+    cardUpdateThread = Thread(target=updateDB, args=(db,))
     cardUpdateThread.start()
 
     return db
