@@ -91,6 +91,10 @@ class match:
         digest += f'Match status: {self.getStatusString()}\n'
         digest += f'Match winner: {self.getWinnerString()}'
         return digest
+    
+    async def dropPlayer( self, player ) -> None:
+        if player not in self.droppedPlayers:
+            self.droppedPlayers.append( player )
 
     def getStatusString( self ) -> str:
         """ Returns a string containing information about the status of the match. """
