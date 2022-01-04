@@ -403,9 +403,9 @@ class player:
             elif withBye and mtch.isBye():
                 digest += 3
             elif mtch.isDraw():
-                digest += 0.5  # 0.5
+                digest += 1  # 0.5
             else:  # Lose gets no points
-                digest += -1  # -2.25
+                digest += 0  # -2.25
         return digest
 
     # Calculates the percentage of game the player has won
