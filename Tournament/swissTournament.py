@@ -27,12 +27,14 @@ from .swissSystem import *
     This is a tournament class. The bulk of data management for a tournament is handled by this class.
     It also holds certain metadata about the tournament, such as the tournament's name and host guild's name.
 """
+
+
 class swissTournament(tournament):
-    def __init__( self, name: str, hostGuildName: str, props: dict = { } ):
-        super().__init__( name, hostGuildName, props )
-        self.pairingSystem     = swissSystem( )
-        self.pairingSystem.setMatchReg( self.matchReg )
-        self.pairingSystem.setPlayerReg( self.playerReg )
+    def __init__(self, name: str, hostGuildName: str, props: dict = {}):
+        super().__init__(name, hostGuildName, props)
+        self.pairingSystem = swissSystem()
+        self.pairingSystem.setMatchReg(self.matchReg)
+        self.pairingSystem.setPlayerReg(self.playerReg)
 
     # ---------------- Property Accessors ----------------
 
@@ -47,60 +49,64 @@ class swissTournament(tournament):
     # ---------------- Player Management ----------------
 
     # TODO: Ditto, rename method
-    async def removePlayerFromQueue( self, plyr: player ) -> commandResponse:
-        digest = commandResponse( )
+    async def removePlayerFromQueue(self, plyr: player) -> commandResponse:
+        digest = commandResponse()
         if plyr is None:
-            digest.setContent( f'<@{plyr}>, you are not registered for {self.name}.' )
-        elif not plyr.isActive( ):
-            digest.setContent( f'{plyr.getMention()}, you are not an active player in {self.name}.' )
-        elif not self.isActive( ):
-            digest.setContent( f'{plyr.getMention()}, {self.name} has not started yet.' )
+            digest.setContent(f"<@{plyr}>, you are not registered for {self.name}.")
+        elif not plyr.isActive():
+            digest.setContent(
+                f"{plyr.getMention()}, you are not an active player in {self.name}."
+            )
+        elif not self.isActive():
+            digest.setContent(f"{plyr.getMention()}, {self.name} has not started yet.")
         else:
-            digest.setContent( self.pairingSystem.removePlayer( plyr ) )
-            self.saveOverview( )
-            await self.updateInfoMessage( )
+            digest.setContent(self.pairingSystem.removePlayer(plyr))
+            self.saveOverview()
+            await self.updateInfoMessage()
 
         return digest
 
     # ---------------- Match Management ----------------
 
-
-    def createPairings( self, mention: str ) -> commandResponse:
-        """ Creates the pairings for the next round. Needs confirmation for matches are created. """
-        digest = commandResponse( )
+    def createPairings(self, mention: str) -> commandResponse:
+        """Creates the pairings for the next round. Needs confirmation for matches are created."""
+        digest = commandResponse()
         uncertMatches = self.matchReg.getUncertifiedMatches()
         if len(uncertMatches) != 0:
             newLine = "\n\t- "
-            digest.setContent( f'{mention}, below are the matches that are not certified. They their result needs to be confirmed before pairing the next round.{newLine}{newLine.join([mtch.matchNumber for mtch in uncertMatches ] )}' )
+            digest.setContent(
+                f"{mention}, below are the matches that are not certified. They their result needs to be confirmed before pairing the next round.{newLine}{newLine.join([mtch.matchNumber for mtch in uncertMatches ] )}"
+            )
         else:
-            self.pairingSystem.queue = [ ]
-            standings = [ ]
+            self.pairingSystem.queue = []
+            standings = []
             if self.matchReg.getMatchCount() == 0:
                 standings = self.playerReg.getActivePlayers()
             else:
-                standings = [ p for p in self.getStandings()[1] ]
+                standings = [p for p in self.getStandings()[1]]
             for plyr in standings:
-                self.pairingSystem.addPlayer( plyr )
-            self.pairingSystem.createPairings( standings, self.playersPerMatch  )
-            digest.setContent( f'{mention}, below are pairings and byes that will be created.' )
-            digest.setEmbed( self.pairingSystem.getPairingsEmbed() )
+                self.pairingSystem.addPlayer(plyr)
+            self.pairingSystem.createPairings(standings, self.playersPerMatch)
+            digest.setContent(
+                f"{mention}, below are pairings and byes that will be created."
+            )
+            digest.setEmbed(self.pairingSystem.getPairingsEmbed())
 
         return digest
 
-    async def confirmPairings( self, mention: str ) -> commandResponse:
-        """ Confirms that the stored round pairings are good. """
-        digest = commandResponse( )
+    async def confirmPairings(self, mention: str) -> commandResponse:
+        """Confirms that the stored round pairings are good."""
+        digest = commandResponse()
         for plyr in self.pairingSystem.savedByes:
-            await self.addBye( plyr.uuid, mention )
+            await self.addBye(plyr.uuid, mention)
         for pairing in self.pairingSystem.savedPairings:
-            await self.addMatch( pairing )
-        digest.setContent( f'{mention}, the round has been paired.' )
+            await self.addMatch(pairing)
+        digest.setContent(f"{mention}, the round has been paired.")
         return digest
 
     # ---------------- XML Saving/Loading ----------------
 
-    def saveTournamentType( self, filename: str = "" ) -> None:
-        print( "Fluid Round tournament type being saved." )
-        with open( filename, 'w+' ) as xmlfile:
-            xmlfile.write( "<?xml version='1.0'?>\n<type>swissTournament</type>" )
-
+    def saveTournamentType(self, filename: str = "") -> None:
+        print("Fluid Round tournament type being saved.")
+        with open(filename, "w+") as xmlfile:
+            xmlfile.write("<?xml version='1.0'?>\n<type>swissTournament</type>")

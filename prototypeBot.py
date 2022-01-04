@@ -14,9 +14,8 @@ from playerCommands import *
 from judgeCommands import *
 
 
-
 newLine = "\n\t- "
 
-TOKEN = os.getenv( "TESTING_TOKEN" )
+TOKEN = os.getenv("TESTING_TOKEN")
 
 bot.run(TOKEN)

@@ -32,38 +32,62 @@ cardsDB = initCardDB()
 # Constant compiled regexes
 anchorRegex = "((#[a-zA-Z0-9_-]+)?(\?([a-zA-Z0-9_-]+=[+a-zA-Z0-9_-]+)(&([a-zA-Z0-9_-]+=[+a-zA-Z0-9_-]+))*)?)?"
 
-moxFieldLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?moxfield\.com\/decks\/([a-z_A-Z0-9-]+)\/?'+anchorRegex+'\s*', re.M | re.I)
-tappedoutLinkRegex = re.compile('\s*(https?:\/\/)?tappedout\.net\/mtg-decks\/([a-z0-9_-]+)\/?'+anchorRegex+'\s*', re.M | re.I)
-mtgGoldFishLinkRegex = re.compile('\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})\/?'+anchorRegex+'\s*', re.M | re.I)
-cockatriceDeckRegex = re.compile('\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*', re.M | re.I)
+moxFieldLinkRegex = re.compile(
+    "\s*(https?:\/\/)?(www\.)?moxfield\.com\/decks\/([a-z_A-Z0-9-]+)\/?"
+    + anchorRegex
+    + "\s*",
+    re.M | re.I,
+)
+tappedoutLinkRegex = re.compile(
+    "\s*(https?:\/\/)?tappedout\.net\/mtg-decks\/([a-z0-9_-]+)\/?"
+    + anchorRegex
+    + "\s*",
+    re.M | re.I,
+)
+mtgGoldFishLinkRegex = re.compile(
+    "\s*(https?:\/\/)?(www\.)?mtggoldfish\.com\/deck\/([0-9]{7})\/?"
+    + anchorRegex
+    + "\s*",
+    re.M | re.I,
+)
+cockatriceDeckRegex = re.compile(
+    '\s*<\?xml version="1\.0" encoding="UTF-8"\?>\s*<cockatrice_deck version="1">\s*<deckname>[^<]*<\/deckname>\s*<comments>[^<]*<\/comments>\s*(\s*<zone name="[^<"]+"\s*>\s*([\s]*<card number="[0-9]+" *name="[^<"]+"\s*\/>\s*)*<\/zone>\s*)+\s*<\/cockatrice_deck>\s*',
+    re.M | re.I,
+)
+
 
 def isValidCodFile(deckData: str) -> bool:
     return cockatriceDeckRegex.search(deckData) is not None
 
+
 def isMoxFieldLink(decklist: str) -> bool:
     return moxFieldLinkRegex.search(decklist) is not None
+
 
 def isMtgGoldfishLink(decklist: str) -> bool:
     return mtgGoldFishLinkRegex.search(decklist) is not None
 
+
 def isTappedOutLink(decklist: str) -> bool:
     return tappedoutLinkRegex.search(decklist) is not None
+
 
 class deck:
     """
     The class is this module
     """
+
     # More specifically this checks to make sure that each line of a decklist is correct
-    validDecklistRegex = re.compile( "^((sb: )?[0-9]+[x]? [^\n]+\n*)+$", re.I )
+    validDecklistRegex = re.compile("^((sb: )?[0-9]+[x]? [^\n]+\n*)+$", re.I)
     emptySpaceRegex = re.compile("\s*")
 
     # Class constructor
-    def __init__ ( self, ident: str = "", decklist: str = "" ):
-        self.deckHash  = 0
+    def __init__(self, ident: str = "", decklist: str = ""):
+        self.deckHash = 0
         self.ident = ident
         # TODO: The cards list should probably be a list of card objects from the card DB module
         # This would save a decent work of time when constructing the deck embed
-        self.cards = [ ]
+        self.cards = []
         self.decklist = ""
 
         # Check input type
@@ -80,33 +104,33 @@ class deck:
 
         # Normal decklist
         else:
-            if not self.validateDecklist( decklist ):
-                raise DecklistError( f'Error in passed-in decklist.' )
+            if not self.validateDecklist(decklist):
+                raise DecklistError(f"Error in passed-in decklist.")
             self.decklist = decklist
             if self.decklist == "":
-                self.cards = [ ]
+                self.cards = []
             else:
-                self.cards = self.parseNonAnnotatedTriceDecklist( )
+                self.cards = self.parseNonAnnotatedTriceDecklist()
 
         self.updateDeckHash()
 
-    def __str__( self ):
-        return f'{self.ident}: {self.deckHash}'
+    def __str__(self):
+        return f"{self.ident}: {self.deckHash}"
 
-    def __eq__( self, other ):
-        if not isinstance( other, deck ):
+    def __eq__(self, other):
+        if not isinstance(other, deck):
             return False
-        digest = ( self.ident == other.ident )
-        digest &= ( len(self.cards) == len(other.cards) )
-        digest &= ( set(self.cards) == set(other.cards) )
+        digest = self.ident == other.ident
+        digest &= len(self.cards) == len(other.cards)
+        digest &= set(self.cards) == set(other.cards)
         return digest
 
-    def validateDecklist( self, decklist: str ) -> bool:
-        """ A(n almost) static method that determines if a decklist will cause problems"""
+    def validateDecklist(self, decklist: str) -> bool:
+        """A(n almost) static method that determines if a decklist will cause problems"""
         for card in decklist.strip().split("\n"):
             if self.emptySpaceRegex.search(card) is not None:
                 continue
-            if not self.validDecklistRegex.search( card ):
+            if not self.validDecklistRegex.search(card):
                 return False
         return True
 
@@ -118,10 +142,10 @@ class deck:
 
         self.decklist = requests.get(url, timeout=7.0, data="", verify=True).text
 
-        if not self.validateDecklist( self.decklist ):
-            raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
+        if not self.validateDecklist(self.decklist):
+            raise DeckRetrievalError(f"Error while retrieving a deck from {url}")
 
-        self.cards = self.parseNonAnnotatedTriceDecklist( )
+        self.cards = self.parseNonAnnotatedTriceDecklist()
 
     def _loadTappedOutDeck(self, deckURL: str):
         groups = tappedoutLinkRegex.match(deckURL).groups()
@@ -139,13 +163,19 @@ class deck:
         sideboard = []
         sideboard_list = ""
         if len(boards) > 1:
-            sideboard_list = "\n".join( [ card for card in boards[1].split("\n") if (not card.isspace()) and card != "" ] )
+            sideboard_list = "\n".join(
+                [
+                    card
+                    for card in boards[1].split("\n")
+                    if (not card.isspace()) and card != ""
+                ]
+            )
 
         self.decklist = mainboard + sideboard_list
-        if not self.validateDecklist( self.decklist ):
-            raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
+        if not self.validateDecklist(self.decklist):
+            raise DeckRetrievalError(f"Error while retrieving a deck from {url}")
 
-        self.cards = self.parseNonAnnotatedTriceDecklist( )
+        self.cards = self.parseNonAnnotatedTriceDecklist()
 
     def _loadMoxFieldDeck(self, deckURL: str):
         self.decklist = ""
@@ -173,8 +203,8 @@ class deck:
             card = side_board[card_name]
             self.decklist += f'SB: {card["quantity"]} {card_name}\n'
 
-        if not self.validateDecklist( self.decklist ):
-            raise DeckRetrievalError( f'Error while retrieving a deck from {url}' )
+        if not self.validateDecklist(self.decklist):
+            raise DeckRetrievalError(f"Error while retrieving a deck from {url}")
 
         self.cards = self.parseNonAnnotatedTriceDecklist()
 
@@ -190,41 +220,41 @@ class deck:
         for zone in zones:
             zonecards = zone.findall("card")
             for card in zonecards:
-                number = int(card.attrib['number'])
-                cardname = fromXML(card.attrib['name'])
+                number = int(card.attrib["number"])
+                cardname = fromXML(card.attrib["name"])
                 cardnameLower = cardname.lower()
 
                 # Add card to decklist
-                if zone.attrib['name'] == "side":
+                if zone.attrib["name"] == "side":
                     self.decklist += "SB: "
-                self.decklist += f'{number} {cardname}\n'
+                self.decklist += f"{number} {cardname}\n"
 
-        if not self.validateDecklist( self.decklist ):
-            raise CodFileError( f'Malformed card/quantity while parsing cod file.' )
+        if not self.validateDecklist(self.decklist):
+            raise CodFileError(f"Malformed card/quantity while parsing cod file.")
 
         self.cards = self.parseNonAnnotatedTriceDecklist()
 
-    def exportXMLString( self, indent: str = "" ) -> str:
+    def exportXMLString(self, indent: str = "") -> str:
         """
         Function for exporting a decklist to a xml without creating an xml file.
         Since decks are contained in the player object, exporting an xml string is more helpful
         """
-        lineStart = f'\n{indent}\t'
+        lineStart = f"\n{indent}\t"
         digest = f'{indent}<deck ident="{toSafeXML(self.ident)}">'
         for card in self.cards:
             digest += f'{lineStart}<card name="{toSafeXML(card)}"/>'
-        digest += f'\n{indent}</deck>\n'
+        digest += f"\n{indent}</deck>\n"
         return digest
 
-    def importFromETree( self, tree: ET ) -> None:
-        """ Function for importing a decklist from an element tree """
-        self.ident = fromXML( tree.attrib["ident"] )
-        for card in tree.iter( "card" ):
-            self.cards.append( fromXML( card.attrib['name'] ) )
+    def importFromETree(self, tree: ET) -> None:
+        """Function for importing a decklist from an element tree"""
+        self.ident = fromXML(tree.attrib["ident"])
+        for card in tree.iter("card"):
+            self.cards.append(fromXML(card.attrib["name"]))
         self.updateDeckHash()
         self.parseNonAnnotatedTriceDecklist()
 
-    def updateDeckHash( self ) -> None:
+    def updateDeckHash(self) -> None:
         """
         Converts a semicolon-delineated deck string into a hash.
         This deck-hasher is built to spoof how Cockatrice creates a deckhash.
@@ -238,49 +268,49 @@ class deck:
         - The card has a number associated with it, so we store that many copies
             - Ex: "1 Izzet Charm" -> [ "izzet charm" ]
         """
-        #if "" != self.decklist and not self.validDecklistRegex.search(self.decklist):
-            #raise SyntaxError(f"Error deck list is not in the correct form {self.decklist}.")
+        # if "" != self.decklist and not self.validDecklistRegex.search(self.decklist):
+        # raise SyntaxError(f"Error deck list is not in the correct form {self.decklist}.")
 
         cards = []
         for card in self.cards:
             if not "SB:" in card:
                 try:
-                    int( card[0] )
+                    int(card[0])
                     card = card.split(" ", 1)
                 except IndexError:
-                    card = [ card ]
-                if len( card ) == 1:
+                    card = [card]
+                if len(card) == 1:
                     number = 1
 
                     name = card[0]
                     try:
-                        name   = cardsDB.getCard(name).getName().strip().lower()
+                        name = cardsDB.getCard(name).getName().strip().lower()
                     except CardNotFoundError as ex:
                         pass
                 else:
-                    number = int( card[0].strip() )
+                    number = int(card[0].strip())
 
                     name = card[1]
                     try:
-                        name   = cardsDB.getCard(name).getName().strip().lower()
+                        name = cardsDB.getCard(name).getName().strip().lower()
                     except CardNotFoundError as ex:
                         pass
                 for i in range(number):
-                    cards.append( name )
+                    cards.append(name)
             else:
                 card = card.split(" ", 2)
-                number = int( card[1].strip() )
+                number = int(card[1].strip())
                 name = card[2]
                 try:
-                    name   = card[0] + cardsDB.getCard(name).getName().strip().lower()
+                    name = card[0] + cardsDB.getCard(name).getName().strip().lower()
                 except CardNotFoundError as ex:
                     pass
                 for i in range(number):
-                    cards.append( name )
+                    cards.append(name)
 
         cards.sort()
         newHash = hashlib.sha1()
-        newHash.update( ";".join(cards).encode("utf-8"))
+        newHash.update(";".join(cards).encode("utf-8"))
         hashedDeck = newHash.digest()
         hashedDeck = (
             (hashedDeck[0] << 32)
@@ -294,7 +324,7 @@ class deck:
         while len(self.deckHash) < 8:
             self.deckHash = "0" + self.deckHash
 
-    def parseNonAnnotatedTriceDecklist( self ) -> List[str]:
+    def parseNonAnnotatedTriceDecklist(self) -> List[str]:
         """
         Parses a nonannotated decklist from Cockatrice into a list of cards.  A
         nonannotated, Cockatrice decklist has a double space between the main and
@@ -304,7 +334,7 @@ class deck:
         digest = []
         prefix = ""
         isAnnotated = False
-        
+
         for line in self.decklist.strip().split("\n"):
             if line[0:2] != "//":
                 line = line.strip()

@@ -15,4 +15,3 @@ from judgeCommands import *
 
 
 bot.run(TOKEN)
-

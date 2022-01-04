@@ -8,8 +8,8 @@ import xml.etree.ElementTree as ET
 
 projectBaseDir = os.path.dirname(os.path.realpath(__file__)) + "/../"
 
-sys.path.insert( 0, projectBaseDir + 'Tournament')
-sys.path.insert( 0, projectBaseDir )
+sys.path.insert(0, projectBaseDir + "Tournament")
+sys.path.insert(0, projectBaseDir)
 
 from Tournament import *
 from test import *
@@ -21,16 +21,18 @@ TOURN_NAME = "test-tourn"
 GUILD_NAME = "test-guild"
 SAVE_LOCATION = f"{os.getcwd()}/guilds/1/currentTournaments/{TOURN_NAME}"
 
+
 def main():
-    tourn = fluidRoundTournament( TOURN_NAME, GUILD_NAME, {"match-size": 4} )
-    print( f'Tournament Created: There are {tourn.playersPerMatch} player per match.' )
+    tourn = fluidRoundTournament(TOURN_NAME, GUILD_NAME, {"match-size": 4})
+    print(f"Tournament Created: There are {tourn.playersPerMatch} player per match.")
     for i in range(20):
-        plyr = tourn.playerReg.createPlayer( f'Player {i}')
-        tourn.queue.addPlayer( plyr )
-    print( "Players Added" )
-    for pairing in tourn.queue.createPairings( 4 ):
-        print( pairing )
-    print( f'There are {tourn.matchReg.getMatchCount()} matches.' )
+        plyr = tourn.playerReg.createPlayer(f"Player {i}")
+        tourn.queue.addPlayer(plyr)
+    print("Players Added")
+    for pairing in tourn.queue.createPairings(4):
+        print(pairing)
+    print(f"There are {tourn.matchReg.getMatchCount()} matches.")
+
 
 if __name__ == "__main__":
     main()

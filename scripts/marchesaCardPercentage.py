@@ -10,18 +10,18 @@ import xml.etree.ElementTree as ET
 
 projectBaseDir = os.path.dirname(os.path.realpath(__file__)) + "/../"
 
-sys.path.insert( 0, projectBaseDir + 'Tournament')
-sys.path.insert( 0, projectBaseDir )
+sys.path.insert(0, projectBaseDir + "Tournament")
+sys.path.insert(0, projectBaseDir)
 
 from Tournament import *
 
 
 marchesa = fluidRoundTournament("Marchesa", "Monarch")
-marchesa.loadTournament( "Marchesa" )
+marchesa.loadTournament("Marchesa")
 
-cards = list(  )
-count = dict( )
-countPerPlayer = dict( )
+cards = list()
+count = dict()
+countPerPlayer = dict()
 
 totalDeckCount = 0
 
@@ -45,21 +45,25 @@ for p in marchesa.players.values():
             count[c] += 1
         firstDeck = False
 
-print( cards )
+print(cards)
 
 cardCount = totalDeckCount * 100
-playersWithDecks = len( [p for p in marchesa.players.values() if len(p.decks) > 0 ] )
+playersWithDecks = len([p for p in marchesa.players.values() if len(p.decks) > 0])
 
-cards.sort( )
-cards.sort( key=lambda c: count[c], reverse=True )
+cards.sort()
+cards.sort(key=lambda c: count[c], reverse=True)
 
 for c in cards:
-    print( f'{c}: {count[c]}' )
+    print(f"{c}: {count[c]}")
 
 with open("cardData.csv", "w") as output:
-    output.write( f'There were {totalDeckCount} decks submitted by {playersWithDecks} players.\n' )
-    output.write( f'Card Name, Total Count, Percentage, Number of Players with Card, Percentage\n' )
+    output.write(
+        f"There were {totalDeckCount} decks submitted by {playersWithDecks} players.\n"
+    )
+    output.write(
+        f"Card Name, Total Count, Percentage, Number of Players with Card, Percentage\n"
+    )
     for c in cards:
-        output.write( f'{c.replace(",", "")}, {count[c]}, {trunk(count[c]/totalDeckCount)}, {countPerPlayer[c]}, {trunk(countPerPlayer[c]/playersWithDecks)}\n' )
-
-
+        output.write(
+            f'{c.replace(",", "")}, {count[c]}, {trunk(count[c]/totalDeckCount)}, {countPerPlayer[c]}, {trunk(countPerPlayer[c]/playersWithDecks)}\n'
+        )
