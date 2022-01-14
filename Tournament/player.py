@@ -322,7 +322,7 @@ class player:
         digest = []
         for match in self.matches:
             if match.status != "certified":
-                await match.dropPlayer(self.name)
+                await match.dropPlayer(self)
 
     async def confirmResult(self) -> str:
         index = self.findOpenMatchIndex()
