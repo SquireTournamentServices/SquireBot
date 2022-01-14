@@ -495,7 +495,10 @@ class match:
         digest += "\t</activePlayers>\n"
         digest += "\t<droppedPlayers>\n"
         for plyr in self.droppedPlayers:
-            digest += f'\t\t<player name="{plyr.getName()}">{plyr.getUUID()}</player>\n'
+            if plyr is str:
+                digest += f"\t\t<player name=\"ERROR\">{plyr}</player>\n"
+            else:
+                digest += f'\t\t<player name="{plyr.getName()}">{plyr.getUUID()}</player>\n'
         digest += "\t</droppedPlayers>\n"
         digest += "\t<confirmedPlayers>\n"
         for plyr in self.confirmedPlayers:
