@@ -15,3 +15,8 @@ standings.txt
 .coverage
 */htmlcov
 
+# Added by cargo
+
+Cargo.lock
+
+/target
