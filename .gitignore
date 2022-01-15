@@ -14,5 +14,9 @@ squireLog
 standings.txt
 .coverage
 */htmlcov
-squirebot.service
-start.sh
+
+# Added by cargo
+
+Cargo.lock
+
+/target
