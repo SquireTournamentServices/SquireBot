@@ -80,7 +80,7 @@ Creates a list of possible match pairings using the list of active players. This
 
 Removes the player from the tournament. This acts as the admin’s way of removing them from the tournament, similar to how a play can drop from the tournament.
 
-- Ex. !admin-kick-player “Marchesa 2021” Tylord2894
+- Ex. !admin-drop “Marchesa 2021” Tylord2894
 
 ### give-bye (tournament) (player)
 

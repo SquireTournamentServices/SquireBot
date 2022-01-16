@@ -4,9 +4,10 @@ version = "0.0.0"
 edition = "2021"
 license = "GPL-3.0"
 rust-version = "1.58.0"
-authors = [ "Tyler Bloom" ]
+authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [dependencies]
+serenity = { version = "0.10.0", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model"] }
 squire_core = { git = "https://github.com/MonarchDevelopment/SquireCore", branch = "main" }
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
 tricebot = { git = "https://github.com/TylerBloom/tricebot-sdk", branch = "main" }
