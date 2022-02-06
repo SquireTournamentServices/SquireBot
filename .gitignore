@@ -16,8 +16,10 @@ standings.txt
 */htmlcov
 guilds/
 
+# Rust Stuff
+guild_settings.json
+
 # Added by cargo
 
 Cargo.lock
-
 /target

@@ -1,18 +1,18 @@
-#![allow(unused_imports)]
+#![allow(unused_imports, unused_variables)]
 
-mod models;
 mod admin_commands;
 mod judge_commands;
+mod models;
 mod player_commands;
 mod utils;
 
-use models::guild_settings;
-use admin_commands::setup::*;
-use utils::containers::*;
+use admin_commands::{group::ADMINCOMMANDS_GROUP, setup::*};
+use models::guild_settings::{GuildSettings, GuildSettingsContainer};
 
 use std::{
     collections::{HashMap, HashSet},
     fmt::Write,
+    fs::read_to_string,
     sync::{Arc, RwLock},
 };
 
@@ -29,17 +29,19 @@ use serenity::{
     },
     http::Http,
     model::{
-        channel::{Channel, Message, Embed, EmbedField},
+        guild::{Guild, Role},
+        channel::{GuildChannel, ChannelCategory, Channel, Embed, EmbedField, Message},
         gateway::Ready,
-        id::UserId,
+        id::{GuildId, UserId, RoleId},
         permissions::Permissions,
     },
-    utils::{content_safe, ContentSafeOptions, Colour},
+    utils::{content_safe, Colour, ContentSafeOptions},
 };
 
-use dotenv::vars;
-use tokio::sync::Mutex;
 use dashmap::DashMap;
+use dotenv::vars;
+use serde_json;
+use tokio::sync::Mutex;
 
 struct Handler;
 
@@ -48,11 +50,31 @@ impl EventHandler for Handler {
     async fn ready(&self, _: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
     }
-}
 
-#[group]
-#[commands(setup)]
-struct General;
+    async fn guild_create(&self, _: Context, guild: Guild, _:bool) {
+        todo!()
+    }
+
+    async fn category_delete(&self, _: Context, category: &ChannelCategory) {
+        todo!()
+    }
+
+    async fn channel_delete(&self, _: Context, new: &GuildChannel) {
+        todo!()
+    }
+
+    async fn channel_update(&self, _: Context, _: Option<Channel>, new: Channel) {
+        todo!()
+    }
+
+    async fn guild_role_update(&self, _: Context, guild_id: GuildId, _: Option<Role>, new: Role) {
+        todo!()
+    }
+
+    async fn guild_role_delete(&self, _: Context, guild_id: GuildId, removed_role: RoleId, _: Option<Role>) {
+        todo!()
+    }
+}
 
 // The framework provides two built-in help commands for you to use.
 // But you can also make your own customized help command that forwards
@@ -94,67 +116,29 @@ async fn my_help(
 }
 
 #[hook]
-async fn before_hook(ctx: &Context, msg: &Message, command_name: &str) -> bool {
+async fn before_command(ctx: &Context, msg: &Message, _command_name: &str) -> bool {
     match msg.reply(&ctx.http, "Look, a new command!").await {
-        Err(_) => false,
         Ok(_) => true,
+        Err(_) => false,
     }
 }
 
 #[hook]
-async fn after(_ctx: &Context, _msg: &Message, command_name: &str, command_result: CommandResult) {
+async fn after_command(_ctx: &Context, _msg: &Message, command_name: &str, command_result: CommandResult) {
     match command_result {
         Ok(()) => println!("Processed command '{}'", command_name),
         Err(why) => println!("Command '{}' returned error {:?}", command_name, why),
     }
 }
 
-#[hook]
-async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) {
-    if let DispatchError::Ratelimited(info) = error {
-        // We notify them only once.
-        if info.is_first_try {
-            let _ = msg
-                .channel_id
-                .say(
-                    &ctx.http,
-                    &format!("Try this again in {} seconds.", info.as_secs()),
-                )
-                .await;
-        }
-    }
-}
-
-// You can construct a hook without the use of a macro, too.
-// This requires some boilerplate though and the following additional import.
-use serenity::{futures::future::BoxFuture, FutureExt};
-fn _dispatch_error_no_macro<'fut>(
-    ctx: &'fut mut Context,
-    msg: &'fut Message,
-    error: DispatchError,
-) -> BoxFuture<'fut, ()> {
-    async move {
-        if let DispatchError::Ratelimited(info) = error {
-            if info.is_first_try {
-                let _ = msg
-                    .channel_id
-                    .say(
-                        &ctx.http,
-                        &format!("Try this again in {} seconds.", info.as_secs()),
-                    )
-                    .await;
-            }
-        };
-    }
-    .boxed()
-}
-
 #[tokio::main]
 async fn main() {
     // Configure the client with your Discord bot token in the environment.
     let env_vars: HashMap<String, String> = dotenv::vars().collect();
-    let token = env_vars.get("TESTING_TOKEN").expect("Expected a token in the environment");
-    
+    let token = env_vars
+        .get("TESTING_TOKEN")
+        .expect("Expected a token in the environment");
+
     let http = Http::new_with_token(&token);
 
     // We will fetch your bot's owners and id
@@ -199,36 +183,15 @@ async fn main() {
     // application if you are fine using nightly Rust.
     // If not, we need to provide the function identifiers to the
     // hook-functions (before, after, normal, ...).
-    .before(before_hook)
+    .before(before_command)
         // Similar to `before`, except will be called directly _after_
         // command execution.
-        .after(after)
-        // Set a function that's called whenever a command's execution didn't complete for one
-        // reason or another. For example, when a user has exceeded a rate-limit or a command
-        // can only be performed by the bot owner.
-        .on_dispatch_error(dispatch_error)
-        // Can't be used more than once per 5 seconds:
-        .bucket("emoji", |b| b.delay(5))
-        .await
-        // Can't be used more than 2 times per 30 seconds, with a 5 second delay applying per channel.
-        // Optionally `await_ratelimits` will delay until the command can be executed instead of
-        // cancelling the command invocation.
-        .bucket("complicated", |b| {
-            b.limit(2)
-                .time_span(30)
-                .delay(5)
-                // The target each bucket will apply to.
-                .limit_for(LimitedFor::Channel)
-                // The maximum amount of command invocations that can be delayed per target.
-                // Setting this to 0 (default) will never await/delay commands and cancel the invocation.
-                .await_ratelimits(1)
-        })
-    .await
+        .after(after_command)
         // The `#[group]` macro generates `static` instances of the options set for the group.
         // They're made in the pattern: `#name_GROUP` for the group instance and `#name_GROUP_OPTIONS`.
         // #name is turned all uppercase
         .help(&MY_HELP)
-        .group(&GENERAL_GROUP);
+        .group(&ADMINCOMMANDS_GROUP);
 
     let mut client = Client::builder(&token)
         .event_handler(Handler)
@@ -245,11 +208,14 @@ async fn main() {
 
     {
         let mut data = client.data.write().await;
-        // data.insert::<GuildSettingsContainer>(GuildSettings::new());
+        let all_guild_settings: DashMap<GuildId, GuildSettings> = serde_json::from_str(
+            &mut read_to_string("./guild_settings.json").expect("Guilds settings file not found."),
+        )
+            .expect("The guild settings data is malformed.");
+        data.insert::<GuildSettingsContainer>(all_guild_settings);
     }
 
     if let Err(why) = client.start().await {
         println!("Client error: {:?}", why);
     }
 }
-
