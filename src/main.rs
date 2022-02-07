@@ -55,8 +55,18 @@ impl EventHandler for Handler {
         println!("{} is connected!", ready.user.name);
     }
 
-    async fn guild_create(&self, _: Context, guild: Guild, _: bool) {
-        todo!()
+    async fn guild_create(&self, ctx: Context, guild: Guild, _: bool) {
+        println!("Look, a guild: {}", guild.name);
+        let data = ctx.data.read().await;
+        let settings = data.get::<GuildSettingsContainer>().unwrap();
+        if !settings.contains_key(&guild.id) {
+            settings.insert(guild.id.clone(), GuildSettings::new());
+        }
+        std::fs::write(
+            "guild_settings.json",
+            serde_json::to_string(&settings).expect("Failed to serialize guild settings."),
+        )
+        .expect("Failed to save guild settings json.");
     }
 
     async fn category_delete(&self, _: Context, category: &ChannelCategory) {
@@ -159,7 +169,7 @@ async fn main() {
                 .delimiters(vec![", ", ","])
                 .owners(owners)
         })
-    .before(before_command)
+        .before(before_command)
         .after(after_command)
         .help(&MY_HELP)
         .group(&ADMINCOMMANDS_GROUP);
@@ -178,7 +188,7 @@ async fn main() {
         let all_guild_settings: DashMap<GuildId, GuildSettings> = serde_json::from_str(
             &mut read_to_string("./guild_settings.json").expect("Guilds settings file not found."),
         )
-            .expect("The guild settings data is malformed.");
+        .expect("The guild settings data is malformed.");
         data.insert::<GuildSettingsContainer>(all_guild_settings);
 
         // Construct the guild and tournament structure
