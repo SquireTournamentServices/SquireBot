@@ -1,4 +1,4 @@
-#![allow(unused_imports, unused_variables)]
+#![allow(unused_imports, dead_code, unused_variables)]
 
 mod admin_commands;
 mod judge_commands;
@@ -23,9 +23,7 @@ use std::{
 use serenity::prelude::*;
 use serenity::{
     async_trait,
-    client::bridge::gateway::{GatewayIntents, ShardId, ShardManager},
     framework::standard::{
-        buckets::{LimitedFor, RevertBucket},
         help_commands,
         macros::{check, command, group, help, hook},
         Args, CommandGroup, CommandOptions, CommandResult, Delimiter, DispatchError, HelpOptions,
@@ -33,13 +31,13 @@ use serenity::{
     },
     http::Http,
     model::{
+        gateway::GatewayIntents,
         channel::{Channel, ChannelCategory, Embed, EmbedField, GuildChannel, Message},
         gateway::Ready,
         guild::{Guild, Role},
         id::{GuildId, RoleId, UserId},
         permissions::Permissions,
     },
-    utils::{content_safe, Colour, ContentSafeOptions},
 };
 
 use dashmap::DashMap;
@@ -58,16 +56,19 @@ impl EventHandler for Handler {
     async fn guild_create(&self, ctx: Context, guild: Guild, _: bool) {
         println!("Look, a guild: {}", guild.name);
         let data = ctx.data.read().await;
-        let settings = data.get::<GuildSettingsContainer>().unwrap();
-        if !settings.contains_key(&guild.id) {
-            settings.insert(guild.id.clone(), GuildSettings::new());
+        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        if let Some(mut settings) = all_settings.get_mut(&guild.id) {
+            settings.update(&guild);
+        } else {
+            let settings = GuildSettings::from_existing(&guild);
+            all_settings.insert(guild.id.clone(), GuildSettings::new());
         }
         std::fs::write(
             "guild_settings.json",
-            serde_json::to_string(&settings).expect("Failed to serialize guild settings."),
+            serde_json::to_string(&all_settings).expect("Failed to serialize guild settings."),
         )
-        .expect("Failed to save guild settings json.");
-    }
+            .expect("Failed to save guild settings json.");
+        }
 
     async fn category_delete(&self, _: Context, category: &ChannelCategory) {
         todo!()
@@ -81,7 +82,7 @@ impl EventHandler for Handler {
         todo!()
     }
 
-    async fn guild_role_update(&self, _: Context, guild_id: GuildId, _: Option<Role>, new: Role) {
+    async fn guild_role_update(&self, _: Context, _: Option<Role>, new: Role) {
         todo!()
     }
 
@@ -169,7 +170,7 @@ async fn main() {
                 .delimiters(vec![", ", ","])
                 .owners(owners)
         })
-        .before(before_command)
+    .before(before_command)
         .after(after_command)
         .help(&MY_HELP)
         .group(&ADMINCOMMANDS_GROUP);
@@ -188,7 +189,7 @@ async fn main() {
         let all_guild_settings: DashMap<GuildId, GuildSettings> = serde_json::from_str(
             &mut read_to_string("./guild_settings.json").expect("Guilds settings file not found."),
         )
-        .expect("The guild settings data is malformed.");
+            .expect("The guild settings data is malformed.");
         data.insert::<GuildSettingsContainer>(all_guild_settings);
 
         // Construct the guild and tournament structure
