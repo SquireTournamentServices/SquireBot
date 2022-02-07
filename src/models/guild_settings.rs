@@ -13,7 +13,12 @@ pub struct GuildSettings {
 
 impl GuildSettings {
     pub fn new() -> Self {
-        todo!()
+        GuildSettings {
+            pairings_channel: None,
+            judge_role: None,
+            tourn_admin_role: None,
+            matches_category: None,
+        }
     }
 
     pub fn is_configured(&self) -> bool {
