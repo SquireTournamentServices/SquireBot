@@ -14,10 +14,10 @@ const DEFAULT_MATCHES_CATEGORY_NAME: &str = "Matches";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GuildSettings {
-    pairings_channel: Option<ChannelId>,
-    judge_role: Option<RoleId>,
-    tourn_admin_role: Option<RoleId>,
-    matches_category: Option<ChannelId>,
+    pub pairings_channel: Option<ChannelId>,
+    pub judge_role: Option<RoleId>,
+    pub tourn_admin_role: Option<RoleId>,
+    pub matches_category: Option<ChannelId>,
 }
 
 impl GuildSettings {

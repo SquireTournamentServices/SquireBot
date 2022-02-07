@@ -61,7 +61,8 @@ impl EventHandler for Handler {
             settings.update(&guild);
         } else {
             let settings = GuildSettings::from_existing(&guild);
-            all_settings.insert(guild.id.clone(), GuildSettings::new());
+            println!("{:#?}", settings);
+            all_settings.insert(guild.id.clone(), settings);
         }
         std::fs::write(
             "guild_settings.json",
@@ -70,12 +71,36 @@ impl EventHandler for Handler {
             .expect("Failed to save guild settings json.");
         }
 
-    async fn category_delete(&self, _: Context, category: &ChannelCategory) {
-        todo!()
+    async fn category_delete(&self, ctx: Context, category: &ChannelCategory) {
+        let data = ctx.data.read().await;
+        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        if let Some(mut settings) = all_settings.get_mut(&category.guild_id) {
+            match settings.matches_category {
+                Some(c) => {
+                    if c == category.id {
+                        settings.matches_category = None;
+                    }
+                },
+                None => {},
+            }
+        }
+        ()
     }
 
-    async fn channel_delete(&self, _: Context, new: &GuildChannel) {
-        todo!()
+    async fn channel_delete(&self, ctx: Context, channel: &GuildChannel) {
+        let data = ctx.data.read().await;
+        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        if let Some(mut settings) = all_settings.get_mut(&channel.guild_id) {
+            match settings.pairings_channel {
+                Some(c) => {
+                    if c == channel.id {
+                        settings.pairings_channel = None;
+                    }
+                },
+                None => {},
+            }
+        }
+        ()
     }
 
     async fn channel_update(&self, _: Context, _: Option<Channel>, new: Channel) {
