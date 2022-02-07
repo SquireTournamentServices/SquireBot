@@ -12,7 +12,7 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 squire_core = { git = "https://github.com/MonarchDevelopment/SquireCore", branch = "main" }
 dotenv = { version = "0.9" }
 dashmap = { version = "5.0", features = ["serde"] }
+serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model"] }
 serde = { version = "1.0" }
 serde_json = { version = "1.0.68" }
-serenity = { version = "0.10.0", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
