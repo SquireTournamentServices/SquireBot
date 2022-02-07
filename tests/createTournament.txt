@@ -1,3 +1,0 @@
-!create-tournament Test fluidRoundTournament
-!cancel-tournament Test
-!yes
