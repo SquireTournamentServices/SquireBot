@@ -7,17 +7,22 @@ use serenity::model::{
 };
 use serenity::prelude::*;
 
-const DEFAULT_PAIRINGS_CHANNEL_NAME: &str = "match-pairings";
-const DEFAULT_JUDGE_ROLE_NAME: &str = "Judge";
-const DEFAULT_TOURN_ADMIN_ROLE_NAME: &str = "Tournament Admin";
-const DEFAULT_MATCHES_CATEGORY_NAME: &str = "Matches";
+use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug)]
+pub const DEFAULT_PAIRINGS_CHANNEL_NAME: &str = "match-pairings";
+pub const DEFAULT_JUDGE_ROLE_NAME: &str = "Judge";
+pub const DEFAULT_TOURN_ADMIN_ROLE_NAME: &str = "Tournament Admin";
+pub const DEFAULT_MATCHES_CATEGORY_NAME: &str = "Matches";
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GuildSettings {
     pub pairings_channel: Option<ChannelId>,
     pub judge_role: Option<RoleId>,
     pub tourn_admin_role: Option<RoleId>,
     pub matches_category: Option<ChannelId>,
+    pub make_vc: bool,
+    pub make_tc: bool,
+    pub tourn_settings: HashMap<String, String>,
 }
 
 impl GuildSettings {
@@ -27,6 +32,9 @@ impl GuildSettings {
             judge_role: None,
             tourn_admin_role: None,
             matches_category: None,
+            make_vc: true,
+            make_tc: false,
+            tourn_settings: HashMap::new(),
         }
     }
 
@@ -41,6 +49,9 @@ impl GuildSettings {
             judge_role,
             tourn_admin_role,
             matches_category,
+            make_vc: true,
+            make_tc: false,
+            tourn_settings: HashMap::new(),
         }
     }
 
@@ -140,7 +151,7 @@ pub fn get_default_matches_category_id(guild: &Guild) -> Option<ChannelId> {
             Channel::Category(c_channel) => Some(c_channel),
             _ => None,
         })
-        .filter(|c| c.kind == ChannelType::Text && c.name == DEFAULT_MATCHES_CATEGORY_NAME)
+        .filter(|c| c.kind == ChannelType::Category && c.name == DEFAULT_MATCHES_CATEGORY_NAME)
         .map(|c| c.id.clone())
         .next()
 }
