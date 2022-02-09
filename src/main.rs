@@ -2,13 +2,17 @@
 
 mod admin_commands;
 mod judge_commands;
-mod models;
+mod model;
 mod player_commands;
 mod utils;
 
 use admin_commands::{group::ADMINCOMMANDS_GROUP, setup::*};
-use models::{
-    guild_settings::{GuildSettings, GuildSettingsContainer},
+use model::{
+    guild_settings::{
+        GuildSettings, GuildSettingsContainer, DEFAULT_JUDGE_ROLE_NAME,
+        DEFAULT_MATCHES_CATEGORY_NAME, DEFAULT_PAIRINGS_CHANNEL_NAME,
+        DEFAULT_TOURN_ADMIN_ROLE_NAME,
+    },
     guild_tournaments::{GuildTournaments, GuildTournamentsContainer},
     squire_tournament::SquireTournament,
 };
@@ -31,8 +35,8 @@ use serenity::{
     },
     http::Http,
     model::{
-        gateway::GatewayIntents,
         channel::{Channel, ChannelCategory, Embed, EmbedField, GuildChannel, Message},
+        gateway::GatewayIntents,
         gateway::Ready,
         guild::{Guild, Role},
         id::{GuildId, RoleId, UserId},
@@ -71,6 +75,22 @@ impl EventHandler for Handler {
             .expect("Failed to save guild settings json.");
         }
 
+    async fn category_create(&self, ctx: Context, new: &ChannelCategory) {
+        let data = ctx.data.read().await;
+        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
+            match settings.matches_category {
+                None => {
+                    if new.name == DEFAULT_MATCHES_CATEGORY_NAME {
+                        settings.matches_category = Some(new.id);
+                    }
+                }
+                Some(_) => {}
+            }
+        }
+        ()
+    }
+
     async fn category_delete(&self, ctx: Context, category: &ChannelCategory) {
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsContainer>().unwrap();
@@ -80,8 +100,24 @@ impl EventHandler for Handler {
                     if c == category.id {
                         settings.matches_category = None;
                     }
+                }
+                None => {}
+            }
+        }
+        ()
+    }
+
+    async fn channel_create(&self, ctx: Context, new: &GuildChannel) {
+        let data = ctx.data.read().await;
+        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
+            match settings.pairings_channel {
+                None => {
+                    if new.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
+                        settings.pairings_channel = Some(new.id);
+                    }
                 },
-                None => {},
+                Some(c) => {}
             }
         }
         ()
@@ -96,29 +132,62 @@ impl EventHandler for Handler {
                     if c == channel.id {
                         settings.pairings_channel = None;
                     }
-                },
-                None => {},
+                }
+                None => {}
             }
         }
         ()
     }
 
-    async fn channel_update(&self, _: Context, _: Option<Channel>, new: Channel) {
-        todo!()
-    }
-
-    async fn guild_role_update(&self, _: Context, _: Option<Role>, new: Role) {
-        todo!()
+    async fn guild_role_create(&self, ctx: Context, new: Role) {
+        let data = ctx.data.read().await;
+        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
+            match new.name.as_str() {
+                DEFAULT_JUDGE_ROLE_NAME => {
+                    if settings.judge_role.is_none() {
+                        settings.judge_role = Some(new.id);
+                    }
+                }
+                DEFAULT_TOURN_ADMIN_ROLE_NAME => {
+                    if settings.tourn_admin_role.is_none() {
+                        settings.tourn_admin_role = Some(new.id);
+                    }
+                }
+                _ => {}
+            }
+        }
+        ()
     }
 
     async fn guild_role_delete(
         &self,
-        _: Context,
+        ctx: Context,
         guild_id: GuildId,
         removed_role: RoleId,
         _: Option<Role>,
     ) {
-        todo!()
+        let data = ctx.data.read().await;
+        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        if let Some(mut settings) = all_settings.get_mut(&guild_id) {
+            match settings.judge_role {
+                Some(id) => {
+                    if id == removed_role {
+                        settings.judge_role = Some(id);
+                    }
+                }
+                None => {}
+            }
+            match settings.tourn_admin_role {
+                Some(id) => {
+                    if id == removed_role {
+                        settings.tourn_admin_role = Some(id);
+                    }
+                }
+                None => {}
+            }
+        }
+        ()
     }
 }
 
@@ -141,10 +210,7 @@ async fn my_help(
 
 #[hook]
 async fn before_command(ctx: &Context, msg: &Message, _command_name: &str) -> bool {
-    match msg.reply(&ctx.http, "Look, a new command!").await {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    true
 }
 
 #[hook]
