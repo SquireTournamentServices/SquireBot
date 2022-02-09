@@ -139,7 +139,62 @@ impl EventHandler for Handler {
         ()
     }
 
+    // NOTE: This covers both categories and guild channels
+    async fn channel_update(&self, ctx: Context, _: Option<Channel>, new: Channel) {
+        let data = ctx.data.read().await;
+        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        match new {
+            Channel::Guild(c) => {
+                if let Some(mut settings) = all_settings.get_mut(&c.guild_id) {
+                    match settings.pairings_channel {
+                        None => {
+                            if c.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
+                                settings.pairings_channel = Some(c.id);
+                            }
+                        },
+                        Some(c) => {}
+                    }
+                }
+            },
+            Channel::Category(c) => {
+                if let Some(mut settings) = all_settings.get_mut(&c.guild_id) {
+                    match settings.matches_category {
+                        None => {
+                            if c.name == DEFAULT_MATCHES_CATEGORY_NAME {
+                                settings.matches_category = Some(c.id);
+                            }
+                        }
+                        Some(_) => {}
+                    }
+                }
+            },
+            _ => {}
+        }
+        ()
+    }
+
     async fn guild_role_create(&self, ctx: Context, new: Role) {
+        let data = ctx.data.read().await;
+        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
+            match new.name.as_str() {
+                DEFAULT_JUDGE_ROLE_NAME => {
+                    if settings.judge_role.is_none() {
+                        settings.judge_role = Some(new.id);
+                    }
+                }
+                DEFAULT_TOURN_ADMIN_ROLE_NAME => {
+                    if settings.tourn_admin_role.is_none() {
+                        settings.tourn_admin_role = Some(new.id);
+                    }
+                }
+                _ => {}
+            }
+        }
+        ()
+    }
+
+    async fn guild_role_update(&self, ctx: Context, _: Option<Role>, new: Role) {
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
