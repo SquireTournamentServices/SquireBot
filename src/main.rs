@@ -2,11 +2,13 @@
 
 mod admin_commands;
 mod judge_commands;
-mod model;
 mod player_commands;
+mod misc_commands;
+mod model;
 mod utils;
 
 use admin_commands::{group::ADMINCOMMANDS_GROUP, setup::*};
+use misc_commands::{group::MISCCOMMANDS_GROUP, flip_coins::*};
 use model::{
     guild_settings::{
         GuildSettings, GuildSettingsContainer, DEFAULT_JUDGE_ROLE_NAME,
@@ -337,7 +339,8 @@ async fn main() {
         .before(before_command)
         .after(after_command)
         .help(&MY_HELP)
-        .group(&ADMINCOMMANDS_GROUP);
+        .group(&ADMINCOMMANDS_GROUP)
+        .group(&MISCCOMMANDS_GROUP);
 
     let mut client = Client::builder(&token)
         .event_handler(Handler)
