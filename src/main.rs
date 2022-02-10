@@ -1,7 +1,6 @@
 #![allow(unused_imports, dead_code, unused_variables)]
 
-mod admin_commands;
-mod judge_commands;
+mod admin_commands; mod judge_commands;
 mod model;
 mod player_commands;
 mod utils;
@@ -72,8 +71,8 @@ impl EventHandler for Handler {
             "guild_settings.json",
             serde_json::to_string(&all_settings).expect("Failed to serialize guild settings."),
         )
-            .expect("Failed to save guild settings json.");
-        }
+        .expect("Failed to save guild settings json.");
+    }
 
     async fn category_create(&self, ctx: Context, new: &ChannelCategory) {
         let data = ctx.data.read().await;
@@ -116,7 +115,7 @@ impl EventHandler for Handler {
                     if new.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
                         settings.pairings_channel = Some(new.id);
                     }
-                },
+                }
                 Some(c) => {}
             }
         }
@@ -151,11 +150,11 @@ impl EventHandler for Handler {
                             if c.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
                                 settings.pairings_channel = Some(c.id);
                             }
-                        },
+                        }
                         Some(c) => {}
                     }
                 }
-            },
+            }
             Channel::Category(c) => {
                 if let Some(mut settings) = all_settings.get_mut(&c.guild_id) {
                     match settings.matches_category {
@@ -167,7 +166,7 @@ impl EventHandler for Handler {
                         Some(_) => {}
                     }
                 }
-            },
+            }
             _ => {}
         }
         ()
@@ -316,7 +315,7 @@ async fn main() {
                 .delimiters(vec![", ", ","])
                 .owners(owners)
         })
-    .before(before_command)
+        .before(before_command)
         .after(after_command)
         .help(&MY_HELP)
         .group(&ADMINCOMMANDS_GROUP);
@@ -335,7 +334,7 @@ async fn main() {
         let all_guild_settings: DashMap<GuildId, GuildSettings> = serde_json::from_str(
             &mut read_to_string("./guild_settings.json").expect("Guilds settings file not found."),
         )
-            .expect("The guild settings data is malformed.");
+        .expect("The guild settings data is malformed.");
         data.insert::<GuildSettingsContainer>(all_guild_settings);
 
         // Construct the guild and tournament structure

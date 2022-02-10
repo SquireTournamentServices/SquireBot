@@ -35,7 +35,7 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             let _ = guild
                 .create_role(&ctx.http, |r| r.name(DEFAULT_JUDGE_ROLE_NAME))
                 .await?;
-            }
+        }
     };
     match settings.tourn_admin_role {
         Some(_) => {}
@@ -43,7 +43,7 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             let _ = guild
                 .create_role(&ctx.http, |r| r.name(DEFAULT_TOURN_ADMIN_ROLE_NAME))
                 .await?;
-            }
+        }
     };
     match settings.pairings_channel {
         Some(_) => {}
@@ -53,8 +53,8 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                     r.name(DEFAULT_PAIRINGS_CHANNEL_NAME)
                         .kind(ChannelType::Text)
                 })
-            .await?;
-            }
+                .await?;
+        }
     };
     match settings.matches_category {
         Some(_) => {}
@@ -64,15 +64,15 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                     r.name(DEFAULT_MATCHES_CATEGORY_NAME)
                         .kind(ChannelType::Category)
                 })
-            .await?;
-            }
+                .await?;
+        }
     };
 
     msg.reply(
         &ctx.http,
         "The server should now be setup to run tournament. To test this, run `!setup test`.",
     )
-        .await?;
+    .await?;
     Ok(())
 }
 
@@ -108,7 +108,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     match settings.judge_role {
         None => {
             test_results += "Failed - No judge role found.\n";
-        },
+        }
         Some(_) => {
             test_results += "Passed\n";
         }
@@ -116,7 +116,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     match settings.tourn_admin_role {
         None => {
             test_results += "Failed - No tournament admin role found.\n";
-        },
+        }
         Some(_) => {
             test_results += "Passed\n";
         }
@@ -124,31 +124,53 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     match settings.pairings_channel {
         None => {
             test_results += &"Failed - No pairings channel found.\n".repeat(5);
-        },
+        }
         Some(id) => {
             test_results += "Passed\n";
             if let Channel::Guild(pairings_channel) = guild.channels.get(&id).unwrap() {
-                match pairings_channel.send_message(&ctx.http,|m| m.content("Testing...") ).await {
+                match pairings_channel
+                    .send_message(&ctx.http, |m| m.content("Testing..."))
+                    .await
+                {
                     Err(_) => {
                         test_results += &"Failed - Couldn't send message.\n".repeat(4);
-                    },
+                    }
                     Ok(m) => {
                         test_results += &"Passed\n";
-                        match pairings_channel.edit_message(&ctx.http, m.id, |m| m.content("Edited Test")).await {
-                            Ok(_) => { test_results += "Passed\n"; }
-                            Err(_) => { test_results += "Failed - Couldn't delete message.\n"; }
+                        match pairings_channel
+                            .edit_message(&ctx.http, m.id, |m| m.content("Edited Test"))
+                            .await
+                        {
+                            Ok(_) => {
+                                test_results += "Passed\n";
+                            }
+                            Err(_) => {
+                                test_results += "Failed - Couldn't delete message.\n";
+                            }
                         }
                     }
                 }
-                match pairings_channel.send_message(&ctx.http,|m| m.embed(|e| e.title("Test Embed"))).await {
+                match pairings_channel
+                    .send_message(&ctx.http, |m| m.embed(|e| e.title("Test Embed")))
+                    .await
+                {
                     Err(_) => {
                         test_results += &"Failed - Couldn't send embed.\n".repeat(2);
-                    },
+                    }
                     Ok(m) => {
                         test_results += &"Passed\n";
-                        match pairings_channel.edit_message(&ctx.http, m.id, |m| m.embed(|e| e.title("Edited Test Embed"))).await {
-                            Ok(_) => { test_results += "Passed\n"; }
-                            Err(_) => { test_results += "Failed - Couldn't delete embed.\n"; }
+                        match pairings_channel
+                            .edit_message(&ctx.http, m.id, |m| {
+                                m.embed(|e| e.title("Edited Test Embed"))
+                            })
+                            .await
+                        {
+                            Ok(_) => {
+                                test_results += "Passed\n";
+                            }
+                            Err(_) => {
+                                test_results += "Failed - Couldn't delete embed.\n";
+                            }
                         }
                     }
                 }
@@ -161,19 +183,28 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         match settings.matches_category {
             None => {
                 test_results += &"Failed - No matches category found.\n".repeat(5);
-            },
+            }
             Some(id) => {
                 if let Channel::Category(matches_category) = guild.channels.get(&id).unwrap() {
                     test_results += "Passed\n";
                     if settings.make_vc {
-                        match guild.create_channel(&ctx.http, |c| c.name("Test VC").kind(ChannelType::Voice).category(id)).await {
+                        match guild
+                            .create_channel(&ctx.http, |c| {
+                                c.name("Test VC").kind(ChannelType::Voice).category(id)
+                            })
+                            .await
+                        {
                             Ok(c) => {
                                 test_results += &"Passed\n";
                                 match c.delete(&ctx.http).await {
-                                    Ok(_) => { test_results += "Passed\n"; }
-                                    Err(_) => { test_results += "Failed - Couldn't delete VC.\n"; }
+                                    Ok(_) => {
+                                        test_results += "Passed\n";
+                                    }
+                                    Err(_) => {
+                                        test_results += "Failed - Couldn't delete VC.\n";
+                                    }
                                 }
-                            },
+                            }
                             Err(_) => {
                                 test_results += &"Failed - VC not made.\n".repeat(2);
                             }
@@ -182,14 +213,23 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                         test_results += &"Omitted - Not making VCs.\n".repeat(2);
                     }
                     if settings.make_tc {
-                        match guild.create_channel(&ctx.http, |c| c.name("Test TC").kind(ChannelType::Text).category(id)).await {
+                        match guild
+                            .create_channel(&ctx.http, |c| {
+                                c.name("Test TC").kind(ChannelType::Text).category(id)
+                            })
+                            .await
+                        {
                             Ok(c) => {
                                 test_results += &"Passed\n";
                                 match c.delete(&ctx.http).await {
-                                    Ok(_) => { test_results += "Passed\n"; }
-                                    Err(_) => { test_results += "Failed - Couldn't delete TC.\n"; }
+                                    Ok(_) => {
+                                        test_results += "Passed\n";
+                                    }
+                                    Err(_) => {
+                                        test_results += "Failed - Couldn't delete TC.\n";
+                                    }
                                 }
-                            },
+                            }
                             Err(_) => {
                                 test_results += &"Failed - TC not made.\n".repeat(2);
                             }
@@ -204,7 +244,15 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         test_results += &"Omitted - Not making TCs nor VCs.\n".repeat(5);
     }
     if let Channel::Guild(c) = msg.channel(&ctx.http).await? {
-        c.send_message(&ctx.http, |m| m.embed(|e| e.title("Test Results").fields( vec![("Tests", tests, true), ("Results", test_results, true)] ))).await?;
+        c.send_message(&ctx.http, |m| {
+            m.embed(|e| {
+                e.title("Test Results").fields(vec![
+                    ("Tests", tests, true),
+                    ("Results", test_results, true),
+                ])
+            })
+        })
+        .await?;
     } else {
         msg.reply(&ctx.http, "How did you send this??").await?;
     }
