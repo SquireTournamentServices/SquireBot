@@ -1,6 +1,7 @@
 #![allow(unused_imports, dead_code, unused_variables)]
 
-mod admin_commands; mod judge_commands;
+mod admin_commands;
+mod judge_commands;
 mod model;
 mod player_commands;
 mod utils;
