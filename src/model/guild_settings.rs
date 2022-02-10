@@ -1,11 +1,16 @@
+use crate::utils::stringify::stringify_option;
+
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
-use serenity::model::{
-    channel::{Channel, ChannelCategory, ChannelType, GuildChannel},
-    guild::{Guild, Role},
-    id::{ChannelId, GuildId, RoleId},
-};
 use serenity::prelude::*;
+use serenity::{
+    builder::CreateEmbed,
+    model::{
+        channel::{Channel, ChannelCategory, ChannelType, GuildChannel},
+        guild::{Guild, Role},
+        id::{ChannelId, GuildId, RoleId},
+    },
+};
 
 use std::collections::HashMap;
 
@@ -103,6 +108,29 @@ impl GuildSettings {
             && self.judge_role.is_some()
             && self.tourn_admin_role.is_some()
             && self.matches_category.is_some()
+    }
+
+    pub fn as_embed(&self, embed: &mut CreateEmbed) {
+        let names = "Pairings Channel:\nJudge Role:\nTourn Admin Role:\nMatches Category:\nMake VC:\nMake TC:";
+        let mut settings: String =
+            (stringify_option(self.judge_role.map_or(None, |c| Some(format!("<@&{}>", c)))) + "\n")
+                .to_string();
+        settings += &(stringify_option(
+            self.tourn_admin_role
+                .map_or(None, |c| Some(format!("<@&{}>", c))),
+        ) + "\n");
+        settings += &(stringify_option(
+            self.pairings_channel
+                .map_or(None, |c| Some(format!("<#{}>", c))),
+        ) + "\n");
+        settings += &(stringify_option(
+            self.matches_category
+                .map_or(None, |c| Some(format!("<#{}>", c))),
+        ) + "\n");
+        settings += &format!("{}\n{}", self.make_vc, self.make_tc);
+        embed
+            .title("Server Tournament Settings:")
+            .fields(vec![("Settings", names, true), ("Values", &settings, true)]);
     }
 }
 

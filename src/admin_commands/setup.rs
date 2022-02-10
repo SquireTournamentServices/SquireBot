@@ -9,7 +9,7 @@ use serenity::model::prelude::*;
 use serenity::prelude::*;
 
 #[command("setup")]
-#[sub_commands(check, test, defaults)]
+#[sub_commands(view, test, defaults)]
 #[only_in(guild)]
 #[required_permissions("ADMINISTRATOR")]
 #[description("Sets up the server to be able to run tournaments.")]
@@ -80,8 +80,33 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[only_in(guild)]
 #[required_permissions("ADMINISTRATOR")]
 #[description("Prints out the current tournament-related settings.")]
-async fn check(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
-    todo!()
+async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
+    let data = ctx.data.read().await;
+    let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+    // Gets a copy of the setting. We don't want to a reference to the copy since creating what
+    // needs to be created will trigger the hooks and update the shared settings object.
+    let guild: Guild = msg.guild(&ctx.cache).unwrap();
+    let settings: GuildSettings = match all_settings.get_mut(&guild.id) {
+        Some(s) => s.clone(),
+        None => {
+            // This case should never happen... but just in case
+            all_settings.insert(guild.id.clone(), GuildSettings::from_existing(&guild));
+            all_settings.get_mut(&guild.id).unwrap().clone()
+        }
+    };
+    drop(all_settings);
+    if let Channel::Guild(c) = msg.channel(&ctx.http).await? {
+        c.send_message(&ctx.http, |m| {
+            m.embed(|e| {
+                settings.as_embed(e);
+                e
+            })
+        })
+        .await?;
+    } else {
+        msg.reply(&ctx.http, "How did you send this??").await?;
+    }
+    Ok(())
 }
 
 #[command]
