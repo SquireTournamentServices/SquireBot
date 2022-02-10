@@ -9,7 +9,7 @@ use serenity::model::prelude::*;
 use serenity::prelude::*;
 
 #[command("setup")]
-#[sub_commands(view, test, defaults)]
+#[sub_commands(view, test, settings, defaults)]
 #[only_in(guild)]
 #[required_permissions("ADMINISTRATOR")]
 #[description("Sets up the server to be able to run tournaments.")]
@@ -286,8 +286,20 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
 #[command]
 #[only_in(guild)]
-#[required_permissions("ADMINISTRATOR")]
-#[description("Changes the default settings for new tournament in the server.")]
+#[allowed_roles(DEFAULT_TOURN_ADMIN_ROLE_NAME)]
+#[min_args(2)]
+#[delimiters(",")]
+#[description("Changes Discord default settings for new tournaments in the server.")]
+async fn settings(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    todo!()
+}
+
+#[command]
+#[only_in(guild)]
+#[allowed_roles(DEFAULT_TOURN_ADMIN_ROLE_NAME)]
+#[min_args(2)]
+#[delimiters(",")]
+#[description("Changes the default tournament settings for new tournaments in the server.")]
 async fn defaults(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     todo!()
 }

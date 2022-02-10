@@ -35,7 +35,7 @@ use serenity::{
     },
     http::Http,
     model::{
-        channel::{Channel, ChannelCategory, Embed, EmbedField, GuildChannel, Message},
+        channel::{Channel, ChannelType, ChannelCategory, Embed, EmbedField, GuildChannel, Message},
         gateway::GatewayIntents,
         gateway::Ready,
         guild::{Guild, Role},
@@ -145,26 +145,26 @@ impl EventHandler for Handler {
         let all_settings = data.get::<GuildSettingsContainer>().unwrap();
         match new {
             Channel::Guild(c) => {
-                if let Some(mut settings) = all_settings.get_mut(&c.guild_id) {
-                    match settings.pairings_channel {
-                        None => {
-                            if c.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
+                if c.kind == ChannelType::Text && c.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
+                    if let Some(mut settings) = all_settings.get_mut(&c.guild_id) {
+                        match settings.pairings_channel {
+                            None => {
                                 settings.pairings_channel = Some(c.id);
                             }
+                            Some(c) => {}
                         }
-                        Some(c) => {}
                     }
                 }
             }
             Channel::Category(c) => {
-                if let Some(mut settings) = all_settings.get_mut(&c.guild_id) {
-                    match settings.matches_category {
-                        None => {
-                            if c.name == DEFAULT_MATCHES_CATEGORY_NAME {
+                if c.name == DEFAULT_MATCHES_CATEGORY_NAME {
+                    if let Some(mut settings) = all_settings.get_mut(&c.guild_id) {
+                        match settings.matches_category {
+                            None => {
                                 settings.matches_category = Some(c.id);
                             }
+                            Some(_) => {}
                         }
-                        Some(_) => {}
                     }
                 }
             }
@@ -209,7 +209,25 @@ impl EventHandler for Handler {
                         settings.tourn_admin_role = Some(new.id);
                     }
                 }
-                _ => {}
+                _ => {
+                    // Makes sure that the tournament admin and judge roles aren't renamed.
+                    match settings.judge_role {
+                        Some(id) => {
+                            if new.id == id {
+                                settings.judge_role = None;
+                            }
+                        },
+                        None => {}
+                    }
+                    match settings.tourn_admin_role {
+                        Some(id) => {
+                            if new.id == id {
+                                settings.tourn_admin_role = None;
+                            }
+                        },
+                        None => {}
+                    }
+                }
             }
         }
         ()
