@@ -1,6 +1,6 @@
 use super::squire_tournament::SquireTournament;
 
-use squire_core::tournament::{self, Tournament};
+use squire_core::tournament::Tournament;
 
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};

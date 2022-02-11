@@ -17,14 +17,10 @@ use model::{
     },
     guild_tournaments::{GuildTournaments, GuildTournamentsContainer},
     squire_tournament::SquireTournament,
+    tournament_container::TournamentContainer
 };
 
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Write,
-    fs::read_to_string,
-    sync::{Arc, RwLock},
-};
+use squire_core::tournament_registry::TournamentRegistry;
 
 use serenity::prelude::*;
 use serenity::{
@@ -45,11 +41,17 @@ use serenity::{
         permissions::Permissions,
     },
 };
-
 use dashmap::DashMap;
 use dotenv::vars;
 use serde_json;
 use tokio::sync::Mutex;
+
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Write,
+    fs::read_to_string,
+    sync::{Arc, RwLock},
+};
 
 struct Handler;
 
@@ -74,8 +76,8 @@ impl EventHandler for Handler {
             "guild_settings.json",
             serde_json::to_string(&all_settings).expect("Failed to serialize guild settings."),
         )
-        .expect("Failed to save guild settings json.");
-    }
+            .expect("Failed to save guild settings json.");
+        }
 
     async fn category_create(&self, ctx: Context, new: &ChannelCategory) {
         let data = ctx.data.read().await;
@@ -336,7 +338,7 @@ async fn main() {
                 .delimiters(vec![", ", ","])
                 .owners(owners)
         })
-        .before(before_command)
+    .before(before_command)
         .after(after_command)
         .help(&MY_HELP)
         .group(&ADMINCOMMANDS_GROUP)
@@ -356,11 +358,14 @@ async fn main() {
         let all_guild_settings: DashMap<GuildId, GuildSettings> = serde_json::from_str(
             &mut read_to_string("./guild_settings.json").expect("Guilds settings file not found."),
         )
-        .expect("The guild settings data is malformed.");
+            .expect("The guild settings data is malformed.");
         data.insert::<GuildSettingsContainer>(all_guild_settings);
 
         // Construct the guild and tournament structure
         data.insert::<GuildTournamentsContainer>(DashMap::new());
+
+        // Construct the tournament registry (i.e the main SqurieCore API)
+        data.insert::<TournamentContainer>(Arc::new(Mutex::new(TournamentRegistry { tourns: HashMap::new()} )));
     }
 
     if let Err(why) = client.start().await {
