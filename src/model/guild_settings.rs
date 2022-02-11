@@ -1,5 +1,7 @@
 use crate::utils::stringify::stringify_option;
 
+use squire_core::tournament_settings::TournamentSettings;
+
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use serenity::prelude::*;
@@ -27,7 +29,7 @@ pub struct GuildSettings {
     pub matches_category: Option<ChannelId>,
     pub make_vc: bool,
     pub make_tc: bool,
-    pub tourn_settings: HashMap<String, String>,
+    pub tourn_settings: TournamentSettings,
 }
 
 impl GuildSettings {
@@ -39,15 +41,12 @@ impl GuildSettings {
             matches_category: None,
             make_vc: true,
             make_tc: false,
-            tourn_settings: HashMap::new(),
+            tourn_settings: TournamentSettings { },
         }
     }
 
     pub fn from_existing(guild: &Guild) -> Self {
-        let judge_role: Option<RoleId> = get_default_judge_role_id(guild);
-        let tourn_admin_role: Option<RoleId> = get_default_tourn_admin_role_id(guild);
-        let pairings_channel: Option<ChannelId> = get_default_pairings_channel_id(guild);
-        let matches_category: Option<ChannelId> = get_default_matches_category_id(guild);
+        let judge_role: Option<RoleId> = get_default_judge_role_id(guild); let tourn_admin_role: Option<RoleId> = get_default_tourn_admin_role_id(guild); let pairings_channel: Option<ChannelId> = get_default_pairings_channel_id(guild); let matches_category: Option<ChannelId> = get_default_matches_category_id(guild);
 
         GuildSettings {
             pairings_channel,
@@ -56,7 +55,7 @@ impl GuildSettings {
             matches_category,
             make_vc: true,
             make_tc: false,
-            tourn_settings: HashMap::new(),
+            tourn_settings: TournamentSettings { },
         }
     }
 
