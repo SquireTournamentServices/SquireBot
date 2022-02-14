@@ -1,37 +1,31 @@
 use super::settings_commands::*;
-use super::admin_commands::{
+use super::admin_commands::admin::*;
+use super::player_commands::{
     add_deck::*,
     confirm_result::*,
-    create_match::*,
-    cut::*,
     decklist::*,
+    decks::*,
     drop::*,
-    end::*,
-    freeze::*,
-    give_bye::*,
+    list::*,
     match_result::*,
-    match_status::*,
-    players::*,
-    profile::*,
-    prune::PRUNE_COMMAND,
-    raw_standings::*,
+    name::*,
+    ready::*,
     register::*,
-    registration::*,
     remove_deck::*,
-    remove_match::*,
-    start::*,
-    status::*,
-    time_extension::*,
+    standings::*,
 };
 
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
+/*
+*/
+
 #[command("tournament")]
 #[only_in(guild)]
 #[aliases("tourn", "T")]
-#[sub_commands(admin, create, settings)]
+#[sub_commands(admin, create, settings, add_deck, confirm_result, decklist, decks, drop, list, match_result, name, ready, register, remove_deck, standings)]
 #[description("Commands pretaining to tournaments.")]
 async fn tournament(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     msg.reply(
@@ -47,18 +41,6 @@ async fn tournament(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[allowed_roles("Tournament Admin")]
 #[description("Adjust the settings of a specfic tournament.")]
 async fn create(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
-    todo!()
-}
-
-/*
-
-*/
-#[command]
-#[only_in(guild)]
-#[sub_commands(add_deck, confirm_result, create_match, cut, decklist, drop, end, freeze, give_bye, match_result, match_status, players, profile, prune, raw_standings, register, registration, remove_deck, remove_match, start, status, time_extension)]
-#[allowed_roles("Tournament Admin")]
-#[description("Adjust the settings of a specfic tournament.")]
-async fn admin(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     todo!()
 }
 
