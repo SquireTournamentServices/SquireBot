@@ -4,4 +4,4 @@ use super::setup::*;
 
 #[group]
 #[commands(setup)]
-pub struct AdminCommands;
+pub struct SetupCommands;
