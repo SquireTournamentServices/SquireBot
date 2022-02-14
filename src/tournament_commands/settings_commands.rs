@@ -4,7 +4,7 @@ use serenity::prelude::*;
 
 #[command]
 #[only_in(guild)]
-#[allowed_roles(DEFAULT_TOURN_ADMIN_ROLE_NAME)]
+#[allowed_roles("Tournament Admin")]
 #[description("Adjust the settings of a specfic tournament.")]
 async fn general(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     todo!()
@@ -12,7 +12,7 @@ async fn general(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
 #[command]
 #[only_in(guild)]
-#[allowed_roles(DEFAULT_TOURN_ADMIN_ROLE_NAME)]
+#[allowed_roles("Tournament Admin")]
 #[description("Adjust the settings of a specfic tournament.")]
 async fn pairings(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     todo!()
@@ -20,9 +20,8 @@ async fn pairings(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
 #[command]
 #[only_in(guild)]
-#[allowed_roles(DEFAULT_TOURN_ADMIN_ROLE_NAME)]
+#[allowed_roles("Tournament Admin")]
 #[description("Adjust the settings of a specfic tournament.")]
 async fn scoring(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     todo!()
 }
-

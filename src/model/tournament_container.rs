@@ -9,4 +9,3 @@ pub struct TournamentContainer;
 impl TypeMapKey for TournamentContainer {
     type Value = Arc<Mutex<TournamentRegistry>>;
 }
-
