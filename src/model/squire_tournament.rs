@@ -2,7 +2,7 @@ use squire_core::tournament::{Tournament, TournamentId};
 
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
-use serenity::model::id::{MessageId, ChannelId, RoleId};
+use serenity::model::id::{ChannelId, MessageId, RoleId};
 use serenity::prelude::*;
 
 use std::collections::{HashMap, HashSet};
