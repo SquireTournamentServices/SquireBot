@@ -1,5 +1,7 @@
 use crate::utils::stringify::stringify_option;
 
+use super::consts::*;
+
 use squire_core::tournament_settings::TournamentSettings;
 
 use dashmap::DashMap;
@@ -15,11 +17,6 @@ use serenity::{
 };
 
 use std::collections::HashMap;
-
-pub const DEFAULT_PAIRINGS_CHANNEL_NAME: &str = "match-pairings";
-pub const DEFAULT_JUDGE_ROLE_NAME: &str = "Judge";
-pub const DEFAULT_TOURN_ADMIN_ROLE_NAME: &str = "Tournament Admin";
-pub const DEFAULT_MATCHES_CATEGORY_NAME: &str = "Matches";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GuildSettings {

@@ -1,15 +1,17 @@
 use crate::model::guild_settings::{
-    GuildSettings, GuildSettingsContainer, DEFAULT_JUDGE_ROLE_NAME, DEFAULT_MATCHES_CATEGORY_NAME,
-    DEFAULT_PAIRINGS_CHANNEL_NAME, DEFAULT_TOURN_ADMIN_ROLE_NAME,
+    GuildSettings, GuildSettingsContainer,
 };
+use crate::model::consts::*;
 use crate::utils::is_configured;
+
+use super::defaults_commands::*;
 
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
 #[command("setup")]
-#[sub_commands(view, test, settings, defaults)]
+#[sub_commands(view, test, defaults)]
 #[only_in(guild)]
 #[required_permissions("ADMINISTRATOR")]
 #[description("Sets up the server to be able to run tournaments.")]
@@ -35,7 +37,7 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             let _ = guild
                 .create_role(&ctx.http, |r| r.name(DEFAULT_JUDGE_ROLE_NAME))
                 .await?;
-        }
+            }
     };
     match settings.tourn_admin_role {
         Some(_) => {}
@@ -43,7 +45,7 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             let _ = guild
                 .create_role(&ctx.http, |r| r.name(DEFAULT_TOURN_ADMIN_ROLE_NAME))
                 .await?;
-        }
+            }
     };
     match settings.pairings_channel {
         Some(_) => {}
@@ -53,8 +55,8 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                     r.name(DEFAULT_PAIRINGS_CHANNEL_NAME)
                         .kind(ChannelType::Text)
                 })
-                .await?;
-        }
+            .await?;
+            }
     };
     match settings.matches_category {
         Some(_) => {}
@@ -64,15 +66,15 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                     r.name(DEFAULT_MATCHES_CATEGORY_NAME)
                         .kind(ChannelType::Category)
                 })
-                .await?;
-        }
+            .await?;
+            }
     };
 
     msg.reply(
         &ctx.http,
         "The server should now be setup to run tournament. To test this, run `!setup test`.",
     )
-    .await?;
+        .await?;
     Ok(())
 }
 
@@ -103,8 +105,8 @@ async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             })
         })
         .await?;
-    } else {
-        msg.reply(&ctx.http, "How did you send this??").await?;
+        } else {
+            msg.reply(&ctx.http, "How did you send this??").await?;
     }
     Ok(())
 }
@@ -156,49 +158,49 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                 match pairings_channel
                     .send_message(&ctx.http, |m| m.content("Testing..."))
                     .await
-                {
-                    Err(_) => {
-                        test_results += &"Failed - Couldn't send message.\n".repeat(4);
-                    }
-                    Ok(m) => {
-                        test_results += &"Passed\n";
-                        match pairings_channel
-                            .edit_message(&ctx.http, m.id, |m| m.content("Edited Test"))
-                            .await
-                        {
-                            Ok(_) => {
-                                test_results += "Passed\n";
-                            }
-                            Err(_) => {
-                                test_results += "Failed - Couldn't delete message.\n";
-                            }
+                    {
+                        Err(_) => {
+                            test_results += &"Failed - Couldn't send message.\n".repeat(4);
+                        }
+                        Ok(m) => {
+                            test_results += &"Passed\n";
+                            match pairings_channel
+                                .edit_message(&ctx.http, m.id, |m| m.content("Edited Test"))
+                                .await
+                                {
+                                    Ok(_) => {
+                                        test_results += "Passed\n";
+                                    }
+                                    Err(_) => {
+                                        test_results += "Failed - Couldn't delete message.\n";
+                                    }
+                                }
                         }
                     }
-                }
                 match pairings_channel
                     .send_message(&ctx.http, |m| m.embed(|e| e.title("Test Embed")))
                     .await
-                {
-                    Err(_) => {
-                        test_results += &"Failed - Couldn't send embed.\n".repeat(2);
-                    }
-                    Ok(m) => {
-                        test_results += &"Passed\n";
-                        match pairings_channel
-                            .edit_message(&ctx.http, m.id, |m| {
-                                m.embed(|e| e.title("Edited Test Embed"))
-                            })
+                    {
+                        Err(_) => {
+                            test_results += &"Failed - Couldn't send embed.\n".repeat(2);
+                        }
+                        Ok(m) => {
+                            test_results += &"Passed\n";
+                            match pairings_channel
+                                .edit_message(&ctx.http, m.id, |m| {
+                                    m.embed(|e| e.title("Edited Test Embed"))
+                                })
                             .await
-                        {
-                            Ok(_) => {
-                                test_results += "Passed\n";
-                            }
-                            Err(_) => {
-                                test_results += "Failed - Couldn't delete embed.\n";
+                            {
+                                Ok(_) => {
+                                    test_results += "Passed\n";
+                                }
+                                Err(_) => {
+                                    test_results += "Failed - Couldn't delete embed.\n";
+                                }
                             }
                         }
                     }
-                }
             } else {
                 test_results += &"Failed - No pairings channel isn't text channel.\n".repeat(4);
             }
@@ -217,7 +219,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                             .create_channel(&ctx.http, |c| {
                                 c.name("Test VC").kind(ChannelType::Voice).category(id)
                             })
-                            .await
+                        .await
                         {
                             Ok(c) => {
                                 test_results += &"Passed\n";
@@ -242,7 +244,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                             .create_channel(&ctx.http, |c| {
                                 c.name("Test TC").kind(ChannelType::Text).category(id)
                             })
-                            .await
+                        .await
                         {
                             Ok(c) => {
                                 test_results += &"Passed\n";
@@ -278,8 +280,8 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             })
         })
         .await?;
-    } else {
-        msg.reply(&ctx.http, "How did you send this??").await?;
+        } else {
+            msg.reply(&ctx.http, "How did you send this??").await?;
     }
     Ok(())
 }
@@ -287,19 +289,9 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[command]
 #[only_in(guild)]
 #[allowed_roles(DEFAULT_TOURN_ADMIN_ROLE_NAME)]
-#[min_args(2)]
-#[delimiters(",")]
-#[description("Changes Discord default settings for new tournaments in the server.")]
-async fn settings(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    todo!()
-}
-
-#[command]
-#[only_in(guild)]
-#[allowed_roles(DEFAULT_TOURN_ADMIN_ROLE_NAME)]
-#[min_args(2)]
-#[delimiters(",")]
+#[sub_commands(general, pairings, scoring)]
 #[description("Changes the default tournament settings for new tournaments in the server.")]
 async fn defaults(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    todo!()
+    msg.reply(&ctx.http, "Please specify a subcommand in order to adjust settings.").await?;
+    Ok(())
 }

@@ -1,19 +1,18 @@
 #![allow(unused_imports, dead_code, unused_variables)]
 
-mod admin_commands;
-mod judge_commands;
-mod player_commands;
+mod setup_commands;
+mod tournament_commands;
 mod misc_commands;
 mod model;
 mod utils;
 
-use admin_commands::{group::ADMINCOMMANDS_GROUP, setup::*};
+use setup_commands::{group::SETUPCOMMANDS_GROUP, setup::*};
+use tournament_commands::group::TOURNAMENTCOMMANDS_GROUP;
 use misc_commands::{group::MISCCOMMANDS_GROUP, flip_coins::*};
 use model::{
+    consts::*,
     guild_settings::{
-        GuildSettings, GuildSettingsContainer, DEFAULT_JUDGE_ROLE_NAME,
-        DEFAULT_MATCHES_CATEGORY_NAME, DEFAULT_PAIRINGS_CHANNEL_NAME,
-        DEFAULT_TOURN_ADMIN_ROLE_NAME,
+        GuildSettings, GuildSettingsContainer,
     },
     guild_tournaments::{GuildTournaments, GuildTournamentsContainer},
     squire_tournament::SquireTournament,
@@ -341,7 +340,8 @@ async fn main() {
     .before(before_command)
         .after(after_command)
         .help(&MY_HELP)
-        .group(&ADMINCOMMANDS_GROUP)
+        .group(&SETUPCOMMANDS_GROUP)
+        .group(&TOURNAMENTCOMMANDS_GROUP)
         .group(&MISCCOMMANDS_GROUP);
 
     let mut client = Client::builder(&token)
