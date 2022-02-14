@@ -56,7 +56,7 @@ async def adminAddPlayer(ctx, tourn=None, plyr=None):
         return
 
     response = await tournObj.addPlayerAdmin(member, mention)
-    response.send(ctx)
+    await response.send(ctx)
 
 
 commandSnippets[
