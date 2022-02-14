@@ -11,7 +11,7 @@ use serenity::prelude::*;
 #[command("setup")]
 #[sub_commands(view, test, defaults)]
 #[only_in(guild)]
-#[allowed_roles("Tournament Admin")]
+#[required_permissions("ADMINISTRATOR")]
 #[description("Sets up the server to be able to run tournaments.")]
 async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
