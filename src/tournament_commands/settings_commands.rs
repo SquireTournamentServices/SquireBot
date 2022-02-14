@@ -25,3 +25,19 @@ async fn pairings(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 async fn scoring(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     todo!()
 }
+
+#[command]
+#[only_in(guild)]
+#[allowed_roles("Tournament Admin")]
+#[description("Adjust the Discord-specific settings of a tournament.")]
+async fn discord(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
+    todo!()
+}
+
+#[command]
+#[only_in(guild)]
+#[allowed_roles("Tournament Admin")]
+#[description("View the settings of a specfic tournament.")]
+async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
+    todo!()
+}
