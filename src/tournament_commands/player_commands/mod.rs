@@ -1,0 +1,12 @@
+pub mod add_deck;
+pub mod confirm_result;
+pub mod decklist;
+pub mod decks;
+pub mod drop;
+pub mod list;
+pub mod match_result;
+pub mod name;
+pub mod ready;
+pub mod register;
+pub mod remove_deck;
+pub mod standings;
