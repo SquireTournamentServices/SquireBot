@@ -9,6 +9,10 @@ mod utils;
 use misc_commands::{flip_coins::*, group::MISCCOMMANDS_GROUP};
 use model::{
     consts::*,
+    confirmations::{
+        confirmation::Confirmation,
+        confirmation_map::ConfirmationsContainer,
+    },
     guild_settings::{GuildSettings, GuildSettingsContainer},
     guild_tournaments::{GuildTournaments, GuildTournamentsContainer},
     squire_tournament::SquireTournament,
@@ -75,8 +79,8 @@ impl EventHandler for Handler {
             "guild_settings.json",
             serde_json::to_string(&all_settings).expect("Failed to serialize guild settings."),
         )
-        .expect("Failed to save guild settings json.");
-    }
+            .expect("Failed to save guild settings json.");
+        }
 
     async fn category_create(&self, ctx: Context, new: &ChannelCategory) {
         let data = ctx.data.read().await;
@@ -337,7 +341,7 @@ async fn main() {
                 .delimiters(vec![", ", ","])
                 .owners(owners)
         })
-        .before(before_command)
+    .before(before_command)
         .after(after_command)
         .help(&MY_HELP)
         .group(&SETUPCOMMANDS_GROUP)
@@ -358,7 +362,7 @@ async fn main() {
         let all_guild_settings: DashMap<GuildId, GuildSettings> = serde_json::from_str(
             &mut read_to_string("./guild_settings.json").expect("Guilds settings file not found."),
         )
-        .expect("The guild settings data is malformed.");
+            .expect("The guild settings data is malformed.");
         data.insert::<GuildSettingsContainer>(all_guild_settings);
 
         // Construct the guild and tournament structure
@@ -366,6 +370,10 @@ async fn main() {
 
         // Construct the tournament registry (i.e the main SqurieCore API)
         data.insert::<TournamentContainer>(Arc::new(Mutex::new(TournamentRegistry::new())));
+
+        // Construct the confirmations map, used in the !yes/!no commands.
+        let confs: DashMap<UserId, Box<dyn Confirmation>> = DashMap::new();
+        data.insert::<ConfirmationsContainer>(confs);
     }
 
     if let Err(why) = client.start().await {
