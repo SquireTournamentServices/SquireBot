@@ -4,5 +4,5 @@ pub trait Confirmation
 where
     Self: Send + Sync,
 {
-    fn execute(&mut self) -> CommandResult;
+    fn execute(&mut self) -> String;
 }
