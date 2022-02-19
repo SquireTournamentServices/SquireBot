@@ -1,8 +1,9 @@
+use squire_core::swiss_pairings::PlayerId;
 use squire_core::tournament::{Tournament, TournamentId};
 
-use dashmap::DashMap;
+use dashmap::{DashMap, DashSet};
 use serde::{Deserialize, Serialize};
-use serenity::model::id::{ChannelId, MessageId, RoleId};
+use serenity::model::id::{ChannelId, GuildId, MessageId, RoleId, UserId};
 use serenity::prelude::*;
 
 use std::collections::{HashMap, HashSet};
@@ -14,11 +15,26 @@ pub struct SquireTournament {
     tourn_name: String,
     tourn_role: RoleId,
     tourn_status: Option<MessageId>,
+    players: HashMap<UserId, PlayerId>,
     match_roles: HashSet<RoleId>,
     match_vcs: HashSet<ChannelId>,
     match_tcs: HashSet<ChannelId>,
     match_timers: HashSet<MessageId>,
     standings_messages: Vec<MessageId>,
+}
+
+impl SquireTournament {
+    pub fn get_id(&self) -> TournamentId {
+        self.tourn_id.clone()
+    }
+
+    pub fn get_player(&self, user: UserId) -> Option<PlayerId> {
+        if let Some(id) = self.players.get(&user) {
+            Some(id.clone())
+        } else {
+            None
+        }
+    }
 }
 
 impl Hash for SquireTournament {

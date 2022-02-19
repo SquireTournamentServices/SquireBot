@@ -9,4 +9,3 @@ use serenity::prelude::*;
 async fn time_extension(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     todo!()
 }
-

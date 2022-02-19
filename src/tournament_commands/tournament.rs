@@ -1,19 +1,9 @@
-use super::settings_commands::*;
 use super::admin_commands::admin::*;
 use super::player_commands::{
-    add_deck::*,
-    confirm_result::*,
-    decklist::*,
-    decks::*,
-    drop::*,
-    list::*,
-    match_result::*,
-    name::*,
-    ready::*,
-    register::*,
-    remove_deck::*,
-    standings::*,
+    add_deck::*, confirm_result::*, decklist::*, decks::*, drop::*, list::*, match_result::*,
+    name::*, ready::*, register::*, remove_deck::*, standings::*,
 };
+use super::settings_commands::*;
 
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
@@ -25,7 +15,23 @@ use serenity::prelude::*;
 #[command("tournament")]
 #[only_in(guild)]
 #[aliases("tourn", "T")]
-#[sub_commands(admin, create, settings, add_deck, confirm_result, decklist, decks, drop, list, match_result, name, ready, register, remove_deck, standings)]
+#[sub_commands(
+    admin,
+    create,
+    settings,
+    add_deck,
+    confirm_result,
+    decklist,
+    decks,
+    drop,
+    list,
+    match_result,
+    name,
+    ready,
+    register,
+    remove_deck,
+    standings
+)]
 #[description("Commands pretaining to tournaments.")]
 async fn tournament(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     msg.reply(

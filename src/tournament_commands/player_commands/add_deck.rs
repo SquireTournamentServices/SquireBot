@@ -7,4 +7,3 @@ use serenity::prelude::*;
 async fn add_deck(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     todo!()
 }
-

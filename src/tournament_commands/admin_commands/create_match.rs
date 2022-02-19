@@ -9,4 +9,3 @@ use serenity::prelude::*;
 async fn create_match(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     todo!()
 }
-

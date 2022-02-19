@@ -9,4 +9,3 @@ use serenity::prelude::*;
 async fn match_result(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     todo!()
 }
-

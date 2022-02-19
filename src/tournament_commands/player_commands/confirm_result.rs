@@ -8,4 +8,3 @@ use serenity::prelude::*;
 async fn confirm_result(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     todo!()
 }
-
