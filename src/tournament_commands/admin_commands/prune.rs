@@ -6,7 +6,9 @@ use serenity::prelude::*;
 #[only_in(guild)]
 #[sub_commands(players, decks)]
 #[allowed_roles("Tournament Admin")]
-#[description("Removes players that aren't fully registered and decks from players that have them in excess.")]
+#[description(
+    "Removes players that aren't fully registered and decks from players that have them in excess."
+)]
 async fn prune(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     todo!()
 }

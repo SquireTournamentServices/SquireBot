@@ -11,11 +11,15 @@ use serenity::prelude::*;
 async fn yes(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
     let todos = data.get::<ConfirmationsContainer>().unwrap();
-    if let Some((_,mut task)) = todos.remove(&msg.author.id) {
+    if let Some((_, mut task)) = todos.remove(&msg.author.id) {
         let response = task.execute();
         msg.reply(&ctx.http, response).await?;
     } else {
-        msg.reply(&ctx.http, "Its seems that you don't have anything waiting for your approval.").await?;
+        msg.reply(
+            &ctx.http,
+            "Its seems that you don't have anything waiting for your approval.",
+        )
+        .await?;
     }
     Ok(())
 }
@@ -27,10 +31,14 @@ async fn yes(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 async fn no(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
     let todos = data.get::<ConfirmationsContainer>().unwrap();
-    if let Some((_,task)) = todos.remove(&msg.author.id) {
+    if let Some((_, task)) = todos.remove(&msg.author.id) {
         msg.reply(&ctx.http, "Alright, I won't do that.").await?;
     } else {
-        msg.reply(&ctx.http, "Its seems that you don't have anything waiting for your approval.").await?;
+        msg.reply(
+            &ctx.http,
+            "Its seems that you don't have anything waiting for your approval.",
+        )
+        .await?;
     }
     Ok(())
 }

@@ -972,6 +972,7 @@ Lines	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/s
 LocalKey	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/task/task_local.rs	/^pub struct LocalKey<T: 'static> {$/;"	s
 LocalSet	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/task/local.rs	/^    pub struct LocalSet {$/;"	s
 LoggingMockWriter	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/io/stdio_common.rs	/^    struct LoggingMockWriter {$/;"	s
+LookupError	/home/tyler/Code/SquireBot/src/model/lookup_error.rs	/^pub enum LookupError {$/;"	g
 MAGENTA	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/utils/colour.rs	/^        pub const MAGENTA: Colour = Colour(0xE91E63);$/;"	c
 MAGENTA	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/utils/colour.rs	/^    pub const MAGENTA: Colour = Colour(0xE91E63);$/;"	c
 MAGIC_CONST	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/io/stdio_common.rs	/^const MAGIC_CONST: usize = 8;$/;"	c
@@ -1092,6 +1093,8 @@ MessagesIter	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/
 MfaLevel	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/model/guild/mod.rs	/^pub enum MfaLevel {$/;"	g
 MioSource	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/io/bsd/poll_aio.rs	/^struct MioSource<T>(T);$/;"	s
 MiscCommands	/home/tyler/Code/SquireBot/src/misc_commands/group.rs	/^pub struct MiscCommands;$/;"	s
+Misfortune	/home/tyler/Code/SquireBot/src/model/misfortune.rs	/^pub struct Misfortune {$/;"	s
+MisfortuneContainer	/home/tyler/Code/SquireBot/src/model/misfortune.rs	/^pub struct MisfortuneContainer;$/;"	s
 MissedTickBehavior	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/time/interval.rs	/^pub enum MissedTickBehavior {$/;"	g
 MissingFieldDeserializer	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/serde-1.0.136/src/private/de.rs	/^    struct MissingFieldDeserializer<E>(&'static str, PhantomData<E>);$/;"	s
 Mock	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/process/mod.rs	/^    struct Mock {$/;"	s
@@ -2191,6 +2194,7 @@ Value	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/s
 Value	/home/tyler/Code/SquireBot/src/model/confirmations/confirmation_map.rs	/^    type Value = DashMap<UserId, Box<dyn Confirmation>>;$/;"	T
 Value	/home/tyler/Code/SquireBot/src/model/guild_settings.rs	/^    type Value = DashMap<GuildId, GuildSettings>;$/;"	T
 Value	/home/tyler/Code/SquireBot/src/model/guild_tournaments.rs	/^    type Value = DashMap<GuildId, GuildTournaments>;$/;"	T
+Value	/home/tyler/Code/SquireBot/src/model/misfortune.rs	/^    type Value = DashMap<RoundId, Misfortune>;$/;"	T
 Value	/home/tyler/Code/SquireBot/src/model/tournament_container.rs	/^    type Value = Arc<Mutex<TournamentRegistry>>;$/;"	T
 ValueVisitor	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_json-1.0.78/src/value/de.rs	/^        struct ValueVisitor;$/;"	s
 Values	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_json-1.0.78/src/map.rs	/^pub struct Values<'a> {$/;"	s
@@ -2488,6 +2492,7 @@ add_permits_locked	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/t
 add_player	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn add_player(&mut self, name: String) -> Result<(), TournamentError> {$/;"	f
 add_player	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn add_player(&mut self, player: PlayerId) {$/;"	f
 add_reactions	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/model/permissions.rs	/^    pub fn add_reactions(self) -> bool {$/;"	f
+add_response	/home/tyler/Code/SquireBot/src/model/misfortune.rs	/^    pub fn add_response(&mut self, player: UserId, value: u64) -> bool {$/;"	f
 add_role	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/model/guild/member.rs	/^    pub async fn add_role($/;"	f
 add_roles	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/model/guild/member.rs	/^    pub async fn add_roles($/;"	f
 add_round	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn add_round(&mut self, round: &Round) {$/;"	f
@@ -3272,6 +3277,7 @@ create	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/
 create	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/fs/open_options.rs	/^    pub fn create(&mut self, create: bool) -> &mut OpenOptions {$/;"	f
 create	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/fs/open_options/mock_open_options.rs	/^        pub fn create(&mut self, create: bool) -> &mut Self;$/;"	f
 create	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/net/windows/named_pipe.rs	/^    pub fn create(&self, addr: impl AsRef<OsStr>) -> io::Result<NamedPipeServer> {$/;"	f
+create	/home/tyler/Code/SquireBot/src/misc_commands/misfortune.rs	/^async fn create(ctx: &Context, msg: &Message, _: Args) -> CommandResult {$/;"	f
 create	/home/tyler/Code/SquireBot/src/tournament_commands/tournament.rs	/^async fn create(ctx: &Context, msg: &Message, _: Args) -> CommandResult {$/;"	f
 create_action_row	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/builder/create_components.rs	/^    pub fn create_action_row<F>(&mut self, f: F) -> &mut Self$/;"	f
 create_application_command	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/builder/create_application_command.rs	/^    pub fn create_application_command<F>(&mut self, f: F) -> &mut Self$/;"	f
@@ -4877,6 +4883,7 @@ get_guild_welcome_screen	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919d
 get_guild_widget	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/http/client.rs	/^    pub async fn get_guild_widget(&self, guild_id: u64) -> Result<GuildWidget> {$/;"	f
 get_guild_with_counts	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/http/client.rs	/^    pub async fn get_guild_with_counts(&self, guild_id: u64) -> Result<PartialGuild> {$/;"	f
 get_guilds	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/http/client.rs	/^    pub async fn get_guilds($/;"	f
+get_id	/home/tyler/Code/SquireBot/src/model/squire_tournament.rs	/^    pub fn get_id(&self) -> TournamentId {$/;"	f
 get_id	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn get_id(&self) -> RoundId {$/;"	f
 get_inner	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/io/async_fd.rs	/^    pub fn get_inner(&self) -> &'a Inner {$/;"	f
 get_inner	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/io/async_fd.rs	/^    pub fn get_inner(&self) -> &Inner {$/;"	f
@@ -4891,6 +4898,7 @@ get_key_value	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_
 get_large	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_json-1.0.78/src/lexical/cached.rs	/^    pub fn get_large(&self, index: usize) -> ExtendedFloat {$/;"	f
 get_member	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/http/client.rs	/^    pub async fn get_member(&self, guild_id: u64, user_id: u64) -> Result<Member> {$/;"	f
 get_message	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/http/client.rs	/^    pub async fn get_message(&self, channel_id: u64, message_id: u64) -> Result<Message> {$/;"	f
+get_message	/home/tyler/Code/SquireBot/src/model/misfortune.rs	/^    pub fn get_message(&self) -> MessageId {$/;"	f
 get_messages	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/http/client.rs	/^    pub async fn get_messages(&self, channel_id: u64, query: &str) -> Result<Vec<Message>> {$/;"	f
 get_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/dashmap-5.1.0/src/lib.rs	/^    pub fn get_mut<Q>(&'a self, key: &Q) -> Option<RefMut<'a, K, V, S>>$/;"	f
 get_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/dashmap-5.1.0/src/mapref/entry.rs	/^    pub fn get_mut(&mut self) -> &mut V {$/;"	f
@@ -4929,6 +4937,7 @@ get_pin_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.
 get_pin_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/io/util/chain.rs	/^    pub fn get_pin_mut(self: Pin<&mut Self>) -> (Pin<&mut T>, Pin<&mut U>) {$/;"	f
 get_pin_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/io/util/take.rs	/^    pub fn get_pin_mut(self: Pin<&mut Self>) -> Pin<&mut R> {$/;"	f
 get_pins	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/http/client.rs	/^    pub async fn get_pins(&self, channel_id: u64) -> Result<Vec<Message>> {$/;"	f
+get_player	/home/tyler/Code/SquireBot/src/model/squire_tournament.rs	/^    pub fn get_player(&self, user: UserId) -> Option<PlayerId> {$/;"	f
 get_player	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn get_player(&self, ident: PlayerIdentifier) -> Result<&Player, TournamentError> {$/;"	f
 get_player	/home/tyler/Code/SquireCore/src/tournament_registry.rs	/^    pub fn get_player(&self, ident: TournIdentifier) -> Result<&Tournament, TournamentError> {$/;"	f
 get_player_active_round	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn get_player_active_round(&mut self, id: PlayerId) -> Result<&mut Round, TournamentError> {$/;"	f
@@ -4936,6 +4945,7 @@ get_player_deck	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn get_p
 get_player_decks	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn get_player_decks($/;"	f
 get_player_id	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn get_player_id(&self, ident: PlayerIdentifier) -> Result<PlayerId, TournamentError> {$/;"	f
 get_player_id	/home/tyler/Code/SquireCore/src/tournament_registry.rs	/^    pub fn get_player_id(&self, ident: TournIdentifier) -> Result<TournamentId, TournamentError> {$/;"	f
+get_player_tourn_info	/home/tyler/Code/SquireBot/src/model/guild_tournaments.rs	/^    pub fn get_player_tourn_info(&self, user: UserId) -> Result<(PlayerId, String), LookupError> {$/;"	f
 get_powers	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_json-1.0.78/src/lexical/cached.rs	/^    fn get_powers() -> &'static ModeratePathPowers {$/;"	f
 get_powers	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_json-1.0.78/src/lexical/cached.rs	/^    fn get_powers() -> &'static ModeratePathPowers;$/;"	f
 get_prev	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/util/linked_list.rs	/^    fn get_prev(&self) -> Option<NonNull<T>> {$/;"	f
@@ -4953,6 +4963,7 @@ get_ref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1
 get_ref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/io/util/lines.rs	/^    pub fn get_ref(&mut self) -> &R {$/;"	f
 get_ref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/io/util/take.rs	/^    pub fn get_ref(&self) -> &R {$/;"	f
 get_ref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/time/timeout.rs	/^    pub fn get_ref(&self) -> &T {$/;"	f
+get_responses	/home/tyler/Code/SquireBot/src/model/misfortune.rs	/^    pub fn get_responses(&self) -> HashMap<UserId, u64> {$/;"	f
 get_result	/home/tyler/Code/SquireCore/src/game.rs	/^    pub fn get_result(&self) -> GameResult {$/;"	f
 get_round	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn get_round(&self, ident: RoundIdentifier) -> Result<&Round, TournamentError> {$/;"	f
 get_round_number	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn get_round_number(&self, ident: RoundIdentifier) -> Result<u64, TournamentError> {$/;"	f
@@ -4968,6 +4979,7 @@ get_state	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16
 get_sticker	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/http/client.rs	/^    pub async fn get_sticker(&self, sticker_id: u64) -> Result<Sticker> {$/;"	f
 get_thread_members	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/model/channel/channel_id.rs	/^    pub async fn get_thread_members(&self, http: impl AsRef<Http>) -> Result<Vec<ThreadMember>> {$/;"	f
 get_token	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/client/mod.rs	/^    pub fn get_token(&self) -> &str {$/;"	f
+get_tourn	/home/tyler/Code/SquireBot/src/model/guild_tournaments.rs	/^    pub fn get_tourn(&self, name: String) -> Option<Ref<String, SquireTournament>> {$/;"	f
 get_type_map	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/client/mod.rs	/^    pub fn get_type_map(&self) -> Option<&TypeMap> {$/;"	f
 get_unchecked	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/sync/once_cell.rs	/^    unsafe fn get_unchecked(&self) -> &T {$/;"	f
 get_unchecked_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/sync/once_cell.rs	/^    unsafe fn get_unchecked_mut(&mut self) -> &mut T {$/;"	f
@@ -5819,6 +5831,7 @@ min_length	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/sr
 min_number_value	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/builder/create_application_command.rs	/^    pub fn min_number_value(&mut self, value: f64) -> &mut Self {$/;"	f
 min_values	/home/tyler/.cargo/git/checkouts/serenity-8a8b65b77919dc75/8de7f6f/src/builder/create_components.rs	/^    pub fn min_values(&mut self, min: u64) -> &mut Self {$/;"	f
 minwinbase	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/doc/winapi.rs	/^    pub mod minwinbase {$/;"	m
+misfortune	/home/tyler/Code/SquireBot/src/misc_commands/misfortune.rs	/^async fn misfortune(ctx: &Context, msg: &Message, _: Args) -> CommandResult {$/;"	f
 missed_tick_behavior	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/time/interval.rs	/^    pub fn missed_tick_behavior(&self) -> MissedTickBehavior {$/;"	f
 missing_field	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/serde-1.0.136/src/de/mod.rs	/^            fn missing_field(field: &'static str) -> Self {$/;"	f
 missing_field	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/serde-1.0.136/src/private/de.rs	/^pub fn missing_field<'de, V, E>(field: &'static str) -> Result<V, E>$/;"	f
@@ -6022,6 +6035,7 @@ new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src
 new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.16.1/src/util/try_lock.rs	/^macro_rules! new {$/;"	d
 new	/home/tyler/Code/SquireBot/src/model/guild_settings.rs	/^    pub fn new() -> Self {$/;"	f
 new	/home/tyler/Code/SquireBot/src/model/guild_tournaments.rs	/^    pub fn new() -> Self {$/;"	f
+new	/home/tyler/Code/SquireBot/src/model/misfortune.rs	/^    pub fn new(players: Vec<UserId>, reply_message: MessageId) -> Self {$/;"	f
 new	/home/tyler/Code/SquireCore/src/fluid_pairings.rs	/^    fn new(players_per_match: u8) -> Self$/;"	f
 new	/home/tyler/Code/SquireCore/src/pairing_system.rs	/^    fn new(players_per_match: u8) -> Self$/;"	f
 new	/home/tyler/Code/SquireCore/src/player.rs	/^    pub fn new(name: String) -> Self {$/;"	f

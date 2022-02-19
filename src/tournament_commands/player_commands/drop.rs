@@ -8,4 +8,3 @@ use serenity::prelude::*;
 async fn drop(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     todo!()
 }
-

@@ -8,4 +8,3 @@ use serenity::prelude::*;
 async fn remove_deck(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     todo!()
 }
-
