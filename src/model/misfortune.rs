@@ -20,7 +20,7 @@ impl TypeMapKey for MisfortuneContainer {
 }
 
 pub struct Misfortune {
-    players: HashSet<UserId>,
+    pub players: HashSet<UserId>,
     responses: HashMap<UserId, u64>,
     reply_channel: ChannelId,
     reply_message: MessageId,
