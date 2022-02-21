@@ -374,8 +374,10 @@ async fn main() {
         data.insert::<ConfirmationsContainer>(confs);
 
         // Construct the misfortunes map, used with !misfortune
-        let mis: DashMap<RoundId, Misfortune> = DashMap::new();
-        data.insert::<MisfortuneContainer>(mis);
+        let mis_players: DashMap<UserId, RoundId> = DashMap::new();
+        let misfortunes: DashMap<RoundId, Misfortune> = DashMap::new();
+        data.insert::<MisfortuneContainer>(misfortunes);
+        data.insert::<MisfortunePlayerContainer>(mis_players);
     }
 
     if let Err(why) = client.start().await {
