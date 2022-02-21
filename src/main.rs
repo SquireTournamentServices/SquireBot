@@ -366,8 +366,8 @@ async fn main() {
         // Construct the guild and tournament structure
         data.insert::<GuildTournamentsContainer>(DashMap::new());
 
-        // Construct the tournament registry (i.e the main SqurieCore API)
-        data.insert::<TournamentContainer>(Arc::new(Mutex::new(TournamentRegistry::new())));
+        // Construct the tournament registry (i.e the main SquireCore API)
+        data.insert::<TournamentContainer>(TournamentRegistry::new());
 
         // Construct the confirmations map, used in the !yes/!no commands.
         let confs: DashMap<UserId, Box<dyn Confirmation>> = DashMap::new();
