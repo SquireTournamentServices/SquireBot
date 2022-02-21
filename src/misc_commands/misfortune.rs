@@ -21,6 +21,9 @@ async fn misfortune(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             let done = mis.add_response(msg.author.id.clone(), val);
             if done {
                 origin.reply(&ctx.http, format!("Here is the result of your Misfortune:{}", mis.pretty_str())).await?;
+                for p in &mis.players {
+                    mis_players.remove(p);
+                }
                 drop(mis);
                 misfortunes.remove(&r_id);
             }
