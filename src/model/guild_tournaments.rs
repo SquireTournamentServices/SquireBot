@@ -33,7 +33,7 @@ impl GuildTournaments {
             .iter()
             .filter_map(|r| {
                 r.value()
-                    .get_player(user)
+                    .get_player_id(user)
                     .map(|p| (p.clone(), r.key().clone()))
             })
             .collect();

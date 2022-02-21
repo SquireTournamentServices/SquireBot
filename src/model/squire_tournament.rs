@@ -28,9 +28,22 @@ impl SquireTournament {
         self.tourn_id.clone()
     }
 
-    pub fn get_player(&self, user: UserId) -> Option<PlayerId> {
+    pub fn get_player_id(&self, user: UserId) -> Option<PlayerId> {
         if let Some(id) = self.players.get(&user) {
             Some(id.clone())
+        } else {
+            None
+        }
+    }
+
+    pub fn get_user_id(&self, player: PlayerId) -> Option<UserId> {
+        let users: Vec<UserId> = self.players
+            .iter()
+            .filter(|(_, p)| **p == player)
+            .map(|(u, _)| u.clone())
+            .collect();
+        if users.len() == 1 {
+            Some(users[0])
         } else {
             None
         }
