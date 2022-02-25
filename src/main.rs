@@ -272,7 +272,7 @@ impl EventHandler for Handler {
 // The framework provides two built-in help commands for you to use.
 // But you can also make your own customized help command that forwards
 // to the behaviour of either of them.
-#[help]
+#[help("squirebot-help")]
 #[individual_command_tip = "SquireBot Commands:\nIf you want more information about a specific command, just pass the command as argument."]
 async fn my_help(
     context: &Context,
