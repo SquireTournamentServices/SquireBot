@@ -36,8 +36,13 @@ impl SquireTournament {
         }
     }
 
+    pub fn add_player(&mut self, user: UserId, plyr: PlayerId) {
+        self.players.insert(user, plyr);
+    }
+
     pub fn get_user_id(&self, player: PlayerId) -> Option<UserId> {
-        let users: Vec<UserId> = self.players
+        let users: Vec<UserId> = self
+            .players
             .iter()
             .filter(|(_, p)| **p == player)
             .map(|(u, _)| u.clone())

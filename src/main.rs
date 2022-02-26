@@ -346,6 +346,11 @@ async fn main() {
         .group(&TOURNAMENTCOMMANDS_GROUP)
         .group(&MISCCOMMANDS_GROUP);
 
+    let mut intents = GatewayIntents::empty();
+    intents.guilds();
+    intents.insert(GatewayIntents::GUILD_MESSAGES);
+    intents.direct_messages();
+
     let mut client = Client::builder(&token)
         .event_handler(Handler)
         .framework(framework)
