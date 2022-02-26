@@ -1,3 +1,3 @@
 pub mod is_configured;
 pub mod stringify;
-pub mod user_to_tourn;
+pub mod tourn_resolver;

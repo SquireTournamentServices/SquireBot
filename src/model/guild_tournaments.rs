@@ -1,7 +1,7 @@
 use super::lookup_error::LookupError;
 use super::squire_tournament::SquireTournament;
 
-use dashmap::mapref::one::Ref;
+use dashmap::mapref::one::{Ref, RefMut};
 use squire_core::swiss_pairings::PlayerId;
 use squire_core::tournament::{Tournament, TournamentId};
 
@@ -21,6 +21,28 @@ impl GuildTournaments {
         GuildTournaments {
             guild_tourns: DashMap::new(),
         }
+    }
+
+    pub fn get_only_tourn_mut(&self) -> Option<RefMut<String, SquireTournament>> {
+        if self.guild_tourns.len() == 1 {
+            let name = self.guild_tourns.iter().next().unwrap().key().clone();
+            self.guild_tourns.get_mut(&name)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_only_tourn(&self) -> Option<Ref<String, SquireTournament>> {
+        if self.guild_tourns.len() == 1 {
+            let name = self.guild_tourns.iter().next().unwrap().key().clone();
+            self.guild_tourns.get(&name)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_tourn_mut(&self, name: String) -> Option<RefMut<String, SquireTournament>> {
+        self.guild_tourns.get_mut(&name)
     }
 
     pub fn get_tourn(&self, name: String) -> Option<Ref<String, SquireTournament>> {

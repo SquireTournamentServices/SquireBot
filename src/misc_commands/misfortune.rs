@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 
 use crate::{
-    utils::user_to_tourn::user_to_tourn,
     model::{
         guild_tournaments::GuildTournamentsContainer, lookup_error::LookupError, misfortune::*,
         tournament_container::TournamentContainer,
-    }
+    },
+    utils::tourn_resolver::user_to_tourn,
 };
 
 use serenity::{
@@ -14,7 +14,10 @@ use serenity::{
     prelude::*,
 };
 
-use squire_core::{player_registry::PlayerIdentifier, round::RoundId, round_registry::RoundIdentifier, tournament_registry::TournIdentifier};
+use squire_core::{
+    player_registry::PlayerIdentifier, round::RoundId, round_registry::RoundIdentifier,
+    tournament_registry::TournIdentifier,
+};
 
 #[command("misfortune")]
 #[sub_commands(create)]
@@ -53,7 +56,7 @@ async fn misfortune(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     } else {
         msg.reply(&ctx.http, "You don't have a waiting misfortune.")
             .await?;
-        }
+    }
     Ok(())
 }
 
@@ -79,23 +82,37 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn = all_tourns.get_tourn(TournIdentifier::Id(tourn_id)).unwrap();
     let r_id = match tourn.get_player_round(PlayerIdentifier::Id(p_id)) {
         Err(e) => {
-            msg.reply(&ctx.http, "You aren't in an active match.").await?;
+            msg.reply(&ctx.http, "You aren't in an active match.")
+                .await?;
             Err(e)?
-        },
-        Ok(r) => r
+        }
+        Ok(r) => r,
     };
     let round = tourn.value().get_round(RoundIdentifier::Id(r_id)).unwrap();
-    let players: HashSet<UserId> = round.get_all_players().iter().filter_map(|p| name_and_tourn.value().get_user_id(p.clone())).collect();
+    let players: HashSet<UserId> = round
+        .get_all_players()
+        .iter()
+        .filter_map(|p| name_and_tourn.value().get_user_id(p.clone()))
+        .collect();
     let player_misfortunes = data.get::<MisfortunePlayerContainer>().unwrap();
     for p in &players {
         match ctx.http.get_user(p.0).await {
             Err(e) => {
                 // This shouldn't happen...
-                msg.reply(&ctx.http, "There was an error in finding one of your opponents.").await?;
+                msg.reply(
+                    &ctx.http,
+                    "There was an error in finding one of your opponents.",
+                )
+                .await?;
                 Err(e)?
             }
             Ok(u) => {
-                u.dm(&ctx.http, |m| { m.content("Please use the `!misfortune` command to resolve the Wheel of Misfortune.") }).await?;
+                u.dm(&ctx.http, |m| {
+                    m.content(
+                        "Please use the `!misfortune` command to resolve the Wheel of Misfortune.",
+                    )
+                })
+                .await?;
             }
         }
         player_misfortunes.insert(p.clone(), r_id.clone());
@@ -103,6 +120,7 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mis = Misfortune::new(players, msg.channel_id, msg.id);
     let all_misfortunes = data.get::<MisfortuneContainer>().unwrap();
     all_misfortunes.insert(r_id, mis);
-    msg.reply(&ctx.http, "Respond with your number via DM!").await?;
+    msg.reply(&ctx.http, "Respond with your number via DM!")
+        .await?;
     Ok(())
 }

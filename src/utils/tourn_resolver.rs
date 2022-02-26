@@ -1,9 +1,20 @@
 use std::sync::RwLockReadGuard;
 
-use crate::model::{guild_tournaments::{GuildTournaments, GuildTournamentsContainer}, lookup_error::LookupError, misfortune::*, squire_tournament::SquireTournament, tournament_container::TournamentContainer};
+use crate::model::{
+    guild_tournaments::{GuildTournaments, GuildTournamentsContainer},
+    lookup_error::LookupError,
+    misfortune::*,
+    squire_tournament::SquireTournament,
+    tournament_container::TournamentContainer,
+};
 
-use dashmap::{DashMap, mapref::one::Ref};
-use serenity::{framework::standard::{macros::hook, Args, CommandResult}, http::Http, model::prelude::*, prelude::*};
+use dashmap::{mapref::one::Ref, DashMap};
+use serenity::{
+    framework::standard::{macros::hook, Args, CommandResult},
+    http::Http,
+    model::prelude::*,
+    prelude::*,
+};
 use squire_core::tournament_registry::TournamentRegistry;
 
 pub async fn user_to_tourn<'a>(
@@ -12,7 +23,7 @@ pub async fn user_to_tourn<'a>(
     http: &'a Http,
     msg: &'a Message,
     args: &'a Args,
-    ) -> CommandResult<Ref<'a, String, SquireTournament>> {
+) -> CommandResult<Ref<'a, String, SquireTournament>> {
     let digest = if args.len() == 0 {
         let (plyr_id, tourn_name) = match local_tourns.get_player_tourn_info(msg.author.id) {
             Err(e) => {
@@ -23,7 +34,7 @@ pub async fn user_to_tourn<'a>(
                     LookupError::NotAny => {
                         msg.reply(&http, "You are not in any tournaments in this server.")
                             .await?;
-                        }
+                    }
                 }
                 Err(e)?
             }
@@ -41,7 +52,7 @@ pub async fn user_to_tourn<'a>(
                         args.rest()
                     ),
                 )
-                    .await?;
+                .await?;
                 Err(LookupError::NotAny)?
             }
             Some(t) => t,
