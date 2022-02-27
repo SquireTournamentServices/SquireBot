@@ -344,7 +344,7 @@ class tournament:
             if len(plyr.matches) == 0:
                 continue
             # Match Points
-            points = plyr.getMatchPoints()
+            points = plyr.getMatchPoints( playersPerMatch=self.playersPerMatch )
             # Match Win Percentage
             MWP = plyr.getMatchWinPercentage( withBye=False )
             # Opponent Match Win Percentage
@@ -407,7 +407,7 @@ class tournament:
         if len(Match.droppedPlayers) != 0:
             digest.add_field( name="Dropped Players", value=", ".join( [ self.players[plyr].getMention() for plyr in Match.droppedPlayers ] ) )
         if not ( Match.isCertified() or Match.stopTimer ):
-            t = round(Match.getTimeLeft( ) / 60) 
+            t = round(Match.getTimeLeft( ) / 60)
             digest.add_field( name="Time Remaining", value=f'{t if t > 0 else 0} minutes' )
         if Match.winner != "":
             if Match.winner in self.players:
@@ -567,7 +567,7 @@ class tournament:
         await self.players[plyr].drop( )
         self.players[plyr].saveXML()
         message = await self.removePlayerFromQueue( plyr )
-        
+
         # The player was dropped by an admin, so two messages need to be sent
         # TODO: The admin half of this command needs to be its own method
         if author != "":
@@ -695,7 +695,7 @@ class tournament:
                         deckHashes.append( [dck.deckHash for dck in self.players[plyr].decks.values()] )
 
                 #Try up to three times
-                while not creation_success and tries < max_tries:                    
+                while not creation_success and tries < max_tries:
                     game_made = trice_bot.createGame(game_name, game_password, len(plyrs), self.spectators_allowed, self.spectators_need_password, self.spectators_can_chat, self.spectators_can_see_hands, self.only_registered, self.player_deck_verification, playerNames, deckHashes)
 
                     creation_success = game_made.success
@@ -867,5 +867,3 @@ class tournament:
         self.matches.sort( key= lambda x: x.matchNumber )
         for plyr in self.players.values():
             plyr.matches.sort( key= lambda x: x.matchNumber )
-
-

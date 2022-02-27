@@ -100,9 +100,9 @@ class player:
             isSideboard = "SB:" in card_
             if isSideboard:
                 card_ = card_.partition( "SB:" )[-1].strip()
-            
+
             cardName = card_.partition( " " )[-1].strip()
-                
+
             try:
                 tmpCard = cardsDB.getCard( cardName )
             except CardNotFoundError as ex:
@@ -278,18 +278,18 @@ class player:
         return digest
 
     # Tallies the number of matches that the player is in, has won, and have been certified.
-    def getMatchPoints( self, withBye: bool=True ) -> float:
+    def getMatchPoints( self, withBye: bool=True, playersPerMatch:  int=2 ) -> float:
         digest = 0
         certMatches = self.getCertMatches( withBye )
         for mtch in certMatches:
             if mtch.winner == self.discordID:
-                digest += 3 #4
+                digest += playersPerMatch + 1
             elif withBye and mtch.isBye():
-                digest += 3
+                digest += playersPerMatch + 1
             elif mtch.isDraw():
-                digest += 1 #0.5
+                digest += 1
             else: # Lose gets no points
-                digest += 0 #-2.25
+                digest += 0
         return digest
 
     # Calculates the percentage of game the player has won
@@ -337,5 +337,3 @@ class player:
         for deckTag in xmlTree.getroot().findall('deck'):
             self.decks[deckTag.attrib['ident']] = deck()
             self.decks[deckTag.attrib['ident']].importFromETree( deckTag )
-
-
