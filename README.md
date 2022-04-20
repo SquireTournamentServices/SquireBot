@@ -28,12 +28,12 @@ From the player's perspective, SquireBot allows them to interact with a tourname
 
 ## Setup
 
-To get SquireBot working on your server, you need to first add it to your server, [here](https://github.com/MonarchDevelopment/SquireBot/tree/rust-port/docs/SetupCommands.md).
+To get SquireBot working on your server, you need to first add it to your server, [here](https://discord.com/api/oauth2/authorize?client_id=784967512106074183&permissions=8&scope=bot).
 Note, SquireBot will **never** use `@everyone` but needs that permission so it can mention arbitrary roles. SquireBot makes roles for each tournament and each match and uses these roles to alert players about the status of their match (such as the recording of a result, result confirmation, and time in round).
 
 Second, SquireBot has several requirement to properly run tournaments, to set
 everything up, simply run the `!setup` command. If you'd like to see
-what all it sets up, see the documentation for the commands [here](https://discord.com/api/oauth2/authorize?client_id=784967512106074183&permissions=268634192&scope=bot).
+what all it sets up, see the documentation for the commands [here](https://github.com/MonarchDevelopment/SquireBot/tree/rust-port/docs/SetupCommands.md).
 To get SquireBot working on your server, you need to do the following. First, add the default roles and channels that SquireBot will be using
 <ol>
 	<li>Create a "Tournament Admin" Discord Role.</li>
