@@ -94,6 +94,32 @@ Removes all information surrounding a match. Any result is discarded. All player
 
 - Ex. !admin-remove-match “Marchesa 2021” 2 
 
+### set-properties
+Changes the properties of a tournament. Here is a list of the properties that can be changed and a breif explanation.
+```py
+    properties: list = [
+        "format", # changes the format name for the tournament
+        "deck-count",
+        "match-length", # match length in seconds
+        "match-size",
+        "pairings-channel", # set to something such as #pairings, where the pairings are posted
+        "standings-channel", # the only place that !standings can be used
+        "tricebot-enabled", # whether to use trice bot to make games on cocaktrice for you
+        "spectators-allowed",  # cockatrice game setting
+        "spectators-need-password", # cockatrice game setting
+        "spectators-can-chat", # cockatrice game setting
+        "spectators-can-see-hands", # cockatrice game setting
+        "only-registered", # cockatrice game setting
+        "player-deck-verification", # cockatrice game setting - whether to make the bot verify player names and decks
+        "create-text-channel", # whether to make a text channel as well as a voice channel when making a game
+    ]
+```
+
+command usage example
+```
+!set-properties "tournament 123" deck-count=4 match-size=4 only-registerd=true
+```
+
 ### download-replays (tournament)
 
 Downloads all of the replays that tricebot has for a tournament. It will return a zip file with all of the replays in that file's root folder.
