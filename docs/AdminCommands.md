@@ -94,7 +94,7 @@ Removes all information surrounding a match. Any result is discarded. All player
 
 - Ex. !admin-remove-match “Marchesa 2021” 2 
 
-### set-properties
+### update-properties
 Changes the properties of a tournament. Here is a list of the properties that can be changed and a breif explanation.
 ```py
     properties: list = [
@@ -115,10 +115,9 @@ Changes the properties of a tournament. Here is a list of the properties that ca
     ]
 ```
 
-command usage example
-```
-!set-properties "tournament 123" deck-count=4 match-size=4 only-registerd=true
-```
+Command usage example
+
+ -Ex. !update-properties "tournament 123" deck-count=4 match-size=4 only-registerd=true
 
 ### download-replays (tournament)
 
