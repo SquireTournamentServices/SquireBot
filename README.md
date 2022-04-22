@@ -25,7 +25,7 @@ From the player's perspective, SquireBot allows them to interact with a tourname
 
 To get SquireBot working on your server, you need to do the following. First, add the default roles and channels that SquireBot will be using
  1. Create a "Tournament Admin" Discord Role.
- 2. Create a "Tournament Judge" Discord Role.
+ 2. Create a "Judge" Discord Role.
  3. Create a channel titled "match-pairings"
  4. Create two channel category titled "Matches" and "More Matches".
 
