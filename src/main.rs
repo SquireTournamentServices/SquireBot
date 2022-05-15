@@ -6,7 +6,8 @@ mod setup_commands;
 mod tournament_commands;
 mod utils;
 
-use misc_commands::{flip_coins::*, group::MISCCOMMANDS_GROUP};
+use squire_core;
+
 use model::{
     confirmations::{confirmation::Confirmation, confirmation_map::ConfirmationsContainer},
     consts::*,
@@ -16,16 +17,15 @@ use model::{
     squire_tournament::SquireTournament,
     tournament_container::TournamentContainer,
 };
+use misc_commands::{flip_coins::*, group::MISCCOMMANDS_GROUP};
 use setup_commands::{group::SETUPCOMMANDS_GROUP, setup::*};
 use tournament_commands::group::TOURNAMENTCOMMANDS_GROUP;
-
-use squire_core::{round::RoundId, tournament_registry::TournamentRegistry};
 
 use dashmap::DashMap;
 use dotenv::vars;
 use serde_json;
-use serenity::prelude::*;
 use serenity::{
+    prelude::*,
     async_trait,
     framework::standard::{
         help_commands,
@@ -77,8 +77,8 @@ impl EventHandler for Handler {
             "guild_settings.json",
             serde_json::to_string(&all_settings).expect("Failed to serialize guild settings."),
         )
-        .expect("Failed to save guild settings json.");
-    }
+            .expect("Failed to save guild settings json.");
+        }
 
     async fn category_create(&self, ctx: Context, new: &ChannelCategory) {
         let data = ctx.data.read().await;
@@ -339,7 +339,7 @@ async fn main() {
                 .delimiters(vec![", ", ","])
                 .owners(owners)
         })
-        .before(before_command)
+    .before(before_command)
         .after(after_command)
         .help(&MY_HELP)
         .group(&SETUPCOMMANDS_GROUP)
@@ -365,7 +365,7 @@ async fn main() {
         let all_guild_settings: DashMap<GuildId, GuildSettings> = serde_json::from_str(
             &mut read_to_string("./guild_settings.json").expect("Guilds settings file not found."),
         )
-        .expect("The guild settings data is malformed.");
+            .expect("The guild settings data is malformed.");
         data.insert::<GuildSettingsContainer>(all_guild_settings);
 
         // Construct the guild and tournament structure

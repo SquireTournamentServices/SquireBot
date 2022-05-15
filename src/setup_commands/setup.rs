@@ -288,7 +288,14 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[sub_commands(general, pairings, scoring)]
+#[sub_commands(
+    format,
+    "deck_count",
+    "require_checkin",
+    "require_deck",
+    pairing,
+    scoring
+)]
 #[description("Changes the default tournament settings for new tournaments in the server.")]
 async fn defaults(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     msg.reply(
