@@ -6,3 +6,4 @@ pub mod lookup_error;
 pub mod misfortune;
 pub mod squire_tournament;
 pub mod tournament_container;
+pub mod tourn_settings_tree;

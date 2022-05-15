@@ -1,8 +1,8 @@
 use crate::utils::stringify::stringify_option;
 
-use super::consts::*;
+use super::{consts::*, tourn_settings_tree::*};
 
-use squire_core::tournament_settings::TournamentSettings;
+use squire_core::settings::TournamentSetting;
 
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -26,7 +26,7 @@ pub struct GuildSettings {
     pub matches_category: Option<ChannelId>,
     pub make_vc: bool,
     pub make_tc: bool,
-    pub tourn_settings: TournamentSettings,
+    pub tourn_settings: TournSettingsTree,
 }
 
 impl GuildSettings {
@@ -38,7 +38,7 @@ impl GuildSettings {
             matches_category: None,
             make_vc: true,
             make_tc: false,
-            tourn_settings: TournamentSettings {},
+            tourn_settings: TournSettingsTree::new(),
         }
     }
 
@@ -55,7 +55,7 @@ impl GuildSettings {
             matches_category,
             make_vc: true,
             make_tc: false,
-            tourn_settings: TournamentSettings {},
+            tourn_settings: TournSettingsTree::new(),
         }
     }
 

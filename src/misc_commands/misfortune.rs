@@ -16,7 +16,7 @@ use serenity::{
 
 use squire_core::{
     player_registry::PlayerIdentifier, round::RoundId, round_registry::RoundIdentifier,
-    tournament_registry::TournIdentifier,
+    tournament::TournamentId,
 };
 
 #[command("misfortune")]
