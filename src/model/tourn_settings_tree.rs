@@ -94,7 +94,7 @@ impl SwissPairingsSettingsTree {
 impl FluidPairingsSettingsTree {
     pub fn new() -> Self {
         Self {
-            match_size: FluidPairingsSetting::MatchSize(4)
+            match_size: FluidPairingsSetting::MatchSize(4),
         }
     }
 }

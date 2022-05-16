@@ -133,12 +133,6 @@ impl GuildSettings {
     }
 }
 
-pub struct GuildSettingsContainer;
-
-impl TypeMapKey for GuildSettingsContainer {
-    type Value = DashMap<GuildId, GuildSettings>;
-}
-
 pub fn get_default_judge_role_id(guild: &Guild) -> Option<RoleId> {
     guild
         .roles
