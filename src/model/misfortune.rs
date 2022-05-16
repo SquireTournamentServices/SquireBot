@@ -7,18 +7,6 @@ use squire_core::round::RoundId;
 
 use std::collections::{HashMap, HashSet};
 
-pub struct MisfortunePlayerContainer;
-
-impl TypeMapKey for MisfortunePlayerContainer {
-    type Value = DashMap<UserId, RoundId>;
-}
-
-pub struct MisfortuneContainer;
-
-impl TypeMapKey for MisfortuneContainer {
-    type Value = DashMap<RoundId, Misfortune>;
-}
-
 pub struct Misfortune {
     pub players: HashSet<UserId>,
     responses: HashMap<UserId, u64>,

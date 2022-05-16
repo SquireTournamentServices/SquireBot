@@ -6,26 +6,27 @@ mod setup_commands;
 mod tournament_commands;
 mod utils;
 
-use squire_core;
+use cycle_map::CycleMap;
+use squire_core::{self, round::RoundId};
 
+use misc_commands::{flip_coins::*, group::MISCCOMMANDS_GROUP};
 use model::{
     confirmations::{confirmation::Confirmation, confirmation_map::ConfirmationsContainer},
     consts::*,
-    guild_settings::{GuildSettings, GuildSettingsContainer},
-    guild_tournaments::{GuildTournaments, GuildTournamentsContainer},
+    //squire_tournament::SquireTournament,
+    containers::*,
+    guild_settings::GuildSettings,
+    //guild_tournaments::{GuildTournaments, GuildTournamentsContainer},
     misfortune::*,
-    squire_tournament::SquireTournament,
-    tournament_container::TournamentContainer,
 };
-use misc_commands::{flip_coins::*, group::MISCCOMMANDS_GROUP};
 use setup_commands::{group::SETUPCOMMANDS_GROUP, setup::*};
 use tournament_commands::group::TOURNAMENTCOMMANDS_GROUP;
+
 
 use dashmap::DashMap;
 use dotenv::vars;
 use serde_json;
 use serenity::{
-    prelude::*,
     async_trait,
     framework::standard::{
         help_commands,
@@ -44,6 +45,7 @@ use serenity::{
         id::{GuildId, RoleId, UserId},
         permissions::Permissions,
     },
+    prelude::*,
 };
 use tokio::sync::Mutex;
 
@@ -65,7 +67,7 @@ impl EventHandler for Handler {
     async fn guild_create(&self, ctx: Context, guild: Guild, _: bool) {
         println!("Look, a guild: {}", guild.name);
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&guild.id) {
             settings.update(&guild);
         } else {
@@ -77,12 +79,12 @@ impl EventHandler for Handler {
             "guild_settings.json",
             serde_json::to_string(&all_settings).expect("Failed to serialize guild settings."),
         )
-            .expect("Failed to save guild settings json.");
-        }
+        .expect("Failed to save guild settings json.");
+    }
 
     async fn category_create(&self, ctx: Context, new: &ChannelCategory) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
             match settings.matches_category {
                 None => {
@@ -98,7 +100,7 @@ impl EventHandler for Handler {
 
     async fn category_delete(&self, ctx: Context, category: &ChannelCategory) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&category.guild_id) {
             match settings.matches_category {
                 Some(c) => {
@@ -114,7 +116,7 @@ impl EventHandler for Handler {
 
     async fn channel_create(&self, ctx: Context, new: &GuildChannel) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
             match settings.pairings_channel {
                 None => {
@@ -130,7 +132,7 @@ impl EventHandler for Handler {
 
     async fn channel_delete(&self, ctx: Context, channel: &GuildChannel) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&channel.guild_id) {
             match settings.pairings_channel {
                 Some(c) => {
@@ -147,7 +149,7 @@ impl EventHandler for Handler {
     // NOTE: This covers both categories and guild channels
     async fn channel_update(&self, ctx: Context, _: Option<Channel>, new: Channel) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         match new {
             Channel::Guild(c) => {
                 if c.kind == ChannelType::Text && c.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
@@ -180,7 +182,7 @@ impl EventHandler for Handler {
 
     async fn guild_role_create(&self, ctx: Context, new: Role) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
             match new.name.as_str() {
                 DEFAULT_JUDGE_ROLE_NAME => {
@@ -201,7 +203,7 @@ impl EventHandler for Handler {
 
     async fn guild_role_update(&self, ctx: Context, _: Option<Role>, new: Role) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
             match new.name.as_str() {
                 DEFAULT_JUDGE_ROLE_NAME => {
@@ -246,7 +248,7 @@ impl EventHandler for Handler {
         _: Option<Role>,
     ) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsContainer>().unwrap();
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&guild_id) {
             match settings.judge_role {
                 Some(id) => {
@@ -339,7 +341,7 @@ async fn main() {
                 .delimiters(vec![", ", ","])
                 .owners(owners)
         })
-    .before(before_command)
+        .before(before_command)
         .after(after_command)
         .help(&MY_HELP)
         .group(&SETUPCOMMANDS_GROUP)
@@ -365,14 +367,17 @@ async fn main() {
         let all_guild_settings: DashMap<GuildId, GuildSettings> = serde_json::from_str(
             &mut read_to_string("./guild_settings.json").expect("Guilds settings file not found."),
         )
-            .expect("The guild settings data is malformed.");
-        data.insert::<GuildSettingsContainer>(all_guild_settings);
+        .expect("The guild settings data is malformed.");
+        data.insert::<GuildSettingsMapContainer>(all_guild_settings);
 
-        // Construct the guild and tournament structure
-        data.insert::<GuildTournamentsContainer>(DashMap::new());
+        // Construct the main TournamentID -> Tournament map
+        data.insert::<TournamentMapContainer>(DashMap::new());
 
-        // Construct the tournament registry (i.e the main SquireCore API)
-        data.insert::<TournamentContainer>(TournamentRegistry::new());
+        // Construct the Tournament Name <-> TournamentID cycle map
+        data.insert::<TournamentNameIDMapContainer>(CycleMap::new());
+
+        // Construct the GuildID <-> TournamentID group map
+        data.insert::<TournamentNameIDMapContainer>(CycleMap::new());
 
         // Construct the confirmations map, used in the !yes/!no commands.
         let confs: DashMap<UserId, Box<dyn Confirmation>> = DashMap::new();

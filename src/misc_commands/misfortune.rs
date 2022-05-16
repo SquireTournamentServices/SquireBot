@@ -1,12 +1,6 @@
 use std::collections::HashSet;
 
-use crate::{
-    model::{
-        guild_tournaments::GuildTournamentsContainer, lookup_error::LookupError, misfortune::*,
-        tournament_container::TournamentContainer,
-    },
-    utils::tourn_resolver::user_to_tourn,
-};
+use crate::model::{containers::{MisfortuneContainer, MisfortunePlayerContainer, TournamentMapContainer}, lookup_error::LookupError, misfortune::*};
 
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -56,7 +50,7 @@ async fn misfortune(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     } else {
         msg.reply(&ctx.http, "You don't have a waiting misfortune.")
             .await?;
-    }
+        }
     Ok(())
 }
 
@@ -72,7 +66,7 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     // let gld_tourns = data.get::<GuildTournamentsContainer>().unwrap();
     // let local_tourns = gld_tourns.get(&msg.guild_id.unwrap()).unwrap();
     let data = ctx.data.read().await;
-    let all_tourns = data.get::<TournamentContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let gld_tourns = data.get::<GuildTournamentsContainer>().unwrap();
     let local_tourns = gld_tourns.get(&msg.guild_id.unwrap()).unwrap();
     let name_and_tourn = user_to_tourn(all_tourns, &local_tourns, &ctx.http, &msg, &args).await?;
@@ -103,7 +97,7 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     &ctx.http,
                     "There was an error in finding one of your opponents.",
                 )
-                .await?;
+                    .await?;
                 Err(e)?
             }
             Ok(u) => {
@@ -113,7 +107,7 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     )
                 })
                 .await?;
-            }
+                }
         }
         player_misfortunes.insert(p.clone(), r_id.clone());
     }
