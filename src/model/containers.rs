@@ -45,12 +45,12 @@ impl TypeMapKey for GuildAndTournamentIDMapContainer {
     type Value = GroupMap<TournamentId, GuildId>;
 }
 
-pub struct MisfortunePlayerContainer;
-impl TypeMapKey for MisfortunePlayerContainer {
+pub struct MisfortunePlayerMapContainer;
+impl TypeMapKey for MisfortunePlayerMapContainer {
     type Value = DashMap<UserId, RoundId>;
 }
 
-pub struct MisfortuneContainer;
-impl TypeMapKey for MisfortuneContainer {
+pub struct MisfortuneMapContainer;
+impl TypeMapKey for MisfortuneMapContainer {
     type Value = DashMap<RoundId, Misfortune>;
 }

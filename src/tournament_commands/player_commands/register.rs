@@ -1,8 +1,12 @@
-use crate::model::{
-    containers::{
-        GuildAndTournamentIDMapContainer, TournamentMapContainer, TournamentNameAndIDMapContainer,
+use crate::{
+    model::{
+        containers::{
+            GuildAndTournamentIDMapContainer, TournamentMapContainer,
+            TournamentNameAndIDMapContainer,
+        },
+        guild_tournament::GuildTournament,
     },
-    guild_tournament::GuildTournament,
+    utils::error_to_reply::error_to_reply,
 };
 
 use serenity::{
@@ -65,41 +69,8 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                 format!("You have been registered for {}", tourn.tourn.name),
             )
             .await?;
+            Ok(())
         }
-        Err(e) => {
-            match e {
-                TournamentError::IncorrectStatus => {
-                    msg.reply(
-                        &ctx.http,
-                        format!("{} isn't taking new players right now.", tourn.tourn.name),
-                    )
-                    .await?;
-                }
-                TournamentError::RegClosed => {
-                    msg.reply(
-                        &ctx.http,
-                        format!("Registertion is closed for {}.", tourn.tourn.name),
-                    )
-                    .await?;
-                }
-                TournamentError::PlayerLookup => {
-                    // Shouldn't happen as UserIds are unique
-                    msg.reply(
-                        &ctx.http,
-                        "There is already another player with your name. Please enter a new one.",
-                    )
-                    .await?;
-                }
-                _ => {
-                    // Shouldn't happen unless new errors are added to SquireCore
-                    msg.reply(
-                        &ctx.http,
-                        "There was an issue in registering you for the tournament.",
-                    )
-                    .await?;
-                }
-            };
-        }
+        Err(e) => error_to_reply(ctx, msg, e).await,
     }
-    Ok(())
 }

@@ -22,7 +22,6 @@ use model::{
 use setup_commands::{group::SETUPCOMMANDS_GROUP, setup::*};
 use tournament_commands::group::TOURNAMENTCOMMANDS_GROUP;
 
-
 use dashmap::DashMap;
 use dotenv::vars;
 use serde_json;
