@@ -1,6 +1,10 @@
 use std::collections::HashSet;
 
-use crate::model::{containers::{MisfortuneContainer, MisfortunePlayerContainer, TournamentMapContainer}, lookup_error::LookupError, misfortune::*};
+use crate::model::{
+    containers::{MisfortuneMapContainer, MisfortunePlayerMapContainer, TournamentMapContainer},
+    lookup_error::LookupError,
+    misfortune::*,
+};
 
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -20,9 +24,9 @@ use squire_core::{
 #[description("Helps you resolve Wheel of Misfortune.")]
 async fn misfortune(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let mis_players = data.get::<MisfortunePlayerContainer>().unwrap();
+    let mis_players = data.get::<MisfortunePlayerMapContainer>().unwrap();
     if let Some(r_id) = mis_players.get(&msg.author.id) {
-        let misfortunes = data.get::<MisfortuneContainer>().unwrap();
+        let misfortunes = data.get::<MisfortuneMapContainer>().unwrap();
         let mut mis = misfortunes.get_mut(&r_id).unwrap();
         if let Ok(val) = args.rest().parse::<u64>() {
             let origin = ctx
@@ -50,7 +54,7 @@ async fn misfortune(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     } else {
         msg.reply(&ctx.http, "You don't have a waiting misfortune.")
             .await?;
-        }
+    }
     Ok(())
 }
 
@@ -67,7 +71,7 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     // let local_tourns = gld_tourns.get(&msg.guild_id.unwrap()).unwrap();
     let data = ctx.data.read().await;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-    let gld_tourns = data.get::<GuildTournamentsContainer>().unwrap();
+    let gld_tourns = data.get::<GuildTournamentsMapContainer>().unwrap();
     let local_tourns = gld_tourns.get(&msg.guild_id.unwrap()).unwrap();
     let name_and_tourn = user_to_tourn(all_tourns, &local_tourns, &ctx.http, &msg, &args).await?;
     // Do some tournament queries
@@ -97,7 +101,7 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     &ctx.http,
                     "There was an error in finding one of your opponents.",
                 )
-                    .await?;
+                .await?;
                 Err(e)?
             }
             Ok(u) => {
@@ -107,7 +111,7 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     )
                 })
                 .await?;
-                }
+            }
         }
         player_misfortunes.insert(p.clone(), r_id.clone());
     }
