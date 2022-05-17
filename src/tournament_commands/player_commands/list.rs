@@ -26,7 +26,7 @@ async fn list(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             let response = MessageBuilder::new();
             for tourn in id_iter {
                 response
-                .push_bold_safe(&tourn)
+                .push_bold_safe(tourn.tourn.name)
                 .push("\n");
             }
             response.build();
