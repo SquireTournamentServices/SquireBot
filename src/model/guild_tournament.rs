@@ -32,7 +32,7 @@ impl GuildTournament {
         self.tourn.id.clone()
     }
 
-    pub fn get_player_id(&self, user: UserId) -> Option<PlayerId> {
+    pub fn get_player_id(&self, user: &UserId) -> Option<PlayerId> {
         if let Some(id) = self.players.get_right(&user) {
             Some(id.clone())
         } else {
@@ -40,7 +40,7 @@ impl GuildTournament {
         }
     }
 
-    pub fn get_user_id(&self, user: PlayerId) -> Option<UserId> {
+    pub fn get_user_id(&self, user: &PlayerId) -> Option<UserId> {
         if let Some(id) = self.players.get_left(&user) {
             Some(id.clone())
         } else {

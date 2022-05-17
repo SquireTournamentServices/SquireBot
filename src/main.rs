@@ -1,4 +1,4 @@
-#![allow(unused_imports, dead_code, unused_variables)]
+#![allow(unused_mut, unused_imports, dead_code, unused_variables)]
 
 mod misc_commands;
 mod model;
@@ -6,7 +6,7 @@ mod setup_commands;
 mod tournament_commands;
 mod utils;
 
-use cycle_map::CycleMap;
+use cycle_map::{CycleMap, GroupMap};
 use squire_core::{self, round::RoundId};
 
 use misc_commands::{flip_coins::*, group::MISCCOMMANDS_GROUP};
@@ -52,7 +52,7 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::Write,
     fs::read_to_string,
-    sync::{Arc, RwLock},
+    sync::{Arc},
 };
 
 struct Handler;
@@ -313,7 +313,7 @@ async fn main() {
         .get("TESTING_TOKEN")
         .expect("Expected a token in the environment");
 
-    let http = Http::new_with_token(&token);
+    let http = Http::new(&token);
 
     // We will fetch your bot's owners and id
     let (owners, bot_id) = match http.get_current_application_info().await {
@@ -347,15 +347,15 @@ async fn main() {
         .group(&TOURNAMENTCOMMANDS_GROUP)
         .group(&MISCCOMMANDS_GROUP);
 
-    let mut intents = GatewayIntents::empty();
-    intents.guilds();
-    intents.insert(GatewayIntents::GUILD_MESSAGES);
-    intents.direct_messages();
+    let mut intents = GatewayIntents::empty()
+        .guilds()
+        .insert(GatewayIntents::GUILD_MESSAGES)
+        .direct_messages();
 
-    let mut client = Client::builder(&token)
+    let mut client = Client::builder(&token, intents)
         .event_handler(Handler)
         .framework(framework)
-        .intents(GatewayIntents::all())
+        //.intents(GatewayIntents::all())
         .await
         .expect("Err creating client");
 
@@ -373,20 +373,20 @@ async fn main() {
         data.insert::<TournamentMapContainer>(DashMap::new());
 
         // Construct the Tournament Name <-> TournamentID cycle map
-        data.insert::<TournamentNameIDMapContainer>(CycleMap::new());
+        data.insert::<TournamentNameAndIDMapContainer>(CycleMap::new());
 
         // Construct the GuildID <-> TournamentID group map
-        data.insert::<TournamentNameIDMapContainer>(CycleMap::new());
+        data.insert::<GuildAndTournamentIDMapContainer>(GroupMap::new());
 
         // Construct the confirmations map, used in the !yes/!no commands.
         let confs: DashMap<UserId, Box<dyn Confirmation>> = DashMap::new();
         data.insert::<ConfirmationsContainer>(confs);
 
         // Construct the misfortunes map, used with !misfortune
-        let mis_players: DashMap<UserId, RoundId> = DashMap::new();
+        let mis_players: GroupMap<UserId, RoundId> = GroupMap::new();
         let misfortunes: DashMap<RoundId, Misfortune> = DashMap::new();
-        data.insert::<MisfortuneContainer>(misfortunes);
-        data.insert::<MisfortunePlayerContainer>(mis_players);
+        data.insert::<MisfortuneMapContainer>(misfortunes);
+        data.insert::<MisfortuneUserMapContainer>(Arc::new(RwLock::new(mis_players)));
     }
 
     if let Err(why) = client.start().await {

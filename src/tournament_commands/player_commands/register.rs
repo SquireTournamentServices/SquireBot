@@ -5,8 +5,9 @@ use crate::{
             TournamentNameAndIDMapContainer,
         },
         guild_tournament::GuildTournament,
+        lookup_error::LookupError,
     },
-    utils::error_to_reply::error_to_reply,
+    utils::{error_to_reply::error_to_reply, tourn_resolver::tourn_id_resolver},
 };
 
 use serenity::{
@@ -28,36 +29,20 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     // Find the TournamentId for the tournament.
     // NOTE: that if there is only one tournament in the guild, we assume the tournament for the
     // player even if they give a name.
-    let id_iter = gld_tourns.get_left_iter(&msg.guild_id.unwrap()).unwrap();
-    let tourn_id = match id_iter.len() {
-        0 => {
-            msg.reply(
-                &ctx.http,
-                "There are no tournaments being held in this server.",
-            )
-            .await?;
+    let id_iter = gld_tourns
+        .get_left_iter(&msg.guild_id.unwrap())
+        .unwrap()
+        .cloned();
+    let given_name = args.rest();
+    let tourn_id = match tourn_id_resolver(&ctx, &msg, &given_name, &name_and_id, id_iter).await {
+        Some(id) => id,
+        None => {
             return Ok(());
-        }
-        1 => id_iter.next().unwrap(),
-        _ => {
-            let given_name = args.rest();
-            if let Some(t_id) =
-                id_iter.find(|t_id| name_and_id.get_left(t_id).unwrap() == given_name)
-            {
-                t_id
-            } else {
-                msg.reply(
-                    &ctx.http,
-                    "There is no tournament in this server with that name.",
-                )
-                .await?;
-                return Ok(());
-            }
         }
     };
     // With the tournament id, we can now get the tournament and add them
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-    let tourn = all_tourns.get_mut(tourn_id).unwrap();
+    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
     let plyr_name = msg.author.id.0.to_string();
     // NOTE: The GuildTournament and Tournament structs take care of the nitty-gritty. We just need
     // to inform the player of the outcome. The tournament communicates through TournamentError

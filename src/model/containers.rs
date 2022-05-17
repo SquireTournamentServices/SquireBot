@@ -45,9 +45,9 @@ impl TypeMapKey for GuildAndTournamentIDMapContainer {
     type Value = GroupMap<TournamentId, GuildId>;
 }
 
-pub struct MisfortunePlayerMapContainer;
-impl TypeMapKey for MisfortunePlayerMapContainer {
-    type Value = DashMap<UserId, RoundId>;
+pub struct MisfortuneUserMapContainer;
+impl TypeMapKey for MisfortuneUserMapContainer {
+    type Value = Arc<RwLock<GroupMap<UserId, RoundId>>>;
 }
 
 pub struct MisfortuneMapContainer;

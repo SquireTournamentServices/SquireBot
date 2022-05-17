@@ -1,63 +1,40 @@
-use std::sync::RwLockReadGuard;
+use crate::model::lookup_error::LookupError;
+use cycle_map::CycleMap;
+use serenity::{framework::standard::macros::hook, model::channel::Message, prelude::Context};
+use squire_core::tournament::TournamentId;
 
-use crate::model::{
-    guild_tournaments::{GuildTournaments, GuildTournamentsContainer},
-    lookup_error::LookupError,
-    misfortune::*,
-    squire_tournament::SquireTournament,
-    tournament_container::TournamentContainer,
-};
-
-use dashmap::{mapref::one::Ref, DashMap};
-use serenity::{
-    framework::standard::{macros::hook, Args, CommandResult},
-    http::Http,
-    model::prelude::*,
-    prelude::*,
-};
-use squire_core::tournament_registry::TournamentRegistry;
-
-pub async fn user_to_tourn<'a>(
-    all_tourns: &'a TournamentRegistry,
-    local_tourns: &'a GuildTournaments,
-    http: &'a Http,
-    msg: &'a Message,
-    args: &'a Args,
-) -> CommandResult<Ref<'a, String, SquireTournament>> {
-    let digest = if args.len() == 0 {
-        let (plyr_id, tourn_name) = match local_tourns.get_player_tourn_info(msg.author.id) {
-            Err(e) => {
-                match &e {
-                    LookupError::TooMany => {
-                        msg.reply(&http, "You are in multiple tournament in this server. Please specify which tournament you're currently playing in.").await?;
-                    }
-                    LookupError::NotAny => {
-                        msg.reply(&http, "You are not in any tournaments in this server.")
-                            .await?;
-                    }
-                }
-                Err(e)?
-            }
-            Ok((id, name)) => (id, name),
-        };
-        let t = local_tourns.get_tourn(tourn_name).unwrap();
-        Ok(t)
-    } else {
-        let t = match local_tourns.get_tourn(args.rest().to_string()) {
-            None => {
-                msg.reply(
-                    &http,
-                    format!(
-                        "There is no tournament in this server called \"{}\"",
-                        args.rest()
-                    ),
+#[hook]
+pub async fn tourn_id_resolver(
+    ctx: &Context,
+    msg: &Message,
+    name: &str,
+    name_and_id: &CycleMap<String, TournamentId>,
+    mut ids: impl ExactSizeIterator<Item = TournamentId> + Send + 'fut,
+) -> Option<TournamentId> {
+    let length = ids.len();
+    match length {
+        0 => {
+            let _ = msg
+                .reply(
+                    &ctx.http,
+                    "There are no tournaments being held in this server.",
                 )
-                .await?;
-                Err(LookupError::NotAny)?
+                .await;
+            None
+        }
+        1 => Some(ids.next().unwrap()),
+        _ => {
+            if let Some(t_id) = ids.find(|t_id| name_and_id.get_left(t_id).unwrap() == name) {
+                Some(t_id)
+            } else {
+                let _ = msg
+                    .reply(
+                        &ctx.http,
+                        "There is no tournament in this server with that name.",
+                    )
+                    .await;
+                None
             }
-            Some(t) => t,
-        };
-        Ok(t)
-    };
-    digest
+        }
+    }
 }
