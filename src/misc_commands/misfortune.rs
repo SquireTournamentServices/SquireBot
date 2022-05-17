@@ -75,8 +75,8 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     /* Old version */
     let data = ctx.data.read().await;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-    let name_and_id = data.get::<TournamentNameAndIDMapContainer>().unwrap();
-    let gld_tourns = data.get::<GuildAndTournamentIDMapContainer>().unwrap();
+    let name_and_id = data.get::<TournamentNameAndIDMapContainer>().unwrap().read().await;
+    let gld_tourns = data.get::<GuildAndTournamentIDMapContainer>().unwrap().read().await;
     let given_name = args.rest();
     let id_iter = gld_tourns
         .get_left_iter(&msg.guild_id.unwrap())

@@ -27,7 +27,7 @@ impl TypeMapKey for TournamentIdentMapContainer {
 
 pub struct GuildTournamentMap;
 impl TypeMapKey for GuildTournamentMap {
-    type Value = GroupMap<TournamentId, GuildId>;
+    type Value = Arc<RwLock<GroupMap<TournamentId, GuildId>>>;
 }
 
 pub struct GuildSettingsMapContainer;
@@ -37,12 +37,12 @@ impl TypeMapKey for GuildSettingsMapContainer {
 
 pub struct TournamentNameAndIDMapContainer;
 impl TypeMapKey for TournamentNameAndIDMapContainer {
-    type Value = CycleMap<String, TournamentId>;
+    type Value = Arc<RwLock<CycleMap<String, TournamentId>>>;
 }
 
 pub struct GuildAndTournamentIDMapContainer;
 impl TypeMapKey for GuildAndTournamentIDMapContainer {
-    type Value = GroupMap<TournamentId, GuildId>;
+    type Value = Arc<RwLock<GroupMap<TournamentId, GuildId>>>;
 }
 
 pub struct MisfortuneUserMapContainer;
