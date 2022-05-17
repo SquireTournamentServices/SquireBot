@@ -36,7 +36,11 @@ async fn list(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                 response
             )
             .await?;
-            return Ok(());
+            msg.reply(
+                &ctx.http,
+                response
+            )
+            .await
         }
     };
 }
