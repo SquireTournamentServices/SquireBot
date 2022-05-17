@@ -347,10 +347,9 @@ async fn main() {
         .group(&TOURNAMENTCOMMANDS_GROUP)
         .group(&MISCCOMMANDS_GROUP);
 
-    let mut intents = GatewayIntents::empty()
-        .guilds()
-        .insert(GatewayIntents::GUILD_MESSAGES)
-        .direct_messages();
+    let intents = GatewayIntents::empty();
+    let intests = intents.guilds();
+    let intests = intents.direct_messages();
 
     let mut client = Client::builder(&token, intents)
         .event_handler(Handler)
@@ -373,10 +372,10 @@ async fn main() {
         data.insert::<TournamentMapContainer>(DashMap::new());
 
         // Construct the Tournament Name <-> TournamentID cycle map
-        data.insert::<TournamentNameAndIDMapContainer>(CycleMap::new());
+        data.insert::<TournamentNameAndIDMapContainer>(Arc::new(RwLock::new(CycleMap::new())));
 
         // Construct the GuildID <-> TournamentID group map
-        data.insert::<GuildAndTournamentIDMapContainer>(GroupMap::new());
+        data.insert::<GuildAndTournamentIDMapContainer>(Arc::new(RwLock::new(GroupMap::new())));
 
         // Construct the confirmations map, used in the !yes/!no commands.
         let confs: DashMap<UserId, Box<dyn Confirmation>> = DashMap::new();
