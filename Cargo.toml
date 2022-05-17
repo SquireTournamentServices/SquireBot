@@ -7,11 +7,14 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [dependencies]
 #mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
+#mtgjson = { path = "../mtgjson-rust-sdk" }
 #tricebot = { git = "https://github.com/TylerBloom/tricebot-sdk", branch = "main" }
 squire_core = { git = "https://github.com/MonarchDevelopment/SquireCore.git", branch = "main" }
+#squire_core = { path = "../SquireCore" }
 cycle_map = { version = "0.1.1", features = ["serde"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
-serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model"] }
+serenity = { version = "0.11.2", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model"] }
+#serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model"] }
 dotenv = { version = "0.9" }
 serde = { version = "1.0" }
 serde_json = { version = "1.0.68" }
