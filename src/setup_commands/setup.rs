@@ -19,7 +19,7 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     // Gets a copy of the setting. We don't want to a reference to the copy since creating what
     // needs to be created will trigger the hooks and update the shared settings object.
-    let settings: GuildSettings = match all_settings.get_mut(&guild.id) {
+    let settings: GuildSettings = match all_settings.get(&guild.id) {
         Some(s) => s.clone(),
         None => {
             // This case should never happen... but just in case
@@ -27,45 +27,32 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             all_settings.get_mut(&guild.id).unwrap().clone()
         }
     };
-    drop(all_settings);
 
-    match settings.judge_role {
-        Some(_) => {}
-        None => {
-            let _ = guild
-                .create_role(&ctx.http, |r| r.name(DEFAULT_JUDGE_ROLE_NAME))
-                .await?;
-        }
+    if settings.judge_role.is_none() {
+        let _ = guild
+            .create_role(&ctx.http, |r| r.name(DEFAULT_JUDGE_ROLE_NAME))
+            .await?;
     };
-    match settings.tourn_admin_role {
-        Some(_) => {}
-        None => {
-            let _ = guild
-                .create_role(&ctx.http, |r| r.name(DEFAULT_TOURN_ADMIN_ROLE_NAME))
-                .await?;
-        }
+    if settings.tourn_admin_role.is_none() {
+        guild
+            .create_role(&ctx.http, |r| r.name(DEFAULT_TOURN_ADMIN_ROLE_NAME))
+            .await?;
     };
-    match settings.pairings_channel {
-        Some(_) => {}
-        None => {
-            let _ = guild
-                .create_channel(&ctx.http, |r| {
-                    r.name(DEFAULT_PAIRINGS_CHANNEL_NAME)
-                        .kind(ChannelType::Text)
-                })
-                .await?;
-        }
+    if settings.pairings_channel.is_none() {
+        guild
+            .create_channel(&ctx.http, |r| {
+                r.name(DEFAULT_PAIRINGS_CHANNEL_NAME)
+                    .kind(ChannelType::Text)
+            })
+            .await?;
     };
-    match settings.matches_category {
-        Some(_) => {}
-        None => {
-            let _ = guild
-                .create_channel(&ctx.http, |r| {
-                    r.name(DEFAULT_MATCHES_CATEGORY_NAME)
-                        .kind(ChannelType::Category)
-                })
-                .await?;
-        }
+    if settings.matches_category.is_none() {
+        guild
+            .create_channel(&ctx.http, |r| {
+                r.name(DEFAULT_MATCHES_CATEGORY_NAME)
+                    .kind(ChannelType::Category)
+            })
+            .await?;
     };
 
     msg.reply(

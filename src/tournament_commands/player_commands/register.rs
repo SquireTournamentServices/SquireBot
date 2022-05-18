@@ -24,8 +24,16 @@ use squire_core::{swiss_pairings::TournamentError, tournament::Tournament};
 async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     /* Get references to needed data from context */
     let data = ctx.data.read().await;
-    let name_and_id = data.get::<TournamentNameAndIDMapContainer>().unwrap().read().await;
-    let gld_tourns = data.get::<GuildAndTournamentIDMapContainer>().unwrap().read().await;
+    let name_and_id = data
+        .get::<TournamentNameAndIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
+    let gld_tourns = data
+        .get::<GuildAndTournamentIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
     // Find the TournamentId for the tournament.
     // NOTE: that if there is only one tournament in the guild, we assume the tournament for the
     // player even if they give a name.

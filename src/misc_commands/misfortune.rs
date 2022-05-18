@@ -75,8 +75,16 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     /* Old version */
     let data = ctx.data.read().await;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-    let name_and_id = data.get::<TournamentNameAndIDMapContainer>().unwrap().read().await;
-    let gld_tourns = data.get::<GuildAndTournamentIDMapContainer>().unwrap().read().await;
+    let name_and_id = data
+        .get::<TournamentNameAndIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
+    let gld_tourns = data
+        .get::<GuildAndTournamentIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
     let given_name = args.rest();
     let id_iter = gld_tourns
         .get_left_iter(&msg.guild_id.unwrap())
@@ -113,7 +121,11 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let mut user_round_map = data.get::<MisfortuneUserMapContainer>().unwrap().write().await;
+    let mut user_round_map = data
+        .get::<MisfortuneUserMapContainer>()
+        .unwrap()
+        .write()
+        .await;
     let round = tourn
         .tourn
         .get_round(&RoundIdentifier::Id(round_id))

@@ -52,7 +52,7 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::Write,
     fs::read_to_string,
-    sync::{Arc},
+    sync::Arc,
 };
 
 struct Handler;
