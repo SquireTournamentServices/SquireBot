@@ -127,6 +127,7 @@ impl GuildSettings {
                 .map_or(None, |c| Some(format!("<#{}>", c))),
         ) + "\n");
         settings += &format!("{}\n{}", self.make_vc, self.make_tc);
+        // TODO: Make the settings tree viewable in the embed
         embed
             .title("Server Tournament Settings:")
             .fields(vec![("Settings", names, true), ("Values", &settings, true)]);

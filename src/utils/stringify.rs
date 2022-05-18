@@ -7,3 +7,11 @@ where
         None => String::from("None"),
     }
 }
+
+pub fn bool_from_string(s: &str) -> Option<bool> {
+    match s {
+        "t" | "T" | "true" | "True" | "1" => Some(true),
+        "f" | "F" | "false" | "False" | "0" => Some(false),
+        _ => None,
+    }
+}
