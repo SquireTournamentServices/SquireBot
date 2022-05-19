@@ -20,16 +20,6 @@ impl TypeMapKey for TournamentMapContainer {
     type Value = DashMap<TournamentId, GuildTournament>;
 }
 
-pub struct TournamentIdentMapContainer;
-impl TypeMapKey for TournamentIdentMapContainer {
-    type Value = DashMap<String, TournamentId>;
-}
-
-pub struct GuildTournamentMap;
-impl TypeMapKey for GuildTournamentMap {
-    type Value = Arc<RwLock<GroupMap<TournamentId, GuildId>>>;
-}
-
 pub struct GuildSettingsMapContainer;
 impl TypeMapKey for GuildSettingsMapContainer {
     type Value = DashMap<GuildId, GuildSettings>;

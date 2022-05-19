@@ -38,5 +38,10 @@ use serenity::prelude::*;
 #[allowed_roles("Tournament Admin")]
 #[description("Adjust the settings of a specfic tournament.")]
 async fn admin(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
-    todo!()
+    msg.reply(
+        &ctx.http,
+        "Please specify a subcommand in order to adjust settings.",
+    )
+    .await?;
+    Ok(())
 }

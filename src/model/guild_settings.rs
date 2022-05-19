@@ -1,5 +1,6 @@
 use crate::utils::stringify::stringify_option;
 
+use super::guild_tournament::GuildTournament;
 use super::{consts::*, tourn_settings_tree::*};
 
 use squire_core::settings::TournamentSetting;
@@ -15,6 +16,7 @@ use serenity::{
         id::{ChannelId, GuildId, RoleId},
     },
 };
+use squire_core::tournament::TournamentPreset;
 
 use std::collections::HashMap;
 
@@ -39,6 +41,34 @@ impl GuildSettings {
             make_vc: true,
             make_tc: false,
             tourn_settings: TournSettingsTree::new(),
+        }
+    }
+
+    /// Return `None` is the server is not configured
+    pub fn create_tournament(
+        &self,
+        tourn_role: RoleId,
+        preset: TournamentPreset,
+        name: String,
+    ) -> Option<GuildTournament> {
+        if self.is_configured() {
+            let tourn = 
+            GuildTournament::new(
+                tourn_role,
+                self.judge_role.unwrap(),
+                self.tourn_admin_role.unwrap(),
+                self.pairings_channel.unwrap(),
+                self.matches_category.unwrap(),
+                self.make_vc,
+                self.make_tc,
+                preset,
+                String::from("Pioneer"),
+                name,
+            );
+            // TODO: Apply default settings
+            Some(tourn)
+        } else {
+            None
         }
     }
 
