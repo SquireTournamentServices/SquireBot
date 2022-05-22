@@ -29,11 +29,20 @@ async fn decklist(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
      let all_tourns = data.get::<TournamentMapContainer>().unwrap();
      let tourn = all_tourns.get_mut(tourn_id).unwrap();
 
-     if(len(tourn.players[player_name].decklists) == 0) {
+     if(tourn.players[player_name].decks.len == 0) {
          msg.reply(
              &ctx.http,
              "You have not registered any decks for this tournament"
          )
          .await;
+     }
+
+     let names = tourn.players[player_name].decks.names;
+     let hashes = tourn.players[player_name].decks.hashes;
+     let response = MessageBuilder::new();
+     for name in names {
+         response
+         .push_bold_safe(name)
+         .push("\n")
      }
 }
