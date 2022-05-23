@@ -12,7 +12,8 @@ use squire_core::{
 use std::sync::Arc;
 
 use super::{
-    guild_settings::GuildSettings, guild_tournament::GuildTournament, misfortune::Misfortune,
+    confirmation::Confirmation, guild_settings::GuildSettings, guild_tournament::GuildTournament,
+    misfortune::Misfortune,
 };
 
 pub struct TournamentMapContainer;
@@ -33,6 +34,11 @@ impl TypeMapKey for TournamentNameAndIDMapContainer {
 pub struct GuildAndTournamentIDMapContainer;
 impl TypeMapKey for GuildAndTournamentIDMapContainer {
     type Value = Arc<RwLock<GroupMap<TournamentId, GuildId>>>;
+}
+
+pub struct ConfirmationsContainer;
+impl TypeMapKey for ConfirmationsContainer {
+    type Value = DashMap<UserId, Box<dyn Confirmation>>;
 }
 
 pub struct MisfortuneUserMapContainer;
