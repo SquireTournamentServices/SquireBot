@@ -1,4 +1,4 @@
-pub mod confirmations;
+pub mod confirmation;
 pub mod consts;
 pub mod containers;
 pub mod guild_settings;

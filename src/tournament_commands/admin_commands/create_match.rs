@@ -72,8 +72,7 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         error_to_reply(ctx, msg, err).await?;
     } else {
         // TODO: Finish match creation stuff (role, channels, etc)
-        msg.reply(&ctx.http, "Match successfully created!")
-            .await?;
+        msg.reply(&ctx.http, "Match successfully created!").await?;
     }
     Ok(())
 }
