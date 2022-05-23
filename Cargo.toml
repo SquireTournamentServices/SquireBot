@@ -13,7 +13,7 @@ squire_core = { git = "https://github.com/MonarchDevelopment/SquireCore.git", br
 #squire_core = { path = "../SquireCore" }
 cycle_map = { version = "0.1.1", features = ["serde"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
-serenity = { version = "0.11.2", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model"] }
+serenity = { version = "0.11.2", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model", "utils"] }
 #serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model"] }
 dotenv = { version = "0.9" }
 serde = { version = "1.0" }
