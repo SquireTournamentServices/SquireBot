@@ -52,8 +52,7 @@ impl GuildSettings {
         name: String,
     ) -> Option<GuildTournament> {
         if self.is_configured() {
-            let tourn = 
-            GuildTournament::new(
+            let tourn = GuildTournament::new(
                 tourn_role,
                 self.judge_role.unwrap(),
                 self.tourn_admin_role.unwrap(),
