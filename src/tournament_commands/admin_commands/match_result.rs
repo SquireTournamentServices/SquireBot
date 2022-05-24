@@ -4,7 +4,10 @@ use serenity::{
     prelude::*,
 };
 
-use squire_core::{operations::TournOp, player_registry::PlayerIdentifier, round::RoundResult, round_registry::RoundIdentifier};
+use squire_core::{
+    operations::TournOp, player_registry::PlayerIdentifier, round::RoundResult,
+    round_registry::RoundIdentifier,
+};
 
 use crate::{
     model::containers::{
@@ -45,7 +48,11 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     let round_number = match args.single::<u64>() {
         Ok(n) => RoundIdentifier::Number(n),
         Err(_) => {
-            msg.reply(&ctx.http, "The second argument must be a proper match number.").await?;
+            msg.reply(
+                &ctx.http,
+                "The second argument must be a proper match number.",
+            )
+            .await?;
             return Ok(());
         }
     };
@@ -66,7 +73,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                 &ctx.http,
                 "That player is not registered for the tournament.",
             )
-                .await?;
+            .await?;
             return Ok(());
         }
     };
@@ -77,16 +84,16 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                     &ctx.http,
                     "That player is not in that match of the tournament.",
                 )
-                    .await?;
+                .await?;
                 return Ok(());
             }
-        },
+        }
         Err(_) => {
             msg.reply(
                 &ctx.http,
                 "There is not a round with that match number in the tournament.",
             )
-                .await?;
+            .await?;
             return Ok(());
         }
     }
@@ -96,12 +103,19 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             if raw_result == "draw" {
                 RoundResult::Draw()
             } else {
-                msg.reply(&ctx.http, "The third argument must be the number of wins for the player.").await?;
+                msg.reply(
+                    &ctx.http,
+                    "The third argument must be the number of wins for the player.",
+                )
+                .await?;
                 return Ok(());
             }
         }
     };
-    if let Err(err) = tourn.tourn.apply_op(TournOp::RecordResult(round_number, round_result)) {
+    if let Err(err) = tourn
+        .tourn
+        .apply_op(TournOp::RecordResult(round_number, round_result))
+    {
         error_to_reply(ctx, msg, err).await?;
     } else {
         msg.reply(&ctx.http, "Result successfully recorded!")

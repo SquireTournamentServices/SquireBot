@@ -11,10 +11,7 @@ use squire_core::{self, round::RoundId};
 
 use misc_commands::{flip_coins::*, group::MISCCOMMANDS_GROUP};
 use model::{
-    confirmation::Confirmation,
-    consts::*,
-    containers::*,
-    guild_settings::GuildSettings,
+    confirmation::Confirmation, consts::*, containers::*, guild_settings::GuildSettings,
     misfortune::*,
 };
 use setup_commands::{group::SETUPCOMMANDS_GROUP, setup::*};

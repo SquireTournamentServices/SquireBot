@@ -65,8 +65,7 @@ async fn give_bye(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     if let Err(err) = tourn.tourn.apply_op(TournOp::GiveBye(plyr_id)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
-        msg.reply(&ctx.http, "Bye successfully give!")
-            .await?;
+        msg.reply(&ctx.http, "Bye successfully give!").await?;
     }
     Ok(())
 }

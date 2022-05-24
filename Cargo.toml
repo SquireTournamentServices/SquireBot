@@ -6,8 +6,10 @@ license = "GPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [dependencies]
-#mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
+mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
+itertools = { version = "0.10.0" }
 #mtgjson = { path = "../mtgjson-rust-sdk" }
+lazy_static = { version = "1.4.0" }
 #tricebot = { git = "https://github.com/TylerBloom/tricebot-sdk", branch = "main" }
 squire_core = { git = "https://github.com/MonarchDevelopment/SquireCore.git", branch = "main" }
 #squire_core = { path = "../SquireCore" }
