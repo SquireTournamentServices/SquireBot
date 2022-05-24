@@ -12,7 +12,7 @@ let gld_tourn_ids =  data.get::<GuildAndTournamentIDMapContainer>().unwrap();
 let tourns =  data.get::<TournamentMapContainer>().unwrap();
      let player_name = msg.author.id.0.to_string();
 
-     let id_iter = gld_tourns.get_left_iter(&msg.guild_id.unwrap()).unwrap();
+     let id_iter = gld_tourns.get_left_iter(&msg.guild_id.unwrap()).unwrap().filter(|id| tourn.get(id).unwrap().players.contains(msg.user.id));
      let tourn_id = match id_iter.len() {
          0 => {
              msg.reply(
