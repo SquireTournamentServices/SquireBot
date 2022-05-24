@@ -1,7 +1,8 @@
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::prelude::*,
-    prelude::*,};
+    prelude::*,
+};
 
 use crate::model::containers::ConfirmationsContainer;
 
@@ -19,7 +20,7 @@ async fn yes(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             &ctx.http,
             "Its seems that you don't have anything waiting for your approval.",
         )
-            .await?;
+        .await?;
         Ok(())
     }
 }
@@ -38,7 +39,7 @@ async fn no(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             &ctx.http,
             "Its seems that you don't have anything waiting for your approval.",
         )
-            .await?;
+        .await?;
     }
     Ok(())
 }

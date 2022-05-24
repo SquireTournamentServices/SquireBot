@@ -1,0 +1,216 @@
+use std::{collections::HashSet, ops::RangeBounds};
+
+use itertools::Itertools;
+use serenity::builder::CreateEmbed;
+
+use mtgjson::model::{abstract_card::AbstractCard, card_attribute::CardFace, deck::Deck};
+
+static CREATURE: &str = "Creature";
+static LAND: &str = "Land";
+static ARTIFACT: &str = "Artifact";
+static ENCHANTMENT: &str = "Enchantment";
+static INSTANT: &str = "Instant";
+static SORCERY: &str = "Sorcery";
+static PLANESWALKER: &str = "Planeswalker";
+
+/// A compact deck format used to help "pretty print" a deck.
+/// Commanders and sideboards are not sorted
+pub struct TypeSortedDeck {
+    pub commanders: HashSet<String>,
+    pub lands: HashSet<(usize, String)>,
+    pub creatures: HashSet<(usize, String)>,
+    pub artifacts: HashSet<(usize, String)>,
+    pub enchantments: HashSet<(usize, String)>,
+    pub instants: HashSet<(usize, String)>,
+    pub sorceries: HashSet<(usize, String)>,
+    pub planewalkers: HashSet<(usize, String)>,
+    pub other: HashSet<(usize, String)>,
+    pub sideboard: HashSet<(usize, String)>,
+}
+
+/// Cards with multiple card type, will be counted only once and will only use their front face.
+/// The preference for this is as follows:
+///  - Creature
+///  - Land
+///  - Artifact
+///  - Enchantment
+///  - Instant
+///  - Sorcery
+///  - Planeswalker
+impl From<Deck> for TypeSortedDeck {
+    fn from(deck: Deck) -> Self {
+        let lands: HashSet<(usize, String)> = HashSet::new();
+        let creatures: HashSet<(usize, String)> = HashSet::new();
+        let artifacts: HashSet<(usize, String)> = HashSet::new();
+        let enchantments: HashSet<(usize, String)> = HashSet::new();
+        let instants: HashSet<(usize, String)> = HashSet::new();
+        let sorceries: HashSet<(usize, String)> = HashSet::new();
+        let planewalkers: HashSet<(usize, String)> = HashSet::new();
+        let other: HashSet<(usize, String)> = HashSet::new();
+        for (card, count) in deck.mainboard.drain() {
+            if card.front_face.supertypes.contains(CREATURE) {
+                creatures.insert((count, card.get_name()));
+            } else if card.front_face.supertypes.contains(LAND) {
+                lands.insert((count, card.get_name()));
+            } else if card.front_face.supertypes.contains(ARTIFACT) {
+                artifacts.insert((count, card.get_name()));
+            } else if card.front_face.supertypes.contains(ENCHANTMENT) {
+                enchantments.insert((count, card.get_name()));
+            } else if card.front_face.supertypes.contains(INSTANT) {
+                instants.insert((count, card.get_name()));
+            } else if card.front_face.supertypes.contains(SORCERY) {
+                sorceries.insert((count, card.get_name()));
+            } else if card.front_face.supertypes.contains(PLANESWALKER) {
+                planewalkers.insert((count, card.get_name()));
+            } else {
+                other.insert((count, card.get_name()));
+            }
+        }
+        let commanders = deck
+            .commanders
+            .drain()
+            .map(|(c, n)| (n, c.get_name()))
+            .collect();
+        let sideboard = deck
+            .sideboard
+            .drain()
+            .map(|(c, n)| (n, c.get_name()))
+            .collect();
+
+        Self {
+            commanders,
+            lands,
+            creatures,
+            artifacts,
+            enchantments,
+            instants,
+            sorceries,
+            planewalkers,
+            other,
+            sideboard,
+        }
+    }
+}
+
+impl TypeSortedDeck {
+    pub fn populate_embed<'a>(&self, mut e: &'a mut CreateEmbed) -> &'a mut CreateEmbed {
+        let e = e
+            .field(
+                format!("Land ({}):", self.count_lands()),
+                self.lands
+                    .iter()
+                    .map(|(n, c)| format!("{n} {c}"))
+                    .join("\n"),
+                true,
+            )
+            .field(
+                format!("Creature ({}):", self.count_creatures()),
+                self.creatures
+                    .iter()
+                    .map(|(n, c)| format!("{n} {c}"))
+                    .join("\n"),
+                true,
+            )
+            .field(
+                format!("Artifacts ({}):", self.count_artifacts()),
+                self.artifacts
+                    .iter()
+                    .map(|(n, c)| format!("{n} {c}"))
+                    .join("\n"),
+                true,
+            )
+            .field(
+                format!("Enchantments ({}):", self.count_enchantments()),
+                self.enchantments
+                    .iter()
+                    .map(|(n, c)| format!("{n} {c}"))
+                    .join("\n"),
+                true,
+            )
+            .field(
+                format!("Instant ({}):", self.count_instants()),
+                self.instants
+                    .iter()
+                    .map(|(n, c)| format!("{n} {c}"))
+                    .join("\n"),
+                true,
+            )
+            .field(
+                format!("Sorceries ({}):", self.count_sorceries()),
+                self.sorceries
+                    .iter()
+                    .map(|(n, c)| format!("{n} {c}"))
+                    .join("\n"),
+                true,
+            )
+            .field(
+                format!("Planewalkers ({}):", self.count_planeswalkers()),
+                self.planewalkers
+                    .iter()
+                    .map(|(n, c)| format!("{n} {c}"))
+                    .join("\n"),
+                true,
+            );
+        let e = if self.other.len() > 0 {
+            e.field(
+                format!("Others ({}):", self.count_other()),
+                self.other
+                    .iter()
+                    .map(|(n, c)| format!("{n} {c}"))
+                    .join("\n"),
+                true,
+            )
+        } else {
+            e
+        };
+        e.field(
+            format!("Sideboard ({}):", self.count_sideboard()),
+            self.sideboard
+                .iter()
+                .map(|(n, c)| format!("{n} {c}"))
+                .join("\n"),
+            true,
+        )
+    }
+
+    pub fn count_all(&self) -> usize {
+        self.count_commanders()
+            + self.count_lands()
+            + self.count_creatures()
+            + self.count_artifacts()
+            + self.count_enchantments()
+            + self.count_instants()
+            + self.count_sorceries()
+            + self.count_sideboard()
+    }
+    pub fn count_commanders(&self) -> usize {
+        self.commanders.iter().count()
+    }
+    pub fn count_lands(&self) -> usize {
+        self.lands.iter().map(|(n, _)| n).sum()
+    }
+    pub fn count_creatures(&self) -> usize {
+        self.creatures.iter().map(|(n, _)| n).sum()
+    }
+    pub fn count_artifacts(&self) -> usize {
+        self.artifacts.iter().map(|(n, _)| n).sum()
+    }
+    pub fn count_enchantments(&self) -> usize {
+        self.enchantments.iter().map(|(n, _)| n).sum()
+    }
+    pub fn count_instants(&self) -> usize {
+        self.instants.iter().map(|(n, _)| n).sum()
+    }
+    pub fn count_sorceries(&self) -> usize {
+        self.sorceries.iter().map(|(n, _)| n).sum()
+    }
+    pub fn count_planeswalkers(&self) -> usize {
+        self.sorceries.iter().map(|(n, _)| n).sum()
+    }
+    pub fn count_other(&self) -> usize {
+        self.sorceries.iter().map(|(n, _)| n).sum()
+    }
+    pub fn count_sideboard(&self) -> usize {
+        self.sideboard.iter().map(|(n, _)| n).sum()
+    }
+}
