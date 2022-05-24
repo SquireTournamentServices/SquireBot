@@ -1,6 +1,15 @@
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
+use serenity::utils::MessageBuilder;
+
+use crate::model::{
+    containers::{
+        GuildAndTournamentIDMapContainer, TournamentMapContainer, TournamentNameAndIDMapContainer,
+    },
+    guild_tournament::GuildTournament,
+};
+
 
 #[command("list")]
 #[only_in(guild)]
@@ -29,18 +38,12 @@ async fn list(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                 .push_bold_safe(name_and_id.get_left(&tourn).unwrap())
                 .push("\n");
             }
-            response.build();
-
             msg.reply(
                 &ctx.http,
-                response
+                response.build()
             )
-            .await?;
-            msg.reply(
-                &ctx.http,
-                response
-            )
-            .await
+            .await;
         }
     };
+    Ok(())
 }
