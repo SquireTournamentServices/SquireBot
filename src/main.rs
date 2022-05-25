@@ -43,12 +43,9 @@ use serenity::{
 };
 use tokio::sync::Mutex;
 
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Write,
-    fs::read_to_string,
-    sync::Arc,
-};
+use std::{collections::{HashMap, HashSet}, fmt::Write, fs::read_to_string, path::Path, sync::Arc, time::Duration};
+
+use crate::utils::card_collection::build_collection;
 
 struct Handler;
 
@@ -375,6 +372,30 @@ async fn main() {
         // Construct the confirmations map, used in the !yes/!no commands.
         let confs: DashMap<UserId, Box<dyn Confirmation>> = DashMap::new();
         data.insert::<ConfirmationsContainer>(confs);
+        
+        // Construct the card collection
+        let path = Path::new("./AtomicCards.json");
+        let cards = build_collection(&path).await.expect("Could not build card colletion");
+        let card_ref = Arc::new(RwLock::new(cards));
+        let other_card_ref = card_ref.clone();
+        // Spawns an await task to update the card collection every week.
+        tokio::spawn(async move {
+            let cards = other_card_ref;
+            let path = Path::new("./AtomicCards.json");
+            let mut short_interval = tokio::time::interval(Duration::from_secs(3600));
+            let mut long_interval = tokio::time::interval(Duration::from_secs(604_800));
+            long_interval.tick().await;
+            loop {
+                if let Some(coll) = build_collection(&path).await {
+                    let mut card_lock = cards.write().await;
+                    *card_lock = coll;
+                    long_interval.tick().await;
+                } else {
+                    short_interval.tick().await;
+                }
+            }
+        });
+        data.insert::<CardCollectionContainer>(card_ref);
 
         // Construct the misfortunes map, used with !misfortune
         let mis_players: GroupMap<UserId, RoundId> = GroupMap::new();

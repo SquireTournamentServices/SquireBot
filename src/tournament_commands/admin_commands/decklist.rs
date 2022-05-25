@@ -70,7 +70,7 @@ async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         }
     };
     let plyr = tourn.tourn.get_player(&plyr_id).unwrap();
-    match plyr.get_deck(deck_name) {
+    match plyr.get_deck(deck_name.clone()) {
         Some(deck) => {
             let sorted_deck = TypeSortedDeck::from(deck);
             match msg.channel(&ctx.http).await? {
