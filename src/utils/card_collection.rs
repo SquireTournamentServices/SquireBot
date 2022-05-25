@@ -9,10 +9,7 @@ use mtgjson::{mtgjson::atomics::Atomics, model::atomics_collection::AtomicCardCo
 /// `None` is returned if there is a file/directory that is not an atomics file at the given path
 /// or mtgjson could not be reached.
 pub async fn build_collection(pth: &Path) -> Option<AtomicCardCollection> {
-    if pth.is_dir() {
-        return None;
-    }
-    let atomics: Atomics = if pth.exists() {
+    let atomics: Atomics = if pth.exists() && !pth.is_dir() {
         let data = read_to_string(pth.as_os_str()).ok()?;
         serde_json::from_str(&data).ok()?
     } else {
