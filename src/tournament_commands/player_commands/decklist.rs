@@ -61,14 +61,7 @@ async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
      let response = String::new();
      match player.get_deck(deck_name) {
         Some(Deck) => {
-            let mainboard = Deck.get_mainboard();
-            for card in mainboard {
-                
-            }
-            msg.reply(
-                &ctx.http,
-                response
-            ).await?;
+            
         },
         None => {
             msg.reply (
