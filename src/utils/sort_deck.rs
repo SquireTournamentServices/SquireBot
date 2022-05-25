@@ -38,29 +38,29 @@ pub struct TypeSortedDeck {
 ///  - Sorcery
 ///  - Planeswalker
 impl From<Deck> for TypeSortedDeck {
-    fn from(deck: Deck) -> Self {
-        let lands: HashSet<(usize, String)> = HashSet::new();
-        let creatures: HashSet<(usize, String)> = HashSet::new();
-        let artifacts: HashSet<(usize, String)> = HashSet::new();
-        let enchantments: HashSet<(usize, String)> = HashSet::new();
-        let instants: HashSet<(usize, String)> = HashSet::new();
-        let sorceries: HashSet<(usize, String)> = HashSet::new();
-        let planewalkers: HashSet<(usize, String)> = HashSet::new();
-        let other: HashSet<(usize, String)> = HashSet::new();
+    fn from(mut deck: Deck) -> Self {
+        let mut lands: HashSet<(usize, String)> = HashSet::new();
+        let mut creatures: HashSet<(usize, String)> = HashSet::new();
+        let mut artifacts: HashSet<(usize, String)> = HashSet::new();
+        let mut enchantments: HashSet<(usize, String)> = HashSet::new();
+        let mut instants: HashSet<(usize, String)> = HashSet::new();
+        let mut sorceries: HashSet<(usize, String)> = HashSet::new();
+        let mut planewalkers: HashSet<(usize, String)> = HashSet::new();
+        let mut other: HashSet<(usize, String)> = HashSet::new();
         for (card, count) in deck.mainboard.drain() {
-            if card.front_face.supertypes.contains(CREATURE) {
+            if card.front_face.types.contains(CREATURE) {
                 creatures.insert((count, card.get_name()));
-            } else if card.front_face.supertypes.contains(LAND) {
+            } else if card.front_face.types.contains(LAND) {
                 lands.insert((count, card.get_name()));
-            } else if card.front_face.supertypes.contains(ARTIFACT) {
+            } else if card.front_face.types.contains(ARTIFACT) {
                 artifacts.insert((count, card.get_name()));
-            } else if card.front_face.supertypes.contains(ENCHANTMENT) {
+            } else if card.front_face.types.contains(ENCHANTMENT) {
                 enchantments.insert((count, card.get_name()));
-            } else if card.front_face.supertypes.contains(INSTANT) {
+            } else if card.front_face.types.contains(INSTANT) {
                 instants.insert((count, card.get_name()));
-            } else if card.front_face.supertypes.contains(SORCERY) {
+            } else if card.front_face.types.contains(SORCERY) {
                 sorceries.insert((count, card.get_name()));
-            } else if card.front_face.supertypes.contains(PLANESWALKER) {
+            } else if card.front_face.types.contains(PLANESWALKER) {
                 planewalkers.insert((count, card.get_name()));
             } else {
                 other.insert((count, card.get_name()));
@@ -69,7 +69,7 @@ impl From<Deck> for TypeSortedDeck {
         let commanders = deck
             .commanders
             .drain()
-            .map(|(c, n)| (n, c.get_name()))
+            .map(|(c, n)| c.get_name())
             .collect();
         let sideboard = deck
             .sideboard

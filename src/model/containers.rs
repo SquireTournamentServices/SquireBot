@@ -1,15 +1,16 @@
-use cycle_map::{CycleMap, GroupMap};
+use std::sync::Arc;
 use dashmap::DashMap;
 use serenity::{
     model::id::{GuildId, UserId},
     prelude::*,
 };
+
+use cycle_map::{CycleMap, GroupMap};
+use mtgjson::model::atomics_collection::AtomicCardCollection;
 use squire_core::{
     round::RoundId,
     tournament::{Tournament, TournamentId},
 };
-
-use std::sync::Arc;
 
 use super::{
     confirmation::Confirmation, guild_settings::GuildSettings, guild_tournament::GuildTournament,
@@ -39,6 +40,11 @@ impl TypeMapKey for GuildAndTournamentIDMapContainer {
 pub struct ConfirmationsContainer;
 impl TypeMapKey for ConfirmationsContainer {
     type Value = DashMap<UserId, Box<dyn Confirmation>>;
+}
+
+pub struct CardCollectionContainer;
+impl TypeMapKey for CardCollectionContainer {
+    type Value = Arc<RwLock<AtomicCardCollection>>;
 }
 
 pub struct MisfortuneUserMapContainer;
