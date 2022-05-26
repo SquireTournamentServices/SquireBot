@@ -17,7 +17,9 @@ use model::{
 use setup_commands::{group::SETUPCOMMANDS_GROUP, setup::*};
 use tournament_commands::group::TOURNAMENTCOMMANDS_GROUP;
 
-use dashmap::DashMap;
+use utils::{card_collection::build_collection, embeds::update_standings_message};
+
+use dashmap::{rayon, DashMap};
 use dotenv::vars;
 use serde_json;
 use serenity::{
@@ -41,11 +43,16 @@ use serenity::{
     },
     prelude::*,
 };
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, time::Instant};
 
-use std::{collections::{HashMap, HashSet}, fmt::Write, fs::read_to_string, path::Path, sync::Arc, time::Duration};
-
-use crate::utils::card_collection::build_collection;
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Write,
+    fs::read_to_string,
+    path::Path,
+    sync::Arc,
+    time::Duration,
+};
 
 struct Handler;
 
@@ -68,7 +75,8 @@ impl EventHandler for Handler {
         }
         std::fs::write(
             "guild_settings.json",
-            serde_json::to_string(&all_settings).expect("Failed to serialize guild settings."),
+            serde_json::to_string(all_settings.as_ref())
+                .expect("Failed to serialize guild settings."),
         )
         .expect("Failed to save guild settings json.");
     }
@@ -358,10 +366,93 @@ async fn main() {
             &mut read_to_string("./guild_settings.json").expect("Guilds settings file not found."),
         )
         .expect("The guild settings data is malformed.");
-        data.insert::<GuildSettingsMapContainer>(all_guild_settings);
+        let ref_main = Arc::new(all_guild_settings);
+        data.insert::<GuildSettingsMapContainer>(ref_main);
 
         // Construct the main TournamentID -> Tournament map
-        data.insert::<TournamentMapContainer>(DashMap::new());
+        let ref_main = Arc::new(DashMap::new());
+        let ref_one = ref_main.clone();
+        let cache_one = client.cache_and_http.clone();
+        let ref_two = ref_main.clone();
+        let cache_two = client.cache_and_http.clone();
+        let ref_three = ref_main.clone();
+        let cache_three = client.cache_and_http.clone();
+        data.insert::<TournamentMapContainer>(ref_main);
+        // Set up a the standings, match, and status embed updaters
+        tokio::spawn(async move {
+            let tourns = ref_one;
+            let cache = cache_one;
+            let loop_length = Duration::from_secs(30);
+            loop {
+                let timer = Instant::now();
+                // TODO: This should be par_iter via rayon
+                for mut tourn in tourns.iter_mut() {
+                    if !tourn.update_standings {
+                        continue;
+                    }
+                    let standings = tourn.tourn.get_standings();
+                    match &mut tourn.standings_message {
+                        None => {
+                            continue;
+                        }
+                        Some(msg) => {
+                            update_standings_message(
+                                &cache,
+                                msg,
+                                &tourn.players,
+                                &tourn.tourn,
+                                standings,
+                            )
+                            .await;
+                        }
+                    }
+                    tourn.update_standings = false;
+                }
+                if timer.elapsed() < loop_length {
+                    let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
+                    sleep.tick().await;
+                }
+                // Sleep so that the next loop starts 30 seconds after the start of this one
+            }
+        });
+        tokio::spawn(async move {
+            let tourns = ref_two;
+            let cache = cache_two;
+            let loop_length = Duration::from_secs(60);
+            loop {
+                let timer = Instant::now();
+                // TODO: This should be par_iter via rayon
+                for tourn in tourns.iter_mut() {
+                    // TODO: Update matches
+                    // TODO: "Time is up" messages should be sent here too.
+                }
+                if timer.elapsed() < loop_length {
+                    let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
+                    sleep.tick().await;
+                }
+                // Sleep so that the next loop starts 60 seconds after the start of this one
+            }
+        });
+        tokio::spawn(async move {
+            let tourns = ref_three;
+            let cache = cache_three;
+            let loop_length = Duration::from_secs(30);
+            loop {
+                let timer = Instant::now();
+                // TODO: This should be par_iter via rayon
+                for mut tourn in tourns.iter_mut() {
+                    if tourn.update_status {
+                        // TODO: Update status
+                    }
+                    tourn.update_status = false;
+                }
+                if timer.elapsed() < loop_length {
+                    let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
+                    sleep.tick().await;
+                }
+                // Sleep so that the next loop starts 30 seconds after the start of this one
+            }
+        });
 
         // Construct the Tournament Name <-> TournamentID cycle map
         data.insert::<TournamentNameAndIDMapContainer>(Arc::new(RwLock::new(CycleMap::new())));
@@ -371,11 +462,13 @@ async fn main() {
 
         // Construct the confirmations map, used in the !yes/!no commands.
         let confs: DashMap<UserId, Box<dyn Confirmation>> = DashMap::new();
-        data.insert::<ConfirmationsContainer>(confs);
-        
+        data.insert::<ConfirmationsContainer>(Arc::new(confs));
+
         // Construct the card collection
         let path = Path::new("./AtomicCards.json");
-        let cards = build_collection(&path).await.expect("Could not build card colletion");
+        let cards = build_collection(&path)
+            .await
+            .expect("Could not build card colletion");
         let card_ref = Arc::new(RwLock::new(cards));
         let other_card_ref = card_ref.clone();
         // Spawns an await task to update the card collection every week.
@@ -400,9 +493,11 @@ async fn main() {
         // Construct the misfortunes map, used with !misfortune
         let mis_players: GroupMap<UserId, RoundId> = GroupMap::new();
         let misfortunes: DashMap<RoundId, Misfortune> = DashMap::new();
-        data.insert::<MisfortuneMapContainer>(misfortunes);
+        data.insert::<MisfortuneMapContainer>(Arc::new(misfortunes));
         data.insert::<MisfortuneUserMapContainer>(Arc::new(RwLock::new(mis_players)));
     }
+
+    // TODO: Auto state saver
 
     if let Err(why) = client.start().await {
         println!("Client error: {:?}", why);
