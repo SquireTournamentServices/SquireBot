@@ -1,6 +1,9 @@
 use cycle_map::CycleMap;
+use serenity::model::channel::{Channel, GuildChannel, Message};
+use serenity::model::guild::Role;
 use squire_core::operations::TournOp;
 use squire_core::player_registry::PlayerIdentifier;
+use squire_core::round_registry::RoundIdentifier;
 use squire_core::swiss_pairings::{PlayerId, TournamentError};
 use squire_core::tournament::{Tournament, TournamentId, TournamentPreset};
 
@@ -21,16 +24,19 @@ pub struct GuildTournament {
     pub(crate) tourn_admin_role: RoleId,
     pub(crate) pairings_channel: ChannelId,
     pub(crate) matches_category: ChannelId,
-    pub(crate) make_vc: bool,
-    pub(crate) match_vcs: HashSet<ChannelId>,
-    pub(crate) make_tc: bool,
-    pub(crate) match_tcs: HashSet<ChannelId>,
-    pub(crate) tourn_status: Option<MessageId>,
+    pub(crate) tourn_status: Option<Message>,
     pub(crate) players: CycleMap<UserId, PlayerId>,
-    pub(crate) match_roles: HashSet<RoleId>,
-    pub(crate) match_timers: HashSet<MessageId>,
-    pub(crate) standings_messages: Vec<MessageId>,
+    pub(crate) make_vc: bool,
+    pub(crate) make_tc: bool,
+    pub(crate) match_vcs: HashMap<RoundIdentifier, GuildChannel>,
+    pub(crate) match_tcs: HashMap<RoundIdentifier, GuildChannel>,
+    pub(crate) match_roles: HashMap<RoundIdentifier, Role>,
+    pub(crate) match_timers: HashMap<RoundIdentifier, Message>,
+    pub(crate) standings_message: Option<Message>,
     pub(crate) tourn: Tournament,
+    pub(crate) update_standings: bool,
+    pub(crate) update_status: bool,
+    // Timers always need updated
 }
 
 impl GuildTournament {
@@ -53,15 +59,17 @@ impl GuildTournament {
             pairings_channel,
             matches_category,
             make_vc,
-            match_vcs: HashSet::new(),
+            match_vcs: HashMap::new(),
             make_tc,
-            match_tcs: HashSet::new(),
+            match_tcs: HashMap::new(),
             tourn_status: None,
             players: CycleMap::new(),
-            match_roles: HashSet::new(),
-            match_timers: HashSet::new(),
-            standings_messages: Vec::new(),
+            match_roles: HashMap::new(),
+            match_timers: HashMap::new(),
+            standings_message: None,
             tourn: Tournament::from_preset(name, preset, format),
+            update_standings: false,
+            update_status: false,
         }
     }
 

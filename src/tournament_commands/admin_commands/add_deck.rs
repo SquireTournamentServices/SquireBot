@@ -4,7 +4,10 @@ use serenity::prelude::*;
 use squire_core::operations::TournOp;
 use squire_core::player_registry::PlayerIdentifier;
 
-use crate::model::containers::{CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer, TournamentNameAndIDMapContainer};
+use crate::model::containers::{
+    CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
+    TournamentNameAndIDMapContainer,
+};
 use crate::utils::error_to_reply::error_to_reply;
 use crate::utils::tourn_resolver::{admin_tourn_id_resolver, user_id_resolver};
 
@@ -62,7 +65,8 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     } else if let Some(deck) = card_coll.import_deck(raw_deck).await {
         deck
     } else {
-        msg.reply(&ctx.http, "Unable to create a deck from this.").await?;
+        msg.reply(&ctx.http, "Unable to create a deck from this.")
+            .await?;
         return Ok(());
     };
     if let Err(err) = tourn

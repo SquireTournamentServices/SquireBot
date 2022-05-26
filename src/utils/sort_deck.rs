@@ -66,11 +66,7 @@ impl From<Deck> for TypeSortedDeck {
                 other.insert((count, card.get_name()));
             }
         }
-        let commanders = deck
-            .commanders
-            .drain()
-            .map(|(c, n)| c.get_name())
-            .collect();
+        let commanders = deck.commanders.drain().map(|(c, n)| c.get_name()).collect();
         let sideboard = deck
             .sideboard
             .drain()
