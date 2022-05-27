@@ -22,10 +22,10 @@ use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GuildSettings {
-    pub pairings_channel: Option<ChannelId>,
+    pub pairings_channel: Option<GuildChannel>,
     pub judge_role: Option<RoleId>,
     pub tourn_admin_role: Option<RoleId>,
-    pub matches_category: Option<ChannelId>,
+    pub matches_category: Option<ChannelCategory>,
     pub make_vc: bool,
     pub make_tc: bool,
     pub tourn_settings: TournSettingsTree,
@@ -47,7 +47,7 @@ impl GuildSettings {
     /// Return `None` is the server is not configured
     pub fn create_tournament(
         &self,
-        tourn_role: RoleId,
+        tourn_role: Role,
         preset: TournamentPreset,
         name: String,
     ) -> Option<GuildTournament> {
@@ -56,8 +56,8 @@ impl GuildSettings {
                 tourn_role,
                 self.judge_role.unwrap(),
                 self.tourn_admin_role.unwrap(),
-                self.pairings_channel.unwrap(),
-                self.matches_category.unwrap(),
+                self.pairings_channel.as_ref().unwrap().clone(),
+                self.matches_category.as_ref().unwrap().clone(),
                 self.make_vc,
                 self.make_tc,
                 preset,
@@ -74,8 +74,8 @@ impl GuildSettings {
     pub fn from_existing(guild: &Guild) -> Self {
         let judge_role: Option<RoleId> = get_default_judge_role_id(guild);
         let tourn_admin_role: Option<RoleId> = get_default_tourn_admin_role_id(guild);
-        let pairings_channel: Option<ChannelId> = get_default_pairings_channel_id(guild);
-        let matches_category: Option<ChannelId> = get_default_matches_category_id(guild);
+        let pairings_channel: Option<GuildChannel> = get_default_pairings_channel_id(guild);
+        let matches_category: Option<ChannelCategory> = get_default_matches_category_id(guild);
 
         GuildSettings {
             pairings_channel,
@@ -109,9 +109,9 @@ impl GuildSettings {
                 self.tourn_admin_role = get_default_tourn_admin_role_id(guild);
             }
         }
-        match self.pairings_channel {
-            Some(id) => {
-                if !guild.channels.contains_key(&id) {
+        match &self.pairings_channel {
+            Some(c) => {
+                if !guild.channels.contains_key(&c.id) {
                     self.pairings_channel = None;
                 }
             }
@@ -119,9 +119,9 @@ impl GuildSettings {
                 self.pairings_channel = get_default_pairings_channel_id(guild);
             }
         }
-        match self.matches_category {
-            Some(id) => {
-                if !guild.channels.contains_key(&id) {
+        match &self.matches_category {
+            Some(c) => {
+                if !guild.channels.contains_key(&c.id) {
                     self.matches_category = None;
                 }
             }
@@ -141,19 +141,21 @@ impl GuildSettings {
     pub fn as_embed(&self, embed: &mut CreateEmbed) {
         let names = "Pairings Channel:\nJudge Role:\nTourn Admin Role:\nMatches Category:\nMake VC:\nMake TC:";
         let mut settings: String =
-            (stringify_option(self.judge_role.map_or(None, |c| Some(format!("<@&{}>", c)))) + "\n")
+            (stringify_option(self.judge_role.map_or(None, |r| Some(format!("<@&{}>", r)))) + "\n")
                 .to_string();
         settings += &(stringify_option(
             self.tourn_admin_role
-                .map_or(None, |c| Some(format!("<@&{}>", c))),
+                .map_or(None, |r| Some(format!("<@&{}>", r))),
         ) + "\n");
         settings += &(stringify_option(
             self.pairings_channel
-                .map_or(None, |c| Some(format!("<#{}>", c))),
+                .as_ref()
+                .map_or(None, |c| Some(format!("<#{}>", c.id))),
         ) + "\n");
         settings += &(stringify_option(
             self.matches_category
-                .map_or(None, |c| Some(format!("<#{}>", c))),
+                .as_ref()
+                .map_or(None, |c| Some(format!("<#{}>", c.id))),
         ) + "\n");
         settings += &format!("{}\n{}", self.make_vc, self.make_tc);
         // TODO: Make the settings tree viewable in the embed
@@ -181,7 +183,7 @@ pub fn get_default_tourn_admin_role_id(guild: &Guild) -> Option<RoleId> {
         .next()
 }
 
-pub fn get_default_pairings_channel_id(guild: &Guild) -> Option<ChannelId> {
+pub fn get_default_pairings_channel_id(guild: &Guild) -> Option<GuildChannel> {
     guild
         .channels
         .iter()
@@ -190,11 +192,11 @@ pub fn get_default_pairings_channel_id(guild: &Guild) -> Option<ChannelId> {
             _ => None,
         })
         .filter(|c| c.kind == ChannelType::Text && c.name == DEFAULT_PAIRINGS_CHANNEL_NAME)
-        .map(|c| c.id.clone())
+        .map(|c| c.clone())
         .next()
 }
 
-pub fn get_default_matches_category_id(guild: &Guild) -> Option<ChannelId> {
+pub fn get_default_matches_category_id(guild: &Guild) -> Option<ChannelCategory> {
     guild
         .channels
         .iter()
@@ -203,6 +205,6 @@ pub fn get_default_matches_category_id(guild: &Guild) -> Option<ChannelId> {
             _ => None,
         })
         .filter(|c| c.kind == ChannelType::Category && c.name == DEFAULT_MATCHES_CATEGORY_NAME)
-        .map(|c| c.id.clone())
+        .map(|c| c.clone())
         .next()
 }

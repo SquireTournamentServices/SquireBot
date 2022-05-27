@@ -138,9 +138,9 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         None => {
             test_results += &"Failed - No pairings channel found.\n".repeat(5);
         }
-        Some(id) => {
+        Some(channel) => {
             test_results += "Passed\n";
-            if let Channel::Guild(pairings_channel) = guild.channels.get(&id).unwrap() {
+            if let Channel::Guild(pairings_channel) = guild.channels.get(&channel.id).unwrap() {
                 match pairings_channel
                     .send_message(&ctx.http, |m| m.content("Testing..."))
                     .await
@@ -197,13 +197,17 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             None => {
                 test_results += &"Failed - No matches category found.\n".repeat(5);
             }
-            Some(id) => {
-                if let Channel::Category(matches_category) = guild.channels.get(&id).unwrap() {
+            Some(channel) => {
+                if let Channel::Category(matches_category) =
+                    guild.channels.get(&channel.id).unwrap()
+                {
                     test_results += "Passed\n";
                     if settings.make_vc {
                         match guild
                             .create_channel(&ctx.http, |c| {
-                                c.name("Test VC").kind(ChannelType::Voice).category(id)
+                                c.name("Test VC")
+                                    .kind(ChannelType::Voice)
+                                    .category(channel.id)
                             })
                             .await
                         {
@@ -228,7 +232,9 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                     if settings.make_tc {
                         match guild
                             .create_channel(&ctx.http, |c| {
-                                c.name("Test TC").kind(ChannelType::Text).category(id)
+                                c.name("Test TC")
+                                    .kind(ChannelType::Text)
+                                    .category(channel.id)
                             })
                             .await
                         {

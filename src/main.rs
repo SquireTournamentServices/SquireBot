@@ -17,7 +17,10 @@ use model::{
 use setup_commands::{group::SETUPCOMMANDS_GROUP, setup::*};
 use tournament_commands::group::TOURNAMENTCOMMANDS_GROUP;
 
-use utils::{card_collection::build_collection, embeds::update_standings_message};
+use utils::{
+    card_collection::build_collection,
+    embeds::{update_match_message, update_standings_message},
+};
 
 use dashmap::{rayon, DashMap};
 use dotenv::vars;
@@ -88,7 +91,7 @@ impl EventHandler for Handler {
             match settings.matches_category {
                 None => {
                     if new.name == DEFAULT_MATCHES_CATEGORY_NAME {
-                        settings.matches_category = Some(new.id);
+                        settings.matches_category = Some(new.clone());
                     }
                 }
                 Some(_) => {}
@@ -101,9 +104,9 @@ impl EventHandler for Handler {
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&category.guild_id) {
-            match settings.matches_category {
+            match &settings.matches_category {
                 Some(c) => {
-                    if c == category.id {
+                    if c.id == category.id {
                         settings.matches_category = None;
                     }
                 }
@@ -117,10 +120,10 @@ impl EventHandler for Handler {
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
-            match settings.pairings_channel {
+            match &settings.pairings_channel {
                 None => {
                     if new.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
-                        settings.pairings_channel = Some(new.id);
+                        settings.pairings_channel = Some(new.clone());
                     }
                 }
                 Some(c) => {}
@@ -133,9 +136,9 @@ impl EventHandler for Handler {
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&channel.guild_id) {
-            match settings.pairings_channel {
+            match &settings.pairings_channel {
                 Some(c) => {
-                    if c == channel.id {
+                    if c.id == channel.id {
                         settings.pairings_channel = None;
                     }
                 }
@@ -153,9 +156,9 @@ impl EventHandler for Handler {
             Channel::Guild(c) => {
                 if c.kind == ChannelType::Text && c.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
                     if let Some(mut settings) = all_settings.get_mut(&c.guild_id) {
-                        match settings.pairings_channel {
+                        match &settings.pairings_channel {
                             None => {
-                                settings.pairings_channel = Some(c.id);
+                                settings.pairings_channel = Some(c);
                             }
                             Some(c) => {}
                         }
@@ -167,7 +170,7 @@ impl EventHandler for Handler {
                     if let Some(mut settings) = all_settings.get_mut(&c.guild_id) {
                         match settings.matches_category {
                             None => {
-                                settings.matches_category = Some(c.id);
+                                settings.matches_category = Some(c);
                             }
                             Some(_) => {}
                         }
@@ -402,11 +405,11 @@ async fn main() {
                     .await;
                     tourn.update_standings = false;
                 }
+                // Sleep so that the next loop starts 30 seconds after the start of this one
                 if timer.elapsed() < loop_length {
                     let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
                     sleep.tick().await;
                 }
-                // Sleep so that the next loop starts 30 seconds after the start of this one
             }
         });
         tokio::spawn(async move {
@@ -416,15 +419,90 @@ async fn main() {
             loop {
                 let timer = Instant::now();
                 // TODO: This should be par_iter via rayon
-                for tourn in tourns.iter_mut() {
-                    // TODO: Update matches
-                    // TODO: "Time is up" messages should be sent here too.
+                for mut pair in tourns.iter_mut() {
+                    let mut tourn = pair.value_mut();
+                    for (id, msg) in tourn.match_timers.iter_mut() {
+                        let round = tourn.tourn.get_round(id).unwrap();
+                        let time_left = round.time_left().as_secs();
+                        let mut warnings = tourn.round_warnings.get_mut(id).unwrap();
+                        if time_left > 0 {
+                            update_match_message(
+                                &cache,
+                                msg,
+                                tourn.tourn.use_table_number,
+                                tourn.match_vcs.get(id).map(|c| c.id.clone()),
+                                tourn.match_tcs.get(id).map(|c| c.id.clone()),
+                                &tourn.players,
+                                &tourn.tourn,
+                                &round,
+                            )
+                            .await;
+                        }
+                        if time_left == 0 && !warnings.time_up {
+                            warnings.time_up = true;
+                            let content = match tourn.match_roles.get(id) {
+                                Some(role) => {
+                                    format!("<@&{}>, time is up in your match.", role.id)
+                                }
+                                None => {
+                                    format!(
+                                        "Match {}, time is up in your match.",
+                                        round.match_number
+                                    )
+                                }
+                            };
+                            let _ = tourn
+                                .pairings_channel
+                                .send_message(&cache, |m| m.content(content))
+                                .await;
+                        } else if time_left <= 60 && !warnings.one_min {
+                            warnings.one_min = true;
+                            let content = match tourn.match_roles.get(id) {
+                                Some(role) => {
+                                    format!(
+                                        "<@&{}>, you have 1 minute left in your match.",
+                                        role.id
+                                    )
+                                }
+                                None => {
+                                    format!(
+                                        "Match {}, you have 1 minute left in your match.",
+                                        round.match_number
+                                    )
+                                }
+                            };
+                            let _ = tourn
+                                .pairings_channel
+                                .send_message(&cache, |m| m.content(content))
+                                .await;
+                        } else if time_left <= 300 && !warnings.five_min {
+                            warnings.five_min = true;
+                            let content = match tourn.match_roles.get(id) {
+                                Some(role) => {
+                                    format!(
+                                        "<@&{}>, you have 5 minutes left in your match.",
+                                        role.id
+                                    )
+                                }
+                                None => {
+                                    format!(
+                                        "Match {}, you have 5 minutes left in your match.",
+                                        round.match_number
+                                    )
+                                }
+                            };
+                            let _ = tourn
+                                .pairings_channel
+                                .send_message(&cache, |m| m.content(content))
+                                .await;
+                        }
+                    }
                 }
+                // Sleep so that the next loop starts 60 seconds after the start of this one
                 if timer.elapsed() < loop_length {
                     let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
                     sleep.tick().await;
                 }
-                // Sleep so that the next loop starts 60 seconds after the start of this one
             }
         });
         tokio::spawn(async move {

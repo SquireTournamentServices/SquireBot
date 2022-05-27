@@ -38,28 +38,35 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     let mut settings = all_settings.get_mut(&guild.id).unwrap();
-    match extract_id(&arg) {
-        Some(id) => {
-            let id = ChannelId(id);
-            if guild.channels.contains_key(&id) {
-                settings.pairings_channel = Some(id);
-            } else {
-                msg.reply(&ctx.http, "Please specify an active channel in this guild.")
-                    .await?;
-            }
-        }
+    let channel_id = match extract_id(&arg) {
+        Some(id) => ChannelId(id),
         None => match guild.channel_id_from_name(&ctx.cache, arg) {
-            Some(id) => {
-                settings.pairings_channel = Some(id);
-            }
+            Some(id) => id,
             None => {
                 msg.reply(
                     &ctx.http,
                     "Please include a channel, either by name or mention.",
                 )
                 .await?;
+                return Ok(());
             }
         },
+    };
+    if let Some(channel) = guild.channels.get(&channel_id) {
+        match channel {
+            Channel::Guild(c) => {
+                settings.pairings_channel = Some(c.clone());
+                msg.reply(&ctx.http, "Default pairings channel updated.")
+                    .await?;
+            }
+            _ => {
+                msg.reply(&ctx.http, "Please specify a text channel.")
+                    .await?;
+            }
+        }
+    } else {
+        msg.reply(&ctx.http, "Please specify an active channel in this guild.")
+            .await?;
     }
     Ok(())
 }
@@ -78,28 +85,37 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     let mut settings = all_settings.get_mut(&guild.id).unwrap();
-    match extract_id(&arg) {
-        Some(id) => {
-            let id = ChannelId(id);
-            if guild.channels.contains_key(&id) {
-                settings.pairings_channel = Some(id);
-            } else {
-                msg.reply(&ctx.http, "Please specify an active channel in this guild.")
-                    .await?;
-            }
-        }
+    let channel_id = match extract_id(&arg) {
+        Some(id) => ChannelId(id),
         None => match guild.channel_id_from_name(&ctx.cache, arg) {
-            Some(id) => {
-                settings.pairings_channel = Some(id);
-            }
+            Some(id) => id,
             None => {
                 msg.reply(
                     &ctx.http,
                     "Please include a channel, either by name or mention.",
                 )
                 .await?;
+                return Ok(());
             }
         },
+    };
+    if let Some(channel) = guild.channels.get(&channel_id) {
+        match channel {
+            Channel::Category(c) => {
+                settings.matches_category = Some(c.clone());
+                msg.reply(&ctx.http, "Default matches category updated.")
+                    .await?;
+            }
+            _ => {
+                msg.reply(&ctx.http, "Please specify a category.").await?;
+            }
+        }
+    } else {
+        msg.reply(
+            &ctx.http,
+            "Please specify an active category in this guild.",
+        )
+        .await?;
     }
     Ok(())
 }
