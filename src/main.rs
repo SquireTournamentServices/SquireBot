@@ -386,26 +386,20 @@ async fn main() {
             loop {
                 let timer = Instant::now();
                 // TODO: This should be par_iter via rayon
-                for mut tourn in tourns.iter_mut() {
-                    if !tourn.update_standings {
+                for mut pair in tourns.iter_mut() {
+                    let mut tourn = pair.value_mut();
+                    if !tourn.update_standings || tourn.standings_message.is_none() {
                         continue;
                     }
                     let standings = tourn.tourn.get_standings();
-                    match &mut tourn.standings_message {
-                        None => {
-                            continue;
-                        }
-                        Some(msg) => {
-                            update_standings_message(
-                                &cache,
-                                msg,
-                                &tourn.players,
-                                &tourn.tourn,
-                                standings,
-                            )
-                            .await;
-                        }
-                    }
+                    update_standings_message(
+                        &cache,
+                        tourn.standings_message.as_mut().unwrap(),
+                        &tourn.players,
+                        &tourn.tourn,
+                        standings,
+                    )
+                    .await;
                     tourn.update_standings = false;
                 }
                 if timer.elapsed() < loop_length {
