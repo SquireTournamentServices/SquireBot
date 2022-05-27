@@ -107,7 +107,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     // NOTE: `create_tournament` will only return an error if the server is not configured. We
     // already checked this, so we're safe to unwrap it.
     let tourn = settings
-        .create_tournament(tourn_role.id, preset, name.clone())
+        .create_tournament(tourn_role.clone(), preset, name.clone())
         .unwrap();
     let tourn_id = tourn.tourn.id.clone();
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();

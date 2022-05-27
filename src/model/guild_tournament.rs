@@ -1,29 +1,38 @@
-use cycle_map::CycleMap;
-use serenity::model::channel::{Channel, GuildChannel, Message};
-use serenity::model::guild::Role;
-use squire_core::operations::TournOp;
-use squire_core::player_registry::PlayerIdentifier;
-use squire_core::round_registry::RoundIdentifier;
-use squire_core::swiss_pairings::{PlayerId, TournamentError};
-use squire_core::tournament::{Tournament, TournamentId, TournamentPreset};
+use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 
 use dashmap::{DashMap, DashSet};
 use serde::{Deserialize, Serialize};
-use serenity::model::id::{ChannelId, GuildId, MessageId, RoleId, UserId};
-use serenity::prelude::*;
+use serenity::model::channel::ChannelCategory;
+use serenity::{
+    model::{
+        channel::{Channel, GuildChannel, Message},
+        guild::Role,
+        id::{ChannelId, GuildId, MessageId, RoleId, UserId},
+    },
+    prelude::*,
+};
 
-use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
+use cycle_map::CycleMap;
+use squire_core::{
+    operations::TournOp,
+    player_registry::PlayerIdentifier,
+    round_registry::RoundIdentifier,
+    swiss_pairings::{PlayerId, TournamentError},
+    tournament::{Tournament, TournamentId, TournamentPreset},
+};
+
+use super::timer_warnings::TimerWarnings;
 
 // Make these (de)serializable once Tournament becomes so
 //#[derive(Serialize, Deserialize, Debug, Clone)]
 #[derive(Debug, Clone)]
 pub struct GuildTournament {
-    pub(crate) tourn_role: RoleId,
+    pub(crate) tourn_role: Role,
     pub(crate) judge_role: RoleId,
     pub(crate) tourn_admin_role: RoleId,
-    pub(crate) pairings_channel: ChannelId,
-    pub(crate) matches_category: ChannelId,
+    pub(crate) pairings_channel: GuildChannel,
+    pub(crate) matches_category: ChannelCategory,
     pub(crate) tourn_status: Option<Message>,
     pub(crate) players: CycleMap<UserId, PlayerId>,
     pub(crate) make_vc: bool,
@@ -32,6 +41,7 @@ pub struct GuildTournament {
     pub(crate) match_tcs: HashMap<RoundIdentifier, GuildChannel>,
     pub(crate) match_roles: HashMap<RoundIdentifier, Role>,
     pub(crate) match_timers: HashMap<RoundIdentifier, Message>,
+    pub(crate) round_warnings: HashMap<RoundIdentifier, TimerWarnings>,
     pub(crate) standings_message: Option<Message>,
     pub(crate) tourn: Tournament,
     pub(crate) update_standings: bool,
@@ -41,11 +51,11 @@ pub struct GuildTournament {
 
 impl GuildTournament {
     pub fn new(
-        tourn_role: RoleId,
+        tourn_role: Role,
         judge_role: RoleId,
         tourn_admin_role: RoleId,
-        pairings_channel: ChannelId,
-        matches_category: ChannelId,
+        pairings_channel: GuildChannel,
+        matches_category: ChannelCategory,
         make_vc: bool,
         make_tc: bool,
         preset: TournamentPreset,
@@ -66,6 +76,7 @@ impl GuildTournament {
             players: CycleMap::new(),
             match_roles: HashMap::new(),
             match_timers: HashMap::new(),
+            round_warnings: HashMap::new(),
             standings_message: None,
             tourn: Tournament::from_preset(name, preset, format),
             update_standings: false,
