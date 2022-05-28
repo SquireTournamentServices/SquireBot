@@ -12,6 +12,8 @@ use crate::model::{
     },
     guild_tournament::GuildTournament,
 };
+use crate::utils::sort_deck::TypeSortedDeck;
+
 
 #[command("decklist")]
 #[description("Prints out one of your decklists.")]
@@ -60,8 +62,27 @@ async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
      let player = tourn.tourn.get_player(&PlayerIdentifier::Id(player_id)).unwrap();
      let response = String::new();
      match player.get_deck(deck_name) {
-        Some(Deck) => {
-            
+        Some(deck) => {
+            let sorted_deck = TypeSortedDeck::from(deck);
+            match msg.channel(&ctx.http).await? {
+                Channel::Guild(channel) => {
+                    channel
+                        .send_message(&ctx.http, |m| {
+                            m.embed(|e| {
+                                sorted_deck
+                                    .populate_embed(e)
+                                    .title(format!("<@{user_name}>'s Deck: {deck_name}"))
+                            })
+                        })
+                        .await?;
+                }
+                _ => {
+                    msg.reply (
+                        &ctx.http,
+                        "This command cannot be used here"
+                    );
+                }
+            }
         },
         None => {
             msg.reply (
