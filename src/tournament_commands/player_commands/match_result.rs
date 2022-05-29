@@ -1,6 +1,7 @@
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
+use squire_core::round::RoundResult;
 
 use crate::model::{
     containers::{
@@ -26,7 +27,13 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
        let tourns = data.get::<TournamentMapContainer>().unwrap();
        let user_name = msg.author.id;
-       let match_result = args.single_quoted::<String>().unwrap();
+       let player_id = tourn.players.get_right(&user_name).unwrap().clone();
+       //i have no idea if the RoundResult implementation is actually correct, the compiler doesn't seem to complain so this is what im rolling with
+       let result_of_match = match args.single_quoted::<String>().unwrap() {
+           "win" => RoundResult::win,
+           "Win" => RoundResult::win,
+           _ => RoundResult::Draw()
+       }
        let tourn_name = args.rest().trim().to_string();
        let id_iter = gld_tourns.get_left_iter(&msg.guild_id.unwrap()).unwrap().filter(|id| tourns.get(id).unwrap().players.contains_left(&msg.author.id));
        let tourn_id = match id_iter.count() {
@@ -60,9 +67,8 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
      let all_tourns = data.get::<TournamentMapContainer>().unwrap();
      let tourn = all_tourns.get_mut(tourn_id).unwrap();
 
-     let player_id = tourn.players.get_right(&user_name).unwrap().clone();
      let player_match_id = tourn.tourn.get_player_round(&PlayerIdentifier::Id(player_id)).unwrap();
-     if let Err(err) = tourn.tourn.apply_op(TournOp::RecordResult(player_match_id, )) {
+     if let Err(err) = tourn.tourn.apply_op(TournOp::RecordResult(player_match_id, result_of_match)) {
         error_to_reply(ctx, msg, err)
         .await?;
     } else {
