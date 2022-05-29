@@ -10,7 +10,8 @@ use crate::model::{
    };
 
 use squire_core::operations::TournOp;
-use crate::utils::error_to_reply;
+use crate::utils::error_to_reply::error_to_reply;
+use::squire_core::standard_scoring::PlayerIdentifier;
 
 #[command("confirm-result")]
 #[only_in(guild)]
@@ -24,7 +25,7 @@ async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> Command
        let tourns = data.get::<TournamentMapContainer>().unwrap();
        let user_name = msg.author.id;
        let tourn_name = args.rest().trim().to_string();
-       let id_iter = gld_tourn_ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().filter(|id| tourns.get(id).unwrap().players.contains_left(&msg.author.id));
+       let id_iter = gld_tourns.get_left_iter(&msg.guild_id.unwrap()).unwrap().filter(|id| tourns.get(id).unwrap().players.contains_left(&msg.author.id));
        let tourn_id = match id_iter.count() {
            0 => {
                msg.reply(
@@ -56,10 +57,13 @@ async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> Command
        let all_tourns = data.get::<TournamentMapContainer>().unwrap();
        let tourn = all_tourns.get_mut(tourn_id).unwrap();
        let player_id = tourn.players.get_right(&user_name).unwrap().clone();
-       if let Err(err) = tourn.tourn.apply_op(TournOp::ConfirmResult(plyr_id)) {
-              error_to_reply(ctx, msg, err).await?;
+       if let Err(err) = tourn.tourn.apply_op(TournOp::ConfirmResult(PlayerIdentifier::Id(player_id))) {
+              error_to_reply(ctx, msg, err)
+              .await?;
           } else {
-              msg.reply(&ctx.http, "Result successfully confirmed!")
+              msg.reply(
+                  &ctx.http, 
+                  "Result successfully confirmed!")
                   .await?;
           }
        Ok(())
