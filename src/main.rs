@@ -19,7 +19,7 @@ use tournament_commands::group::TOURNAMENTCOMMANDS_GROUP;
 
 use utils::{
     card_collection::build_collection,
-    embeds::{update_match_message, update_standings_message},
+    embeds::{update_match_message, update_standings_message, update_status_message},
 };
 
 use dashmap::{rayon, DashMap};
@@ -512,10 +512,12 @@ async fn main() {
             loop {
                 let timer = Instant::now();
                 // TODO: This should be par_iter via rayon
-                for mut tourn in tourns.iter_mut() {
-                    if tourn.update_status {
-                        // TODO: Update status
+                for mut pair in tourns.iter_mut() {
+                    let mut tourn = pair.value_mut();
+                    if !tourn.update_status || tourn.tourn_status.is_none() {
+                        continue;
                     }
+                    update_status_message(&cache, tourn).await;
                     tourn.update_status = false;
                 }
                 if timer.elapsed() < loop_length {
