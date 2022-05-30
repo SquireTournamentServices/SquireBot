@@ -8,15 +8,20 @@ use serenity::{
         channel::Message,
         id::{ChannelId, UserId},
     },
+    utils::Colour,
     CacheAndHttp,
 };
 
 use squire_core::{
-    player_registry::PlayerIdentifier, round::Round, scoring::Standings,
-    standard_scoring::StandardScore, swiss_pairings::PlayerId, tournament::Tournament,
+    player_registry::PlayerIdentifier,
+    round::Round,
+    scoring::Standings,
+    standard_scoring::StandardScore,
+    swiss_pairings::PlayerId,
+    tournament::{PairingSystem, ScoringSystem, Tournament, TournamentStatus},
 };
 
-use crate::model::guild_tournament::GuildTournament;
+use crate::model::guild_tournament::{self, GuildTournament};
 
 fn resolve_name(id: PlayerId, plyrs: &CycleMap<UserId, PlayerId>, tourn: &Tournament) -> String {
     if let Some(u_id) = plyrs.get_left(&id) {
@@ -145,10 +150,124 @@ pub async fn update_match_message(
         .await;
 }
 
-pub async fn update_status_message(
-    cache: &CacheAndHttp,
-    mut msg: &mut Message,
-    tournament: &GuildTournament,
-) {
-    todo!()
+// Title status coloring:
+//  - planned = yellow
+//  - started = green
+//  - frozen = light blue
+//  - ended/cancelled = black
+//
+//  Match info title coloring:
+//  - Green = all certified
+//  - Red = at least one is over time
+//  - Yellow = otherwise
+
+// Tournament contains the message
+pub async fn update_status_message(cache: &CacheAndHttp, tourn: &mut GuildTournament) {
+    let mut discord_info = format!("tournament role: <@&{}>\n", tourn.tourn_role.id);
+    discord_info += &format!("Judge role: <@&{}>\n", tourn.judge_role);
+    discord_info += &format!("Tournament admin role: <@&{}>\n", tourn.tourn_admin_role);
+    discord_info += &format!("Pairings channel: <#{}>\n", tourn.pairings_channel.id);
+    discord_info += &format!("Matches category: <#{}>", tourn.matches_category.id);
+    let mut settings_info = format!("format: {}\n", tourn.tourn.format);
+    settings_info += &format!(
+        "Pairing method: {}\n",
+        match tourn.tourn.pairing_sys {
+            PairingSystem::Swiss(_) => "swiss",
+            PairingSystem::Fluid(_) => "fluid",
+        }
+    );
+    settings_info += &format!(
+        "Scoring method: {}\n",
+        match tourn.tourn.scoring_sys {
+            ScoringSystem::Standard(_) => "standard",
+        }
+    );
+    settings_info += &format!(
+        "Registration: {}\n",
+        if tourn.tourn.reg_open {
+            "Open"
+        } else {
+            "Closed"
+        }
+    );
+    settings_info += &format!("Match size: {}\n", tourn.tourn.game_size);
+    settings_info += &format!(
+        "Assign table number:{}\n",
+        if tourn.tourn.use_table_number {
+            "True"
+        } else {
+            "False"
+        }
+    );
+    settings_info += &format!(
+        "Require checkin: {}",
+        if tourn.tourn.require_check_in {
+            "True"
+        } else {
+            "False"
+        }
+    );
+    settings_info += &format!(
+        "Require deck reg: {}",
+        if tourn.tourn.require_deck_reg {
+            "True"
+        } else {
+            "False"
+        }
+    );
+    if tourn.tourn.require_deck_reg {
+        settings_info += &format!("Min deck count: {}", tourn.tourn.min_deck_count);
+        settings_info += &format!("Max deck count: {}", tourn.tourn.max_deck_count);
+    }
+    let mut player_info = format!(
+        "{} players are registered.",
+        tourn.tourn.player_reg.active_player_count()
+    );
+    if tourn.tourn.require_deck_reg {
+        let player_count = tourn
+            .tourn
+            .player_reg
+            .players
+            .iter()
+            .filter(|(_, p)| p.decks.len() > tourn.tourn.min_deck_count as usize)
+            .count();
+        player_info += &format!(
+            "{} of them have registered the minimum number of decks.",
+            player_count
+        );
+    }
+    if tourn.tourn.require_check_in {
+        player_info += &format!(
+            "{} of them have checked in.",
+            tourn.tourn.player_reg.count_check_ins()
+        );
+    }
+    let mut match_info = format!(
+        "New matches will be {} minutes long.",
+        tourn.tourn.round_reg.length.as_secs() / 60
+    );
+    let match_count = tourn.tourn.round_reg.active_round_count();
+    match_info += &format!(
+        "There are {} matches that are yet to be certified.",
+        match_count
+    );
+    let color = match tourn.tourn.status {
+        TournamentStatus::Planned => Colour::GOLD,
+        TournamentStatus::Started => Colour::FOOYOO,
+        TournamentStatus::Frozen => Colour::ROHRKATZE_BLUE,
+        TournamentStatus::Ended | TournamentStatus::Cancelled => Colour::DARK_GREY,
+    };
+    let msg = tourn.tourn_status.as_mut().unwrap();
+    let _ = msg
+        .edit(cache, |m| {
+            m.embed(|e| {
+                e.color(color)
+                    .title(format!("{} Status:", tourn.tourn.name))
+                    .field("Discord Info:", discord_info, false)
+                    .field("Tournament Settings Info:", settings_info, false)
+                    .field("Player Info:", player_info, false)
+                    .field("Match Info:", match_info, false)
+            })
+        })
+        .await;
 }
