@@ -16,6 +16,7 @@ use crate::utils::error_to_reply::error_to_reply;
 
 use squire_core::operations::TournOp;
 
+use::squire_core::round_registry::RoundIdentifier;
 
 #[command("match-result")]
 #[only_in(guild)]
@@ -27,26 +28,18 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
        let tourns = data.get::<TournamentMapContainer>().unwrap();
        let user_name = msg.author.id;
-       let player_id = tourn.players.get_right(&user_name).unwrap().clone();
-       //i have no idea if the RoundResult implementation is actually correct, the compiler doesn't seem to complain so this is what im rolling with
        let raw_result = args.single::<String>().unwrap();
-// Some other arg parsing
-       let round_result = match raw_result.parse::<u8>() {
-        Ok(n) => RoundResult::Wins(plyr_id, n),
+       let round_number = match args.single::<u64>() {
+        Ok(n) => RoundIdentifier::Number(n),
         Err(_) => {
-            if raw_result == "draw" {
-                RoundResult::Draw()
-            } else {
-                msg.reply(
+            msg.reply(
                 &ctx.http,
-                "The third argument must be the number of wins for the player.",
-                )
-                .await?;
-                return Ok(());
-                }
-            }
-        };
-       
+                "The second argument must be a proper match number.",
+            )
+            .await?;
+            return Ok(());
+        }
+    };       
        let tourn_name = args.rest().trim().to_string();
        let id_iter = gld_tourns.get_left_iter(&msg.guild_id.unwrap()).unwrap().filter(|id| tourns.get(id).unwrap().players.contains_left(&msg.author.id));
        let tourn_id = match id_iter.count() {
@@ -79,9 +72,44 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
      let all_tourns = data.get::<TournamentMapContainer>().unwrap();
      let tourn = all_tourns.get_mut(tourn_id).unwrap();
+     let player_id = tourn.players.get_right(&user_name).unwrap().clone();
+     let round_result = match raw_result.parse::<u8>() {
+        Ok(n) => RoundResult::Wins(player_id, n),
+        Err(_) => {
+            if raw_result == "draw" {
+                RoundResult::Draw()
+            } else {
+                msg.reply(
+                &ctx.http,
+                "The third argument must be the number of wins for the player.",
+                )
+                .await?;
+                return Ok(());
+                }
+            }
+        };
+     match tourn.tourn.get_round(&round_number) {
+         Ok(round) => {
+             if !round.players.contains(&player_id) {
+                 msg.reply(
+                     &ctx.http,
+                    "You are not in that match of the tournament."
+                )
+                .await?;
+                return Ok(())
+             }
+         },
+         Err(_) => {
+            msg.reply(
+                &ctx.http,
+                "There is not a round with that match number in the tournament.",
+            )
+            .await?;
+            return Ok(());
+     }
 
-     let player_match_id = tourn.tourn.get_player_round(&PlayerIdentifier::Id(player_id)).unwrap();
-     if let Err(err) = tourn.tourn.apply_op(TournOp::RecordResult(player_match_id, result_of_match)) {
+    };
+    if let Err(err) = tourn.tourn.apply_op(TournOp::RecordResult(round_number, round_result)) {
         error_to_reply(ctx, msg, err)
         .await?;
     } else {
