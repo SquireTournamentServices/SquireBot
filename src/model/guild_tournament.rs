@@ -3,7 +3,11 @@ use std::hash::{Hash, Hasher};
 
 use dashmap::{DashMap, DashSet};
 use serde::{Deserialize, Serialize};
+use serenity::client::Cache;
+use serenity::framework::standard::CommandResult;
+use serenity::http::CacheHttp;
 use serenity::model::channel::ChannelCategory;
+use serenity::CacheAndHttp;
 use serenity::{
     model::{
         channel::{Channel, GuildChannel, Message},
@@ -21,6 +25,8 @@ use squire_core::{
     swiss_pairings::{PlayerId, TournamentError},
     tournament::{Tournament, TournamentId, TournamentPreset},
 };
+
+use crate::utils::embeds::update_status_message;
 
 use super::timer_warnings::TimerWarnings;
 
@@ -114,6 +120,17 @@ impl GuildTournament {
             .id
             .clone();
         self.players.insert(user, plyr);
+        Ok(())
+    }
+
+    pub async fn spawn_status_message(
+        &mut self,
+        origin: &Message,
+        cache: &impl CacheHttp,
+    ) -> CommandResult {
+        let status = origin.reply(cache, "").await?;
+        self.tourn_status = Some(status);
+        update_status_message(cache, self).await;
         Ok(())
     }
 }

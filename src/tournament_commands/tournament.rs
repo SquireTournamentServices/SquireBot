@@ -1,27 +1,30 @@
 use std::fmt::format;
 
+use serenity::{
+    framework::standard::{macros::command, Args, CommandResult},
+    model::prelude::*,
+    prelude::*,
+};
+
+use squire_core::tournament::TournamentPreset;
+
 use crate::model::containers::{
     GuildAndTournamentIDMapContainer, GuildSettingsMapContainer, TournamentMapContainer,
     TournamentNameAndIDMapContainer,
 };
 
-use super::admin_commands::admin::*;
-use super::player_commands::{
-    add_deck::*, confirm_result::*, decklist::*, decks::*, drop::*, list::*, match_result::*,
-    name::*, ready::*, register::*, remove_deck::*, standings::*,
+use super::{
+    admin_commands::admin::*,
+    player_commands::{
+        add_deck::*, confirm_result::*, decklist::*, decks::*, drop::*, list::*, match_result::*,
+        name::*, ready::*, register::*, remove_deck::*, standings::*,
+    },
+    settings_commands::*,
 };
-use super::settings_commands::*;
-
-use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::prelude::*;
-use serenity::prelude::*;
-use squire_core::tournament::TournamentPreset;
-/*
-*/
 
 #[command("tournament")]
 #[only_in(guild)]
-#[aliases("tourn", "T")]
+#[aliases("tourn", "T", "t")]
 #[sub_commands(
     admin,
     create,
