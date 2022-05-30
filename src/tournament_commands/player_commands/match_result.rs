@@ -29,7 +29,23 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
        let user_name = msg.author.id;
        let player_id = tourn.players.get_right(&user_name).unwrap().clone();
        //i have no idea if the RoundResult implementation is actually correct, the compiler doesn't seem to complain so this is what im rolling with
-       let result_of_match = match args.single_quoted::<String>().unwrap() {
+let raw_result = args.single::<String>().unwrap();
+// Some other arg parsing
+let round_result = match raw_result.parse::<u8>() {
+    Ok(n) => RoundResult::Wins(plyr_id, n),
+    Err(_) => {
+        if raw_result == "draw" {
+            RoundResult::Draw()
+        } else {
+            msg.reply(
+                &ctx.http,
+                "The third argument must be the number of wins for the player.",
+            )
+            .await?;
+            return Ok(());
+        }
+    }
+};
            "win" => RoundResult::win,
            "Win" => RoundResult::win,
            _ => RoundResult::Draw()
