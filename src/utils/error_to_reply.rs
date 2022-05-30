@@ -78,10 +78,6 @@ pub async fn error_to_reply(ctx: &Context, msg: &Message, err: TournamentError) 
             )
             .await?;
         }
-        _ => {
-            msg.reply(&ctx.http, "There was an unknown issue with the tournametn.")
-                .await?;
-        }
     };
     Ok(())
 }

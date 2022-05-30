@@ -1,9 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use cycle_map::CycleMap;
 use itertools::Itertools;
 use serenity::{
     builder::CreateEmbed,
+    client::Cache,
+    http::CacheHttp,
     model::{
         channel::Message,
         id::{ChannelId, UserId},
@@ -22,6 +24,25 @@ use squire_core::{
 };
 
 use crate::model::guild_tournament::{self, GuildTournament};
+
+pub fn embed_fields<I, T>(iter: I) -> Vec<String>
+where
+    I: Iterator<Item = T>,
+    T: Display,
+{
+    let mut digest = Vec::new();
+    let mut buffer = String::with_capacity(1024);
+    for t in iter {
+        let s = t.to_string();
+        if buffer.len() + s.len() > 1024 {
+            digest.push(buffer.clone());
+            buffer.clear()
+        }
+        buffer += &s;
+    }
+    digest.push(buffer);
+    digest
+}
 
 fn resolve_name(id: PlayerId, plyrs: &CycleMap<UserId, PlayerId>, tourn: &Tournament) -> String {
     if let Some(u_id) = plyrs.get_left(&id) {
@@ -150,19 +171,8 @@ pub async fn update_match_message(
         .await;
 }
 
-// Title status coloring:
-//  - planned = yellow
-//  - started = green
-//  - frozen = light blue
-//  - ended/cancelled = black
-//
-//  Match info title coloring:
-//  - Green = all certified
-//  - Red = at least one is over time
-//  - Yellow = otherwise
-
 // Tournament contains the message
-pub async fn update_status_message(cache: &CacheAndHttp, tourn: &mut GuildTournament) {
+pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTournament) {
     let mut discord_info = format!("tournament role: <@&{}>\n", tourn.tourn_role.id);
     discord_info += &format!("Judge role: <@&{}>\n", tourn.judge_role);
     discord_info += &format!("Tournament admin role: <@&{}>\n", tourn.tourn_admin_role);

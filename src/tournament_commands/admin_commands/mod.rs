@@ -9,7 +9,6 @@ pub mod end;
 pub mod freeze;
 pub mod give_bye;
 pub mod match_result;
-pub mod match_status;
 pub mod players;
 pub mod profile;
 pub mod prune;
