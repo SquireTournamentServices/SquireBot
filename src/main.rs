@@ -7,7 +7,7 @@ mod tournament_commands;
 mod utils;
 
 use cycle_map::{CycleMap, GroupMap};
-use squire_core::{self, round::RoundId};
+use squire_core::{self, round::RoundId, tournament::TournamentId};
 
 use misc_commands::{flip_coins::*, group::MISCCOMMANDS_GROUP};
 use model::{
@@ -48,14 +48,9 @@ use serenity::{
 };
 use tokio::{sync::Mutex, time::Instant};
 
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Write,
-    fs::read_to_string,
-    path::Path,
-    sync::Arc,
-    time::Duration,
-};
+use std::{collections::{HashMap, HashSet}, fs::{File, read_to_string}, io::Write, path::Path, sync::Arc, time::Duration};
+
+use crate::model::guild_tournament::GuildTournament;
 
 struct Handler;
 
@@ -370,10 +365,21 @@ async fn main() {
         )
         .expect("The guild settings data is malformed.");
         let ref_main = Arc::new(all_guild_settings);
+        let settings_ref = ref_main.clone();
         data.insert::<GuildSettingsMapContainer>(ref_main);
-
+        
         // Construct the main TournamentID -> Tournament map
-        let ref_main = Arc::new(DashMap::new());
+        let all_tournaments: DashMap<TournamentId, GuildTournament> = serde_json::from_str(
+            &mut read_to_string("./tournaments.json").expect("Tournament file could not be found."),
+        )
+        .expect("The tournament data is malformed.");
+        
+        let tourn_name_and_id_map: CycleMap<String, TournamentId> = all_tournaments.iter().map(|t| (t.tourn.name.clone(), t.tourn.id)).collect();
+        let guild_and_tourn_id_map: GroupMap<TournamentId, GuildId> = all_tournaments.iter().map(|t| (t.tourn.id, t.guild_id)).collect();
+
+        // Insert the main TournamentID -> Tournament map
+        let ref_main = Arc::new(all_tournaments);
+        let tourns_ref = ref_main.clone();
         let ref_one = ref_main.clone();
         let cache_one = client.cache_and_http.clone();
         let ref_two = ref_main.clone();
@@ -529,10 +535,10 @@ async fn main() {
         });
 
         // Construct the Tournament Name <-> TournamentID cycle map
-        data.insert::<TournamentNameAndIDMapContainer>(Arc::new(RwLock::new(CycleMap::new())));
+        data.insert::<TournamentNameAndIDMapContainer>(Arc::new(RwLock::new(tourn_name_and_id_map)));
 
         // Construct the GuildID <-> TournamentID group map
-        data.insert::<GuildAndTournamentIDMapContainer>(Arc::new(RwLock::new(GroupMap::new())));
+        data.insert::<GuildAndTournamentIDMapContainer>(Arc::new(RwLock::new(guild_and_tourn_id_map)));
 
         // Construct the confirmations map, used in the !yes/!no commands.
         let confs: DashMap<UserId, Box<dyn Confirmation>> = DashMap::new();
@@ -569,6 +575,26 @@ async fn main() {
         let misfortunes: DashMap<RoundId, Misfortune> = DashMap::new();
         data.insert::<MisfortuneMapContainer>(Arc::new(misfortunes));
         data.insert::<MisfortuneUserMapContainer>(Arc::new(RwLock::new(mis_players)));
+        
+        // Spawns an await task to save all data every 15 minutes
+        tokio::spawn(async move {
+            let tourns = tourns_ref;
+            let settings = settings_ref;
+            let mut interval = tokio::time::interval(Duration::from_secs(54_000));
+            loop {
+                interval.tick().await;
+                if let Ok(data) = serde_json::to_string(&*tourns) {
+                    if let Ok(mut file) = File::create("tournaments.json") {
+                        let _ = write!(file, "{data}");
+                    }
+                }
+                if let Ok(data) = serde_json::to_string(&*settings) {
+                    if let Ok(mut file) = File::create("guild_settings.json") {
+                        let _ = write!(file, "{data}");
+                    }
+                }
+            }
+        });
     }
 
     // TODO: Auto state saver

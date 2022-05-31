@@ -3,18 +3,24 @@ use std::hash::{Hash, Hasher};
 
 use dashmap::{DashMap, DashSet};
 use serde::{Deserialize, Serialize};
-use serenity::client::Cache;
-use serenity::framework::standard::CommandResult;
-use serenity::http::CacheHttp;
-use serenity::model::channel::ChannelCategory;
-use serenity::CacheAndHttp;
 use serenity::{
-    model::{
-        channel::{Channel, GuildChannel, Message},
-        guild::Role,
-        id::{ChannelId, GuildId, MessageId, RoleId, UserId},
+    client::Cache,
+    framework::standard::CommandResult,
+    http::{CacheHttp, Http},
+    model::channel::ChannelCategory,
+    CacheAndHttp,
+    {
+        model::{
+            channel::{
+                Channel, ChannelType, GuildChannel, Message, PermissionOverwrite,
+                PermissionOverwriteType,
+            },
+            guild::{Guild, Role},
+            id::{ChannelId, GuildId, MessageId, RoleId, UserId},
+            Permissions,
+        },
+        prelude::*,
     },
-    prelude::*,
 };
 
 use cycle_map::CycleMap;
@@ -30,9 +36,13 @@ use crate::utils::embeds::update_status_message;
 
 use super::timer_warnings::TimerWarnings;
 
-// Make these (de)serializable once Tournament becomes so
-//#[derive(Serialize, Deserialize, Debug, Clone)]
-#[derive(Debug, Clone)]
+pub enum RoundCreationFailure {
+    VC,
+    TC,
+    Role,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GuildTournament {
     pub(crate) tourn_role: Role,
     pub(crate) judge_role: RoleId,
@@ -52,11 +62,13 @@ pub struct GuildTournament {
     pub(crate) tourn: Tournament,
     pub(crate) update_standings: bool,
     pub(crate) update_status: bool,
+    pub(crate) guild_id: GuildId,
     // Timers always need updated
 }
 
 impl GuildTournament {
     pub fn new(
+        guild_id: GuildId,
         tourn_role: Role,
         judge_role: RoleId,
         tourn_admin_role: RoleId,
@@ -69,6 +81,7 @@ impl GuildTournament {
         name: String,
     ) -> Self {
         Self {
+            guild_id,
             tourn_role,
             judge_role,
             tourn_admin_role,
@@ -100,6 +113,66 @@ impl GuildTournament {
         } else {
             None
         }
+    }
+
+    // NOTE: This will not send a pairings message.
+    pub async fn create_round_data(
+        &mut self,
+        cache: &impl CacheHttp,
+        gld: &Guild,
+        rnd: RoundIdentifier,
+        number: u64,
+    ) -> Result<(), RoundCreationFailure> {
+        let role = gld
+            .create_role(cache, |r| r.name(format!("Match {}", number)))
+            .await
+            .map_err(|_| RoundCreationFailure::Role)?;
+        let mut allowed_perms = Permissions::VIEW_CHANNEL;
+        allowed_perms.insert(Permissions::CONNECT);
+        allowed_perms.insert(Permissions::SEND_MESSAGES);
+        allowed_perms.insert(Permissions::SPEAK);
+        let overwrites = vec![PermissionOverwrite {
+            allow: allowed_perms,
+            deny: Permissions::empty(),
+            kind: PermissionOverwriteType::Role(role.id),
+        }];
+        self.match_roles.insert(rnd.clone(), role);
+        if self.make_tc {
+            let tc = gld
+                .create_channel(cache, |c| {
+                    c.kind(ChannelType::Text)
+                        .name(format!("Match {}", number))
+                        .category(self.matches_category.id)
+                        .permissions(overwrites.iter().cloned())
+                })
+                .await
+                .map_err(|_| RoundCreationFailure::TC)?;
+            self.match_tcs.insert(rnd.clone(), tc);
+        }
+        if self.make_vc {
+            let vc = gld
+                .create_channel(cache, |c| {
+                    c.kind(ChannelType::Voice)
+                        .name(format!("Match {}", number))
+                        .category(self.matches_category.id)
+                        .permissions(overwrites.into_iter())
+                })
+                .await
+                .map_err(|_| RoundCreationFailure::VC)?;
+            self.match_vcs.insert(rnd.clone(), vc);
+        }
+        Ok(())
+    }
+
+    // NOTE: This will not delete roles. That is done at the end of the tournament
+    pub async fn clear_round_data(&mut self, rnd: RoundIdentifier, http: &Http) {
+        if let Some(tc) = self.match_tcs.remove(&rnd) {
+            let _ = tc.delete(http).await;
+        }
+        if let Some(vc) = self.match_vcs.remove(&rnd) {
+            let _ = vc.delete(http).await;
+        }
+        self.match_timers.remove(&rnd);
     }
 
     pub fn get_user_id(&self, user: &PlayerId) -> Option<UserId> {
