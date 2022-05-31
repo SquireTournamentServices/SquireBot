@@ -29,11 +29,13 @@ pub struct GuildSettings {
     pub make_vc: bool,
     pub make_tc: bool,
     pub tourn_settings: TournSettingsTree,
+    pub guild_id: GuildId,
 }
 
 impl GuildSettings {
-    pub fn new() -> Self {
+    pub fn new(guild_id: GuildId) -> Self {
         GuildSettings {
+            guild_id,
             pairings_channel: None,
             judge_role: None,
             tourn_admin_role: None,
@@ -53,6 +55,7 @@ impl GuildSettings {
     ) -> Option<GuildTournament> {
         if self.is_configured() {
             let tourn = GuildTournament::new(
+                self.guild_id,
                 tourn_role,
                 self.judge_role.unwrap(),
                 self.tourn_admin_role.unwrap(),
@@ -78,6 +81,7 @@ impl GuildSettings {
         let matches_category: Option<ChannelCategory> = get_default_matches_category_id(guild);
 
         GuildSettings {
+            guild_id: guild.id,
             pairings_channel,
             judge_role,
             tourn_admin_role,
