@@ -18,7 +18,9 @@ use serenity::{
 };
 
 use squire_core::{
-    player_registry::PlayerIdentifier, round::RoundId, round_registry::RoundIdentifier,
+    player_registry::PlayerIdentifier,
+    round::{Round, RoundId},
+    round_registry::RoundIdentifier,
     tournament::TournamentId,
 };
 
@@ -71,7 +73,7 @@ async fn misfortune(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[min_args(0)]
 #[max_args(1)]
 #[description("Start resolving Wheel of Misfortune.")]
-async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     /* Old version */
     let data = ctx.data.read().await;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
@@ -98,7 +100,7 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     };
     let tourn = all_tourns.get(&tourn_id).unwrap();
     let plyr_id = match tourn.get_player_id(&msg.author.id) {
-        Some(id) => id,
+        Some(id) => PlayerIdentifier::Id(id),
         None => {
             let _ = msg
                 .reply(&ctx.http, "You are not registered for that tournament.")
@@ -106,21 +108,26 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let round_id = match tourn
+    let mut rounds: Vec<Round> = tourn
         .tourn
-        .get_player_round(&PlayerIdentifier::Id(plyr_id.clone()))
-    {
-        Ok(id) => id,
-        Err(_) => {
-            let _ = msg
-                .reply(
-                    &ctx.http,
-                    "You are not in an active match of that tournament.",
-                )
-                .await;
-            return Ok(());
-        }
-    };
+        .get_player_rounds(&plyr_id)
+        .unwrap()
+        .into_iter()
+        .filter(|r| !r.is_certified())
+        .collect();
+    if rounds.is_empty() {
+        msg.reply(&ctx.http, "You are not in an active match.")
+            .await?;
+        return Ok(());
+    } else if rounds.len() > 1 {
+        msg.reply(
+            &ctx.http,
+            "You are in multiple active matches. Please state the match number.",
+        )
+        .await?;
+        return Ok(());
+    }
+    let round_id = rounds.pop().unwrap().id;
     let mut user_round_map = data
         .get::<MisfortuneUserMapContainer>()
         .unwrap()
@@ -128,7 +135,7 @@ async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .await;
     let round = tourn
         .tourn
-        .get_round(&RoundIdentifier::Id(round_id))
+        .get_round(&RoundIdentifier::Id(round_id.clone()))
         .unwrap();
     user_round_map.insert_right(round_id.clone());
     let mut mis = Misfortune::new(HashSet::new(), msg.channel_id, msg.id);

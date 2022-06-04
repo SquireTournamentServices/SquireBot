@@ -120,7 +120,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .unwrap()
         .write()
         .await;
-    name_and_id.insert(name, tourn_id);
+    name_and_id.insert(name, tourn_id.clone());
     let mut id_map = data
         .get::<GuildAndTournamentIDMapContainer>()
         .unwrap()
