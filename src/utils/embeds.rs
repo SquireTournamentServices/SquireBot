@@ -1,6 +1,5 @@
 use std::{collections::HashMap, fmt::Display};
 
-use cycle_map::CycleMap;
 use itertools::Itertools;
 use serenity::{
     builder::CreateEmbed,
@@ -14,6 +13,7 @@ use serenity::{
     CacheAndHttp,
 };
 
+use cycle_map::CycleMap;
 use squire_core::{
     player_registry::PlayerIdentifier,
     round::Round,
@@ -22,6 +22,8 @@ use squire_core::{
     swiss_pairings::PlayerId,
     tournament::{PairingSystem, ScoringSystem, Tournament, TournamentStatus},
 };
+
+use crate::utils::tourn_resolver::player_name_resolver;
 
 use crate::model::guild_tournament::{self, GuildTournament};
 
@@ -44,17 +46,6 @@ where
     digest
 }
 
-fn resolve_name(id: PlayerId, plyrs: &CycleMap<UserId, PlayerId>, tourn: &Tournament) -> String {
-    if let Some(u_id) = plyrs.get_left(&id) {
-        format!("<@{u_id}>\n")
-    } else {
-        format!(
-            "{}\n",
-            tourn.get_player(&PlayerIdentifier::Id(id)).unwrap().name
-        )
-    }
-}
-
 pub async fn update_standings_message(
     cache: &CacheAndHttp,
     mut msg: &mut Message,
@@ -67,7 +58,7 @@ pub async fn update_standings_message(
     let mut name_buffer = String::with_capacity(1024);
     let mut score_buffer = String::with_capacity(1024);
     for (i, (id, score)) in standings.scores.drain(0..).enumerate() {
-        let mut name = format!("{i}) {}", resolve_name(id, plyrs, tourn));
+        let mut name = format!("{i}) {}", player_name_resolver(id, plyrs, tourn));
         let mut score_s = String::new();
         score_s += &if score.include_match_points {
             format!("{:.2}, ", score.match_points)
@@ -145,7 +136,7 @@ pub async fn update_match_message(
                         "Winner:",
                         format!(
                             "{}",
-                            resolve_name(round.winner.clone().unwrap(), plyrs, tourn)
+                            player_name_resolver(round.winner.clone().unwrap(), plyrs, tourn)
                         ),
                         false,
                     );
@@ -162,7 +153,7 @@ pub async fn update_match_message(
                     round
                         .players
                         .iter()
-                        .map(|id| resolve_name(id.clone(), plyrs, tourn))
+                        .map(|id| player_name_resolver(id.clone(), plyrs, tourn))
                         .join("\n"),
                     false,
                 )

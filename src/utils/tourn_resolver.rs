@@ -6,7 +6,7 @@ use serenity::{
     model::{channel::Message, id::UserId, mention::Mention},
     prelude::Context,
 };
-use squire_core::tournament::TournamentId;
+use squire_core::{player_registry::PlayerIdentifier, swiss_pairings::PlayerId, tournament::{Tournament, TournamentId}};
 use std::str::FromStr;
 
 #[hook]
@@ -121,3 +121,15 @@ pub async fn tourn_id_resolver(
         }
     }
 }
+
+pub fn player_name_resolver(id: PlayerId, plyrs: &CycleMap<UserId, PlayerId>, tourn: &Tournament) -> String {
+    if let Some(u_id) = plyrs.get_left(&id) {
+        format!("<@{u_id}>\n")
+    } else {
+        format!(
+            "{}\n",
+            tourn.get_player(&PlayerIdentifier::Id(id)).unwrap().name
+        )
+    }
+}
+
