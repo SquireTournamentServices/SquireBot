@@ -44,7 +44,7 @@ async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         }
     };
     let deck_name = args.single_quoted::<String>().unwrap();
-    if deck_name.len() == 0 {
+    if deck_name.is_empty() {
         msg.reply(&ctx.http, "Please include the name of the deck.")
             .await?;
         return Ok(());

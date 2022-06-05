@@ -147,7 +147,7 @@ impl TypeSortedDeck {
                     .join("\n"),
                 true,
             );
-        let e = if self.other.len() > 0 {
+        let e = if self.other.is_empty() {
             e.field(
                 format!("Others ({}):", self.count_other()),
                 self.other
@@ -180,7 +180,7 @@ impl TypeSortedDeck {
             + self.count_sideboard()
     }
     pub fn count_commanders(&self) -> usize {
-        self.commanders.iter().count()
+        self.commanders.len()
     }
     pub fn count_lands(&self) -> usize {
         self.lands.iter().map(|(n, _)| n).sum()

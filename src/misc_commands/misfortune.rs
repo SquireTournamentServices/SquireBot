@@ -92,7 +92,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .get_left_iter(&msg.guild_id.unwrap())
         .unwrap()
         .cloned();
-    let tourn_id = match tourn_id_resolver(&ctx, &msg, &given_name, &name_and_id, id_iter).await {
+    let tourn_id = match tourn_id_resolver(ctx, msg, given_name, &name_and_id, id_iter).await {
         Some(id) => id,
         None => {
             return Ok(());
@@ -141,7 +141,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut mis = Misfortune::new(HashSet::new(), msg.channel_id, msg.id);
     for plyr in round.get_all_players() {
         let user = tourn.get_user_id(&plyr).unwrap();
-        user_round_map.insert_left(user.clone(), &round_id);
+        user_round_map.insert_left(user, &round_id);
         mis.players.insert(user);
         let _ = msg
             .guild(&ctx)

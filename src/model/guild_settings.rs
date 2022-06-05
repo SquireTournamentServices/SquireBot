@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use crate::utils::stringify::stringify_option;
 
 use super::guild_tournament::GuildTournament;
@@ -144,24 +146,40 @@ impl GuildSettings {
 
     pub fn as_embed(&self, embed: &mut CreateEmbed) {
         let names = "Pairings Channel:\nJudge Role:\nTourn Admin Role:\nMatches Category:\nMake VC:\nMake TC:";
-        let mut settings: String =
-            (stringify_option(self.judge_role.map_or(None, |r| Some(format!("<@&{}>", r)))) + "\n")
-                .to_string();
-        settings += &(stringify_option(
-            self.tourn_admin_role
-                .map_or(None, |r| Some(format!("<@&{}>", r))),
-        ) + "\n");
-        settings += &(stringify_option(
-            self.pairings_channel
-                .as_ref()
-                .map_or(None, |c| Some(format!("<#{}>", c.id))),
-        ) + "\n");
-        settings += &(stringify_option(
-            self.matches_category
-                .as_ref()
-                .map_or(None, |c| Some(format!("<#{}>", c.id))),
-        ) + "\n");
-        settings += &format!("{}\n{}", self.make_vc, self.make_tc);
+        let mut settings = String::new();
+        let _ = writeln!(
+            settings,
+            "{}",
+            stringify_option(self.judge_role.as_ref().map(|r| format!("<@&{}>", r)))
+        );
+        let _ = writeln!(
+            settings,
+            "{}",
+            stringify_option(
+                self.tourn_admin_role
+                    .as_ref()
+                    .map(|r| format!("<@&{}>", r))
+            )
+        );
+        let _ = writeln!(
+            settings,
+            "{}",
+            stringify_option(
+                self.pairings_channel
+                    .as_ref()
+                    .map(|c| format!("<#{}>", c.id)),
+            )
+        );
+        let _ = writeln!(
+            settings,
+            "{}",
+            stringify_option(
+                self.matches_category
+                    .as_ref()
+                    .map(|c| format!("<#{}>", c.id)),
+            )
+        );
+        let _ = write!(settings, "{}\n{}", self.make_vc, self.make_tc);
         // TODO: Make the settings tree viewable in the embed
         embed
             .title("Server Tournament Settings:")
@@ -174,7 +192,7 @@ pub fn get_default_judge_role_id(guild: &Guild) -> Option<RoleId> {
         .roles
         .iter()
         .filter(|(_, r)| r.name == DEFAULT_JUDGE_ROLE_NAME)
-        .map(|(id, _)| (*id).clone())
+        .map(|(id, _)| *id)
         .next()
 }
 
@@ -183,7 +201,7 @@ pub fn get_default_tourn_admin_role_id(guild: &Guild) -> Option<RoleId> {
         .roles
         .iter()
         .filter(|(_, r)| r.name == DEFAULT_TOURN_ADMIN_ROLE_NAME)
-        .map(|(id, _)| (*id).clone())
+        .map(|(id, _)| *id)
         .next()
 }
 
@@ -195,9 +213,8 @@ pub fn get_default_pairings_channel_id(guild: &Guild) -> Option<GuildChannel> {
             Channel::Guild(g_channel) => Some(g_channel),
             _ => None,
         })
-        .filter(|c| c.kind == ChannelType::Text && c.name == DEFAULT_PAIRINGS_CHANNEL_NAME)
-        .map(|c| c.clone())
-        .next()
+        .find(|c| c.kind == ChannelType::Text && c.name == DEFAULT_PAIRINGS_CHANNEL_NAME)
+        .cloned()
 }
 
 pub fn get_default_matches_category_id(guild: &Guild) -> Option<ChannelCategory> {
@@ -208,7 +225,6 @@ pub fn get_default_matches_category_id(guild: &Guild) -> Option<ChannelCategory>
             Channel::Category(c_channel) => Some(c_channel),
             _ => None,
         })
-        .filter(|c| c.kind == ChannelType::Category && c.name == DEFAULT_MATCHES_CATEGORY_NAME)
-        .map(|c| c.clone())
-        .next()
+        .find(|c| c.kind == ChannelType::Category && c.name == DEFAULT_MATCHES_CATEGORY_NAME)
+        .cloned()
 }

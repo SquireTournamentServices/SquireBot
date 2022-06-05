@@ -79,7 +79,7 @@ async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mut response = String::new();
 
     for deck in decks.keys() {
-        let _ = write!(response, "{deck}\n");
+        let _ = writeln!(response, "{deck}\n");
     }
 
     msg.reply(&ctx.http, response).await?;

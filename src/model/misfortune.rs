@@ -1,11 +1,15 @@
+use std::{
+    fmt::Write,
+    collections::{HashMap, HashSet},
+};
+
 use dashmap::DashMap;
 use serenity::{
     model::id::{ChannelId, MessageId, UserId},
     prelude::*,
 };
-use squire_core::round::RoundId;
 
-use std::collections::{HashMap, HashSet};
+use squire_core::round::RoundId;
 
 pub struct Misfortune {
     pub players: HashSet<UserId>,
@@ -37,11 +41,11 @@ impl Misfortune {
     }
 
     pub fn get_channel(&self) -> ChannelId {
-        self.reply_channel.clone()
+        self.reply_channel
     }
 
     pub fn get_message(&self) -> MessageId {
-        self.reply_message.clone()
+        self.reply_message
     }
 
     pub fn get_responses(&self) -> HashMap<UserId, u64> {
@@ -51,7 +55,7 @@ impl Misfortune {
     pub fn pretty_str(&self) -> String {
         let mut digest = String::with_capacity(self.players.len() * 40);
         for (p, r) in &self.responses {
-            digest += &format!("<@{}> answered {}\n", p, r);
+            let _ = writeln!(digest, "<@{p}> answered {r}");
         }
         digest
     }

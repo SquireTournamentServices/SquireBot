@@ -8,51 +8,51 @@ pub async fn error_to_reply(ctx: &Context, msg: &Message, err: TournamentError) 
         IncorrectStatus => {
             msg.reply(
                 &ctx.http,
-                format!("That tournament isn't taking new players right now."),
+                "That tournament isn't taking new players right now.",
             )
             .await?;
         }
         RegClosed => {
             msg.reply(
                 &ctx.http,
-                format!("Registertion is closed for that tournament."),
+                "Registertion is closed for that tournament.",
             )
             .await?;
         }
         PlayerLookup => {
             msg.reply(
                 &ctx.http,
-                format!("That person is not a player in that tournament."),
+                "That person is not a player in that tournament.",
             )
             .await?;
         }
         RoundLookup => {
-            msg.reply(&ctx.http, format!("That round could not be found."))
+            msg.reply(&ctx.http, "That round could not be found.")
                 .await?;
         }
         DeckLookup => {
-            msg.reply(&ctx.http, format!("That deck could not be found."))
+            msg.reply(&ctx.http, "That deck could not be found.")
                 .await?;
         }
         PlayerNotInRound => {
-            msg.reply(&ctx.http, format!("That player isn't in that round."))
+            msg.reply(&ctx.http, "That player isn't in that round.")
                 .await?;
         }
         NoActiveRound => {
-            msg.reply(&ctx.http, format!("That player isn't in an active round."))
+            msg.reply(&ctx.http, "That player isn't in an active round.")
                 .await?;
         }
         InvalidBye => {
             msg.reply(
                 &ctx.http,
-                format!("There must be exactly one player in a bye."),
+                "There must be exactly one player in a bye.",
             )
             .await?;
         }
         ActiveMatches => {
             msg.reply(
                 &ctx.http,
-                format!("That tournament has outstanding matches. They need to finish first."),
+                "That tournament has outstanding matches. They need to finish first.",
             )
             .await?;
         }
@@ -60,21 +60,21 @@ pub async fn error_to_reply(ctx: &Context, msg: &Message, err: TournamentError) 
             // Not sure what to say here...
             msg.reply(
                 &ctx.http,
-                format!("That tournament has an incompatible pairing system for that to work."),
+                "That tournament has an incompatible pairing system for that to work.",
             )
             .await?;
         }
         IncompatiblePairingSystem => {
             msg.reply(
                 &ctx.http,
-                format!("That tournament has an incompatible pairing system for that to work."),
+                "That tournament has an incompatible pairing system for that to work.",
             )
             .await?;
         }
         IncompatibleScoringSystem => {
             msg.reply(
                 &ctx.http,
-                format!("That tournament has an incompatible scoring system for that to work."),
+                "That tournament has an incompatible scoring system for that to work.",
             )
             .await?;
         }
