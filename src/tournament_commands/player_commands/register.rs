@@ -42,7 +42,7 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         .unwrap()
         .cloned();
     let given_name = args.rest();
-    let tourn_id = match tourn_id_resolver(&ctx, &msg, &given_name, &name_and_id, id_iter).await {
+    let tourn_id = match tourn_id_resolver(ctx, msg, given_name, &name_and_id, id_iter).await {
         Some(id) => id,
         None => {
             return Ok(());
@@ -55,7 +55,7 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     // NOTE: The GuildTournament and Tournament structs take care of the nitty-gritty. We just need
     // to inform the player of the outcome. The tournament communicates through TournamentError
     // mostly.
-    match tourn.add_player(plyr_name, msg.author.id.clone()) {
+    match tourn.add_player(plyr_name, msg.author.id) {
         Ok(_) => {
             msg.reply(
                 &ctx.http,

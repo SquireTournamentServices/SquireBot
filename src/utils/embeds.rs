@@ -1,4 +1,7 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{
+    collections::HashMap,
+    fmt::{Display, Write},
+};
 
 use itertools::Itertools;
 use serenity::{
@@ -134,10 +137,7 @@ pub async fn update_match_message(
                 } else {
                     e.field(
                         "Winner:",
-                        format!(
-                            "{}",
-                            player_name_resolver(round.winner.clone().unwrap(), plyrs, tourn)
-                        ),
+                        player_name_resolver(round.winner.clone().unwrap(), plyrs, tourn),
                         false,
                     );
                 }
@@ -165,34 +165,46 @@ pub async fn update_match_message(
 // Tournament contains the message
 pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTournament) {
     let mut discord_info = format!("tournament role: <@&{}>\n", tourn.tourn_role.id);
-    discord_info += &format!("Judge role: <@&{}>\n", tourn.judge_role);
-    discord_info += &format!("Tournament admin role: <@&{}>\n", tourn.tourn_admin_role);
-    discord_info += &format!("Pairings channel: <#{}>\n", tourn.pairings_channel.id);
-    discord_info += &format!("Matches category: <#{}>", tourn.matches_category.id);
-    let mut settings_info = format!("format: {}\n", tourn.tourn.format);
-    settings_info += &format!(
-        "Pairing method: {}\n",
+    let _ = writeln!(discord_info, "Judge role: <@&{}>", tourn.judge_role);
+    let _ = writeln!(
+        discord_info,
+        "Tournament admin role: <@&{}>",
+        tourn.tourn_admin_role
+    );
+    let _ = writeln!(
+        discord_info,
+        "Pairings channel: <#{}>",
+        tourn.pairings_channel.id
+    );
+    let _ = writeln!(
+        discord_info,
+        "Matches category: <#{}>",
+        tourn.matches_category.id
+    );
+    let mut settings_info = format!("format: {}", tourn.tourn.format);
+    let _ = writeln!(settings_info,
+        "Pairing method: {}",
         match tourn.tourn.pairing_sys {
-            PairingSystem::Swiss(_) => "swiss",
-            PairingSystem::Fluid(_) => "fluid",
+            PairingSystem::Swiss(_) => "Swiss",
+            PairingSystem::Fluid(_) => "Fluid",
         }
     );
-    settings_info += &format!(
-        "Scoring method: {}\n",
+    let _ = writeln!(settings_info,
+        "Scoring method: {}",
         match tourn.tourn.scoring_sys {
-            ScoringSystem::Standard(_) => "standard",
+            ScoringSystem::Standard(_) => "Standard",
         }
     );
-    settings_info += &format!(
-        "Registration: {}\n",
+    let _ = writeln!(settings_info,
+        "Registration: {}",
         if tourn.tourn.reg_open {
             "Open"
         } else {
             "Closed"
         }
     );
-    settings_info += &format!("Match size: {}\n", tourn.tourn.game_size);
-    settings_info += &format!(
+    let _ = writeln!(settings_info, "Match size: {}", tourn.tourn.game_size);
+    let _ = writeln!(settings_info,
         "Assign table number:{}\n",
         if tourn.tourn.use_table_number {
             "True"
@@ -200,7 +212,7 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
             "False"
         }
     );
-    settings_info += &format!(
+    let _ = writeln!(settings_info,
         "Require checkin: {}",
         if tourn.tourn.require_check_in {
             "True"
@@ -208,7 +220,7 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
             "False"
         }
     );
-    settings_info += &format!(
+    let _ = writeln!(settings_info,
         "Require deck reg: {}",
         if tourn.tourn.require_deck_reg {
             "True"
@@ -217,8 +229,8 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
         }
     );
     if tourn.tourn.require_deck_reg {
-        settings_info += &format!("Min deck count: {}", tourn.tourn.min_deck_count);
-        settings_info += &format!("Max deck count: {}", tourn.tourn.max_deck_count);
+        let _ = writeln!(settings_info, "Min deck count: {}", tourn.tourn.min_deck_count);
+        let _ = writeln!(settings_info, "Max deck count: {}", tourn.tourn.max_deck_count);
     }
     let mut player_info = format!(
         "{} players are registered.",
@@ -232,13 +244,13 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
             .iter()
             .filter(|(_, p)| p.decks.len() > tourn.tourn.min_deck_count as usize)
             .count();
-        player_info += &format!(
+        let _ = write!(player_info,
             "{} of them have registered the minimum number of decks.",
             player_count
         );
     }
     if tourn.tourn.require_check_in {
-        player_info += &format!(
+        let _ = write!(player_info,
             "{} of them have checked in.",
             tourn.tourn.player_reg.count_check_ins()
         );
@@ -248,7 +260,7 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
         tourn.tourn.round_reg.length.as_secs() / 60
     );
     let match_count = tourn.tourn.round_reg.active_round_count();
-    match_info += &format!(
+    let _ = write!(match_info,
         "There are {} matches that are yet to be certified.",
         match_count
     );

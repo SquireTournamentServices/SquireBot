@@ -24,6 +24,7 @@ use serenity::{
 };
 
 use cycle_map::CycleMap;
+use squire_core::operations::OpData;
 use squire_core::{
     operations::TournOp,
     player_registry::PlayerIdentifier,
@@ -108,11 +109,7 @@ impl GuildTournament {
     }
 
     pub fn get_player_id(&self, user: &UserId) -> Option<PlayerId> {
-        if let Some(id) = self.players.get_right(&user) {
-            Some(id.clone())
-        } else {
-            None
-        }
+        self.players.get_right(user).cloned()
     }
 
     // NOTE: This will not send a pairings message.
@@ -176,23 +173,15 @@ impl GuildTournament {
     }
 
     pub fn get_user_id(&self, user: &PlayerId) -> Option<UserId> {
-        if let Some(id) = self.players.get_left(&user) {
-            Some(id.clone())
-        } else {
-            None
-        }
+        self.players.get_left(user).cloned()
     }
 
     pub fn add_player(&mut self, name: String, user: UserId) -> Result<(), TournamentError> {
-        let name_copy = name.clone();
-        self.tourn.apply_op(TournOp::RegisterPlayer(name))?;
-        let plyr = self
-            .tourn
-            .get_player(&PlayerIdentifier::Name(name_copy))
-            .unwrap()
-            .id
-            .clone();
-        self.players.insert(user, plyr);
+        if let OpData::RegisterPlayer(PlayerIdentifier::Id(id)) =
+            self.tourn.apply_op(TournOp::RegisterPlayer(name))?
+        {
+            self.players.insert(user, id);
+        }
         Ok(())
     }
 

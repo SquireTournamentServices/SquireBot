@@ -23,7 +23,7 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         Some(s) => s.clone(),
         None => {
             // This case should never happen... but just in case
-            all_settings.insert(guild.id.clone(), GuildSettings::from_existing(&guild));
+            all_settings.insert(guild.id, GuildSettings::from_existing(&guild));
             all_settings.get_mut(&guild.id).unwrap().clone()
         }
     };
@@ -78,11 +78,10 @@ async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         Some(s) => s.clone(),
         None => {
             // This case should never happen... but just in case
-            all_settings.insert(guild.id.clone(), GuildSettings::from_existing(&guild));
+            all_settings.insert(guild.id, GuildSettings::from_existing(&guild));
             all_settings.get_mut(&guild.id).unwrap().clone()
         }
     };
-    drop(all_settings);
     if let Channel::Guild(c) = msg.channel(&ctx.http).await? {
         c.send_message(&ctx.http, |m| {
             m.embed(|e| {
@@ -111,11 +110,10 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         Some(s) => s.clone(),
         None => {
             // This case should never happen... but just in case
-            all_settings.insert(guild.id.clone(), GuildSettings::from_existing(&guild));
+            all_settings.insert(guild.id, GuildSettings::from_existing(&guild));
             all_settings.get_mut(&guild.id).unwrap().clone()
         }
     };
-    drop(all_settings);
     let tests = String::from("Judge Role Exists:\nAdmin Role Exists:\nPairings Channel Exists:\nSend Pairings:\nEdit Pairings:\nSend Embed:\nEdit Embed:\nMatches Category Exists:\nCreate VC:\nDelete VC:\nCreate TC:\nDelete TC:");
     let mut test_results = String::new();
     match settings.judge_role {
@@ -149,7 +147,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                         test_results += &"Failed - Couldn't send message.\n".repeat(4);
                     }
                     Ok(m) => {
-                        test_results += &"Passed\n";
+                        test_results += "Passed\n";
                         match pairings_channel
                             .edit_message(&ctx.http, m.id, |m| m.content("Edited Test"))
                             .await
@@ -171,7 +169,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                         test_results += &"Failed - Couldn't send embed.\n".repeat(2);
                     }
                     Ok(m) => {
-                        test_results += &"Passed\n";
+                        test_results += "Passed\n";
                         match pairings_channel
                             .edit_message(&ctx.http, m.id, |m| {
                                 m.embed(|e| e.title("Edited Test Embed"))
@@ -212,7 +210,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                             .await
                         {
                             Ok(c) => {
-                                test_results += &"Passed\n";
+                                test_results += "Passed\n";
                                 match c.delete(&ctx.http).await {
                                     Ok(_) => {
                                         test_results += "Passed\n";
@@ -239,7 +237,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                             .await
                         {
                             Ok(c) => {
-                                test_results += &"Passed\n";
+                                test_results += "Passed\n";
                                 match c.delete(&ctx.http).await {
                                     Ok(_) => {
                                         test_results += "Passed\n";

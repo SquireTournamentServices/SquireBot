@@ -76,7 +76,7 @@ impl EventHandler for Handler {
         } else {
             let settings = GuildSettings::from_existing(&guild);
             println!("{:#?}", settings);
-            all_settings.insert(guild.id.clone(), settings);
+            all_settings.insert(guild.id, settings);
         }
         std::fs::write(
             "guild_settings.json",
@@ -98,8 +98,7 @@ impl EventHandler for Handler {
                 }
                 Some(_) => {}
             }
-        }
-        ()
+        };
     }
 
     async fn category_delete(&self, ctx: Context, category: &ChannelCategory) {
@@ -114,8 +113,7 @@ impl EventHandler for Handler {
                 }
                 None => {}
             }
-        }
-        ()
+        };
     }
 
     async fn channel_create(&self, ctx: Context, new: &GuildChannel) {
@@ -130,8 +128,7 @@ impl EventHandler for Handler {
                 }
                 Some(c) => {}
             }
-        }
-        ()
+        };
     }
 
     async fn channel_delete(&self, ctx: Context, channel: &GuildChannel) {
@@ -146,8 +143,7 @@ impl EventHandler for Handler {
                 }
                 None => {}
             }
-        }
-        ()
+        };
     }
 
     // NOTE: This covers both categories and guild channels
@@ -180,8 +176,7 @@ impl EventHandler for Handler {
                 }
             }
             _ => {}
-        }
-        ()
+        };
     }
 
     async fn guild_role_create(&self, ctx: Context, new: Role) {
@@ -201,8 +196,7 @@ impl EventHandler for Handler {
                 }
                 _ => {}
             }
-        }
-        ()
+        };
     }
 
     async fn guild_role_update(&self, ctx: Context, _: Option<Role>, new: Role) {
@@ -240,8 +234,7 @@ impl EventHandler for Handler {
                     }
                 }
             }
-        }
-        ()
+        };
     }
 
     async fn guild_role_delete(
@@ -270,8 +263,7 @@ impl EventHandler for Handler {
                 }
                 None => {}
             }
-        }
-        ()
+        };
     }
 }
 
@@ -318,7 +310,7 @@ async fn main() {
         .get("TESTING_TOKEN")
         .expect("Expected a token in the environment");
 
-    let http = Http::new(&token);
+    let http = Http::new(token);
 
     // We will fetch your bot's owners and id
     let (owners, bot_id) = match http.get_current_application_info().await {
@@ -368,7 +360,7 @@ async fn main() {
 
         // Construct the default settings for a guild, stored in the json file.
         let all_guild_settings: DashMap<GuildId, GuildSettings> = serde_json::from_str(
-            &mut read_to_string("./guild_settings.json").expect("Guilds settings file not found."),
+            &read_to_string("./guild_settings.json").expect("Guilds settings file not found."),
         )
         .expect("The guild settings data is malformed.");
         let ref_main = Arc::new(all_guild_settings);
@@ -377,7 +369,7 @@ async fn main() {
 
         // Construct the main TournamentID -> Tournament map
         let all_tournaments: DashMap<TournamentId, GuildTournament> = serde_json::from_str(
-            &mut read_to_string("./tournaments.json").expect("Tournament file could not be found."),
+            &read_to_string("./tournaments.json").expect("Tournament file could not be found."),
         )
         .expect("The tournament data is malformed.");
 
@@ -449,8 +441,8 @@ async fn main() {
                                 &cache,
                                 msg,
                                 tourn.tourn.use_table_number,
-                                tourn.match_vcs.get(id).map(|c| c.id.clone()),
-                                tourn.match_tcs.get(id).map(|c| c.id.clone()),
+                                tourn.match_vcs.get(id).map(|c| c.id),
+                                tourn.match_tcs.get(id).map(|c| c.id),
                                 &tourn.players,
                                 &tourn.tourn,
                                 &round,
@@ -563,7 +555,7 @@ async fn main() {
 
         // Construct the card collection
         let path = Path::new("./AtomicCards.json");
-        let cards = build_collection(&path)
+        let cards = build_collection(path)
             .await
             .expect("Could not build card colletion");
         let card_ref = Arc::new(RwLock::new(cards));
@@ -576,7 +568,7 @@ async fn main() {
             let mut long_interval = tokio::time::interval(Duration::from_secs(604_800));
             long_interval.tick().await;
             loop {
-                if let Some(coll) = build_collection(&path).await {
+                if let Some(coll) = build_collection(path).await {
                     let mut card_lock = cards.write().await;
                     *card_lock = coll;
                     long_interval.tick().await;

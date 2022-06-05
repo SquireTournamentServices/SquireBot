@@ -62,14 +62,11 @@ async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
     let fields = embed_fields(name_iter)
         .into_iter()
         .map(|f| ("Players", f, false));
-    match msg.channel(&ctx.http).await? {
-        Channel::Guild(c) => {
-            c.send_message(&ctx.http, |m| {
-                m.embed(|e| e.title(format!("Players: ({len})")).fields(fields))
-            })
-            .await?;
-        }
-        _ => {}
-    };
+    if let Channel::Guild(c) = msg.channel(&ctx.http).await? {
+        c.send_message(&ctx.http, |m| {
+            m.embed(|e| e.title(format!("Players: ({len})")).fields(fields))
+        })
+        .await?;
+    }
     Ok(())
 }

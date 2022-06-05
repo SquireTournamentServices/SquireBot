@@ -22,18 +22,18 @@ pub async fn user_id_resolver(ctx: &Context, msg: &Message, ident: &str) -> Opti
     if let Ok(id) = ident.parse::<u64>() {
         Some(UserId(id))
     } else {
-        if let Ok(mention) = Mention::from_str(&ident) {
+        if let Ok(mention) = Mention::from_str(ident) {
             return match mention {
                 Mention::User(id) => Some(id),
                 _ => None,
             };
         }
         let gld = msg.guild(&ctx.cache).unwrap();
-        let by_nickname = gld.members_nick_containing(&ident, false, false).await;
+        let by_nickname = gld.members_nick_containing(ident, false, false).await;
         if by_nickname.len() == 1 {
             return Some(by_nickname[0].0.user.id);
         }
-        let by_username = gld.members_username_containing(&ident, false, false).await;
+        let by_username = gld.members_username_containing(ident, false, false).await;
         if by_username.len() == 1 {
             Some(by_username[0].0.user.id)
         } else {
@@ -70,8 +70,7 @@ pub async fn admin_tourn_id_resolver(
         _ => {
             // Check name
             if let Some(id) = ids
-                .filter(|id| name_and_id.get_left(id).unwrap() == &name)
-                .next()
+                .find(|id| name_and_id.get_left(id).unwrap() == name)
             {
                 Some(id)
             } else {

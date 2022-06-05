@@ -1,6 +1,8 @@
+use std::fmt::Display;
+
 pub fn stringify_option<T>(o: Option<T>) -> String
 where
-    T: ToString,
+    T: Display,
 {
     match o {
         Some(v) => v.to_string(),

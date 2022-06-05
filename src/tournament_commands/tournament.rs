@@ -71,7 +71,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     let name = args.rest().trim().to_string();
-    if name.len() == 0 {
+    if name.is_empty() {
         msg.reply(&ctx.http, "Please include a name for the tournament.")
             .await?;
         return Ok(());
