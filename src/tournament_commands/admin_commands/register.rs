@@ -54,7 +54,7 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         Ok(_) => {
             msg.reply(
                 &ctx.http,
-                format!("You have been registered for {}", tourn.tourn.name),
+                format!("Registered {} for {}", raw_user_id, tourn.tourn.name),
             )
             .await?;
             Ok(())
