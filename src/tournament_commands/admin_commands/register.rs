@@ -9,9 +9,9 @@ use crate::model::{
     guild_tournament::GuildTournament,
 };
 
-use squire_core::operations::TournOp;
 use crate::utils::error_to_reply::error_to_reply;
 use crate::utils::tourn_resolver::{admin_tourn_id_resolver, user_id_resolver};
+use squire_core::operations::TournOp;
 
 #[command("register")]
 #[only_in(guild)]
@@ -46,19 +46,14 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         None => {
             return Ok(());
         }
-    }; 
-    
+    };
+
     let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
-    
-    match tourn.add_player(raw_user_id, user_id) {
-        Ok(_) => {
-            msg.reply(
-                &ctx.http,
-                format!("Registered {} for {}", raw_user_id, tourn.tourn.name),
-            )
-            .await?;
-            Ok(())
-        }
-        Err(e) => error_to_reply(ctx, msg, e).await,
+
+    if let Err(err) = tourn.add_player(user_id.0.to_string(), user_id) {
+        error_to_reply(ctx, msg, err).await?;
+    } else {
+        msg.reply(&ctx.http, "Deck successfully added!").await?;
     }
+    Ok(())
 }
