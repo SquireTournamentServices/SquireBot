@@ -41,7 +41,7 @@ use serenity::{
 async fn admin(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     msg.reply(
         &ctx.http,
-        "Please specify a subcommand in order to adjust settings.",
+        "Please specify a subcommand.",
     )
     .await?;
     Ok(())
