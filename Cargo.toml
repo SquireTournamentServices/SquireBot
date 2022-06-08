@@ -6,20 +6,19 @@ license = "GPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [dependencies]
+# "In-house" deps
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
+squire_core = { git = "https://github.com/MonarchDevelopment/SquireCore.git", branch = "main" }
+cycle_map = { version = "0.1.1", features = ["serde"] }
+
 itertools = { version = "0.10.0" }
 reqwest = { version = "0.11.10", features = ["json"] }
-#mtgjson = { path = "../mtgjson-rust-sdk" }
 lazy_static = { version = "1.4.0" }
-#tricebot = { git = "https://github.com/TylerBloom/tricebot-sdk", branch = "main" }
-squire_core = { git = "https://github.com/MonarchDevelopment/SquireCore.git", branch = "main" }
-#squire_core = { path = "../SquireCore" }
-cycle_map = { version = "0.1.1", features = ["serde"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 serenity = { version = "0.11.2", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model", "utils"] }
-#serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model"] }
 dotenv = { version = "0.9" }
 serde = { version = "1.0" }
 serde_json = { version = "1.0.68" }
 dashmap = { version = "5.0", features = ["serde", "rayon"] }
 rand = { version = "0.8" }
+tempfile = { version = "3.3.0" }
