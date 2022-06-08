@@ -1,15 +1,21 @@
-use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::prelude::*;
-use serenity::prelude::*;
-use squire_core::operations::TournOp;
-use squire_core::player_registry::PlayerIdentifier;
-
-use crate::model::containers::{
-    CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
-    TournamentNameAndIDMapContainer,
+use serenity::{
+    framework::standard::{macros::command, Args, CommandResult},
+    model::prelude::*,
+    prelude::*,
 };
-use crate::utils::error_to_reply::error_to_reply;
-use crate::utils::tourn_resolver::{admin_tourn_id_resolver, user_id_resolver};
+
+use squire_core::{operations::TournOp, player_registry::PlayerIdentifier};
+
+use crate::{
+    model::containers::{
+        CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
+        TournamentNameAndIDMapContainer,
+    },
+    utils::{
+        error_to_reply::error_to_reply,
+        tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
+    },
+};
 
 #[command("add-deck")]
 #[only_in(guild)]
@@ -31,6 +37,8 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_user_id = args.single_quoted::<String>().unwrap();
+    let deck_name = args.single_quoted::<String>().unwrap();
+    let raw_deck = args.single_quoted::<String>().unwrap();
     let user_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
         Some(id) => id,
         None => {
@@ -57,8 +65,6 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             return Ok(());
         }
     };
-    let deck_name = args.single_quoted::<String>().unwrap();
-    let raw_deck = args.single_quoted::<String>().unwrap();
     let card_coll = data.get::<CardCollectionContainer>().unwrap().read().await;
     let deck = if let Some(deck) = card_coll.create_deck(raw_deck.clone()) {
         deck
