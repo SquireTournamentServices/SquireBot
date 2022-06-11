@@ -84,7 +84,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     // Ensure that tournaments can be ran
     if !settings.is_configured() {
         msg.reply(
-            &ctx.http, "Error: This server isn't configured to run tournaments. Use the `!setup` command to help you with this.",
+            &ctx.http, "This server isn't configured to run tournaments. Use the `!setup` command to help you with this.",
         )
             .await?;
         return Ok(());
@@ -98,11 +98,8 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     {
         Ok(role) => role,
         Err(_) => {
-            msg.reply(
-                &ctx.http,
-                "Error: Unable to create a role for the tournament.",
-            )
-            .await?;
+            msg.reply(&ctx.http, "Unable to create a role for the tournament.")
+                .await?;
             return Ok(());
         }
     };
