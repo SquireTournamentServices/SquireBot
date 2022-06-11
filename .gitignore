@@ -1,25 +1,10 @@
 # Stuff to ignore
 *.swp
-./*.pyc
-__pycache__
-__pycache__/*.pyc
 .vscode/*
 .env
 references/
 references/*
-AllPrintings.json
-Tournament/AllPrintings.json
-squireBotError.log
-squireLog
-standings.txt
-.coverage
-*/htmlcov
-guilds/
-
-# Rust Stuff
+AtomicCards.json
 guild_settings.json
-
-# Added by cargo
-
 Cargo.lock
 /target
