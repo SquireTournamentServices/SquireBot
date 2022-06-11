@@ -1,8 +1,11 @@
+use std::fmt::Write;
+
+use serde::{Deserialize, Serialize};
+use serenity::builder::CreateEmbed;
+
 use squire_core::settings::{
     FluidPairingsSetting, StandardScoringSetting, SwissPairingsSetting, TournamentSetting,
 };
-
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct TournSettingsTree {
@@ -67,6 +70,21 @@ impl TournSettingsTree {
             scoring_settings: ScoringSettingsTree::new(),
         }
     }
+
+    pub fn populate_embed<'a>(&self, embed: &'a mut CreateEmbed) -> &'a mut CreateEmbed {
+        let mut data = String::new();
+        let _ = writeln!(data, "{}", self.format);
+        let _ = writeln!(data, "{}", self.min_deck_count);
+        let _ = writeln!(data, "{}", self.max_deck_count);
+        let _ = writeln!(data, "{}", self.require_check_in);
+        let _ = write!(data, "{}", self.require_deck_reg);
+        self.scoring_settings
+            .populate_embed(self.pairing_settings.populate_embed(embed.field(
+                "Tournament Settings:",
+                data,
+                true,
+            )))
+    }
 }
 impl PairingSettingsTree {
     pub fn new() -> Self {
@@ -75,12 +93,20 @@ impl PairingSettingsTree {
             fluid: FluidPairingsSettingsTree::new(),
         }
     }
+
+    pub fn populate_embed<'a>(&self, embed: &'a mut CreateEmbed) -> &'a mut CreateEmbed {
+        self.swiss.populate_embed(self.fluid.populate_embed(embed))
+    }
 }
 impl ScoringSettingsTree {
     pub fn new() -> Self {
         Self {
             standard: StandardScoringSettingsTree::new(),
         }
+    }
+
+    pub fn populate_embed<'a>(&self, embed: &'a mut CreateEmbed) -> &'a mut CreateEmbed {
+        self.standard.populate_embed(embed)
     }
 }
 impl SwissPairingsSettingsTree {
@@ -90,12 +116,24 @@ impl SwissPairingsSettingsTree {
             do_checkins: SwissPairingsSetting::DoCheckIns(false),
         }
     }
+
+    pub fn populate_embed<'a>(&self, embed: &'a mut CreateEmbed) -> &'a mut CreateEmbed {
+        let mut data = String::new();
+        let _ = writeln!(data, "{}", self.match_size);
+        let _ = write!(data, "{}", self.do_checkins);
+        embed.field("Swiss Pairings:", data, true)
+    }
 }
 impl FluidPairingsSettingsTree {
     pub fn new() -> Self {
         Self {
             match_size: FluidPairingsSetting::MatchSize(4),
         }
+    }
+
+    pub fn populate_embed<'a>(&self, embed: &'a mut CreateEmbed) -> &'a mut CreateEmbed {
+        let data = format!("{}", self.match_size);
+        embed.field("Fluid Pairings:", data, true)
     }
 }
 impl StandardScoringSettingsTree {
@@ -116,5 +154,24 @@ impl StandardScoringSettingsTree {
             include_opp_mwp: StandardScoringSetting::IncludeOppMwp(true),
             include_opp_gwp: StandardScoringSetting::IncludeOppGwp(true),
         }
+    }
+
+    pub fn populate_embed<'a>(&self, embed: &'a mut CreateEmbed) -> &'a mut CreateEmbed {
+        let mut data = String::new();
+        let _ = writeln!(data, "{}", self.match_win_points);
+        let _ = writeln!(data, "{}", self.match_draw_points);
+        let _ = writeln!(data, "{}", self.match_loss_points);
+        let _ = writeln!(data, "{}", self.game_win_points);
+        let _ = writeln!(data, "{}", self.game_draw_points);
+        let _ = writeln!(data, "{}", self.game_loss_points);
+        let _ = writeln!(data, "{}", self.bye_points);
+        let _ = writeln!(data, "{}", self.include_byes);
+        let _ = writeln!(data, "{}", self.include_match_points);
+        let _ = writeln!(data, "{}", self.include_game_points);
+        let _ = writeln!(data, "{}", self.include_mwp);
+        let _ = writeln!(data, "{}", self.include_gwp);
+        let _ = writeln!(data, "{}", self.include_opp_mwp);
+        let _ = writeln!(data, "{}", self.include_opp_gwp);
+        embed.field("Standard Scoring:", data, true)
     }
 }

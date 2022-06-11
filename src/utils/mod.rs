@@ -1,4 +1,3 @@
-//pub mod is_configured;
 pub mod card_collection;
 pub mod embeds;
 pub mod error_to_reply;
