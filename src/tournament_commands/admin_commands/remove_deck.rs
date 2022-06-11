@@ -63,11 +63,14 @@ async fn remove_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             return Ok(());
         }
     };
-    if let Err(err) = tourn.tourn.apply_op(TournOp::RemoveDeck(plyr_id, deck_name)) {
+    if let Err(err) = tourn
+        .tourn
+        .apply_op(TournOp::RemoveDeck(plyr_id, deck_name))
+    {
         error_to_reply(ctx, msg, err).await?;
     } else {
-        msg.reply(&ctx.http, "Result successfully confirmed!")
-            .await?;
+        tourn.update_status = true;
+        msg.reply(&ctx.http, "Deck successfully removed!").await?;
     }
     Ok(())
 }

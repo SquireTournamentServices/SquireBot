@@ -182,20 +182,23 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
         tourn.matches_category.id
     );
     let mut settings_info = format!("format: {}", tourn.tourn.format);
-    let _ = writeln!(settings_info,
+    let _ = writeln!(
+        settings_info,
         "Pairing method: {}",
         match tourn.tourn.pairing_sys {
             PairingSystem::Swiss(_) => "Swiss",
             PairingSystem::Fluid(_) => "Fluid",
         }
     );
-    let _ = writeln!(settings_info,
+    let _ = writeln!(
+        settings_info,
         "Scoring method: {}",
         match tourn.tourn.scoring_sys {
             ScoringSystem::Standard(_) => "Standard",
         }
     );
-    let _ = writeln!(settings_info,
+    let _ = writeln!(
+        settings_info,
         "Registration: {}",
         if tourn.tourn.reg_open {
             "Open"
@@ -204,7 +207,8 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
         }
     );
     let _ = writeln!(settings_info, "Match size: {}", tourn.tourn.game_size);
-    let _ = writeln!(settings_info,
+    let _ = writeln!(
+        settings_info,
         "Assign table number:{}\n",
         if tourn.tourn.use_table_number {
             "True"
@@ -212,7 +216,8 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
             "False"
         }
     );
-    let _ = writeln!(settings_info,
+    let _ = writeln!(
+        settings_info,
         "Require checkin: {}",
         if tourn.tourn.require_check_in {
             "True"
@@ -220,7 +225,8 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
             "False"
         }
     );
-    let _ = writeln!(settings_info,
+    let _ = writeln!(
+        settings_info,
         "Require deck reg: {}",
         if tourn.tourn.require_deck_reg {
             "True"
@@ -229,8 +235,16 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
         }
     );
     if tourn.tourn.require_deck_reg {
-        let _ = writeln!(settings_info, "Min deck count: {}", tourn.tourn.min_deck_count);
-        let _ = writeln!(settings_info, "Max deck count: {}", tourn.tourn.max_deck_count);
+        let _ = writeln!(
+            settings_info,
+            "Min deck count: {}",
+            tourn.tourn.min_deck_count
+        );
+        let _ = writeln!(
+            settings_info,
+            "Max deck count: {}",
+            tourn.tourn.max_deck_count
+        );
     }
     let mut player_info = format!(
         "{} players are registered.",
@@ -244,13 +258,15 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
             .iter()
             .filter(|(_, p)| p.decks.len() > tourn.tourn.min_deck_count as usize)
             .count();
-        let _ = write!(player_info,
+        let _ = write!(
+            player_info,
             "{} of them have registered the minimum number of decks.",
             player_count
         );
     }
     if tourn.tourn.require_check_in {
-        let _ = write!(player_info,
+        let _ = write!(
+            player_info,
             "{} of them have checked in.",
             tourn.tourn.player_reg.count_check_ins()
         );
@@ -260,7 +276,8 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
         tourn.tourn.round_reg.length.as_secs() / 60
     );
     let match_count = tourn.tourn.round_reg.active_round_count();
-    let _ = write!(match_info,
+    let _ = write!(
+        match_info,
         "There are {} matches that are yet to be certified.",
         match_count
     );

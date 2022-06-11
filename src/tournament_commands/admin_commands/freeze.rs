@@ -80,6 +80,7 @@ async fn thaw(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Err(err) = tourn.tourn.apply_op(TournOp::Thaw()) {
         error_to_reply(ctx, msg, err).await?;
     } else {
+        tourn.update_status = true;
         msg.reply(&ctx.http, "Tournament successfully thawed!")
             .await?;
     }

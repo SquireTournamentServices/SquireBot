@@ -4,11 +4,18 @@ use serenity::{
     prelude::*,
 };
 
-use squire_core::{operations::TournOp, player_registry::PlayerIdentifier};
+use squire_core::{
+    operations::{OpData, TournOp},
+    player_registry::PlayerIdentifier,
+};
 
 use crate::{
-    model::containers::{
-        GuildAndTournamentIDMapContainer, TournamentMapContainer, TournamentNameAndIDMapContainer,
+    model::{
+        containers::{
+            GuildAndTournamentIDMapContainer, TournamentMapContainer,
+            TournamentNameAndIDMapContainer,
+        },
+        guild_tournament::RoundCreationFailure,
     },
     utils::{
         error_to_reply::error_to_reply,
@@ -68,11 +75,28 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             }
         };
     }
-    if let Err(err) = tourn.tourn.apply_op(TournOp::CreateRound(plyr_ids)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        // TODO: Finish match creation stuff (role, channels, etc)
-        msg.reply(&ctx.http, "Match successfully created!").await?;
+    match tourn.tourn.apply_op(TournOp::CreateRound(plyr_ids)) {
+        Err(err) => {
+            error_to_reply(ctx, msg, err).await?;
+        }
+        Ok(data) => {
+            tourn.update_status = true;
+            if let OpData::CreateRound(ident) = data {
+                let rnd = tourn.tourn.get_round(&ident).unwrap();
+                let num = rnd.match_number;
+                match tourn
+                    .create_round_data(&ctx.http, &msg.guild(&ctx.cache).unwrap(), &ident, num)
+                    .await
+                {
+                    Ok(_) => {
+                        msg.reply(&ctx.http, "Match successfully created!").await?;
+                    }
+                    Err(e) => {
+                        let content = format!("The match was created, but there was an issue creating the {e} in Discord.");
+                    }
+                }
+            }
+        }
     }
     Ok(())
 }

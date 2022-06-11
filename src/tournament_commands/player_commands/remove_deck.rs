@@ -74,11 +74,8 @@ async fn remove_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     let plyr_id = match tourn.players.get_right(&msg.author.id) {
         Some(id) => PlayerIdentifier::Id(id.clone()),
         None => {
-            msg.reply(
-                &ctx.http,
-                "You are not registered for that tournament.",
-            )
-            .await?;
+            msg.reply(&ctx.http, "You are not registered for that tournament.")
+                .await?;
             return Ok(());
         }
     };
@@ -88,7 +85,8 @@ async fn remove_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     {
         error_to_reply(ctx, msg, err).await?;
     } else {
-        msg.reply(&ctx.http, "Deck successfully added!").await?;
+        tourn.update_status = true;
+        msg.reply(&ctx.http, "Deck successfully removed!").await?;
     }
     Ok(())
 }

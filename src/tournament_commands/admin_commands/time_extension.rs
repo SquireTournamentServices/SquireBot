@@ -97,10 +97,8 @@ async fn time_extension(ctx: &Context, msg: &Message, mut args: Args) -> Command
     {
         error_to_reply(ctx, msg, err).await?;
     } else {
-        msg.reply(&ctx.http, "Registration successfully updated.")
+        msg.reply(&ctx.http, "Time extension successfully given.")
             .await?;
     }
-    msg.reply(&ctx.http, "Registration successfully updated.")
-        .await?;
     Ok(())
 }

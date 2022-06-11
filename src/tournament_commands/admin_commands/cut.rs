@@ -89,6 +89,7 @@ impl Confirmation for CutToTopConfirmation {
         if let Err(err) = tourn.tourn.apply_op(TournOp::Cut(self.len)) {
             error_to_reply(ctx, msg, err).await?;
         } else {
+            tourn.update_status = true;
             msg.reply(
                 &ctx.http,
                 format!("Tournament successfully cut to the top {}!", self.len),

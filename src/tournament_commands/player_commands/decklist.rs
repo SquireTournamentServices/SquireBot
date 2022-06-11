@@ -24,8 +24,16 @@ use crate::{
 async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     /* Get references to needed data from context */
     let data = ctx.data.read().await;
-    let name_and_id = data.get::<TournamentNameAndIDMapContainer>().unwrap().read().await;
-    let gld_tourn_ids = data.get::<GuildAndTournamentIDMapContainer>().unwrap().read().await;
+    let name_and_id = data
+        .get::<TournamentNameAndIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
+    let gld_tourn_ids = data
+        .get::<GuildAndTournamentIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
     let tourns = data.get::<TournamentMapContainer>().unwrap();
     let user_name = msg.author.id;
     let deck_name = args.single_quoted::<String>().unwrap();
@@ -89,7 +97,8 @@ async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                         .await?;
                 }
                 _ => {
-                    msg.reply(&ctx.http, "This command cannot be used here").await?;
+                    msg.reply(&ctx.http, "This command cannot be used here")
+                        .await?;
                 }
             }
         }
@@ -100,4 +109,3 @@ async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     }
     Ok(())
 }
-

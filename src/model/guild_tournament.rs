@@ -1,3 +1,4 @@
+use core::fmt;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 
@@ -41,6 +42,7 @@ pub enum RoundCreationFailure {
     VC,
     TC,
     Role,
+    Message,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -64,7 +66,6 @@ pub struct GuildTournament {
     pub(crate) update_standings: bool,
     pub(crate) update_status: bool,
     pub(crate) guild_id: GuildId,
-    // Timers always need updated
 }
 
 impl GuildTournament {
@@ -112,18 +113,25 @@ impl GuildTournament {
         self.players.get_right(user).cloned()
     }
 
-    // NOTE: This will not send a pairings message.
     pub async fn create_round_data(
         &mut self,
         cache: &impl CacheHttp,
         gld: &Guild,
-        rnd: RoundIdentifier,
+        rnd: &RoundIdentifier,
         number: u64,
     ) -> Result<(), RoundCreationFailure> {
         let role = gld
             .create_role(cache, |r| r.name(format!("Match {}", number)))
             .await
             .map_err(|_| RoundCreationFailure::Role)?;
+        let msg = self
+            .pairings_channel
+            .send_message(&cache, |m| {
+                m.content(format!("{} you have been paired!", role.mention()))
+            })
+            .await
+            .map_err(|_| RoundCreationFailure::Message)?;
+        self.match_timers.insert(rnd.clone(), msg);
         let mut allowed_perms = Permissions::VIEW_CHANNEL;
         allowed_perms.insert(Permissions::CONNECT);
         allowed_perms.insert(Permissions::SEND_MESSAGES);
@@ -162,14 +170,14 @@ impl GuildTournament {
     }
 
     // NOTE: This will not delete roles. That is done at the end of the tournament
-    pub async fn clear_round_data(&mut self, rnd: RoundIdentifier, http: &Http) {
-        if let Some(tc) = self.match_tcs.remove(&rnd) {
+    pub async fn clear_round_data(&mut self, rnd: &RoundIdentifier, http: &Http) {
+        if let Some(tc) = self.match_tcs.remove(rnd) {
             let _ = tc.delete(http).await;
         }
-        if let Some(vc) = self.match_vcs.remove(&rnd) {
+        if let Some(vc) = self.match_vcs.remove(rnd) {
             let _ = vc.delete(http).await;
         }
-        self.match_timers.remove(&rnd);
+        self.match_timers.remove(rnd);
     }
 
     pub fn get_user_id(&self, user: &PlayerId) -> Option<UserId> {
@@ -194,6 +202,22 @@ impl GuildTournament {
         self.tourn_status = Some(status);
         update_status_message(cache, self).await;
         Ok(())
+    }
+}
+
+impl fmt::Display for RoundCreationFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use RoundCreationFailure::*;
+        write!(
+            f,
+            "{}",
+            match self {
+                VC => "voice channel",
+                TC => "text channel",
+                Role => "role",
+                Message => "match message",
+            }
+        )
     }
 }
 

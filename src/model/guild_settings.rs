@@ -155,11 +155,7 @@ impl GuildSettings {
         let _ = writeln!(
             settings,
             "{}",
-            stringify_option(
-                self.tourn_admin_role
-                    .as_ref()
-                    .map(|r| format!("<@&{}>", r))
-            )
+            stringify_option(self.tourn_admin_role.as_ref().map(|r| format!("<@&{}>", r)))
         );
         let _ = writeln!(
             settings,

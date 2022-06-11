@@ -74,11 +74,8 @@ async fn name(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let plyr_id = match tourn.players.get_right(&msg.author.id) {
         Some(id) => PlayerIdentifier::Id(id.clone()),
         None => {
-            msg.reply(
-                &ctx.http,
-                "You are not registered for that tournament.",
-            )
-            .await?;
+            msg.reply(&ctx.http, "You are not registered for that tournament.")
+                .await?;
             return Ok(());
         }
     };

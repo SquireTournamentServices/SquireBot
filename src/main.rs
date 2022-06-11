@@ -7,6 +7,7 @@ mod tournament_commands;
 mod utils;
 
 use cycle_map::{CycleMap, GroupMap};
+use mtgjson::mtgjson::meta::Meta;
 use squire_core::{self, round::RoundId, tournament::TournamentId};
 
 use misc_commands::{flip_coins::*, group::MISCCOMMANDS_GROUP};
@@ -423,6 +424,7 @@ async fn main() {
                 }
             }
         });
+        // Match embed and timer notification updater
         tokio::spawn(async move {
             let tourns = ref_two;
             let cache = cache_two;
@@ -453,7 +455,7 @@ async fn main() {
                             warnings.time_up = true;
                             let content = match tourn.match_roles.get(id) {
                                 Some(role) => {
-                                    format!("<@&{}>, time is up in your match.", role.id)
+                                    format!("<@&{}>, time is up in your match.", role.id.0)
                                 }
                                 None => {
                                     format!(
@@ -472,7 +474,7 @@ async fn main() {
                                 Some(role) => {
                                     format!(
                                         "<@&{}>, you have 1 minute left in your match.",
-                                        role.id
+                                        role.id.0
                                     )
                                 }
                                 None => {
@@ -492,7 +494,7 @@ async fn main() {
                                 Some(role) => {
                                     format!(
                                         "<@&{}>, you have 5 minutes left in your match.",
-                                        role.id
+                                        role.id.0
                                     )
                                 }
                                 None => {
@@ -516,6 +518,7 @@ async fn main() {
                 }
             }
         });
+        // Tournament status updater
         tokio::spawn(async move {
             let tourns = ref_three;
             let cache = cache_three;
@@ -531,11 +534,11 @@ async fn main() {
                     update_status_message(&cache, tourn).await;
                     tourn.update_status = false;
                 }
+                // Sleep so that the next loop starts 30 seconds after the start of this one
                 if timer.elapsed() < loop_length {
                     let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
                     sleep.tick().await;
                 }
-                // Sleep so that the next loop starts 30 seconds after the start of this one
             }
         });
 
@@ -555,26 +558,28 @@ async fn main() {
 
         // Construct the card collection
         let path = Path::new("./AtomicCards.json");
-        let cards = build_collection(path)
+        let meta = Meta {
+            date: String::new(),
+            version: String::new(),
+        }; // Spoof the initial meta
+        let (meta, cards) = build_collection(&meta, path)
             .await
             .expect("Could not build card colletion");
         let card_ref = Arc::new(RwLock::new(cards));
         let other_card_ref = card_ref.clone();
         // Spawns an await task to update the card collection every week.
         tokio::spawn(async move {
+            let meta = meta;
             let cards = other_card_ref;
             let path = Path::new("./AtomicCards.json");
-            let mut short_interval = tokio::time::interval(Duration::from_secs(3600));
-            let mut long_interval = tokio::time::interval(Duration::from_secs(604_800));
-            long_interval.tick().await;
+            let mut interval = tokio::time::interval(Duration::from_secs(1800));
+            interval.tick().await;
             loop {
-                if let Some(coll) = build_collection(path).await {
+                if let Some((meta, coll)) = build_collection(&meta, path).await {
                     let mut card_lock = cards.write().await;
                     *card_lock = coll;
-                    long_interval.tick().await;
-                } else {
-                    short_interval.tick().await;
                 }
+                interval.tick().await;
             }
         });
         data.insert::<CardCollectionContainer>(card_ref);
@@ -589,7 +594,7 @@ async fn main() {
         tokio::spawn(async move {
             let tourns = tourns_ref;
             let settings = settings_ref;
-            let mut interval = tokio::time::interval(Duration::from_secs(54_000));
+            let mut interval = tokio::time::interval(Duration::from_secs(900));
             loop {
                 interval.tick().await;
                 if let Ok(data) = serde_json::to_string(&*tourns) {
@@ -605,8 +610,6 @@ async fn main() {
             }
         });
     }
-
-    // TODO: Auto state saver
 
     if let Err(why) = client.start().await {
         println!("Client error: {:?}", why);

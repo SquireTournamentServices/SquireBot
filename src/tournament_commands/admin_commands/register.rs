@@ -53,7 +53,9 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     if let Err(err) = tourn.add_player(user_id.0.to_string(), user_id) {
         error_to_reply(ctx, msg, err).await?;
     } else {
-        msg.reply(&ctx.http, "Deck successfully added!").await?;
+        tourn.update_status = true;
+        msg.reply(&ctx.http, "Player successfully registered!")
+            .await?;
     }
     Ok(())
 }

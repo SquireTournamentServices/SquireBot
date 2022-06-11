@@ -59,6 +59,7 @@ async fn registration(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateReg(reg_status)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
+        tourn.update_status = true;
         msg.reply(&ctx.http, "Registration successfully updated.")
             .await?;
     }

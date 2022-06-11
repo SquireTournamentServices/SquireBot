@@ -76,6 +76,7 @@ impl Confirmation for EndTournamentConfirmation {
         if let Err(err) = tourn.tourn.apply_op(TournOp::End()) {
             error_to_reply(ctx, msg, err).await?;
         } else {
+            tourn.update_status = true;
             msg.reply(&ctx.http, "Tournament successfully ended!")
                 .await?;
         }

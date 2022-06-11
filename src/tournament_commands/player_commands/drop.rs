@@ -79,6 +79,7 @@ async fn drop(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     {
         error_to_reply(ctx, msg, err).await?;
     } else {
+        tourn.update_status = true;
         msg.reply(&ctx.http, "You have been dropped from the tournament")
             .await?;
     }

@@ -77,6 +77,8 @@ async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> Command
     {
         error_to_reply(ctx, msg, err).await?;
     } else {
+        tourn.update_status = true;
+        tourn.update_standings = true;
         msg.reply(&ctx.http, "Result successfully confirmed!")
             .await?;
     }

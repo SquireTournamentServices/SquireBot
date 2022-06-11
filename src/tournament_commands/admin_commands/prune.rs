@@ -33,11 +33,7 @@ use crate::{
     "Removes players that aren't fully registered and decks from players that have them in excess."
 )]
 async fn prune(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
-    msg.reply(
-        &ctx.http,
-        "Please specify a subcommand.",
-    )
-    .await?;
+    msg.reply(&ctx.http, "Please specify a subcommand.").await?;
     Ok(())
 }
 
@@ -88,7 +84,16 @@ async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         if !req_text.is_empty() {
             let _ = write!(req_text, " and have not ");
         }
-        let _ = write!(req_text, "registered at least {} deck{}", tourn.tourn.min_deck_count, if tourn.tourn.min_deck_count == 1 { "" } else { "s" });
+        let _ = write!(
+            req_text,
+            "registered at least {} deck{}",
+            tourn.tourn.min_deck_count,
+            if tourn.tourn.min_deck_count == 1 {
+                ""
+            } else {
+                "s"
+            }
+        );
         has_req = true;
     }
     if !has_req {
@@ -100,10 +105,7 @@ async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         return Ok(());
     }
     let confs = data.get::<ConfirmationsContainer>().unwrap();
-    confs.insert(
-        msg.author.id,
-        Box::new(PruneDecksConfirmation { tourn_id }),
-    );
+    confs.insert(msg.author.id, Box::new(PruneDecksConfirmation { tourn_id }));
     msg.reply(
         &ctx.http,
         format!(
@@ -161,10 +163,7 @@ async fn decks(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         return Ok(());
     }
     let confs = data.get::<ConfirmationsContainer>().unwrap();
-    confs.insert(
-        msg.author.id,
-        Box::new(PruneDecksConfirmation { tourn_id }),
-    );
+    confs.insert(msg.author.id, Box::new(PruneDecksConfirmation { tourn_id }));
     msg.reply(
         &ctx.http,
         format!(
@@ -190,6 +189,7 @@ impl Confirmation for PrunePlayersConfirmation {
         if let Err(err) = tourn.tourn.apply_op(TournOp::PrunePlayers()) {
             error_to_reply(ctx, msg, err).await?;
         } else {
+            tourn.update_status = true;
             msg.reply(
                 &ctx.http,
                 "Players that were to completely registered have been successfully dropped!",
@@ -213,9 +213,13 @@ impl Confirmation for PruneDecksConfirmation {
         if let Err(err) = tourn.tourn.apply_op(TournOp::PruneDecks()) {
             error_to_reply(ctx, msg, err).await?;
         } else {
+            tourn.update_status = true;
             msg.reply(
                 &ctx.http,
-                format!("Players that registered too many decks now have at most {}!", tourn.tourn.max_deck_count),
+                format!(
+                    "Players that registered too many decks now have at most {}!",
+                    tourn.tourn.max_deck_count
+                ),
             )
             .await?;
         }
