@@ -5,6 +5,7 @@ use crate::utils::stringify::stringify_option;
 use super::guild_tournament::GuildTournament;
 use super::{consts::*, tourn_settings_tree::*};
 
+use squire_core::operations::TournOp;
 use squire_core::settings::TournamentSetting;
 
 use dashmap::DashMap;
@@ -55,8 +56,12 @@ impl GuildSettings {
         preset: TournamentPreset,
         name: String,
     ) -> Option<GuildTournament> {
+        use squire_core::settings::{
+            FluidPairingsSetting, PairingSetting::*, ScoringSetting::*, StandardScoringSetting::*,
+            SwissPairingsSetting, TournamentSetting::*,
+        };
         if self.is_configured() {
-            let tourn = GuildTournament::new(
+            let mut tourn = GuildTournament::new(
                 self.guild_id,
                 tourn_role,
                 self.judge_role.unwrap(),
@@ -69,7 +74,177 @@ impl GuildSettings {
                 String::from("Pioneer"),
                 name,
             );
-            // TODO: Apply default settings
+            // Basic settings
+            let _ = tourn.tourn.apply_op(TournOp::UpdateTournSetting(
+                self.tourn_settings.format.clone(),
+            ));
+            let _ = tourn.tourn.apply_op(TournOp::UpdateTournSetting(
+                self.tourn_settings.min_deck_count.clone(),
+            ));
+            let _ = tourn.tourn.apply_op(TournOp::UpdateTournSetting(
+                self.tourn_settings.max_deck_count.clone(),
+            ));
+            let _ = tourn.tourn.apply_op(TournOp::UpdateTournSetting(
+                self.tourn_settings.require_check_in.clone(),
+            ));
+            let _ = tourn.tourn.apply_op(TournOp::UpdateTournSetting(
+                self.tourn_settings.require_deck_reg.clone(),
+            ));
+            // Scoring Settings
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .match_win_points
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .match_draw_points
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .match_loss_points
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .game_win_points
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .game_draw_points
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .game_loss_points
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .bye_points
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .include_byes
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .include_match_points
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .include_game_points
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .include_mwp
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .include_gwp
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .include_opp_mwp
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
+                    self.tourn_settings
+                        .scoring_settings
+                        .standard
+                        .include_opp_gwp
+                        .clone(),
+                ))));
+            // Pairing Settings
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(PairingSetting(Swiss(
+                    self.tourn_settings
+                        .pairing_settings
+                        .swiss
+                        .match_size
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(PairingSetting(Swiss(
+                    self.tourn_settings
+                        .pairing_settings
+                        .swiss
+                        .do_checkins
+                        .clone(),
+                ))));
+            let _ = tourn
+                .tourn
+                .apply_op(TournOp::UpdateTournSetting(PairingSetting(Fluid(
+                    self.tourn_settings
+                        .pairing_settings
+                        .fluid
+                        .match_size
+                        .clone(),
+                ))));
             Some(tourn)
         } else {
             None

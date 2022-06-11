@@ -120,7 +120,9 @@ impl GuildTournament {
         number: u64,
     ) -> Result<(), RoundCreationFailure> {
         let role = gld
-            .create_role(cache, |r| r.name(format!("Match {}", number)))
+            .create_role(cache, |r| {
+                r.mentionable(true).name(format!("Match {}", number))
+            })
             .await
             .map_err(|_| RoundCreationFailure::Role)?;
         let msg = self
