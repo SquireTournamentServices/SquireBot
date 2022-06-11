@@ -137,7 +137,6 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     pairings,
     scoring,
     discord,
-    view
 )]
 #[allowed_roles("Tournament Admin")]
 #[description("Adjust the settings of a specfic tournament.")]

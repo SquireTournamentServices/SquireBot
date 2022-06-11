@@ -1464,11 +1464,3 @@ async fn create_text(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         .await?;
     Ok(())
 }
-
-#[command]
-#[only_in(guild)]
-#[allowed_roles("Tournament Admin")]
-#[description("View the settings of a specfic tournament.")]
-async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
-    todo!()
-}
