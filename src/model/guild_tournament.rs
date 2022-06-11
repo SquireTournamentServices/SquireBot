@@ -25,9 +25,8 @@ use serenity::{
 };
 
 use cycle_map::CycleMap;
-use squire_core::operations::OpData;
 use squire_core::{
-    operations::TournOp,
+    operations::{OpData, TournOp},
     player_registry::PlayerIdentifier,
     round_registry::RoundIdentifier,
     swiss_pairings::{PlayerId, TournamentError},
