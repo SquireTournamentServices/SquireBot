@@ -319,42 +319,46 @@ impl GuildSettings {
             && self.matches_category.is_some()
     }
 
-    pub fn as_embed(&self, embed: &mut CreateEmbed) {
-        let names = "Pairings Channel:\nJudge Role:\nTourn Admin Role:\nMatches Category:\nMake VC:\nMake TC:";
-        let mut settings = String::new();
+    pub fn populate_embed(&self, embed: &mut CreateEmbed) {
+        let data = String::new();
+        "Pairings Channel:\nJudge Role:\nTourn Admin Role:\nMatches Category:\nMake VC:\nMake TC:";
+        let mut data = String::new();
         let _ = writeln!(
-            settings,
-            "{}",
+            data,
+            "Judge Role: {}",
             stringify_option(self.judge_role.as_ref().map(|r| format!("<@&{}>", r)))
         );
         let _ = writeln!(
-            settings,
-            "{}",
+            data,
+            "Tourn Admin Role: {}",
             stringify_option(self.tourn_admin_role.as_ref().map(|r| format!("<@&{}>", r)))
         );
         let _ = writeln!(
-            settings,
-            "{}",
+            data,
+            "Pairings Channel: {}",
             stringify_option(
                 self.pairings_channel
                     .as_ref()
-                    .map(|c| format!("<#{}>", c.id)),
+                    .map(|c| format!("<#{}>", c.id.0)),
             )
         );
         let _ = writeln!(
-            settings,
-            "{}",
+            data,
+            "Matches Category: {}",
             stringify_option(
                 self.matches_category
                     .as_ref()
-                    .map(|c| format!("<#{}>", c.id)),
+                    .map(|c| format!("<#{}>", c.id.0)),
             )
         );
-        let _ = write!(settings, "{}\n{}", self.make_vc, self.make_tc);
-        // TODO: Make the settings tree viewable in the embed
-        embed
-            .title("Server Tournament Settings:")
-            .fields(vec![("Settings", names, true), ("Values", &settings, true)]);
+        let _ = writeln!(data, "VCs?: {}", if self.make_vc { "yes" } else { "no" });
+        let _ = write!(data, "TCs?: {}", if self.make_tc { "yes" } else { "no" });
+        self.tourn_settings
+            .populate_embed(embed.title("Default Tournament Settings:").field(
+                "Server Settings:",
+                data,
+                true,
+            ));
     }
 }
 

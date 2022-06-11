@@ -85,7 +85,7 @@ async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     if let Channel::Guild(c) = msg.channel(&ctx.http).await? {
         c.send_message(&ctx.http, |m| {
             m.embed(|e| {
-                settings.as_embed(e);
+                settings.populate_embed(e);
                 e
             })
         })
