@@ -132,7 +132,16 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
 #[command]
 #[only_in(guild)]
-#[sub_commands(general, pairings, scoring, discord, view)]
+#[sub_commands(
+    format,
+    deck_count,
+    require_checkin,
+    require_deck,
+    pairings,
+    scoring,
+    discord,
+    view
+)]
 #[allowed_roles("Tournament Admin")]
 #[description("Adjust the settings of a specfic tournament.")]
 async fn settings(ctx: &Context, msg: &Message, _: Args) -> CommandResult {

@@ -34,7 +34,7 @@ async fn server(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[description("Sets the default channel where future tournament will post pairings in.")]
 async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     let mut settings = all_settings.get_mut(&guild.id).unwrap();
@@ -81,7 +81,7 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 )]
 async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     let mut settings = all_settings.get_mut(&guild.id).unwrap();
@@ -130,7 +130,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 )]
 async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -155,7 +155,7 @@ async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 )]
 async fn create_text(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -201,7 +201,7 @@ async fn tournament(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
-    match args.single::<String>() {
+    match args.single_quoted::<String>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
             let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
@@ -238,7 +238,7 @@ async fn deck_count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
-    match args.single::<u8>() {
+    match args.single_quoted::<u8>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
             let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
@@ -259,7 +259,7 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
-    match args.single::<u8>() {
+    match args.single_quoted::<u8>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
             let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
@@ -283,7 +283,7 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -307,7 +307,7 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -362,7 +362,7 @@ async fn swiss(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 async fn swiss_match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::SwissPairingsSetting::*;
     let data = ctx.data.read().await;
-    match args.single::<u8>() {
+    match args.single_quoted::<u8>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
             let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
@@ -386,7 +386,7 @@ async fn swiss_match_size(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::SwissPairingsSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -425,7 +425,7 @@ async fn fluid(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 async fn fluid_match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::FluidPairingsSetting::*;
     let data = ctx.data.read().await;
-    match args.single::<u8>() {
+    match args.single_quoted::<u8>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
             let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
@@ -477,7 +477,7 @@ async fn standard(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single::<f64>() {
+    match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
             let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
@@ -503,7 +503,7 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single::<f64>() {
+    match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
             let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
@@ -529,7 +529,7 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single::<f64>() {
+    match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
             let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
@@ -555,7 +555,7 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single::<f64>() {
+    match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
             let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
@@ -581,7 +581,7 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single::<f64>() {
+    match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
             let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
@@ -607,7 +607,7 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single::<f64>() {
+    match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
             let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
@@ -633,7 +633,7 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single::<f64>() {
+    match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
             let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
@@ -655,7 +655,7 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -683,7 +683,7 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -711,7 +711,7 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
 async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -739,7 +739,7 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
 async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -767,7 +767,7 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -795,7 +795,7 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -823,7 +823,7 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single::<String>().unwrap();
+    let arg = args.single_quoted::<String>().unwrap();
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
