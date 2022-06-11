@@ -74,11 +74,8 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     let plyr_id = match tourn.players.get_right(&msg.author.id) {
         Some(id) => PlayerIdentifier::Id(id.clone()),
         None => {
-            msg.reply(
-                &ctx.http,
-                "You are not registered for that tournament.",
-            )
-            .await?;
+            msg.reply(&ctx.http, "You are not registered for that tournament.")
+                .await?;
             return Ok(());
         }
     };
@@ -98,6 +95,7 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     {
         error_to_reply(ctx, msg, err).await?;
     } else {
+        tourn.update_status = true;
         msg.reply(&ctx.http, "Deck successfully added!").await?;
     }
     Ok(())

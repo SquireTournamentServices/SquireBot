@@ -84,8 +84,10 @@ async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     {
         error_to_reply(ctx, msg, err).await?;
     } else {
-        msg.reply(&ctx.http, "Round successfully deleted").await?;
-        tourn.clear_round_data(round_number, &ctx.http).await;
+        tourn.update_status = true;
+        tourn.update_standings = true;
+        msg.reply(&ctx.http, "Round successfully removed").await?;
+        tourn.clear_round_data(&round_number, &ctx.http).await;
     }
     Ok(())
 }

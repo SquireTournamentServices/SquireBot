@@ -13,18 +13,12 @@ pub async fn error_to_reply(ctx: &Context, msg: &Message, err: TournamentError) 
             .await?;
         }
         RegClosed => {
-            msg.reply(
-                &ctx.http,
-                "Registertion is closed for that tournament.",
-            )
-            .await?;
+            msg.reply(&ctx.http, "Registertion is closed for that tournament.")
+                .await?;
         }
         PlayerLookup => {
-            msg.reply(
-                &ctx.http,
-                "That person is not a player in that tournament.",
-            )
-            .await?;
+            msg.reply(&ctx.http, "That person is not a player in that tournament.")
+                .await?;
         }
         RoundLookup => {
             msg.reply(&ctx.http, "That round could not be found.")
@@ -43,11 +37,8 @@ pub async fn error_to_reply(ctx: &Context, msg: &Message, err: TournamentError) 
                 .await?;
         }
         InvalidBye => {
-            msg.reply(
-                &ctx.http,
-                "There must be exactly one player in a bye.",
-            )
-            .await?;
+            msg.reply(&ctx.http, "There must be exactly one player in a bye.")
+                .await?;
         }
         ActiveMatches => {
             msg.reply(

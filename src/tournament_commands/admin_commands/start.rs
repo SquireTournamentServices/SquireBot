@@ -54,7 +54,8 @@ async fn start(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Err(err) = tourn.tourn.apply_op(TournOp::Start()) {
         error_to_reply(ctx, msg, err).await?;
     } else {
-        msg.reply(&ctx.http, "Tournament successfully ended!")
+        tourn.update_status = true;
+        msg.reply(&ctx.http, "Tournament successfully started!")
             .await?;
     }
     Ok(())

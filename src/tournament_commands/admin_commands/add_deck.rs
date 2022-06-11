@@ -81,6 +81,7 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     {
         error_to_reply(ctx, msg, err).await?;
     } else {
+        tourn.update_status = true;
         msg.reply(&ctx.http, "Deck successfully added!").await?;
     }
     Ok(())

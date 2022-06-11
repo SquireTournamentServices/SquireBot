@@ -80,8 +80,13 @@ async fn raw_standings(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
     match channel {
         Channel::Guild(c) => {
             c.send_message(&ctx.http, |m| {
-                m.content("Here are the top {} players")
-                    .files([AttachmentType::File { file: &to_send, filename: String::from("standings.txt") }].into_iter())
+                m.content("Here are the top {} players").files(
+                    [AttachmentType::File {
+                        file: &to_send,
+                        filename: String::from("standings.txt"),
+                    }]
+                    .into_iter(),
+                )
             })
             .await?;
         }

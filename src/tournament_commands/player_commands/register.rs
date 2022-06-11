@@ -57,13 +57,16 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     // mostly.
     match tourn.add_player(plyr_name, msg.author.id) {
         Ok(_) => {
+            tourn.update_status = true;
             msg.reply(
                 &ctx.http,
                 format!("You have been registered for {}", tourn.tourn.name),
             )
             .await?;
-            Ok(())
         }
-        Err(e) => error_to_reply(ctx, msg, e).await,
+        Err(e) => {
+            error_to_reply(ctx, msg, e).await?;
+        }
     }
+    Ok(())
 }

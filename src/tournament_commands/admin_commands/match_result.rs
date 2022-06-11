@@ -118,6 +118,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     {
         error_to_reply(ctx, msg, err).await?;
     } else {
+        tourn.update_status = true;
         msg.reply(&ctx.http, "Result successfully recorded!")
             .await?;
     }

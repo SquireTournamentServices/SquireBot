@@ -65,6 +65,8 @@ async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> Command
     if let Err(err) = tourn.tourn.apply_op(TournOp::ConfirmResult(plyr_id)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
+        tourn.update_status = true;
+        tourn.update_standings = true;
         msg.reply(&ctx.http, "Result successfully confirmed!")
             .await?;
     }

@@ -6,7 +6,11 @@ use serenity::{
     model::{channel::Message, id::UserId, mention::Mention},
     prelude::Context,
 };
-use squire_core::{player_registry::PlayerIdentifier, swiss_pairings::PlayerId, tournament::{Tournament, TournamentId}};
+use squire_core::{
+    player_registry::PlayerIdentifier,
+    swiss_pairings::PlayerId,
+    tournament::{Tournament, TournamentId},
+};
 use std::str::FromStr;
 
 #[hook]
@@ -69,9 +73,7 @@ pub async fn admin_tourn_id_resolver(
         1 => ids.next(),
         _ => {
             // Check name
-            if let Some(id) = ids
-                .find(|id| name_and_id.get_left(id).unwrap() == name)
-            {
+            if let Some(id) = ids.find(|id| name_and_id.get_left(id).unwrap() == name) {
                 Some(id)
             } else {
                 let _ = msg.reply(
@@ -121,7 +123,11 @@ pub async fn tourn_id_resolver(
     }
 }
 
-pub fn player_name_resolver(id: PlayerId, plyrs: &CycleMap<UserId, PlayerId>, tourn: &Tournament) -> String {
+pub fn player_name_resolver(
+    id: PlayerId,
+    plyrs: &CycleMap<UserId, PlayerId>,
+    tourn: &Tournament,
+) -> String {
     if let Some(u_id) = plyrs.get_left(&id) {
         format!("<@{u_id}>\n")
     } else {
@@ -131,4 +137,3 @@ pub fn player_name_resolver(id: PlayerId, plyrs: &CycleMap<UserId, PlayerId>, to
         )
     }
 }
-

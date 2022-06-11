@@ -1,6 +1,6 @@
 use std::{
-    fmt::Write,
     collections::{HashMap, HashSet},
+    fmt::Write,
 };
 
 use dashmap::DashMap;

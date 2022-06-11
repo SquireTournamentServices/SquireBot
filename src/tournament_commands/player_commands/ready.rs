@@ -4,7 +4,11 @@ use serenity::{
     prelude::*,
 };
 
-use squire_core::{operations::TournOp, player_registry::PlayerIdentifier};
+use squire_core::{
+    operations::{OpData, TournOp},
+    player_registry::PlayerIdentifier,
+    round_registry::RoundIdentifier,
+};
 
 use crate::{
     model::containers::{
@@ -74,21 +78,30 @@ async fn ready(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let plyr_id = match tourn.players.get_right(&msg.author.id) {
         Some(id) => PlayerIdentifier::Id(id.clone()),
         None => {
-            msg.reply(
-                &ctx.http,
-                "You are not registered for that tournament.",
-            )
-            .await?;
+            msg.reply(&ctx.http, "You are not registered for that tournament.")
+                .await?;
             return Ok(());
         }
     };
-    if let Err(err) = tourn
-        .tourn
-        .apply_op(TournOp::ReadyPlayer(plyr_id))
-    {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        msg.reply(&ctx.http, "Deck successfully added!").await?;
+    match tourn.tourn.apply_op(TournOp::ReadyPlayer(plyr_id)) {
+        Err(err) => {
+            error_to_reply(ctx, msg, err).await?;
+        }
+        Ok(data) => {
+            tourn.update_status = true;
+            msg.reply(&ctx.http, r#"You are marked as "ready to play"!"#)
+                .await?;
+            if let OpData::Pair(rounds) = data {
+                for ident in rounds {
+                    let rnd = tourn.tourn.get_round(&ident).unwrap();
+                    let num = rnd.match_number;
+                    // TODO: We should do something if this fails...
+                    let _ = tourn
+                        .create_round_data(&ctx.http, &msg.guild(&ctx.cache).unwrap(), &ident, num)
+                        .await;
+                }
+            }
+        }
     }
     Ok(())
 }
@@ -150,20 +163,15 @@ async fn unready(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
     let plyr_id = match tourn.players.get_right(&msg.author.id) {
         Some(id) => PlayerIdentifier::Id(id.clone()),
         None => {
-            msg.reply(
-                &ctx.http,
-                "You are not registered for that tournament.",
-            )
-            .await?;
+            msg.reply(&ctx.http, "You are not registered for that tournament.")
+                .await?;
             return Ok(());
         }
     };
-    if let Err(err) = tourn
-        .tourn
-        .apply_op(TournOp::UnReadyPlayer(plyr_id))
-    {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UnReadyPlayer(plyr_id)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
+        tourn.update_status = true;
         msg.reply(&ctx.http, "Deck successfully added!").await?;
     }
     Ok(())
