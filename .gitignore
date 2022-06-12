@@ -6,5 +6,6 @@ references/
 references/*
 AtomicCards.json
 guild_settings.json
+tournaments.json
 Cargo.lock
 /target

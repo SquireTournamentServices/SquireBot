@@ -34,8 +34,20 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let deck_name = args.single_quoted::<String>().unwrap();
-    let raw_deck = args.single_quoted::<String>().unwrap();
+    let deck_name = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please include a deck name.").await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
+    let raw_deck = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please include a deck.").await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let tourn_name = args.rest().trim().to_string();
     let mut id_iter = ids
         .get_left_iter(&msg.guild_id.unwrap())

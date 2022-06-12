@@ -271,7 +271,7 @@ impl EventHandler for Handler {
 // The framework provides two built-in help commands for you to use.
 // But you can also make your own customized help command that forwards
 // to the behaviour of either of them.
-#[help("squirebot-help")]
+#[help("sb-help")]
 #[individual_command_tip = "SquireBot Commands:\nIf you want more information about a specific command, just pass the command as argument."]
 async fn my_help(
     context: &Context,
@@ -287,6 +287,7 @@ async fn my_help(
 
 #[hook]
 async fn before_command(ctx: &Context, msg: &Message, _command_name: &str) -> bool {
+    println!("{_command_name}");
     true
 }
 
@@ -345,9 +346,10 @@ async fn main() {
         .group(&TOURNAMENTCOMMANDS_GROUP)
         .group(&MISCCOMMANDS_GROUP);
 
-    let intents = GatewayIntents::empty();
-    let intests = intents.guilds();
-    let intests = intents.direct_messages();
+    let intents = GatewayIntents::all();
+    //let intents = GatewayIntents::empty();
+    //let intests = intents.guilds();
+    //let intests = intents.direct_messages();
 
     let mut client = Client::builder(&token, intents)
         .event_handler(Handler)

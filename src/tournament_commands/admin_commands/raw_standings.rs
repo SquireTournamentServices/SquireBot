@@ -41,7 +41,17 @@ async fn raw_standings(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
         .await;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    let raw_count = args.single_quoted::<String>().unwrap();
+    let raw_count = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(
+                &ctx.http,
+                "Please include a count for the number of players shown or 'all'.",
+            )
+            .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let tourn_name = args.rest().trim().to_string();
     let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
     {

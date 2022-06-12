@@ -34,7 +34,17 @@ async fn server(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[description("Sets the default channel where future tournament will post pairings in.")]
 async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(
+                &ctx.http,
+                "Please include a channel, either by name or mention.",
+            )
+            .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     let mut settings = all_settings.get_mut(&guild.id).unwrap();
@@ -81,7 +91,17 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 )]
 async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(
+                &ctx.http,
+                "Please include a category, either by name or mention.",
+            )
+            .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     let mut settings = all_settings.get_mut(&guild.id).unwrap();
@@ -130,7 +150,14 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 )]
 async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -155,7 +182,14 @@ async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 )]
 async fn create_text(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -283,7 +317,14 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -307,7 +348,14 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -386,7 +434,14 @@ async fn swiss_match_size(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::SwissPairingsSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -655,7 +710,14 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -683,7 +745,14 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -711,7 +780,14 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
 async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -739,7 +815,14 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
 async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -767,7 +850,14 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -795,7 +885,14 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
@@ -823,7 +920,14 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();

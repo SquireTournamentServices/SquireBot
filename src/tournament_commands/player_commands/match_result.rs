@@ -38,7 +38,14 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
     let tourns = data.get::<TournamentMapContainer>().unwrap();
     let user_name = msg.author.id;
-    let raw_result = args.single::<String>().unwrap();
+    let raw_result = match args.single::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please include the number of time you won.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let round_number = match args.single::<u64>() {
         Ok(n) => RoundIdentifier::Number(n),
         Err(_) => {

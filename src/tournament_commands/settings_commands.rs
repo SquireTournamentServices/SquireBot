@@ -40,13 +40,17 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let raw_format = args.single_quoted::<String>().unwrap();
+    let raw_format = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please include the name of a format.")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     if raw_format.len() == 0 {
-        msg.reply(
-            &ctx.http,
-            "Please provide the name of the format for the tournament.",
-        )
-        .await?;
+        msg.reply(&ctx.http, "Please include the name of a format.")
+            .await?;
         return Ok(());
     }
     let format = Format(raw_format);
@@ -204,7 +208,14 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let raw_setting = match bool_from_string(&arg) {
         Some(b) => b,
         None => {
@@ -255,7 +266,14 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let raw_setting = match bool_from_string(&arg) {
         Some(b) => b,
         None => {
@@ -378,7 +396,14 @@ async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let raw_setting = match bool_from_string(&arg) {
         Some(b) => b,
         None => {
@@ -875,7 +900,14 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let raw_setting = match bool_from_string(&arg) {
         Some(b) => b,
         None => {
@@ -928,7 +960,14 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let raw_setting = match bool_from_string(&arg) {
         Some(b) => b,
         None => {
@@ -981,7 +1020,14 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let raw_setting = match bool_from_string(&arg) {
         Some(b) => b,
         None => {
@@ -1034,7 +1080,14 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let raw_setting = match bool_from_string(&arg) {
         Some(b) => b,
         None => {
@@ -1087,7 +1140,14 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let raw_setting = match bool_from_string(&arg) {
         Some(b) => b,
         None => {
@@ -1140,7 +1200,14 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let raw_setting = match bool_from_string(&arg) {
         Some(b) => b,
         None => {
@@ -1193,7 +1260,14 @@ async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let raw_setting = match bool_from_string(&arg) {
         Some(b) => b,
         None => {
@@ -1253,7 +1327,17 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(
+                &ctx.http,
+                "Please include a channel, either by name or mention.",
+            )
+            .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     let channel_id = match extract_id(&arg) {
         Some(id) => ChannelId(id),
@@ -1325,7 +1409,17 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(
+                &ctx.http,
+                "Please include a category, either by name or mention.",
+            )
+            .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     let channel_id = match extract_id(&arg) {
         Some(id) => ChannelId(id),
@@ -1334,7 +1428,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             None => {
                 msg.reply(
                     &ctx.http,
-                    "Please include a channel, either by name or mention.",
+                    "Please include a category, either by name or mention.",
                 )
                 .await?;
                 return Ok(());
@@ -1392,7 +1486,14 @@ async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let setting = match bool_from_string(&arg) {
         Some(b) => b,
         None => {
@@ -1440,7 +1541,14 @@ async fn create_text(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = args.single_quoted::<String>().unwrap();
+    let arg = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
+                .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let setting = match bool_from_string(&arg) {
         Some(b) => b,
         None => {

@@ -36,7 +36,13 @@ async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         .await;
     let tourns = data.get::<TournamentMapContainer>().unwrap();
     let user_name = msg.author.id;
-    let deck_name = args.single_quoted::<String>().unwrap();
+    let deck_name = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please include a deck name.").await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let tourn_name = args.rest().trim().to_string();
     let mut id_iter = gld_tourn_ids
         .get_left_iter(&msg.guild_id.unwrap())

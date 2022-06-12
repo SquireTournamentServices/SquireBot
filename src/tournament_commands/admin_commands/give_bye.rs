@@ -35,7 +35,17 @@ async fn give_bye(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let raw_user_id = args.single_quoted::<String>().unwrap();
+    let raw_user_id = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(
+                &ctx.http,
+                "Please include a player, either by name or mention.",
+            )
+            .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let user_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
         Some(id) => id,
         None => {

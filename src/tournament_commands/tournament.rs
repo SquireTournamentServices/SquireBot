@@ -17,7 +17,7 @@ use super::{
     admin_commands::admin::*,
     player_commands::{
         add_deck::*, confirm_result::*, decklist::*, decks::*, drop::*, list::*, match_result::*,
-        name::*, ready::*, register::*, remove_deck::*, standings::*,
+        name::*, ready::*, register::*, remove_deck::*,
     },
     settings_commands::*,
 };
@@ -39,8 +39,7 @@ use super::{
     name,
     ready,
     register,
-    remove_deck,
-    standings
+    remove_deck
 )]
 #[description("Commands pretaining to tournaments.")]
 async fn tournament(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
@@ -58,17 +57,27 @@ async fn tournament(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[description("Adjust the settings of a specfic tournament.")]
 async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     // Verify that the arguements are parsable and correct
-    let preset = match args.single::<String>().unwrap().as_str() {
-        "fluid" => TournamentPreset::Fluid,
-        "swiss" => TournamentPreset::Swiss,
-        _ => {
+    let preset = match args.single_quoted::<String>() {
+        Err(_) => {
             msg.reply(
                 &ctx.http,
-                "Invalid tournament preset. The valid options are `fluid` and `swiss`.",
+                "Please include a tournament type, either 'swiss' or 'fluid'",
             )
             .await?;
             return Ok(());
         }
+        Ok(s) => match s.to_lowercase().as_str() {
+            "fluid" => TournamentPreset::Fluid,
+            "swiss" => TournamentPreset::Swiss,
+            _ => {
+                msg.reply(
+                    &ctx.http,
+                    "Invalid tournament preset. The valid options are `fluid` and `swiss`.",
+                )
+                .await?;
+                return Ok(());
+            }
+        },
     };
     let name = args.rest().trim().to_string();
     if name.is_empty() {
@@ -136,7 +145,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     require_deck,
     pairings,
     scoring,
-    discord,
+    discord
 )]
 #[allowed_roles("Tournament Admin")]
 #[description("Adjust the settings of a specfic tournament.")]

@@ -9,4 +9,3 @@ pub mod name;
 pub mod ready;
 pub mod register;
 pub mod remove_deck;
-pub mod standings;
