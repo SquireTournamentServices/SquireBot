@@ -44,5 +44,5 @@ async fn status(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
-    tourn.spawn_status_message(msg, &ctx.http).await
+    tourn.spawn_status_message(msg, ctx).await
 }

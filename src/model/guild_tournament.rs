@@ -199,7 +199,7 @@ impl GuildTournament {
         origin: &Message,
         cache: &impl CacheHttp,
     ) -> CommandResult {
-        let status = origin.reply(cache, "").await?;
+        let status = origin.reply(cache, "\u{200b}").await?;
         self.tourn_status = Some(status);
         update_status_message(cache, self).await;
         Ok(())

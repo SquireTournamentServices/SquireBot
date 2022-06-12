@@ -286,8 +286,8 @@ async fn my_help(
 }
 
 #[hook]
-async fn before_command(ctx: &Context, msg: &Message, _command_name: &str) -> bool {
-    println!("{_command_name}");
+async fn before_command(ctx: &Context, msg: &Message, command_name: &str) -> bool {
+    println!("Processing command: {command_name}");
     true
 }
 
@@ -299,8 +299,8 @@ async fn after_command(
     command_result: CommandResult,
 ) {
     match command_result {
-        Ok(()) => println!("Processed command '{}'", command_name),
-        Err(why) => println!("Command '{}' returned error {:?}", command_name, why),
+        Ok(()) => println!("Success on command: {command_name}"),
+        Err(why) => println!("Error on command: {command_name} with error {:?}", why),
     }
 }
 

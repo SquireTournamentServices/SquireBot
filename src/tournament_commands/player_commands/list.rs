@@ -30,16 +30,15 @@ async fn list(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         .await;
 
     //Check if there are any active tournaments. If so list them, if not report that to the user
-    let id_iter = gld_tourns.get_left_iter(&msg.guild_id.unwrap()).unwrap();
-    match id_iter.len() {
-        0 => {
+    match gld_tourns.get_left_iter(&msg.guild_id.unwrap()) {
+        None => {
             msg.reply(
                 &ctx.http,
                 "There are no tournaments being held in this server.",
             )
             .await?;
         }
-        _ => {
+        Some(id_iter) => {
             let mut response = MessageBuilder::new();
             for tourn in id_iter {
                 response

@@ -45,7 +45,7 @@ use super::{
 async fn tournament(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     msg.reply(
         &ctx.http,
-        "Please specify a subcommand, so I know what to do. If you're unsure, use `!help tournament`.",
+        "Please specify a subcommand. If you're unsure, use `!sb-help tournament`.",
     )
         .await?;
     Ok(())
@@ -72,7 +72,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             _ => {
                 msg.reply(
                     &ctx.http,
-                    "Invalid tournament preset. The valid options are `fluid` and `swiss`.",
+                    "Invalid tournament preset. The valid options are 'fluid' and 'swiss'.",
                 )
                 .await?;
                 return Ok(());
@@ -98,6 +98,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             .await?;
         return Ok(());
     }
+    println!("Server is configured");
     // Create the role that the tournament will be using
     let tourn_role = match guild
         .create_role(&ctx.http, |r| {
@@ -112,12 +113,14 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
+    println!("Role created");
     // Create the tournament and store its data in the required places.
     // NOTE: `create_tournament` will only return an error if the server is not configured. We
     // already checked this, so we're safe to unwrap it.
     let tourn = settings
         .create_tournament(tourn_role.clone(), preset, name.clone())
         .unwrap();
+    println!("Tournament created");
     let tourn_id = tourn.tourn.id.clone();
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     all_tourns.insert(tourn_id.clone(), tourn);
@@ -132,7 +135,14 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .unwrap()
         .write()
         .await;
+    if !id_map.contains_right(&guild.id) {
+        id_map.insert_right(guild.id.clone());
+    }
     id_map.insert_left(tourn_id, &guild.id);
+    println!("Tourns: {:?}", all_tourns);
+    println!("Names: {:?}", name_and_id);
+    println!("Ids: {:?}", id_map);
+    msg.reply(&ctx.http, "Tournament successfully created!").await?;
     Ok(())
 }
 
