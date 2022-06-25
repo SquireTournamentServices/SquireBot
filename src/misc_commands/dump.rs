@@ -25,6 +25,12 @@ async fn dump(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                     "Failed to write tournament data to file. **DATA NOT SAVED**.",
                 )
                 .await?;
+            } else {
+                msg.reply(
+                    &ctx.http,
+                    "Tournament data saved.",
+                )
+                .await?;
             }
         } else {
             msg.reply(
@@ -47,6 +53,12 @@ async fn dump(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                 msg.reply(
                     &ctx.http,
                     "Failed to write guild settings data to file. **DATA NOT SAVED**.",
+                )
+                .await?;
+            } else {
+                msg.reply(
+                    &ctx.http,
+                    "Guild settings data saved.",
                 )
                 .await?;
             }

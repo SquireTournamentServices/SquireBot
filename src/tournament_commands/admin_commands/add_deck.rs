@@ -88,7 +88,7 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         }
     };
     let card_coll = data.get::<CardCollectionContainer>().unwrap().read().await;
-    let deck = if let Some(deck) = card_coll.create_deck(raw_deck.clone()) {
+    let deck = if let Some(deck) = card_coll.import_deck(raw_deck.clone()).await {
         deck
     } else if let Some(deck) = card_coll.import_deck(raw_deck).await {
         deck
