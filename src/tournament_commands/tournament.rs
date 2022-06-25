@@ -47,7 +47,7 @@ async fn tournament(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         &ctx.http,
         "Please specify a subcommand. If you're unsure, use `!sb-help tournament`.",
     )
-        .await?;
+    .await?;
     Ok(())
 }
 
@@ -142,7 +142,8 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     println!("Tourns: {:?}", all_tourns);
     println!("Names: {:?}", name_and_id);
     println!("Ids: {:?}", id_map);
-    msg.reply(&ctx.http, "Tournament successfully created!").await?;
+    msg.reply(&ctx.http, "Tournament successfully created!")
+        .await?;
     Ok(())
 }
 
