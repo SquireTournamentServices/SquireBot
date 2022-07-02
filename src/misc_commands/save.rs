@@ -9,10 +9,10 @@ use std::{
     io::Write,
 };
 
-#[command("dump")]
+#[command("save")]
 #[owners_only]
 #[description("Force saves all data.")]
-async fn dump(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
+async fn save(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
     let tourns = data.get::<TournamentMapContainer>().unwrap();
     let settings = data.get::<GuildSettingsMapContainer>().unwrap();

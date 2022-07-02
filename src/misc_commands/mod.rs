@@ -1,6 +1,7 @@
 pub mod bug;
+pub mod docs;
 pub mod confirm;
-pub mod dump;
+pub mod save;
 pub mod feature;
 pub mod flip_coins;
 pub mod group;
