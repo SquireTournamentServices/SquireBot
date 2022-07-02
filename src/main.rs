@@ -346,15 +346,14 @@ async fn main() {
         .group(&TOURNAMENTCOMMANDS_GROUP)
         .group(&MISCCOMMANDS_GROUP);
 
-    let intents = GatewayIntents::all();
-    //let intents = GatewayIntents::empty();
-    //let intests = intents.guilds();
-    //let intests = intents.direct_messages();
+    let intents = GatewayIntents::GUILDS
+        .union(GatewayIntents::DIRECT_MESSAGES)
+        .union(GatewayIntents::MESSAGE_CONTENT)
+        .union(GatewayIntents::GUILD_MESSAGES);
 
     let mut client = Client::builder(&token, intents)
         .event_handler(Handler)
         .framework(framework)
-        //.intents(GatewayIntents::all())
         .await
         .expect("Err creating client");
 
