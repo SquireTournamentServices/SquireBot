@@ -15,43 +15,42 @@ from playerCommands import *
 from judgeCommands import *
 
 
-
 newLine = "\n\t- "
-print( f'These are the saved tournaments:{newLine}{newLine.join(savedTournaments)}' )
-print( f'These are the loaded current tournaments:{newLine}{newLine.join(tournaments)}' )
+print(f"These are the saved tournaments:{newLine}{newLine.join(savedTournaments)}")
+print(f"These are the loaded current tournaments:{newLine}{newLine.join(tournaments)}")
 
-TOKEN = os.getenv( "TESTING_TOKEN" )
+TOKEN = os.getenv("TESTING_TOKEN")
 
-reCommand = re.compile( "^!" )
+reCommand = re.compile("^!")
 
 
 # A simple print command used to communicate extra info during unit tests
-@bot.command( name = "comment" )
-async def echoComment( msg, *args ):
-    await msg.channel.send( content = " ".join( args ) )
+@bot.command(name="comment")
+async def echoComment(msg, *args):
+    await msg.channel.send(content=" ".join(args))
 
 
 # A simple sleep command for more control during unit tests
-@bot.command( name = "sleep" )
-async def sleep( msg, t ):
-    time.sleep( int(t) )
-    await msg.channel.send( "I am done sleeping." )
+@bot.command(name="sleep")
+async def sleep(msg, t):
+    time.sleep(int(t))
+    await msg.channel.send("I am done sleeping.")
 
 
 @bot.event
-async def on_message( msg ):
+async def on_message(msg):
     if msg.author == bot.user:
         return
-    content = re.sub( "\s+", " ", msg.content.strip() ).split( " " )
-    if not reCommand.search( content[0] ):
+    content = re.sub("\s+", " ", msg.content.strip()).split(" ")
+    if not reCommand.search(content[0]):
         return
     # The command name is the string between the starting "!" and the first space
     command = content[0][1:]
     # The args are everything after the command name
     args = content[1:]
-    ctx = await bot.get_context( msg )
+    ctx = await bot.get_context(msg)
     if command in bot.all_commands:
-        await bot.all_commands[command]( ctx, *args )
+        await bot.all_commands[command](ctx, *args)
 
 
 bot.run(TOKEN)
