@@ -2,7 +2,7 @@ use super::{
     add_deck::*, confirm_result::*, create_match::*, cut::*, decklist::*, drop::*, end::*,
     freeze::*, give_bye::*, match_result::MATCH_RESULT_COMMAND, players::*, profile::*,
     prune::PRUNE_COMMAND, raw_standings::*, register::*, registration::*, remove_deck::*,
-    remove_match::*, start::*, status::*, time_extension::*,
+    remove_match::*, start::*, status::*, time_extension::*, pair::*
 };
 
 use serenity::{
@@ -25,6 +25,7 @@ use serenity::{
     give_bye,
     match_result,
     players,
+    pair,
     profile,
     prune,
     raw_standings,
