@@ -3,11 +3,11 @@ use serenity::model::prelude::*;
 use serenity::prelude::*;
 use serenity::utils::Color;
 
-static ALL_DOCS: &str = "";
-static PLAYER_DOC: &str = "";
-static TO_DOC: &str = "";
-static FAQ_DOC: &str = "";
-static ABOUT_DOC: &str = "";
+static ALL_DOCS: &str = "https://github.com/MonarchDevelopment/SquireBot/tree/main/docs";
+static PLAYER_DOC: &str = "https://github.com/MonarchDevelopment/SquireBot/tree/main/docs/for_players.md";
+static TO_DOC: &str = "https://github.com/MonarchDevelopment/SquireBot/tree/main/docs/for_officials.md";
+static FAQ_DOC: &str = "https://github.com/MonarchDevelopment/SquireBot/tree/main/docs/FAQ_and_troubleshooting.md";
+static ABOUT_DOC: &str = "https://github.com/MonarchDevelopment/SquireBot/tree/main/docs/tournament_rep.md";
 
 #[command("docs")]
 #[description("Provides locations where you can read more about how SquireBot works.")]
