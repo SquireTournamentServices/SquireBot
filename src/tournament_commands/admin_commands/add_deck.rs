@@ -20,6 +20,9 @@ use crate::{
 #[command("add-deck")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin", "Judge")]
+#[usage("!tournament admin add-deck <player name/mention>, <deck name>, <deck list/url>, [tournament name]")]
+#[example("`!tournament admin add-deck 'SomePlayer', 'SomeDeck', https://moxfield.com/decks/qwertyuiop/`")]
+#[example("`!t admin add-deck @SomePlayer, 'SomeDeck', https://moxfield.com/decks/qwertyuiop/`")]
 #[description("Adds a deck on behalf of a player.")]
 async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

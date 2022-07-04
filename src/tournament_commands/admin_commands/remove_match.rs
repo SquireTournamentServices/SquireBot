@@ -23,6 +23,9 @@ use crate::{
 #[command("remove-match")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
+#[usage("!tournament admin match-deck <match #>, [tournament name]")]
+#[example("`!tournament admin match-deck 10`")]
+#[example("`!t admin match-deck 10`")]
 #[description("Adds a match from the tournament.")]
 async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

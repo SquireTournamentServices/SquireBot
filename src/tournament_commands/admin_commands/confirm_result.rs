@@ -19,6 +19,9 @@ use crate::{
 #[command("confirm-result")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin", "Judge")]
+#[usage("!tournament admin confirm-result <player name/mention>, [tournament name]")]
+#[example("`!tournament admin confirm-result 'SomePlayer'`")]
+#[example("`!t admin confirm-result @SomePlayer`")]
 #[description("Confirms a match result on behalf of a player.")]
 async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

@@ -20,6 +20,9 @@ use crate::{
 #[command("status")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
+#[usage("!tournament admin status [tournament name]")]
+#[example("`!tournament admin status`")]
+#[example("`!t admin status`")]
 #[description("Creates an auto-updating status containing all information about the tournament.")]
 async fn status(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

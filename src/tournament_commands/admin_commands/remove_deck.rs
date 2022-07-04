@@ -19,6 +19,9 @@ use crate::{
 #[command("remove-deck")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin", "Judge")]
+#[usage("!tournament admin remove-deck <player name/mention>, <deck name>, [tournament name]")]
+#[example("`!tournament admin remove-deck 'SomePlayer', https://moxfield.com/decks/qwertyuiop/`")]
+#[example("`!t admin remove-deck @SomePlayer, https://moxfield.com/decks/qwertyuiop/`")]
 #[description("Removes a deck on behave of a player.")]
 async fn remove_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

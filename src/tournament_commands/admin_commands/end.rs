@@ -26,6 +26,9 @@ use crate::{
 #[command("end")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
+#[usage("!tournament admin end [tournament name]")]
+#[example("`!tournament admin end`")]
+#[example("`!t admin end`")]
 #[description("Ends a tournament.")]
 async fn end(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

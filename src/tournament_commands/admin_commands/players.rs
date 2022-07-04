@@ -27,6 +27,9 @@ use crate::{
 #[command("players")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin", "Judge")]
+#[usage("!tournament admin players [tournament name]")]
+#[example("`!tournament admin players`")]
+#[example("`!t admin players`")]
 #[description("Prints out a list of all players.")]
 async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

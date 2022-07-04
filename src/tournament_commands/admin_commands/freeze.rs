@@ -13,6 +13,9 @@ use crate::{
 #[command("freeze")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
+#[usage("!tournament admin freeze [tournament name]")]
+#[example("`!tournament admin freeze`")]
+#[example("`!t admin freeze`")]
 #[description("Pauses a tournament.")]
 async fn freeze(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

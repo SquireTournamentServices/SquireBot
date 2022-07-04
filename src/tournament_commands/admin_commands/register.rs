@@ -16,6 +16,9 @@ use squire_core::operations::TournOp;
 #[command("register")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin", "Judge")]
+#[usage("!tournament admin register <player name/mention>, [tournament name]")]
+#[example("`!tournament admin register 'SomePlayer'`")]
+#[example("`!t admin register @SomePlayer`")]
 #[description("Registers a player on their behalf.")]
 async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

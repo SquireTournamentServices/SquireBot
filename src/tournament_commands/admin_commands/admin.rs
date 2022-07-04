@@ -37,6 +37,7 @@ use serenity::{
     status,
     time_extension
 )]
+#[usage("!tournament admin <option>")]
 #[allowed_roles("Tournament Admin")]
 #[description("Adjust the settings of a specfic tournament.")]
 async fn admin(ctx: &Context, msg: &Message, _: Args) -> CommandResult {

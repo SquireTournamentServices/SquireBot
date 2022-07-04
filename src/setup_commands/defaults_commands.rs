@@ -24,7 +24,7 @@ async fn server(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-    .await?;
+        .await?;
     Ok(())
 }
 
@@ -45,7 +45,7 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                 &ctx.http,
                 "Please include a channel, either by name or mention.",
             )
-            .await?;
+                .await?;
             return Ok(());
         }
         Ok(s) => s,
@@ -62,7 +62,7 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                     &ctx.http,
                     "Please include a channel, either by name or mention.",
                 )
-                .await?;
+                    .await?;
                 return Ok(());
             }
         },
@@ -73,11 +73,11 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                 settings.pairings_channel = Some(c.clone());
                 msg.reply(&ctx.http, "Default pairings channel updated.")
                     .await?;
-            }
+                }
             _ => {
                 msg.reply(&ctx.http, "Please specify a text channel.")
                     .await?;
-            }
+                }
         }
     } else {
         msg.reply(&ctx.http, "Please specify an active channel in this guild.")
@@ -105,7 +105,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                 &ctx.http,
                 "Please include a category, either by name or mention.",
             )
-            .await?;
+                .await?;
             return Ok(());
         }
         Ok(s) => s,
@@ -122,7 +122,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                     &ctx.http,
                     "Please include a channel, either by name or mention.",
                 )
-                .await?;
+                    .await?;
                 return Ok(());
             }
         },
@@ -133,7 +133,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                 settings.matches_category = Some(c.clone());
                 msg.reply(&ctx.http, "Default matches category updated.")
                     .await?;
-            }
+                }
             _ => {
                 msg.reply(&ctx.http, "Please specify a category.").await?;
             }
@@ -143,7 +143,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             &ctx.http,
             "Please specify an active category in this guild.",
         )
-        .await?;
+            .await?;
     }
     Ok(())
 }
@@ -177,7 +177,7 @@ async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-        }
+            }
     }
     Ok(())
 }
@@ -211,7 +211,7 @@ async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-        }
+            }
     }
     Ok(())
 }
@@ -237,7 +237,7 @@ async fn tournament(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-    .await?;
+        .await?;
     Ok(())
 }
 
@@ -260,7 +260,7 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a your default format.")
                 .await?;
-        }
+            }
     }
     Ok(())
 }
@@ -278,7 +278,7 @@ async fn deck_count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-    .await?;
+        .await?;
     Ok(())
 }
 
@@ -358,7 +358,7 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-        }
+            }
     }
     Ok(())
 }
@@ -391,7 +391,7 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-        }
+            }
     }
     Ok(())
 }
@@ -409,7 +409,7 @@ async fn pairing(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-    .await?;
+        .await?;
     Ok(())
 }
 
@@ -426,7 +426,7 @@ async fn swiss(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-    .await?;
+        .await?;
     Ok(())
 }
 
@@ -484,7 +484,7 @@ async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-        }
+            }
     }
     Ok(())
 }
@@ -501,7 +501,7 @@ async fn fluid(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-    .await?;
+        .await?;
     Ok(())
 }
 
@@ -542,15 +542,14 @@ async fn scoring(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-    .await?;
+        .await?;
     Ok(())
 }
 
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[sub_commands("
-    match_win_points,
+#[sub_commands(match_win_points,
     match_draw_points,
     match_loss_points,
     game_win_points,
@@ -563,7 +562,7 @@ async fn scoring(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
     include_mwp,
     include_gwp,
     include_opp_mwp,
-    include-opp-gwp")]
+    include_opp_gwp)]
 #[usage("!setup defaults tourn scoring standard <option>")]
 #[min_args(1)]
 #[description("Adjusts the default settings for future tournament that use the standard scoring model.")]
@@ -572,7 +571,7 @@ async fn standard(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-    .await?;
+        .await?;
     Ok(())
 }
 
@@ -596,7 +595,7 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                 .scoring_settings
                 .standard
                 .match_win_points = MatchWinPoints(val);
-        }
+            }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
         }
@@ -624,7 +623,7 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
                 .scoring_settings
                 .standard
                 .match_draw_points = MatchDrawPoints(val);
-        }
+            }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
         }
@@ -652,7 +651,7 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
                 .scoring_settings
                 .standard
                 .match_loss_points = MatchLossPoints(val);
-        }
+            }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
         }
@@ -680,7 +679,7 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
                 .scoring_settings
                 .standard
                 .game_win_points = GameWinPoints(val);
-        }
+            }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
         }
@@ -708,7 +707,7 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                 .scoring_settings
                 .standard
                 .game_draw_points = GameDrawPoints(val);
-        }
+            }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
         }
@@ -736,7 +735,7 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                 .scoring_settings
                 .standard
                 .game_loss_points = GameLossPoints(val);
-        }
+            }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
         }
@@ -796,11 +795,11 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                 .scoring_settings
                 .standard
                 .include_byes = IncludeByes(b);
-        }
+            }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-        }
+            }
     }
     Ok(())
 }
@@ -833,11 +832,11 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
                 .scoring_settings
                 .standard
                 .include_match_points = IncludeMatchPoints(b);
-        }
+            }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-        }
+            }
     }
     Ok(())
 }
@@ -870,11 +869,11 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
                 .scoring_settings
                 .standard
                 .include_game_points = IncludeGamePoints(b);
-        }
+            }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-        }
+            }
     }
     Ok(())
 }
@@ -907,11 +906,11 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 .scoring_settings
                 .standard
                 .include_mwp = IncludeMwp(b);
-        }
+            }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-        }
+            }
     }
     Ok(())
 }
@@ -944,11 +943,11 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 .scoring_settings
                 .standard
                 .include_gwp = IncludeGwp(b);
-        }
+            }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-        }
+            }
     }
     Ok(())
 }
@@ -981,11 +980,11 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
                 .scoring_settings
                 .standard
                 .include_opp_mwp = IncludeOppMwp(b);
-        }
+            }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-        }
+            }
     }
     Ok(())
 }
@@ -1018,11 +1017,11 @@ async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
                 .scoring_settings
                 .standard
                 .include_opp_gwp = IncludeOppGwp(b);
-        }
+            }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-        }
+            }
     }
     Ok(())
 }

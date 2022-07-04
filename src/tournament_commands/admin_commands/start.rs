@@ -26,6 +26,9 @@ use crate::{
 #[command("start")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
+#[usage("!tournament admin start [tournament name]")]
+#[example("`!tournament admin start`")]
+#[example("`!t admin start`")]
 #[description("Starts a tournament.")]
 async fn start(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

@@ -20,6 +20,9 @@ use crate::{
 #[command("decklist")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin", "Judge")]
+#[usage("!tournament admin decklist <player name/mention>, <deck name>, [tournament name]")]
+#[example("`!tournament admin decklist 'SomePlayer', 'SomeDeck'`")]
+#[example("`!t admin decklist @SomePlayer, 'SomeDeck'`")]
 #[description("Prints out the decklist of a player.")]
 async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

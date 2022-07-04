@@ -26,6 +26,9 @@ use crate::{
 #[command("create-match")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
+#[usage("!tournament admin create-match <player name/mention>, ..., [tournament name]")]
+#[example("`!tournament admin create-match 'PlayerA', 'PlayerB'`")]
+#[example("`!t admin create-match 'PlayerA', 'PlayerB'`")]
 #[description("Adds a match consisting of the specified players.")]
 async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
