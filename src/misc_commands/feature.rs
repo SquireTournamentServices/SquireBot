@@ -7,6 +7,9 @@ static USER_FEATURE_URL: &str = "https://github.com/MonarchDevelopment/SquireBot
 static DEV_SERVER_FEATURE_URL: &str = "https://discord.gg/P5msA3Cu8Y";
 
 #[command("feature")]
+#[aliases("feat")]
+#[usage("!feature")]
+#[example("`!feature` or `!feat`")]
 #[description("Provides locations where you can submit request features.")]
 async fn feature(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let mut message = msg.reply(&ctx.http, "\u{200b}").await?;

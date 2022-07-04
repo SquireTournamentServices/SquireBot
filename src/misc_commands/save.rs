@@ -11,6 +11,7 @@ use std::{
 
 #[command("save")]
 #[owners_only]
+#[help_available(false)]
 #[description("Force saves all data.")]
 async fn save(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;

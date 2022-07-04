@@ -7,6 +7,8 @@ static USER_BUG_URL: &str = "https://github.com/MonarchDevelopment/SquireBot/iss
 static DEV_SERVER_BUG_URL: &str = "https://discord.gg/pTjRkBv6tV";
 
 #[command("bug")]
+#[usage("!bug")]
+#[example("`!bug`")]
 #[description("Provides locations where you can submit bug reports.")]
 async fn bug(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let mut message = msg.reply(&ctx.http, "\u{200b}").await?;

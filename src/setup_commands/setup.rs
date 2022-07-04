@@ -10,6 +10,7 @@ use serenity::prelude::*;
 
 #[command("setup")]
 #[sub_commands(view, test, defaults)]
+#[usage("!setup <view/test/defaults>")]
 #[only_in(guild)]
 #[required_permissions("ADMINISTRATOR")]
 #[description("Sets up the server to be able to run tournaments.")]
@@ -66,6 +67,8 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
+#[usage("!setup view")]
+#[example("`!setup view`")]
 #[help_available(true)]
 #[description("Prints out the current tournament-related settings.")]
 async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
@@ -99,6 +102,8 @@ async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[command]
 #[only_in(guild)]
 #[required_permissions("ADMINISTRATOR")]
+#[usage("!setup test")]
+#[example("`!setup test`")]
 #[description("Tests the setup of the server.")]
 async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
@@ -287,6 +292,8 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     pairing,
     scoring
 )]
+#[usage("!setup defaults <option name>")]
+#[example("`!setup defaults format cEDH`")]
 #[description("Changes the default tournament settings for new tournaments in the server.")]
 async fn defaults(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     msg.reply(

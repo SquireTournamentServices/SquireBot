@@ -41,6 +41,7 @@ use super::{
     register,
     remove_deck
 )]
+#[usage("!tournament <option>")]
 #[description("Commands pretaining to tournaments.")]
 async fn tournament(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     msg.reply(
@@ -53,6 +54,9 @@ async fn tournament(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
 #[command]
 #[only_in(guild)]
+#[usage("!tournament create <type>, <name>")]
+#[example("`!tournament create swiss, 'New Tournament'`")]
+#[example("`!t create fluid, 'New Tournament'`")]
 #[allowed_roles("Tournament Admin")]
 #[description("Adjust the settings of a specfic tournament.")]
 async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -158,6 +162,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     scoring,
     discord
 )]
+#[usage("!tournament settings <option>")]
 #[allowed_roles("Tournament Admin")]
 #[description("Adjust the settings of a specfic tournament.")]
 async fn settings(ctx: &Context, msg: &Message, _: Args) -> CommandResult {

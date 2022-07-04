@@ -28,6 +28,7 @@ use squire_core::{
 #[sub_commands(create)]
 #[min_args(1)]
 #[max_args(1)]
+#[help_available(false)]
 #[description("Helps you resolve Wheel of Misfortune.")]
 async fn misfortune(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     /* Old version

@@ -8,7 +8,8 @@ use crate::model::containers::ConfirmationsContainer;
 
 #[command("yes")]
 #[aliases("y")]
-#[help_available(false)]
+#[usage("!yes")]
+#[example("`!yes` or `!y`")]
 #[description("Confirms your waiting request.")]
 async fn yes(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
@@ -27,7 +28,8 @@ async fn yes(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
 #[command("no")]
 #[aliases("n")]
-#[help_available(false)]
+#[usage("!no")]
+#[example("`!no` or `!n`")]
 #[description("Denies your waiting request.")]
 async fn no(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;

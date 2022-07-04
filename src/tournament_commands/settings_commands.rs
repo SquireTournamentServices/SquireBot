@@ -22,6 +22,9 @@ use crate::{
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
+#[usage("!tournament settings format <format name>")]
+#[example("`!tournament settings format cEDH`")]
+#[example("`!t settings format cEDH`")]
 #[min_args(1)]
 #[description("Adjusts the default format for future tournaments.")]
 async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -77,6 +80,9 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("deck-count")]
+#[usage("!tournament settings deck-count <min/max>")]
+#[example("`!tournament settings deck-count min 1`")]
+#[example("`!t settings deck-count min 1`")]
 #[sub_commands(min, max)]
 #[description("Adjusts the required deck count for future tournaments.")]
 async fn deck_count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -91,6 +97,9 @@ async fn deck_count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
+#[usage("!tournament settings deck-count min <count>")]
+#[example("`!tournament settings deck-count min 1`")]
+#[example("`!t settings deck-count min 1`")]
 #[min_args(1)]
 #[description("Adjusts the required deck count for future tournaments.")]
 async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -139,6 +148,9 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
+#[usage("!tournament settings deck-count max <count>")]
+#[example("`!tournament settings deck-count max 10`")]
+#[example("`!t settings deck-count max 10`")]
 #[min_args(1)]
 #[description("Adjusts the required deck count for future tournaments.")]
 async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -188,6 +200,9 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("require-checkin")]
+#[usage("!tournament settings require-checkin <true/false>")]
+#[example("`!tournament settings require-checkin false`")]
+#[example("`!t settings require-checkin false`")]
 #[min_args(1)]
 #[description(
     "Toggles whether or not players must sign in before a tournament for future tournaments."
@@ -248,6 +263,9 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("require-deck")]
+#[usage("!tournament settings require-deck <true/false>")]
+#[example("`!tournament settings require-deck false`")]
+#[example("`!t settings require-deck false`")]
 #[min_args(1)]
 #[description("Toggles whether or not decks must be registered for future tournaments.")]
 async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -306,6 +324,7 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[only_in(guild)]
 #[sub_commands(swiss, fluid)]
 #[allowed_roles("Tournament Admin")]
+#[usage("!tournament settings pairings <option>")]
 #[description("Adjust the settings of a specfic tournament.")]
 async fn pairings(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     msg.reply(&ctx.http, "Please specify a subcommand.").await?;
@@ -316,6 +335,7 @@ async fn pairings(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[sub_commands("swiss_match_size", "do_checkins")]
+#[usage("!tournament settings pairings swiss <option>")]
 #[min_args(1)]
 #[description("Adjusts the default swiss pairing settings for future tournament.")]
 async fn swiss(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -327,6 +347,9 @@ async fn swiss(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("match-size")]
+#[usage("!tournament settings pairings swiss match-size <size>")]
+#[example("`!tournament settings swiss match-size 4`")]
+#[example("`!t settings swiss match-size 4`")]
 #[min_args(1)]
 #[description("Sets the default match size for future swiss tournaments.")]
 async fn swiss_match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -376,6 +399,9 @@ async fn swiss_match_size(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("do-checkins")]
+#[usage("!tournament settings pairings swiss do-checkins <true/false>")]
+#[example("`!tournament settings swiss do-checkings true`")]
+#[example("`!t settings swiss do-checkings true`")]
 #[min_args(1)]
 #[description(
     "Toggles the default for whether or not players must sign in before each match in future swiss tournaments."
@@ -436,6 +462,7 @@ async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[sub_commands("fluid_match_size")]
+#[usage("!tournament settings pairings fluid <option>")]
 #[min_args(1)]
 #[description("Adjusts the default fluid-round pairing settings for future tournament.")]
 async fn fluid(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -447,6 +474,9 @@ async fn fluid(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("match-size")]
+#[usage("!tournament settings pairings fluid match-size <size>")]
+#[example("`!tournament settings fluid match-size 4`")]
+#[example("`!t settings fluid match-size 4`")]
 #[min_args(1)]
 #[description("Sets the default match size for future fluid-round tournaments.")]
 async fn fluid_match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -496,6 +526,7 @@ async fn fluid_match_size(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[sub_commands("standard")]
+#[usage("!tournament settings scoring <option>")]
 #[description("Adjust the settings of a specfic tournament.")]
 async fn scoring(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     msg.reply(&ctx.http, "Please specify a subcommand.").await?;
@@ -505,8 +536,9 @@ async fn scoring(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
+#[usage("!tournament settings scoring standard <option>")]
 #[min_args(1)]
-#[description("")]
+#[description("Adjusts how a tournament calculates scores.")]
 async fn standard(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     msg.reply(&ctx.http, "Please specify a subcommand.").await?;
     Ok(())
@@ -516,6 +548,9 @@ async fn standard(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("match-win-points")]
+#[usage("!tournament settings scoring standard match-win-points <points>")]
+#[example("`!tournament settings scoring standard match-win-points 3`")]
+#[example("`!t settings scoring standard match-win-points 3`")]
 #[min_args(1)]
 #[description("")]
 async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -568,6 +603,9 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("match-draw-points")]
+#[usage("!tournament settings scoring standard match-draw-points <points>")]
+#[example("`!tournament settings scoring standard match-draw-points 3`")]
+#[example("`!t settings scoring standard match-draw-points 3`")]
 #[min_args(1)]
 #[description("")]
 async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -620,6 +658,9 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("match-loss-points")]
+#[usage("!tournament settings scoring standard match-loss-points <points>")]
+#[example("`!tournament settings scoring standard match-loss-points 3`")]
+#[example("`!t settings scoring standard match-loss-points 3`")]
 #[min_args(1)]
 #[description("")]
 async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -672,6 +713,9 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("game-win-points")]
+#[usage("!tournament settings scoring standard game-win-points <points>")]
+#[example("`!tournament settings scoring standard game-win-points 1`")]
+#[example("`!t settings scoring standard game-win-points 1`")]
 #[min_args(1)]
 #[description("")]
 async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -724,6 +768,9 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("game-draw-points")]
+#[usage("!tournament settings scoring standard game-draw-points <points>")]
+#[example("`!tournament settings scoring standard game-draw-points 1`")]
+#[example("`!t settings scoring standard game-draw-points 1`")]
 #[min_args(1)]
 #[description("")]
 async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -776,6 +823,9 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("game-loss-points")]
+#[usage("!tournament settings scoring standard game-loss-points <points>")]
+#[example("`!tournament settings scoring standard game-loss-points 0`")]
+#[example("`!t settings scoring standard game-loss-points 0`")]
 #[min_args(1)]
 #[description("")]
 async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -828,6 +878,9 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("bye-points")]
+#[usage("!tournament settings scoring standard bye-points <points>")]
+#[example("`!tournament settings scoring standard bye-points 3`")]
+#[example("`!t settings scoring standard bye-points 3`")]
 #[min_args(1)]
 #[description("")]
 async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -880,6 +933,9 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("include-byes")]
+#[usage("!tournament settings scoring standard include-byes <true/false>")]
+#[example("`!tournament settings scoring standard include-byes true`")]
+#[example("`!t settings scoring standard include-byes true`")]
 #[min_args(1)]
 #[description("")]
 async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -940,6 +996,9 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("include-match-points")]
+#[usage("!tournament settings scoring standard include-match-points <true/false>")]
+#[example("`!tournament settings scoring standard include-match-points true`")]
+#[example("`!t settings scoring standard include-match-points true`")]
 #[min_args(1)]
 #[description("")]
 async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -1000,6 +1059,9 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("include-game-points")]
+#[usage("!tournament settings scoring standard include-game-points <true/false>")]
+#[example("`!tournament settings scoring standard include-game-points true`")]
+#[example("`!t settings scoring standard include-game-points true`")]
 #[min_args(1)]
 #[description("")]
 async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -1060,6 +1122,9 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("include-mwp")]
+#[usage("!tournament settings scoring standard include-mwp <true/false>")]
+#[example("`!tournament settings scoring standard include-mwp true`")]
+#[example("`!t settings scoring standard include-mwp true`")]
 #[min_args(1)]
 #[description("")]
 async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -1120,6 +1185,9 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("include-gwp")]
+#[usage("!tournament settings scoring standard include-gwp <true/false>")]
+#[example("`!tournament settings scoring standard include-gwp true`")]
+#[example("`!t settings scoring standard include-gwp true`")]
 #[min_args(1)]
 #[description("")]
 async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -1180,6 +1248,9 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("include-opp-mwp")]
+#[usage("!tournament settings scoring standard include-opp-mwp <true/false>")]
+#[example("`!tournament settings scoring standard include-opp-mwp true`")]
+#[example("`!t settings scoring standard include-opp-mwp true`")]
 #[min_args(1)]
 #[description("")]
 async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -1240,6 +1311,9 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("include-opp-gwp")]
+#[usage("!tournament settings scoring standard include-opp-gwp <true/false>")]
+#[example("`!tournament settings scoring standard include-opp-gwp true`")]
+#[example("`!t settings scoring standard include-opp-gwp true`")]
 #[min_args(1)]
 #[description("")]
 async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -1299,7 +1373,10 @@ async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[sub_commands("pairings_channel", "matches_category", "create_vc", "create_text")]
+#[sub_commands("pairings_channel", "matches_category", "create_vc", "create_tc")]
+#[usage("!tournament settings discord <option>")]
+#[usage("!tournament settings discord <option>")]
+#[example("`!tournament settings scoring standard include-opp-gwp true`")]
 #[description("Adjust the Discord-specific settings of a tournament.")]
 async fn discord(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     msg.reply(&ctx.http, "Please specify a subcommand.").await?;
@@ -1310,6 +1387,9 @@ async fn discord(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("pairings-channel")]
+#[usage("!tournament settings discord pairings-channel <channel name/mention>")]
+#[example("`!tournament settings discord pairings-channel 'pairings'`")]
+#[example("`!t settings discord pairings-channel #pairings`")]
 #[min_args(1)]
 #[description("Sets the default channel where future tournament will post pairings in.")]
 async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -1390,6 +1470,9 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("matches-category")]
+#[usage("!tournament settings discord matches-category <category name/mention>")]
+#[example("`!tournament settings discord matches-category 'matches'`")]
+#[example("`!t settings discord matches-category #matches`")]
 #[min_args(1)]
 #[description(
     "Sets the default category where future tournament will create channels for matches."
@@ -1467,6 +1550,9 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[aliases("create-vc")]
+#[usage("!tournament settings discord create-vc <true/false>")]
+#[example("`!tournament settings discord create-vc true'`")]
+#[example("`!t settings discord create-vc true`")]
 #[min_args(1)]
 #[description(
     "Toggles whether or not voice channels will be created for each match of future tournaments."
@@ -1521,12 +1607,15 @@ async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[aliases("create-test")]
+#[aliases("create-tc")]
+#[usage("!tournament settings discord create-tc <true/false>")]
+#[example("`!tournament settings discord create-tc true'`")]
+#[example("`!t settings discord create-tc true`")]
 #[min_args(1)]
 #[description(
     "Toggles whether or not text channels will be created for each match of future tournaments."
 )]
-async fn create_text(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
     let name_and_id = data
         .get::<TournamentNameAndIDMapContainer>()
