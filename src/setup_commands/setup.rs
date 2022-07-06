@@ -119,7 +119,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             all_settings.get_mut(&guild.id).unwrap().clone()
         }
     };
-    let tests = String::from("Judge Role Exists:\nAdmin Role Exists:\nPairings Channel Exists:\nSend Pairings:\nEdit Pairings:\nSend Embed:\nEdit Embed:\nMatches Category Exists:\nCreate VC:\nDelete VC:\nCreate TC:\nDelete TC:");
+    let tests = String::from("Judge Role Exists:\nAdmin Role Exists:\nPairings Channel Exists:\nSend Pairings:\nEdit Pairings:\nSend Embed:\nEdit Embed:\nMatches Category Exists:\nCreate VC:\nDelete VC:\nCreate TC:\nDelete TC:\nRole Created:\nRole Deleted:");
     let mut test_results = String::new();
     match settings.judge_role {
         None => {
@@ -265,8 +265,21 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     } else {
         test_results += &"Omitted - Not making TCs nor VCs.\n".repeat(5);
     }
-    if let Channel::Guild(c) = msg.channel(&ctx.http).await? {
-        c.send_message(&ctx.http, |m| {
+    
+    if let Ok(mut r) = guild.create_role(&ctx.http, |r| r.mentionable(true).name("Setup Test")).await {
+        test_results += &"Passed\n";
+        if let Ok(_) = r.delete(&ctx.http).await {
+            test_results += &"Passed\n";
+        } else {
+            test_results += &"Failed - couldn't delete role\n";
+        }
+    } else {
+        test_results += &"Failed - couldn't create role\n";
+        test_results += &"Omitted - couldn't create role\n";
+    }
+    
+    let mut response = msg.reply(&ctx.http, "\u{200b}").await?;
+    response.edit(&ctx.http, |m| {
             m.embed(|e| {
                 e.title("Test Results").fields(vec![
                     ("Tests", tests, true),
@@ -275,9 +288,6 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             })
         })
         .await?;
-    } else {
-        msg.reply(&ctx.http, "How did you send this??").await?;
-    }
     Ok(())
 }
 

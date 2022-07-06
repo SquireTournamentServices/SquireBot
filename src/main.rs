@@ -23,7 +23,7 @@ use utils::{
     embeds::{update_match_message, update_standings_message, update_status_message},
 };
 
-use dashmap::{rayon, DashMap};
+use dashmap::{rayon, DashMap, try_result::TryResult};
 use dotenv::vars;
 use serde_json;
 use serenity::{
@@ -47,7 +47,7 @@ use serenity::{
     },
     prelude::*,
 };
-use tokio::{sync::Mutex, time::Instant};
+use tokio::{runtime, sync::Mutex, time::Instant};
 
 use std::{
     collections::{HashMap, HashSet},
@@ -181,26 +181,42 @@ impl EventHandler for Handler {
     }
 
     async fn guild_role_create(&self, ctx: Context, new: Role) {
+        println!("Handling new role");
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
-            match new.name.as_str() {
-                DEFAULT_JUDGE_ROLE_NAME => {
-                    if settings.judge_role.is_none() {
-                        settings.judge_role = Some(new.id);
-                    }
+        loop {
+            match all_settings.try_get_mut(&new.guild_id) {
+                TryResult::Present(mut settings) => {
+                    match new.name.as_str() {
+                        DEFAULT_JUDGE_ROLE_NAME => {
+                            if settings.judge_role.is_none() {
+                                settings.judge_role = Some(new.id);
+                            }
+                        }
+                        DEFAULT_TOURN_ADMIN_ROLE_NAME => {
+                            if settings.tourn_admin_role.is_none() {
+                                settings.tourn_admin_role = Some(new.id);
+                            }
+                        }
+                        _ => {}
+                    };
+                    break;
+                },
+                TryResult::Locked => {
+                    let mut sleep = tokio::time::interval(Duration::from_millis(10));
+                    sleep.tick().await;
+                    sleep.tick().await;
                 }
-                DEFAULT_TOURN_ADMIN_ROLE_NAME => {
-                    if settings.tourn_admin_role.is_none() {
-                        settings.tourn_admin_role = Some(new.id);
-                    }
+                TryResult::Absent => {
+                    all_settings.insert(new.guild_id, GuildSettings::new(new.guild_id));
                 }
-                _ => {}
             }
         };
+        println!("Handled new role");
     }
 
     async fn guild_role_update(&self, ctx: Context, _: Option<Role>, new: Role) {
+        println!("Handling role update");
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
@@ -236,6 +252,7 @@ impl EventHandler for Handler {
                 }
             }
         };
+        println!("Handled role update");
     }
 
     async fn guild_role_delete(
@@ -245,6 +262,7 @@ impl EventHandler for Handler {
         removed_role: RoleId,
         _: Option<Role>,
     ) {
+        println!("Handling role delete");
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
         if let Some(mut settings) = all_settings.get_mut(&guild_id) {
@@ -265,6 +283,7 @@ impl EventHandler for Handler {
                 None => {}
             }
         };
+        println!("Handled role delete");
     }
 }
 
@@ -383,6 +402,7 @@ async fn main() {
             .iter()
             .map(|t| (t.tourn.id.clone(), t.guild_id))
             .collect();
+       
 
         // Insert the main TournamentID -> Tournament map
         let ref_main = Arc::new(all_tournaments);
@@ -401,6 +421,7 @@ async fn main() {
             let loop_length = Duration::from_secs(30);
             loop {
                 let timer = Instant::now();
+                //println!( "Tournament saver still spinning" );
                 // TODO: This should be par_iter via rayon
                 for mut pair in tourns.iter_mut() {
                     let mut tourn = pair.value_mut();
@@ -420,7 +441,9 @@ async fn main() {
                 }
                 // Sleep so that the next loop starts 30 seconds after the start of this one
                 if timer.elapsed() < loop_length {
+                    println!("Tournament saver sleeping for {:?}", loop_length - timer.elapsed());
                     let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
+                    sleep.tick().await;
                     sleep.tick().await;
                 }
             }
@@ -514,7 +537,9 @@ async fn main() {
                 }
                 // Sleep so that the next loop starts 60 seconds after the start of this one
                 if timer.elapsed() < loop_length {
+                    println!("Message updater sleeping for {:?}", loop_length - timer.elapsed());
                     let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
+                    sleep.tick().await;
                     sleep.tick().await;
                 }
             }
@@ -537,7 +562,9 @@ async fn main() {
                 }
                 // Sleep so that the next loop starts 30 seconds after the start of this one
                 if timer.elapsed() < loop_length {
+                    println!("Status updater sleeping for {:?}", loop_length - timer.elapsed());
                     let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
+                    sleep.tick().await;
                     sleep.tick().await;
                 }
             }
