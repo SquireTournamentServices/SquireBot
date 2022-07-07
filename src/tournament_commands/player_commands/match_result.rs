@@ -22,6 +22,9 @@ use squire_core::{
 
 #[command("match-result")]
 #[only_in(guild)]
+#[usage("<# of wins/'draw'>, [tournament name]")]
+#[example("2")]
+#[example("draw")]
 #[description("Submit the result of a match.")]
 async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

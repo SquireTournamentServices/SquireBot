@@ -26,9 +26,8 @@ use crate::{
 #[command("cut")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[usage("!tournament admin cut <top N>, [tournament name]")]
-#[example("`!tournament admin cut 16`")]
-#[example("`!t admin cut 16`")]
+#[usage("<top N>, [tournament name]")]
+#[example("16")]
 #[description("Drops all but the top N players.")]
 async fn cut(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

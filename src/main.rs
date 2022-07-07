@@ -21,6 +21,7 @@ use tournament_commands::group::TOURNAMENTCOMMANDS_GROUP;
 use utils::{
     card_collection::build_collection,
     embeds::{update_match_message, update_standings_message, update_status_message},
+    spin_lock::spin_mut,
 };
 
 use dashmap::{rayon, DashMap, try_result::TryResult};
@@ -72,7 +73,7 @@ impl EventHandler for Handler {
         println!("Look, a guild: {}", guild.name);
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = all_settings.get_mut(&guild.id) {
+        if let Some(mut settings) = spin_mut(all_settings, &guild.id).await {
             settings.update(&guild);
         } else {
             let settings = GuildSettings::from_existing(&guild);
@@ -90,7 +91,7 @@ impl EventHandler for Handler {
     async fn category_create(&self, ctx: Context, new: &ChannelCategory) {
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
+        if let Some(mut settings) = spin_mut(all_settings, &new.guild_id).await {
             match settings.matches_category {
                 None => {
                     if new.name == DEFAULT_MATCHES_CATEGORY_NAME {
@@ -105,7 +106,7 @@ impl EventHandler for Handler {
     async fn category_delete(&self, ctx: Context, category: &ChannelCategory) {
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = all_settings.get_mut(&category.guild_id) {
+        if let Some(mut settings) = spin_mut(all_settings, &category.guild_id).await {
             match &settings.matches_category {
                 Some(c) => {
                     if c.id == category.id {
@@ -120,7 +121,7 @@ impl EventHandler for Handler {
     async fn channel_create(&self, ctx: Context, new: &GuildChannel) {
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
+        if let Some(mut settings) = spin_mut(all_settings, &new.guild_id).await {
             match &settings.pairings_channel {
                 None => {
                     if new.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
@@ -135,7 +136,7 @@ impl EventHandler for Handler {
     async fn channel_delete(&self, ctx: Context, channel: &GuildChannel) {
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = all_settings.get_mut(&channel.guild_id) {
+        if let Some(mut settings) = spin_mut(all_settings, &channel.guild_id).await {
             match &settings.pairings_channel {
                 Some(c) => {
                     if c.id == channel.id {
@@ -154,26 +155,26 @@ impl EventHandler for Handler {
         match new {
             Channel::Guild(c) => {
                 if c.kind == ChannelType::Text && c.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
-                    if let Some(mut settings) = all_settings.get_mut(&c.guild_id) {
+                    if let Some(mut settings) = spin_mut(all_settings, &c.guild_id).await {
                         match &settings.pairings_channel {
                             None => {
-                                settings.pairings_channel = Some(c);
+                                settings.pairings_channel = Some(c.clone());
                             }
                             Some(c) => {}
                         }
-                    }
+                    };
                 }
             }
             Channel::Category(c) => {
                 if c.name == DEFAULT_MATCHES_CATEGORY_NAME {
-                    if let Some(mut settings) = all_settings.get_mut(&c.guild_id) {
+                    if let Some(mut settings) = spin_mut(all_settings, &c.guild_id).await {
                         match settings.matches_category {
                             None => {
-                                settings.matches_category = Some(c);
+                                settings.matches_category = Some(c.clone());
                             }
                             Some(_) => {}
                         }
-                    }
+                    };
                 }
             }
             _ => {}
@@ -219,7 +220,7 @@ impl EventHandler for Handler {
         println!("Handling role update");
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = all_settings.get_mut(&new.guild_id) {
+        if let Some(mut settings) = spin_mut(all_settings, &new.guild_id).await {
             match new.name.as_str() {
                 DEFAULT_JUDGE_ROLE_NAME => {
                     if settings.judge_role.is_none() {
@@ -265,7 +266,7 @@ impl EventHandler for Handler {
         println!("Handling role delete");
         let data = ctx.data.read().await;
         let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = all_settings.get_mut(&guild_id) {
+        if let Some(mut settings) = spin_mut(all_settings, &guild_id).await {
             match settings.judge_role {
                 Some(id) => {
                     if id == removed_role {

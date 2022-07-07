@@ -1,3 +1,4 @@
+pub mod spin_lock;
 pub mod card_collection;
 pub mod embeds;
 pub mod error_to_reply;

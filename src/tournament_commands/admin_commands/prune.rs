@@ -29,7 +29,7 @@ use crate::{
 #[only_in(guild)]
 #[sub_commands(players, decks)]
 #[allowed_roles("Tournament Admin")]
-#[usage("!tournament admin prune <option>")]
+#[usage("<option>")]
 #[description(
     "Removes players that aren't fully registered and decks from players that have them in excess."
 )]
@@ -41,9 +41,7 @@ async fn prune(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[command("players")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[usage("!tournament admin prune players [tournament name]")]
-#[example("`!tournament admin prune players`")]
-#[example("`!t admin prune players`")]
+#[usage("[tournament name]")]
 #[description("Removes players that aren't fully registered.")]
 async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
@@ -124,9 +122,7 @@ async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
 #[command("decks")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[usage("!tournament admin prune decks [tournament name]")]
-#[example("`!tournament admin prune decks`")]
-#[example("`!t admin prune decks`")]
+#[usage("[tournament name]")]
 #[description("Removes decks from players that have them in excess.")]
 async fn decks(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

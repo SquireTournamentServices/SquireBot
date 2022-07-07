@@ -25,9 +25,8 @@ use crate::{
 #[command("time-extension")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin", "Judge")]
-#[usage("!tournament admin time-extension <match #>, <# of minutes>, [tournament name]")]
-#[example("`!tournament admin time-extension 10, 5`")]
-#[example("`!t admin time-extension 10, 5`")]
+#[usage("<match #>, <# of minutes>, [tournament name]")]
+#[example("10, 5")]
 #[description("Give a match a time extenstion.")]
 async fn time_extension(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

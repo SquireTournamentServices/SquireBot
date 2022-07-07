@@ -16,6 +16,7 @@ use squire_core::{operations::TournOp, standard_scoring::PlayerIdentifier};
 
 #[command("confirm-result")]
 #[only_in(guild)]
+#[usage("[tournament name]")]
 #[description("Confirm the result of your match.")]
 async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     /* Get references to needed data from context */

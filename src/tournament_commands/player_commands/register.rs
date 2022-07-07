@@ -19,7 +19,7 @@ use squire_core::{swiss_pairings::TournamentError, tournament::Tournament};
 
 #[command("register")]
 #[only_in(guild)]
-#[min_args(0)]
+#[usage("[tournament name]")]
 #[description("Register for a tournament.")]
 async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     /* Get references to needed data from context */

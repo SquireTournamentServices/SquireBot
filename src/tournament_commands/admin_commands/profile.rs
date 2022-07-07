@@ -21,9 +21,9 @@ use crate::{
 #[command("profile")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin", "Judge")]
-#[usage("!tournament admin profile <player name/mention>, [tournament name]")]
-#[example("`!tournament admin profile 'SomePlayer'`")]
-#[example("`!t admin profile @SomePlayer`")]
+#[usage("<player name/mention>, [tournament name]")]
+#[example("'SomePlayer'")]
+#[example("@SomePlayer")]
 #[description("Prints out the profile of a player.")]
 async fn profile(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

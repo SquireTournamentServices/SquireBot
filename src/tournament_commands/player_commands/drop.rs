@@ -19,6 +19,7 @@ use crate::{
 
 #[command("drop")]
 #[only_in(guild)]
+#[usage("[tournament name]")]
 #[description("Removes you from the tournament.")]
 async fn drop(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

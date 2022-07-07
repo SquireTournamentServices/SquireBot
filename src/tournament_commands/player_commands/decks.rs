@@ -16,7 +16,7 @@ use crate::model::{
 };
 
 #[command("decks")]
-#[only_in(guild)]
+#[usage("[tournament name]")]
 #[description("Prints out a summary of your decks.")]
 async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read().await;

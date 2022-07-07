@@ -24,6 +24,7 @@ use crate::{
 #[command("ready")]
 #[only_in(guild)]
 #[aliases("lfg")]
+#[usage("[tournament name]")]
 #[description("Shows that you're ready to play your next match.")]
 async fn ready(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
@@ -109,6 +110,7 @@ async fn ready(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[command("unready")]
 #[only_in(guild)]
 #[aliases("leave-lfg")]
+#[usage("[tournament name]")]
 #[description("Shows that you're not ready to play your next match.")]
 async fn unready(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

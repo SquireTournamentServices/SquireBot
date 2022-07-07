@@ -19,9 +19,9 @@ use crate::{
 #[command("drop")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[usage("!tournament admin drop <player name/mention>, [tournament name]")]
-#[example("`!tournament admin decklist 'SomePlayer'`")]
-#[example("`!t admin decklist @SomePlayer`")]
+#[usage("<player name/mention>, [tournament name]")]
+#[example("'SomePlayer'")]
+#[example("@SomePlayer")]
 #[description("Drops a player from the tournament.")]
 async fn drop(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

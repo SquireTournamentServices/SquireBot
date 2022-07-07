@@ -8,11 +8,12 @@ use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
+// TODO: Find a work around for this
+//#[required_permissions("ADMINISTRATOR")]
 #[command("setup")]
 #[sub_commands(view, test, defaults)]
-#[usage("!setup <view/test/defaults>")]
+#[usage("<view/test/defaults>")]
 #[only_in(guild)]
-#[required_permissions("ADMINISTRATOR")]
 #[description("Sets up the server to be able to run tournaments.")]
 async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
@@ -67,9 +68,6 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[usage("!setup view")]
-#[example("`!setup view`")]
-#[help_available(true)]
 #[description("Prints out the current tournament-related settings.")]
 async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
@@ -101,9 +99,7 @@ async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
 #[command]
 #[only_in(guild)]
-#[required_permissions("ADMINISTRATOR")]
-#[usage("!setup test")]
-#[example("`!setup test`")]
+#[allowed_roles("Tournament Admin")]
 #[description("Tests the setup of the server.")]
 async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
@@ -295,6 +291,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
 #[sub_commands(
+    server,
     format,
     "deck_count",
     "require_checkin",
@@ -302,8 +299,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     pairing,
     scoring
 )]
-#[usage("!setup defaults <option name>")]
-#[example("`!setup defaults format cEDH`")]
+#[usage("<option name>")]
 #[description("Changes the default tournament settings for new tournaments in the server.")]
 async fn defaults(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     msg.reply(

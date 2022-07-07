@@ -13,9 +13,8 @@ use crate::{
 #[command("freeze")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[usage("!tournament admin freeze [tournament name]")]
-#[example("`!tournament admin freeze`")]
-#[example("`!t admin freeze`")]
+#[usage("[tournament name]")]
+#[example("freeze")]
 #[description("Pauses a tournament.")]
 async fn freeze(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
@@ -54,6 +53,8 @@ async fn freeze(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[command("thaw")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
+#[usage("[tournament name]")]
+#[example("thaw")]
 #[description("Resumes a frozen a tournament.")]
 async fn thaw(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

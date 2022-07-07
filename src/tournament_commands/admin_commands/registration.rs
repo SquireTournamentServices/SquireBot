@@ -22,9 +22,7 @@ use crate::{
 #[only_in(guild)]
 #[aliases("reg")]
 #[allowed_roles("Tournament Admin")]
-#[usage("!tournament admin registration <open/closed>, [tournament name]")]
-#[example("`!tournament admin registration open`")]
-#[example("`!t admin reg closed`")]
+#[usage("<open/closed>, [tournament name]")]
 #[description("Changes the registeration status of the tournament.")]
 async fn registration(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

@@ -26,6 +26,7 @@ use crate::{
 #[command("pair")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
+#[usage("[tournament name]")]
 #[description("Pairs the next round of matches.")]
 async fn pair(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

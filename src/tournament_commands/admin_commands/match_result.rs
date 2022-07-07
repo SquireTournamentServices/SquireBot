@@ -22,9 +22,9 @@ use crate::{
 #[command("match-result")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin", "Judge")]
-#[usage("!tournament admin match-result <player name/mention>, <match #>, <# of wins/'draw'>, [tournament name]")]
-#[example("`!tournament admin match-result 'SomePlayer', 10, 1`")]
-#[example("`!t admin match-result @SomePlayer, 10, draw`")]
+#[usage("<player name/mention>, <match #>, <# of wins/'draw'>, [tournament name]")]
+#[example("'SomePlayer', 10, 1")]
+#[example("@SomePlayer, 10, draw")]
 #[description("Records the result of a match.")]
 async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

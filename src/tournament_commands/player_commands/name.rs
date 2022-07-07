@@ -19,6 +19,7 @@ use crate::{
 
 #[command("name")]
 #[only_in(guild)]
+#[usage("[tournament name]")]
 #[description("Adjust your name in the tournament.")]
 async fn name(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

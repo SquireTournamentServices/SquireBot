@@ -19,9 +19,9 @@ use crate::{
 #[command("give-bye")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[usage("!tournament admin give-bye <player name/mention>, [tournament name]")]
-#[example("`!tournament admin give-bye 'SomePlayer'`")]
-#[example("`!t admin give-bye @SomePlayer`")]
+#[usage("<player name/mention>, [tournament name]")]
+#[example("'SomePlayer'")]
+#[example("@SomePlayer")]
 #[description("Gives a player a bye.")]
 async fn give_bye(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

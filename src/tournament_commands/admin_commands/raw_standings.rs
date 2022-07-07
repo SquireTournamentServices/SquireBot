@@ -26,9 +26,8 @@ use crate::{
 #[command("raw-standings")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin", "Judge")]
-#[usage("!tournament admin raw-standings <top N>, [tournament name]")]
-#[example("`!tournament admin raw-standings 25`")]
-#[example("`!t admin raw-standings 25`")]
+#[usage("<top N>, [tournament name]")]
+#[example("25")]
 #[description("Delivers a txt file with simplified standings.")]
 async fn raw_standings(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

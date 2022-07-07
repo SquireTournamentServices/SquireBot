@@ -18,6 +18,8 @@ use crate::{
 };
 
 #[command("add-deck")]
+#[usage("<deck name>, <deck list/url>, [tournament name]")]
+#[example("'SomeDeck', https://moxfield.com/decks/qwertyuiop/")]
 #[description("Submits a deck.")]
 async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

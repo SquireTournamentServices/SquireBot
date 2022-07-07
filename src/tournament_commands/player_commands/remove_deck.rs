@@ -19,6 +19,8 @@ use crate::{
 
 #[command("remove-deck")]
 #[only_in(guild)]
+#[usage("<deck name>, [tournament name]")]
+#[example("'SomeDeck'")]
 #[description("Removes one of your decks.")]
 async fn remove_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;

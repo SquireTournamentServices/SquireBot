@@ -20,6 +20,7 @@ use crate::{
 };
 
 #[command("decklist")]
+#[usage("[tournament name]")]
 #[description("Prints out one of your decklists.")]
 async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     /* Get references to needed data from context */
