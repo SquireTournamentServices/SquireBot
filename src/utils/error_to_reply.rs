@@ -3,14 +3,17 @@ use squire_core::swiss_pairings::TournamentError;
 
 // A function for deliverying canned responses based on a TournamentError
 pub async fn error_to_reply(ctx: &Context, msg: &Message, err: TournamentError) -> CommandResult {
-    use squire_core::error::TournamentError::*;
+    use squire_core::{error::TournamentError::*, tournament::TournamentStatus};
     match err {
-        IncorrectStatus => {
-            msg.reply(
-                &ctx.http,
-                "That tournament isn't taking new players right now.",
-            )
-            .await?;
+        IncorrectStatus(s) => {
+            let text = match s {
+                TournamentStatus::Planned => "That tournament hasn't started yet.",
+                TournamentStatus::Started => "That tournament has already started.",
+                TournamentStatus::Frozen => "That tournament is currently frozen.",
+                TournamentStatus::Ended => "That tournament has already ended.",
+                TournamentStatus::Cancelled => "That tournament has been cancelled.",
+            };
+            msg.reply(&ctx.http, text).await?;
         }
         RegClosed => {
             msg.reply(&ctx.http, "Registertion is closed for that tournament.")
