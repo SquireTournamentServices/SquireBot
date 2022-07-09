@@ -71,7 +71,7 @@ async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
     let tourn_name = args.rest().trim().to_string();
     let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
     {
-        Some(id) => id,
+        Some(id) => id.clone(),
         None => {
             return Ok(());
         }
@@ -108,7 +108,7 @@ async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         return Ok(());
     }
     let confs = data.get::<ConfirmationsContainer>().unwrap();
-    confs.insert(msg.author.id, Box::new(PruneDecksConfirmation { tourn_id }));
+    confs.insert(msg.author.id, Box::new(PruneDecksConfirmation { tourn_id: tourn_id.clone() }));
     msg.reply(
         &ctx.http,
         format!(
@@ -167,7 +167,7 @@ async fn decks(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         return Ok(());
     }
     let confs = data.get::<ConfirmationsContainer>().unwrap();
-    confs.insert(msg.author.id, Box::new(PruneDecksConfirmation { tourn_id }));
+    confs.insert(msg.author.id, Box::new(PruneDecksConfirmation { tourn_id: tourn_id.clone() }));
     msg.reply(
         &ctx.http,
         format!(
