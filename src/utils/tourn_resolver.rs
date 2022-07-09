@@ -1,5 +1,6 @@
-use crate::model::lookup_error::LookupError;
+use crate::model::{guild_tournament::GuildTournament, lookup_error::LookupError};
 use cycle_map::CycleMap;
+use dashmap::DashMap;
 use serenity::{
     framework::standard::macros::hook,
     gateway::WebSocketGatewayClientExt,
@@ -12,6 +13,8 @@ use squire_core::{
     tournament::{Tournament, TournamentId},
 };
 use std::str::FromStr;
+
+use super::spin_lock::spin;
 
 #[hook]
 /// Given a command context, the inciting message, and an identifier for a user, this method
@@ -48,6 +51,48 @@ pub async fn user_id_resolver(ctx: &Context, msg: &Message, ident: &str) -> Opti
                 )
                 .await;
             None
+        }
+    }
+}
+
+#[hook]
+pub async fn player_tourn_resolver(
+    ctx: &Context,
+    msg: &Message,
+    tourn_name: String,
+    all_tourns: &DashMap<TournamentId, GuildTournament>,
+    mut ids: impl ExactSizeIterator<Item = &'fut TournamentId> + Send + Sync + 'fut,
+) -> Option<TournamentId> {
+    let mut opt_tourn_id: Option<TournamentId> = None;
+    let mut found_mult = false;
+    for id in ids {
+        let tourn = spin(all_tourns, id).await.unwrap();
+        if tourn.players.contains_left(&msg.author.id) {
+            found_mult = opt_tourn_id.is_some();
+            opt_tourn_id = Some(id.clone());
+            if tourn.tourn.name == tourn_name {
+                break;
+            }
+        }
+    }
+    match opt_tourn_id {
+        Some(id) => {
+            if found_mult {
+                let _ = msg
+                    .reply(
+                        &ctx.http,
+                        "You are in multiple tournament. Please specify the name of one of them.",
+                    )
+                    .await;
+                return None;
+            }
+            Some(id)
+        }
+        None => {
+            let _ = msg
+                .reply(&ctx.http, "You are not registered for any tournament here.")
+                .await;
+            return None;
         }
     }
 }

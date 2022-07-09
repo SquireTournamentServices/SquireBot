@@ -19,6 +19,7 @@ use crate::{
     },
     utils::{
         error_to_reply::error_to_reply,
+        spin_lock::spin_mut,
         tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
     },
 };
@@ -51,7 +52,7 @@ async fn start(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::Start()) {
         error_to_reply(ctx, msg, err).await?;
     } else {

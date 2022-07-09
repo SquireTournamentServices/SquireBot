@@ -2,7 +2,7 @@ use std::slice::SliceIndex;
 
 use crate::{
     model::containers::GuildSettingsMapContainer,
-    utils::{extract_id::extract_id, stringify::bool_from_string},
+    utils::{extract_id::extract_id, spin_lock::spin_mut, stringify::bool_from_string},
 };
 
 use serenity::{
@@ -22,7 +22,7 @@ async fn server(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-        .await?;
+    .await?;
     Ok(())
 }
 
@@ -43,14 +43,14 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                 &ctx.http,
                 "Please include a channel, either by name or mention.",
             )
-                .await?;
+            .await?;
             return Ok(());
         }
         Ok(s) => s,
     };
     let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let mut settings = all_settings.get_mut(&guild.id).unwrap();
+    let mut settings = spin_mut(all_settings, &guild.id).await.unwrap();
     let channel_id = match extract_id(&arg) {
         Some(id) => ChannelId(id),
         None => match guild.channel_id_from_name(&ctx.cache, arg) {
@@ -60,7 +60,7 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                     &ctx.http,
                     "Please include a channel, either by name or mention.",
                 )
-                    .await?;
+                .await?;
                 return Ok(());
             }
         },
@@ -71,11 +71,11 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                 settings.pairings_channel = Some(c.clone());
                 msg.reply(&ctx.http, "Default pairings channel updated.")
                     .await?;
-                }
+            }
             _ => {
                 msg.reply(&ctx.http, "Please specify a text channel.")
                     .await?;
-                }
+            }
         }
     } else {
         msg.reply(&ctx.http, "Please specify an active channel in this guild.")
@@ -103,14 +103,14 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                 &ctx.http,
                 "Please include a category, either by name or mention.",
             )
-                .await?;
+            .await?;
             return Ok(());
         }
         Ok(s) => s,
     };
     let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let mut settings = all_settings.get_mut(&guild.id).unwrap();
+    let mut settings = spin_mut(all_settings, &guild.id).await.unwrap();
     let channel_id = match extract_id(&arg) {
         Some(id) => ChannelId(id),
         None => match guild.channel_id_from_name(&ctx.cache, arg) {
@@ -120,7 +120,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                     &ctx.http,
                     "Please include a channel, either by name or mention.",
                 )
-                    .await?;
+                .await?;
                 return Ok(());
             }
         },
@@ -131,7 +131,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
                 settings.matches_category = Some(c.clone());
                 msg.reply(&ctx.http, "Default matches category updated.")
                     .await?;
-                }
+            }
             _ => {
                 msg.reply(&ctx.http, "Please specify a category.").await?;
             }
@@ -141,7 +141,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             &ctx.http,
             "Please specify an active category in this guild.",
         )
-            .await?;
+        .await?;
     }
     Ok(())
 }
@@ -169,13 +169,15 @@ async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings.make_vc = b;
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-            }
+        }
     }
     Ok(())
 }
@@ -203,13 +205,15 @@ async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings.make_tc = b;
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-            }
+        }
     }
     Ok(())
 }
@@ -234,7 +238,7 @@ async fn tournament(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-        .await?;
+    .await?;
     Ok(())
 }
 
@@ -251,13 +255,15 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     match args.single_quoted::<String>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings.tourn_settings.format = Format(val);
         }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a your default format.")
                 .await?;
-            }
+        }
     }
     Ok(())
 }
@@ -274,7 +280,7 @@ async fn deck_count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-        .await?;
+    .await?;
     Ok(())
 }
 
@@ -291,7 +297,9 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     match args.single_quoted::<u8>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings.tourn_settings.min_deck_count = MinDeckCount(val);
         }
         Err(_) => {
@@ -314,7 +322,9 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     match args.single_quoted::<u8>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings.tourn_settings.max_deck_count = MaxDeckCount(val);
         }
         Err(_) => {
@@ -347,13 +357,15 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings.tourn_settings.require_check_in = RequireCheckIn(b);
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-            }
+        }
     }
     Ok(())
 }
@@ -379,13 +391,15 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings.tourn_settings.require_deck_reg = RequireDeckReg(b);
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-            }
+        }
     }
     Ok(())
 }
@@ -401,7 +415,7 @@ async fn pairing(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-        .await?;
+    .await?;
     Ok(())
 }
 
@@ -416,7 +430,7 @@ async fn swiss(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-        .await?;
+    .await?;
     Ok(())
 }
 
@@ -434,7 +448,9 @@ async fn swiss_match_size(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     match args.single_quoted::<u8>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings.tourn_settings.pairing_settings.swiss.match_size = MatchSize(val);
         }
         Err(_) => {
@@ -467,13 +483,15 @@ async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings.tourn_settings.pairing_settings.swiss.do_checkins = DoCheckIns(b);
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-            }
+        }
     }
     Ok(())
 }
@@ -489,7 +507,7 @@ async fn fluid(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-        .await?;
+    .await?;
     Ok(())
 }
 
@@ -507,7 +525,9 @@ async fn fluid_match_size(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     match args.single_quoted::<u8>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings.tourn_settings.pairing_settings.fluid.match_size = MatchSize(val);
         }
         Err(_) => {
@@ -528,14 +548,15 @@ async fn scoring(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-        .await?;
+    .await?;
     Ok(())
 }
 
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[sub_commands(match_win_points,
+#[sub_commands(
+    match_win_points,
     match_draw_points,
     match_loss_points,
     game_win_points,
@@ -548,15 +569,18 @@ async fn scoring(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
     include_mwp,
     include_gwp,
     include_opp_mwp,
-    include_opp_gwp)]
+    include_opp_gwp
+)]
 #[usage("<option>")]
-#[description("Adjusts the default settings for future tournament that use the standard scoring model.")]
+#[description(
+    "Adjusts the default settings for future tournament that use the standard scoring model."
+)]
 async fn standard(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     msg.reply(
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
     )
-        .await?;
+    .await?;
     Ok(())
 }
 
@@ -574,13 +598,15 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings
                 .tourn_settings
                 .scoring_settings
                 .standard
                 .match_win_points = MatchWinPoints(val);
-            }
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
         }
@@ -602,13 +628,15 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
     match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings
                 .tourn_settings
                 .scoring_settings
                 .standard
                 .match_draw_points = MatchDrawPoints(val);
-            }
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
         }
@@ -630,13 +658,15 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
     match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings
                 .tourn_settings
                 .scoring_settings
                 .standard
                 .match_loss_points = MatchLossPoints(val);
-            }
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
         }
@@ -658,13 +688,15 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings
                 .tourn_settings
                 .scoring_settings
                 .standard
                 .game_win_points = GameWinPoints(val);
-            }
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
         }
@@ -686,13 +718,15 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings
                 .tourn_settings
                 .scoring_settings
                 .standard
                 .game_draw_points = GameDrawPoints(val);
-            }
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
         }
@@ -714,13 +748,15 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings
                 .tourn_settings
                 .scoring_settings
                 .standard
                 .game_loss_points = GameLossPoints(val);
-            }
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
         }
@@ -735,14 +771,18 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[usage("<points>")]
 #[example("3")]
 #[min_args(1)]
-#[description("Adjusts the default number of points that a byes is worth (can be any decimal number).")]
+#[description(
+    "Adjusts the default number of points that a byes is worth (can be any decimal number)."
+)]
 async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_core::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings.tourn_settings.scoring_settings.standard.bye_points = ByePoints(val);
         }
         Err(_) => {
@@ -773,17 +813,19 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings
                 .tourn_settings
                 .scoring_settings
                 .standard
                 .include_byes = IncludeByes(b);
-            }
+        }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-            }
+        }
     }
     Ok(())
 }
@@ -809,17 +851,19 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings
                 .tourn_settings
                 .scoring_settings
                 .standard
                 .include_match_points = IncludeMatchPoints(b);
-            }
+        }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-            }
+        }
     }
     Ok(())
 }
@@ -845,17 +889,19 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings
                 .tourn_settings
                 .scoring_settings
                 .standard
                 .include_game_points = IncludeGamePoints(b);
-            }
+        }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-            }
+        }
     }
     Ok(())
 }
@@ -881,17 +927,19 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings
                 .tourn_settings
                 .scoring_settings
                 .standard
                 .include_mwp = IncludeMwp(b);
-            }
+        }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-            }
+        }
     }
     Ok(())
 }
@@ -917,17 +965,19 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings
                 .tourn_settings
                 .scoring_settings
                 .standard
                 .include_gwp = IncludeGwp(b);
-            }
+        }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-            }
+        }
     }
     Ok(())
 }
@@ -953,17 +1003,19 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings
                 .tourn_settings
                 .scoring_settings
                 .standard
                 .include_opp_mwp = IncludeOppMwp(b);
-            }
+        }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-            }
+        }
     }
     Ok(())
 }
@@ -989,17 +1041,19 @@ async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     match bool_from_string(&arg) {
         Some(b) => {
             let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-            let mut settings = all_settings.get_mut(&msg.guild_id.unwrap()).unwrap();
+            let mut settings = spin_mut(all_settings, &msg.guild_id.unwrap())
+                .await
+                .unwrap();
             settings
                 .tourn_settings
                 .scoring_settings
                 .standard
                 .include_opp_gwp = IncludeOppGwp(b);
-            }
+        }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
                 .await?;
-            }
+        }
     }
     Ok(())
 }

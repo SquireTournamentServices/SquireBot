@@ -4,10 +4,13 @@ use serenity::prelude::*;
 use serenity::utils::Color;
 
 static ALL_DOCS: &str = "https://github.com/MonarchDevelopment/SquireBot/tree/development/docs";
-static PLAYER_DOC: &str = "https://github.com/MonarchDevelopment/SquireBot/tree/development/docs/for_players.md";
-static TO_DOC: &str = "https://github.com/MonarchDevelopment/SquireBot/tree/development/docs/for_officials.md";
+static PLAYER_DOC: &str =
+    "https://github.com/MonarchDevelopment/SquireBot/tree/development/docs/for_players.md";
+static TO_DOC: &str =
+    "https://github.com/MonarchDevelopment/SquireBot/tree/development/docs/for_officials.md";
 static FAQ_DOC: &str = "https://github.com/MonarchDevelopment/SquireBot/tree/development/docs/FAQ_and_troubleshooting.md";
-static ABOUT_DOC: &str = "https://github.com/MonarchDevelopment/SquireBot/tree/development/docs/tournament_rep.md";
+static ABOUT_DOC: &str =
+    "https://github.com/MonarchDevelopment/SquireBot/tree/development/docs/tournament_rep.md";
 
 #[command("docs")]
 #[description("Provides locations where you can read more about how SquireBot works.")]

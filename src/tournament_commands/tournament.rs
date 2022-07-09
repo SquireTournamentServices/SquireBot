@@ -8,9 +8,12 @@ use serenity::{
 
 use squire_core::tournament::TournamentPreset;
 
-use crate::model::containers::{
-    GuildAndTournamentIDMapContainer, GuildSettingsMapContainer, TournamentMapContainer,
-    TournamentNameAndIDMapContainer,
+use crate::{
+    model::containers::{
+        GuildAndTournamentIDMapContainer, GuildSettingsMapContainer, TournamentMapContainer,
+        TournamentNameAndIDMapContainer,
+    },
+    utils::spin_lock::spin_mut,
 };
 
 use super::{
@@ -93,7 +96,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
     let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let settings = all_settings.get_mut(&guild.id).unwrap();
+    let settings = spin_mut(all_settings, &guild.id).await.unwrap();
     // Ensure that tournaments can be ran
     if !settings.is_configured() {
         msg.reply(

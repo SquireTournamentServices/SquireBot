@@ -21,6 +21,7 @@ use crate::{
     },
     utils::{
         error_to_reply::error_to_reply,
+        spin_lock::{spin, spin_mut},
         tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
     },
 };
@@ -75,7 +76,7 @@ async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
             return Ok(());
         }
     };
-    let tourn = all_tourns.get(&tourn_id).unwrap();
+    let tourn = spin(all_tourns, &tourn_id).await.unwrap();
     let mut req_text = String::new();
     let mut has_req = false;
     if tourn.tourn.require_check_in {
@@ -156,7 +157,7 @@ async fn decks(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let tourn = all_tourns.get(&tourn_id).unwrap();
+    let tourn = spin(all_tourns, &tourn_id).await.unwrap();
     if !tourn.tourn.require_deck_reg {
         msg.reply(
             &ctx.http,
@@ -188,7 +189,7 @@ impl Confirmation for PrunePlayersConfirmation {
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
         let data = ctx.data.read().await;
         let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-        let mut tourn = all_tourns.get_mut(&self.tourn_id).unwrap();
+        let mut tourn = spin_mut(all_tourns, &self.tourn_id).await.unwrap();
         if let Err(err) = tourn.tourn.apply_op(TournOp::PrunePlayers()) {
             error_to_reply(ctx, msg, err).await?;
         } else {
@@ -212,7 +213,7 @@ impl Confirmation for PruneDecksConfirmation {
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
         let data = ctx.data.read().await;
         let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-        let mut tourn = all_tourns.get_mut(&self.tourn_id).unwrap();
+        let mut tourn = spin_mut(all_tourns, &self.tourn_id).await.unwrap();
         if let Err(err) = tourn.tourn.apply_op(TournOp::PruneDecks()) {
             error_to_reply(ctx, msg, err).await?;
         } else {

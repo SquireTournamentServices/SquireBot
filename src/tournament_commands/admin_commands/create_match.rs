@@ -19,6 +19,7 @@ use crate::{
     },
     utils::{
         error_to_reply::error_to_reply,
+        spin_lock::spin_mut,
         tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
     },
 };
@@ -63,7 +64,7 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     let mut plyr_ids: Vec<PlayerIdentifier> = Vec::with_capacity(user_ids.len());
     for u_id in user_ids {
         match tourn.players.get_right(&u_id) {

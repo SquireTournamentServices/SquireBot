@@ -3,6 +3,7 @@ use serenity::model::prelude::*;
 use serenity::prelude::*;
 use squire_core::operations::TournOp;
 
+use crate::utils::spin_lock::spin_mut;
 use crate::{
     model::containers::{
         GuildAndTournamentIDMapContainer, TournamentMapContainer, TournamentNameAndIDMapContainer,
@@ -40,7 +41,7 @@ async fn freeze(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     // Freeze the tournament
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::Freeze()) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -80,7 +81,7 @@ async fn thaw(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     // Freeze the tournament
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::Thaw()) {
         error_to_reply(ctx, msg, err).await?;
     } else {

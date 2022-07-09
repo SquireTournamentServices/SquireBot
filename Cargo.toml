@@ -22,3 +22,4 @@ serde_json = { version = "1.0.68" }
 dashmap = { version = "5.0", features = ["serde", "rayon"] }
 rand = { version = "0.8" }
 tempfile = { version = "3.3.0" }
+uuid = { version = "0.8", features = ["serde", "v4"] }

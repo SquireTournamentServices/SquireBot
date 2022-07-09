@@ -14,6 +14,7 @@ use crate::{
     utils::{
         error_to_reply::error_to_reply,
         extract_id::extract_id,
+        spin_lock::spin_mut,
         stringify::bool_from_string,
         tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
     },
@@ -64,7 +65,7 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(format)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -130,7 +131,7 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -180,7 +181,7 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -241,7 +242,7 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -300,7 +301,7 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -374,7 +375,7 @@ async fn swiss_match_size(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -435,7 +436,7 @@ async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -498,7 +499,7 @@ async fn fluid_match_size(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -523,7 +524,8 @@ async fn scoring(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[sub_commands(match_win_points,
+#[sub_commands(
+    match_win_points,
     match_draw_points,
     match_loss_points,
     game_win_points,
@@ -536,7 +538,8 @@ async fn scoring(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     include_mwp,
     include_gwp,
     include_opp_mwp,
-    include_opp_gwp)]
+    include_opp_gwp
+)]
 #[usage("<option>")]
 #[description("Adjusts how a tournament calculates scores using the standard model.")]
 async fn standard(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -587,7 +590,7 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -641,7 +644,7 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -695,7 +698,7 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -749,7 +752,7 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -803,7 +806,7 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -857,7 +860,7 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -911,7 +914,7 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -972,7 +975,7 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1033,7 +1036,7 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1094,7 +1097,7 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1155,7 +1158,7 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1216,7 +1219,7 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1277,7 +1280,7 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1338,7 +1341,7 @@ async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1418,7 +1421,7 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Some(channel) = guild.channels.get(&channel_id) {
         match channel {
             Channel::Guild(c) => {
@@ -1503,7 +1506,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Some(channel) = guild.channels.get(&channel_id) {
         match channel {
             Channel::Category(c) => {
@@ -1571,7 +1574,7 @@ async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     tourn.update_status = true;
     tourn.make_vc = setting;
     msg.reply(&ctx.http, "Setting successfully updated!")
@@ -1627,7 +1630,7 @@ async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     tourn.update_status = true;
     tourn.make_tc = setting;
     msg.reply(&ctx.http, "Setting successfully updated!")

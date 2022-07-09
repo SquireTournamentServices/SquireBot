@@ -17,6 +17,7 @@ use crate::{
     },
     utils::{
         error_to_reply::error_to_reply,
+        spin_lock::spin_mut,
         stringify::bool_from_string,
         tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
     },
@@ -72,7 +73,7 @@ async fn time_extension(ctx: &Context, msg: &Message, mut args: Args) -> Command
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     match tourn.tourn.get_round(&round_number) {
         Ok(rnd) => {
             if rnd.is_certified() {

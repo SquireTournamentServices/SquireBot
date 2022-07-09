@@ -27,11 +27,7 @@ async fn save(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                 )
                 .await?;
             } else {
-                msg.reply(
-                    &ctx.http,
-                    "Tournament data saved.",
-                )
-                .await?;
+                msg.reply(&ctx.http, "Tournament data saved.").await?;
             }
         } else {
             msg.reply(
@@ -57,11 +53,7 @@ async fn save(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                 )
                 .await?;
             } else {
-                msg.reply(
-                    &ctx.http,
-                    "Guild settings data saved.",
-                )
-                .await?;
+                msg.reply(&ctx.http, "Guild settings data saved.").await?;
             }
         } else {
             msg.reply(

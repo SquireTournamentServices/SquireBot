@@ -13,6 +13,7 @@ use crate::{
     },
     utils::{
         error_to_reply::error_to_reply,
+        spin_lock::spin_mut,
         stringify::bool_from_string,
         tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
     },
@@ -63,7 +64,7 @@ async fn registration(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateReg(reg_status)) {
         error_to_reply(ctx, msg, err).await?;
     } else {

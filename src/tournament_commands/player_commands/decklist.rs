@@ -16,7 +16,9 @@ use crate::{
         },
         guild_tournament::GuildTournament,
     },
-    utils::sort_deck::TypeSortedDeck,
+    utils::{
+        sort_deck::TypeSortedDeck, spin_lock::spin_mut, tourn_resolver::player_tourn_resolver,
+    },
 };
 
 #[command("decklist")]
@@ -30,12 +32,12 @@ async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         .unwrap()
         .read()
         .await;
-    let gld_tourn_ids = data
+    let ids = data
         .get::<GuildAndTournamentIDMapContainer>()
         .unwrap()
         .read()
         .await;
-    let tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let user_name = msg.author.id;
     let deck_name = match args.single_quoted::<String>() {
         Err(_) => {
@@ -45,43 +47,21 @@ async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         Ok(s) => s,
     };
     let tourn_name = args.rest().trim().to_string();
-    let mut id_iter = gld_tourn_ids
-        .get_left_iter(&msg.guild_id.unwrap())
-        .unwrap()
-        .filter(|id| {
-            tourns
-                .get(id)
-                .unwrap()
-                .players
-                .contains_left(&msg.author.id)
-        });
-    let tourn_id = match id_iter.clone().count() {
-        0 => {
-            msg.reply(
-                &ctx.http,
-                "You are not registered for any tournaments in this server.",
-            )
-            .await?;
+    let tourn_id = match player_tourn_resolver(
+        ctx,
+        msg,
+        tourn_name,
+        all_tourns,
+        ids.get_left_iter(&msg.guild_id.unwrap()).unwrap(),
+    )
+    .await
+    {
+        None => {
             return Ok(());
         }
-        1 => id_iter.next().unwrap(),
-        _ => {
-            if let Some(id) = id_iter.find(|id| name_and_id.get_left(id).unwrap() == &tourn_name) {
-                id
-            } else {
-                msg.reply(
-                    &ctx.http,
-                    "You are not registered for a tournament with that name.",
-                )
-                .await?;
-                return Ok(());
-            }
-        }
+        Some(id) => id,
     };
-
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-    let tourn = all_tourns.get_mut(tourn_id).unwrap();
-
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     let player_id = tourn.players.get_right(&user_name).unwrap().clone();
     let player = tourn
         .tourn

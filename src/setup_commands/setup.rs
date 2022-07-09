@@ -1,5 +1,6 @@
 use crate::model::consts::*;
 use crate::model::{containers::GuildSettingsMapContainer, guild_settings::GuildSettings};
+use crate::utils::spin_lock::{spin, spin_mut};
 //use crate::utils::is_configured;
 
 use super::defaults_commands::*;
@@ -21,12 +22,12 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     // Gets a copy of the setting. We don't want to a reference to the copy since creating what
     // needs to be created will trigger the hooks and update the shared settings object.
-    let settings: GuildSettings = match all_settings.get(&guild.id) {
+    let settings: GuildSettings = match spin(all_settings, &guild.id).await {
         Some(s) => s.clone(),
         None => {
             // This case should never happen... but just in case
             all_settings.insert(guild.id, GuildSettings::from_existing(&guild));
-            all_settings.get_mut(&guild.id).unwrap().clone()
+            spin_mut(all_settings, &guild.id).await.unwrap().clone()
         }
     };
 
@@ -75,12 +76,12 @@ async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     // Gets a copy of the setting. We don't want to a reference to the copy since creating what
     // needs to be created will trigger the hooks and update the shared settings object.
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let settings: GuildSettings = match all_settings.get_mut(&guild.id) {
+    let settings: GuildSettings = match spin_mut(all_settings, &guild.id).await {
         Some(s) => s.clone(),
         None => {
             // This case should never happen... but just in case
             all_settings.insert(guild.id, GuildSettings::from_existing(&guild));
-            all_settings.get_mut(&guild.id).unwrap().clone()
+            spin_mut(all_settings, &guild.id).await.unwrap().clone()
         }
     };
     if let Channel::Guild(c) = msg.channel(&ctx.http).await? {
@@ -107,12 +108,12 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     // Gets a copy of the setting. We don't want to a reference to the copy since creating what
     // needs to be created will trigger the hooks and update the shared settings object.
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let settings: GuildSettings = match all_settings.get_mut(&guild.id) {
+    let settings: GuildSettings = match spin_mut(all_settings, &guild.id).await {
         Some(s) => s.clone(),
         None => {
             // This case should never happen... but just in case
             all_settings.insert(guild.id, GuildSettings::from_existing(&guild));
-            all_settings.get_mut(&guild.id).unwrap().clone()
+            spin_mut(all_settings, &guild.id).await.unwrap().clone()
         }
     };
     let tests = String::from("Judge Role Exists:\nAdmin Role Exists:\nPairings Channel Exists:\nSend Pairings:\nEdit Pairings:\nSend Embed:\nEdit Embed:\nMatches Category Exists:\nCreate VC:\nDelete VC:\nCreate TC:\nDelete TC:\nRole Created:\nRole Deleted:");
@@ -261,8 +262,11 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     } else {
         test_results += &"Omitted - Not making TCs nor VCs.\n".repeat(5);
     }
-    
-    if let Ok(mut r) = guild.create_role(&ctx.http, |r| r.mentionable(true).name("Setup Test")).await {
+
+    if let Ok(mut r) = guild
+        .create_role(&ctx.http, |r| r.mentionable(true).name("Setup Test"))
+        .await
+    {
         test_results += &"Passed\n";
         if let Ok(_) = r.delete(&ctx.http).await {
             test_results += &"Passed\n";
@@ -273,9 +277,10 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         test_results += &"Failed - couldn't create role\n";
         test_results += &"Omitted - couldn't create role\n";
     }
-    
+
     let mut response = msg.reply(&ctx.http, "\u{200b}").await?;
-    response.edit(&ctx.http, |m| {
+    response
+        .edit(&ctx.http, |m| {
             m.embed(|e| {
                 e.title("Test Results").fields(vec![
                     ("Tests", tests, true),

@@ -14,6 +14,7 @@ use crate::{
     },
     utils::{
         error_to_reply::error_to_reply,
+        spin_lock::spin,
         tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
     },
 };
@@ -65,7 +66,7 @@ async fn profile(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
             return Ok(());
         }
     };
-    let tourn = all_tourns.get(&tourn_id).unwrap();
+    let tourn = spin(all_tourns, &tourn_id).await.unwrap();
     let plyr_id = match tourn.players.get_right(&user_id) {
         Some(id) => PlayerIdentifier::Id(id.clone()),
         None => {

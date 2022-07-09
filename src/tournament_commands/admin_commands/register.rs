@@ -10,6 +10,7 @@ use crate::model::{
 };
 
 use crate::utils::error_to_reply::error_to_reply;
+use crate::utils::spin_lock::spin_mut;
 use crate::utils::tourn_resolver::{admin_tourn_id_resolver, user_id_resolver};
 use squire_core::operations::TournOp;
 
@@ -61,7 +62,7 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         }
     };
 
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
 
     if let Err(err) = tourn.add_player(user_id.0.to_string(), user_id) {
         error_to_reply(ctx, msg, err).await?;

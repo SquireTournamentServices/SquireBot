@@ -19,6 +19,7 @@ use crate::{
     },
     utils::{
         error_to_reply::error_to_reply,
+        spin_lock::spin_mut,
         tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
     },
 };
@@ -74,7 +75,7 @@ impl Confirmation for EndTournamentConfirmation {
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
         let data = ctx.data.read().await;
         let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-        let mut tourn = all_tourns.get_mut(&self.tourn_id).unwrap();
+        let mut tourn = spin_mut(all_tourns, &self.tourn_id).await.unwrap();
         if let Err(err) = tourn.tourn.apply_op(TournOp::End()) {
             error_to_reply(ctx, msg, err).await?;
         } else {

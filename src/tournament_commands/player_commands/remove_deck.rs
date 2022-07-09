@@ -13,7 +13,8 @@ use crate::{
     },
     utils::{
         error_to_reply::error_to_reply,
-        tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
+        spin_lock::spin_mut,
+        tourn_resolver::{admin_tourn_id_resolver, player_tourn_resolver, user_id_resolver},
     },
 };
 
@@ -35,7 +36,6 @@ async fn remove_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         .read()
         .await;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let deck_name = match args.single_quoted::<String>() {
         Err(_) => {
@@ -45,40 +45,21 @@ async fn remove_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         Ok(s) => s,
     };
     let tourn_name = args.rest().trim().to_string();
-    let mut id_iter = ids
-        .get_left_iter(&msg.guild_id.unwrap())
-        .unwrap()
-        .filter(|id| {
-            all_tourns
-                .get(id)
-                .unwrap()
-                .players
-                .contains_left(&msg.author.id)
-        });
-    let tourn_id = match id_iter.clone().count() {
-        0 => {
-            msg.reply(
-                &ctx.http,
-                "You are not registered for any tournaments in this server.",
-            )
-            .await?;
+    let tourn_id = match player_tourn_resolver(
+        ctx,
+        msg,
+        tourn_name,
+        all_tourns,
+        ids.get_left_iter(&msg.guild_id.unwrap()).unwrap(),
+    )
+    .await
+    {
+        None => {
             return Ok(());
         }
-        1 => id_iter.next().unwrap(),
-        _ => {
-            if let Some(id) = id_iter.find(|id| name_and_id.get_left(id).unwrap() == &tourn_name) {
-                id
-            } else {
-                msg.reply(
-                    &ctx.http,
-                    "You are not registered for a tournament with that name.",
-                )
-                .await?;
-                return Ok(());
-            }
-        }
+        Some(id) => id,
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     let plyr_id = match tourn.players.get_right(&msg.author.id) {
         Some(id) => PlayerIdentifier::Id(id.clone()),
         None => {

@@ -4,7 +4,10 @@ use serenity::{
     prelude::*,
 };
 
-use squire_core::{operations::TournOp, player_registry::PlayerIdentifier};
+use squire_core::{
+    operations::TournOp, player_registry::PlayerIdentifier, tournament::TournamentId,
+};
+use uuid::Uuid;
 
 use crate::{
     model::containers::{
@@ -13,7 +16,8 @@ use crate::{
     },
     utils::{
         error_to_reply::error_to_reply,
-        tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
+        spin_lock::{spin, spin_mut},
+        tourn_resolver::{admin_tourn_id_resolver, player_tourn_resolver, user_id_resolver},
     },
 };
 
@@ -51,40 +55,21 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         Ok(s) => s,
     };
     let tourn_name = args.rest().trim().to_string();
-    let mut id_iter = ids
-        .get_left_iter(&msg.guild_id.unwrap())
-        .unwrap()
-        .filter(|id| {
-            all_tourns
-                .get(id)
-                .unwrap()
-                .players
-                .contains_left(&msg.author.id)
-        });
-    let tourn_id = match id_iter.clone().count() {
-        0 => {
-            msg.reply(
-                &ctx.http,
-                "You are not registered for any tournaments in this server.",
-            )
-            .await?;
+    let tourn_id = match player_tourn_resolver(
+        ctx,
+        msg,
+        tourn_name,
+        all_tourns,
+        ids.get_left_iter(&msg.guild_id.unwrap()).unwrap(),
+    )
+    .await
+    {
+        None => {
             return Ok(());
         }
-        1 => id_iter.next().unwrap(),
-        _ => {
-            if let Some(id) = id_iter.find(|id| name_and_id.get_left(id).unwrap() == &tourn_name) {
-                id
-            } else {
-                msg.reply(
-                    &ctx.http,
-                    "You are not registered for a tournament with that name.",
-                )
-                .await?;
-                return Ok(());
-            }
-        }
+        Some(id) => id,
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     let plyr_id = match tourn.players.get_right(&msg.author.id) {
         Some(id) => PlayerIdentifier::Id(id.clone()),
         None => {

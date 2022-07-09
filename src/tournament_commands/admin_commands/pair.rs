@@ -6,7 +6,9 @@ use serenity::{
 };
 
 use squire_core::{
-    operations::{TournOp, OpData}, player_registry::PlayerIdentifier, tournament::TournamentId,
+    operations::{OpData, TournOp},
+    player_registry::PlayerIdentifier,
+    tournament::TournamentId,
 };
 
 use crate::{
@@ -19,6 +21,7 @@ use crate::{
     },
     utils::{
         error_to_reply::error_to_reply,
+        spin_lock::spin_mut,
         tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
     },
 };
@@ -51,9 +54,11 @@ async fn pair(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     match tourn.tourn.apply_op(TournOp::PairRound()) {
-        Err(err) => { error_to_reply(ctx, msg, err).await?; },
+        Err(err) => {
+            error_to_reply(ctx, msg, err).await?;
+        }
         Ok(data) => {
             tourn.update_status = true;
             if let OpData::Pair(rounds) = data {

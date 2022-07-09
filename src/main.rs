@@ -24,7 +24,7 @@ use utils::{
     spin_lock::spin_mut,
 };
 
-use dashmap::{rayon, DashMap, try_result::TryResult};
+use dashmap::{rayon, try_result::TryResult, DashMap};
 use dotenv::vars;
 use serde_json;
 use serenity::{
@@ -202,7 +202,7 @@ impl EventHandler for Handler {
                         _ => {}
                     };
                     break;
-                },
+                }
                 TryResult::Locked => {
                     let mut sleep = tokio::time::interval(Duration::from_millis(10));
                     sleep.tick().await;
@@ -212,7 +212,7 @@ impl EventHandler for Handler {
                     all_settings.insert(new.guild_id, GuildSettings::new(new.guild_id));
                 }
             }
-        };
+        }
         println!("Handled new role");
     }
 
@@ -403,7 +403,6 @@ async fn main() {
             .iter()
             .map(|t| (t.tourn.id.clone(), t.guild_id))
             .collect();
-       
 
         // Insert the main TournamentID -> Tournament map
         let ref_main = Arc::new(all_tournaments);
@@ -442,7 +441,10 @@ async fn main() {
                 }
                 // Sleep so that the next loop starts 30 seconds after the start of this one
                 if timer.elapsed() < loop_length {
-                    println!("Tournament saver sleeping for {:?}", loop_length - timer.elapsed());
+                    println!(
+                        "Tournament saver sleeping for {:?}",
+                        loop_length - timer.elapsed()
+                    );
                     let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
                     sleep.tick().await;
                     sleep.tick().await;
@@ -538,7 +540,10 @@ async fn main() {
                 }
                 // Sleep so that the next loop starts 60 seconds after the start of this one
                 if timer.elapsed() < loop_length {
-                    println!("Message updater sleeping for {:?}", loop_length - timer.elapsed());
+                    println!(
+                        "Message updater sleeping for {:?}",
+                        loop_length - timer.elapsed()
+                    );
                     let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
                     sleep.tick().await;
                     sleep.tick().await;
@@ -563,7 +568,10 @@ async fn main() {
                 }
                 // Sleep so that the next loop starts 30 seconds after the start of this one
                 if timer.elapsed() < loop_length {
-                    println!("Status updater sleeping for {:?}", loop_length - timer.elapsed());
+                    println!(
+                        "Status updater sleeping for {:?}",
+                        loop_length - timer.elapsed()
+                    );
                     let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
                     sleep.tick().await;
                     sleep.tick().await;

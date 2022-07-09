@@ -1,5 +1,4 @@
 pub mod add_deck;
-pub mod pair;
 pub mod admin;
 pub mod confirm_result;
 pub mod create_match;
@@ -10,6 +9,7 @@ pub mod end;
 pub mod freeze;
 pub mod give_bye;
 pub mod match_result;
+pub mod pair;
 pub mod players;
 pub mod profile;
 pub mod prune;
