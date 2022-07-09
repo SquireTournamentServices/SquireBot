@@ -1,7 +1,7 @@
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
-use squire_core::operations::TournOp;
+use squire_lib::operations::TournOp;
 
 use crate::utils::spin_lock::spin_mut;
 use crate::{

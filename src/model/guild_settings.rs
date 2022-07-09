@@ -5,8 +5,8 @@ use crate::utils::stringify::stringify_option;
 use super::guild_tournament::GuildTournament;
 use super::{consts::*, tourn_settings_tree::*};
 
-use squire_core::operations::TournOp;
-use squire_core::settings::TournamentSetting;
+use squire_lib::operations::TournOp;
+use squire_lib::settings::TournamentSetting;
 
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -19,7 +19,7 @@ use serenity::{
         id::{ChannelId, GuildId, RoleId},
     },
 };
-use squire_core::tournament::TournamentPreset;
+use squire_lib::tournament::TournamentPreset;
 
 use std::collections::HashMap;
 
@@ -56,7 +56,7 @@ impl GuildSettings {
         preset: TournamentPreset,
         name: String,
     ) -> Option<GuildTournament> {
-        use squire_core::settings::{
+        use squire_lib::settings::{
             FluidPairingsSetting, PairingSetting::*, ScoringSetting::*, StandardScoringSetting::*,
             SwissPairingsSetting, TournamentSetting::*,
         };

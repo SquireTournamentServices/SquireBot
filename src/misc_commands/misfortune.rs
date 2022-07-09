@@ -17,7 +17,7 @@ use serenity::{
     prelude::*,
 };
 
-use squire_core::{
+use squire_lib::{
     player_registry::PlayerIdentifier,
     round::{Round, RoundId},
     round_registry::RoundIdentifier,

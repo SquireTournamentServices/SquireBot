@@ -8,7 +8,7 @@ mod utils;
 
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::mtgjson::meta::Meta;
-use squire_core::{self, round::RoundId, tournament::TournamentId};
+use squire_lib::{self, round::RoundId, tournament::TournamentId};
 
 use misc_commands::{flip_coins::*, group::MISCCOMMANDS_GROUP};
 use model::{

@@ -1,9 +1,9 @@
 use serenity::{client::Context, framework::standard::CommandResult, model::channel::Message};
-use squire_core::swiss_pairings::TournamentError;
+use squire_lib::swiss_pairings::TournamentError;
 
 // A function for deliverying canned responses based on a TournamentError
 pub async fn error_to_reply(ctx: &Context, msg: &Message, err: TournamentError) -> CommandResult {
-    use squire_core::{error::TournamentError::*, tournament::TournamentStatus};
+    use squire_lib::{error::TournamentError::*, tournament::TournamentStatus};
     match err {
         IncorrectStatus(s) => {
             let text = match s {
@@ -54,7 +54,7 @@ pub async fn error_to_reply(ctx: &Context, msg: &Message, err: TournamentError) 
             // Not sure what to say here...
             msg.reply(
                 &ctx.http,
-                "That tournament has an incompatible pairing system for that to work.",
+                "You are not checked in.",
             )
             .await?;
         }

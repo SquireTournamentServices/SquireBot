@@ -9,7 +9,7 @@ use serenity::{
     prelude::*,
 };
 
-use squire_core::round::RoundId;
+use squire_lib::round::RoundId;
 
 pub struct Misfortune {
     pub players: HashSet<UserId>,

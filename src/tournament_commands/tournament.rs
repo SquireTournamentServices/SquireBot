@@ -6,7 +6,7 @@ use serenity::{
     prelude::*,
 };
 
-use squire_core::tournament::TournamentPreset;
+use squire_lib::tournament::TournamentPreset;
 
 use crate::{
     model::containers::{

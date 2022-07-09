@@ -6,7 +6,7 @@ use serenity::{
     prelude::*,
 };
 
-use squire_core::{operations::TournOp, player_registry::PlayerIdentifier};
+use squire_lib::{operations::TournOp, player_registry::PlayerIdentifier};
 
 use crate::{
     model::containers::{

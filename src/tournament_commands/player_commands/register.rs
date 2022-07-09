@@ -15,7 +15,7 @@ use serenity::{
     model::prelude::*,
     prelude::*,
 };
-use squire_core::{swiss_pairings::TournamentError, tournament::Tournament};
+use squire_lib::{swiss_pairings::TournamentError, tournament::Tournament};
 
 #[command("register")]
 #[only_in(guild)]

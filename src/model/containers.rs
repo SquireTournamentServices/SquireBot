@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::model::atomics_collection::AtomicCardCollection;
-use squire_core::{
+use squire_lib::{
     round::RoundId,
     tournament::{Tournament, TournamentId},
 };

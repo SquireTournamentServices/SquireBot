@@ -12,7 +12,7 @@ use crate::model::{
 use crate::utils::error_to_reply::error_to_reply;
 use crate::utils::spin_lock::spin_mut;
 use crate::utils::tourn_resolver::{admin_tourn_id_resolver, user_id_resolver};
-use squire_core::operations::TournOp;
+use squire_lib::operations::TournOp;
 
 #[command("register")]
 #[only_in(guild)]

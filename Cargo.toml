@@ -8,7 +8,7 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 [dependencies]
 # "In-house" deps
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
-squire_core = { git = "https://github.com/MonarchDevelopment/SquireCore.git", branch = "main" }
+squire_lib = { git = "https://github.com/MonarchDevelopment/SquireCore.git", branch = "main" }
 cycle_map = { version = "0.1.1", features = ["serde"] }
 
 serenity = { version = "0.11.2", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model", "utils"] }

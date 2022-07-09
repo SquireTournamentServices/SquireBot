@@ -5,7 +5,7 @@ use serenity::{
     CacheAndHttp,
 };
 
-use squire_core::{
+use squire_lib::{
     operations::TournOp, player_registry::PlayerIdentifier, round_registry::RoundIdentifier,
 };
 

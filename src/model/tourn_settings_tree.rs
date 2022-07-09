@@ -3,7 +3,7 @@ use std::fmt::Write;
 use serde::{Deserialize, Serialize};
 use serenity::builder::CreateEmbed;
 
-use squire_core::settings::{
+use squire_lib::settings::{
     FluidPairingsSetting, StandardScoringSetting, SwissPairingsSetting, TournamentSetting,
 };
 

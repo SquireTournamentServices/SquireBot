@@ -4,7 +4,7 @@ use serenity::{
     prelude::*,
 };
 
-use squire_core::{operations::TournOp, standard_scoring::PlayerIdentifier};
+use squire_lib::{operations::TournOp, standard_scoring::PlayerIdentifier};
 
 use crate::{
     model::{

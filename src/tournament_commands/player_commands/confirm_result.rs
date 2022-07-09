@@ -16,7 +16,7 @@ use crate::{
 };
 
 use crate::utils::error_to_reply::error_to_reply;
-use squire_core::{operations::TournOp, standard_scoring::PlayerIdentifier};
+use squire_lib::{operations::TournOp, standard_scoring::PlayerIdentifier};
 
 #[command("confirm-result")]
 #[only_in(guild)]

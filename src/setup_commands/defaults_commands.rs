@@ -250,7 +250,7 @@ async fn tournament(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[min_args(1)]
 #[description("Adjusts the default format for future tournaments.")]
 async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::TournamentSetting::*;
+    use squire_lib::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<String>() {
         Ok(val) => {
@@ -292,7 +292,7 @@ async fn deck_count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[min_args(1)]
 #[description("Adjusts the required deck count for future tournaments.")]
 async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::TournamentSetting::*;
+    use squire_lib::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<u8>() {
         Ok(val) => {
@@ -317,7 +317,7 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[min_args(1)]
 #[description("Adjusts the required deck count for future tournaments.")]
 async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::TournamentSetting::*;
+    use squire_lib::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<u8>() {
         Ok(val) => {
@@ -344,7 +344,7 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     "Toggles whether or not players must sign in before a tournament for future tournaments."
 )]
 async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::TournamentSetting::*;
+    use squire_lib::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
     let arg = match args.single_quoted::<String>() {
         Err(_) => {
@@ -378,7 +378,7 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[min_args(1)]
 #[description("Toggles whether or not decks must be registered for future tournaments.")]
 async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::TournamentSetting::*;
+    use squire_lib::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
     let arg = match args.single_quoted::<String>() {
         Err(_) => {
@@ -443,7 +443,7 @@ async fn swiss(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[min_args(1)]
 #[description("Sets the default match size for future swiss tournaments.")]
 async fn swiss_match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::SwissPairingsSetting::*;
+    use squire_lib::settings::SwissPairingsSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<u8>() {
         Ok(val) => {
@@ -470,7 +470,7 @@ async fn swiss_match_size(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     "Toggles the default for whether or not players must sign in before each match in future swiss tournaments."
 )]
 async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::SwissPairingsSetting::*;
+    use squire_lib::settings::SwissPairingsSetting::*;
     let data = ctx.data.read().await;
     let arg = match args.single_quoted::<String>() {
         Err(_) => {
@@ -520,7 +520,7 @@ async fn fluid(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[min_args(1)]
 #[description("Sets the default match size for future fluid-round tournaments.")]
 async fn fluid_match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::FluidPairingsSetting::*;
+    use squire_lib::settings::FluidPairingsSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<u8>() {
         Ok(val) => {
@@ -593,7 +593,7 @@ async fn standard(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 #[min_args(1)]
 #[description("Adjusts the default number of points that winning a match is worth (can be any decimal number).")]
 async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
@@ -623,7 +623,7 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[min_args(1)]
 #[description("Adjusts the default number of points that drawing a match is worth (can be any decimal number).")]
 async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
@@ -653,7 +653,7 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 #[min_args(1)]
 #[description("Adjusts the default number of points that lossing a match is worth (can be any decimal number).")]
 async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
@@ -683,7 +683,7 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 #[min_args(1)]
 #[description("Adjusts the default number of points that drawing a game is worth (can be any decimal number).")]
 async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
@@ -713,7 +713,7 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[min_args(1)]
 #[description("Adjusts the default number of points that drawing a game is worth (can be any decimal number).")]
 async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
@@ -743,7 +743,7 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[min_args(1)]
 #[description("Adjusts the default number of points that lossing a game is worth (can be any decimal number).")]
 async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
@@ -775,7 +775,7 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     "Adjusts the default number of points that a byes is worth (can be any decimal number)."
 )]
 async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
@@ -800,7 +800,7 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[min_args(1)]
 #[description("Adjusts where or not byes are used when calculating standings.")]
 async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     let arg = match args.single_quoted::<String>() {
         Err(_) => {
@@ -838,7 +838,7 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[min_args(1)]
 #[description("Adjusts the whether or not a player's match points are used in the standings.")]
 async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     let arg = match args.single_quoted::<String>() {
         Err(_) => {
@@ -876,7 +876,7 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
 #[min_args(1)]
 #[description("Adjusts the whether or not a player's game points are used in the standings.")]
 async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     let arg = match args.single_quoted::<String>() {
         Err(_) => {
@@ -914,7 +914,7 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
 #[min_args(1)]
 #[description("Adjusts the whether or not a player's match win percent is used in the standings.")]
 async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     let arg = match args.single_quoted::<String>() {
         Err(_) => {
@@ -952,7 +952,7 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 #[min_args(1)]
 #[description("Adjusts the whether or not a player's game win percent is used in the standings.")]
 async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     let arg = match args.single_quoted::<String>() {
         Err(_) => {
@@ -990,7 +990,7 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 #[min_args(1)]
 #[description("Adjusts the whether or not opponent match win percent is used in the standings.")]
 async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     let arg = match args.single_quoted::<String>() {
         Err(_) => {
@@ -1028,7 +1028,7 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[min_args(1)]
 #[description("Adjusts the whether or not opponent game win percent is used in the standings.")]
 async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_core::settings::StandardScoringSetting::*;
+    use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
     let arg = match args.single_quoted::<String>() {
         Err(_) => {

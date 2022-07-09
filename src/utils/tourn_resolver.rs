@@ -7,7 +7,7 @@ use serenity::{
     model::{channel::Message, id::UserId, mention::Mention},
     prelude::Context,
 };
-use squire_core::{
+use squire_lib::{
     player_registry::PlayerIdentifier,
     swiss_pairings::PlayerId,
     tournament::{Tournament, TournamentId},

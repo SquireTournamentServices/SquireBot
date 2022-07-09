@@ -4,7 +4,7 @@ use serenity::{
     prelude::*,
 };
 
-use squire_core::{
+use squire_lib::{
     operations::TournOp, player_registry::PlayerIdentifier, round::RoundResult,
     round_registry::RoundIdentifier,
 };

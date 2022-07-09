@@ -6,7 +6,7 @@ use serenity::{
     utils::MessageBuilder,
 };
 
-use squire_core::player_registry::PlayerIdentifier;
+use squire_lib::player_registry::PlayerIdentifier;
 
 use crate::{
     model::{
