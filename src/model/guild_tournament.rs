@@ -1,9 +1,12 @@
-use core::fmt;
-use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+    hash::{Hash, Hasher},
+};
 
 use dashmap::{DashMap, DashSet};
 use serde::{Deserialize, Serialize};
+
 use serenity::{
     client::Cache,
     framework::standard::CommandResult,
@@ -29,13 +32,19 @@ use squire_lib::{
     operations::{OpData, TournOp},
     player_registry::PlayerIdentifier,
     round_registry::RoundIdentifier,
-    swiss_pairings::{PlayerId, TournamentError},
+    admin::Admin,
+    identifiers::{PlayerId, AdminId},
+    error::TournamentError,
     tournament::{Tournament, TournamentId, TournamentPreset},
 };
 
-use crate::utils::embeds::update_status_message;
-
-use super::timer_warnings::TimerWarnings;
+use crate::{
+    utils::embeds::update_status_message,
+    model::{
+        timer_warnings::TimerWarnings,
+        consts::SQUIRE_ACCOUNT_ID,
+    },
+};
 
 pub enum RoundCreationFailure {
     VC,
@@ -187,7 +196,7 @@ impl GuildTournament {
 
     pub fn add_player(&mut self, name: String, user: UserId) -> Result<(), TournamentError> {
         if let OpData::RegisterPlayer(PlayerIdentifier::Id(id)) =
-            self.tourn.apply_op(TournOp::RegisterPlayer(name))?
+            self.tourn.apply_op(TournOp::RegisterGuest((*SQUIRE_ACCOUNT_ID).into(), name))?
         {
             self.players.insert(user, id);
         }
@@ -219,14 +228,5 @@ impl fmt::Display for RoundCreationFailure {
                 Message => "match message",
             }
         )
-    }
-}
-
-impl Hash for GuildTournament {
-    fn hash<H>(&self, state: &mut H)
-    where
-        H: Hasher,
-    {
-        let _ = &self.tourn.hash(state);
     }
 }

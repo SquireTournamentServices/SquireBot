@@ -57,10 +57,9 @@ async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .tourn
         .get_player(&PlayerIdentifier::Id(player_id))
         .unwrap();
-    let decks = player.get_decks();
     let mut response = String::new();
 
-    for deck in decks.keys() {
+    for deck in player.decks.keys() {
         let _ = writeln!(response, "{deck}\n");
     }
 

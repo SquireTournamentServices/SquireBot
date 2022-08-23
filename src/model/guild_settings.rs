@@ -1,16 +1,10 @@
-use std::fmt::Write;
-
-use crate::utils::stringify::stringify_option;
-
-use super::guild_tournament::GuildTournament;
-use super::{consts::*, tourn_settings_tree::*};
-
-use squire_lib::operations::TournOp;
-use squire_lib::settings::TournamentSetting;
+use std::{
+    collections::HashMap,
+    fmt::Write,
+};
 
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
-use serenity::prelude::*;
 use serenity::{
     builder::CreateEmbed,
     model::{
@@ -18,10 +12,21 @@ use serenity::{
         guild::{Guild, Role},
         id::{ChannelId, GuildId, RoleId},
     },
+    prelude::*,
 };
-use squire_lib::tournament::TournamentPreset;
 
-use std::collections::HashMap;
+use squire_lib::{
+    admin::TournOfficialId,
+    identifiers::AdminId,
+    operations::TournOp,
+    settings::{TournamentSetting, TournamentSettingsTree},
+    tournament::TournamentPreset,
+};
+
+use crate::{
+    model::{consts::*, tourn_settings_tree, guild_tournament::GuildTournament},
+    utils::stringify::stringify_option,
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GuildSettings {
@@ -31,7 +36,7 @@ pub struct GuildSettings {
     pub matches_category: Option<ChannelCategory>,
     pub make_vc: bool,
     pub make_tc: bool,
-    pub tourn_settings: TournSettingsTree,
+    pub tourn_settings: TournamentSettingsTree,
     pub guild_id: GuildId,
 }
 
@@ -45,7 +50,7 @@ impl GuildSettings {
             matches_category: None,
             make_vc: true,
             make_tc: false,
-            tourn_settings: TournSettingsTree::new(),
+            tourn_settings: TournamentSettingsTree::new(),
         }
     }
 
@@ -75,176 +80,11 @@ impl GuildSettings {
                 name,
             );
             // Basic settings
-            let _ = tourn.tourn.apply_op(TournOp::UpdateTournSetting(
-                self.tourn_settings.format.clone(),
-            ));
-            let _ = tourn.tourn.apply_op(TournOp::UpdateTournSetting(
-                self.tourn_settings.min_deck_count.clone(),
-            ));
-            let _ = tourn.tourn.apply_op(TournOp::UpdateTournSetting(
-                self.tourn_settings.max_deck_count.clone(),
-            ));
-            let _ = tourn.tourn.apply_op(TournOp::UpdateTournSetting(
-                self.tourn_settings.require_check_in.clone(),
-            ));
-            let _ = tourn.tourn.apply_op(TournOp::UpdateTournSetting(
-                self.tourn_settings.require_deck_reg.clone(),
-            ));
-            // Scoring Settings
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .match_win_points
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .match_draw_points
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .match_loss_points
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .game_win_points
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .game_draw_points
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .game_loss_points
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .bye_points
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .include_byes
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .include_match_points
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .include_game_points
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .include_mwp
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .include_gwp
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .include_opp_mwp
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(ScoringSetting(Standard(
-                    self.tourn_settings
-                        .scoring_settings
-                        .standard
-                        .include_opp_gwp
-                        .clone(),
-                ))));
-            // Pairing Settings
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(PairingSetting(Swiss(
-                    self.tourn_settings
-                        .pairing_settings
-                        .swiss
-                        .match_size
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(PairingSetting(Swiss(
-                    self.tourn_settings
-                        .pairing_settings
-                        .swiss
-                        .do_checkins
-                        .clone(),
-                ))));
-            let _ = tourn
-                .tourn
-                .apply_op(TournOp::UpdateTournSetting(PairingSetting(Fluid(
-                    self.tourn_settings
-                        .pairing_settings
-                        .fluid
-                        .match_size
-                        .clone(),
-                ))));
+            for op in self.tourn_settings.as_settings(preset) {
+                let _ = tourn
+                    .tourn
+                    .apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, op));
+            }
             Some(tourn)
         } else {
             None
@@ -265,7 +105,7 @@ impl GuildSettings {
             matches_category,
             make_vc: true,
             make_tc: false,
-            tourn_settings: TournSettingsTree::new(),
+            tourn_settings: TournamentSettingsTree::new(),
         }
     }
 
@@ -353,12 +193,11 @@ impl GuildSettings {
         );
         let _ = writeln!(data, "VCs?: {}", if self.make_vc { "yes" } else { "no" });
         let _ = write!(data, "TCs?: {}", if self.make_tc { "yes" } else { "no" });
-        self.tourn_settings
-            .populate_embed(embed.title("Default Tournament Settings:").field(
-                "Server Settings:",
-                data,
-                true,
-            ));
+        tourn_settings_tree::populate_embed(&self.tourn_settings, embed.title("Default Tournament Settings:").field(
+            "Server Settings:",
+            data,
+            true,
+        ));
     }
 }
 

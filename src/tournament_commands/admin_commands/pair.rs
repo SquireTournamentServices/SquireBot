@@ -9,6 +9,7 @@ use squire_lib::{
     operations::{OpData, TournOp},
     player_registry::PlayerIdentifier,
     tournament::TournamentId,
+    identifiers::AdminId,
 };
 
 use crate::{
@@ -18,6 +19,7 @@ use crate::{
             ConfirmationsContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
             TournamentNameAndIDMapContainer,
         },
+        consts::SQUIRE_ACCOUNT_ID,
     },
     utils::{
         error_to_reply::error_to_reply,
@@ -55,7 +57,7 @@ async fn pair(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    match tourn.tourn.apply_op(TournOp::PairRound()) {
+    match tourn.tourn.apply_op(TournOp::PairRound(*SQUIRE_ACCOUNT_ID)) {
         Err(err) => {
             error_to_reply(ctx, msg, err).await?;
         }

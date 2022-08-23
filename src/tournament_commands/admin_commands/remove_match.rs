@@ -7,11 +7,16 @@ use serenity::{
 
 use squire_lib::{
     operations::TournOp, player_registry::PlayerIdentifier, round_registry::RoundIdentifier,
+    identifiers::AdminId,
 };
 
 use crate::{
-    model::containers::{
-        GuildAndTournamentIDMapContainer, TournamentMapContainer, TournamentNameAndIDMapContainer,
+    model::{
+        consts::SQUIRE_ACCOUNT_ID,
+        containers::{
+            GuildAndTournamentIDMapContainer, TournamentMapContainer,
+            TournamentNameAndIDMapContainer,
+        },
     },
     utils::{
         error_to_reply::error_to_reply,
@@ -83,7 +88,7 @@ async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     }
     if let Err(err) = tourn
         .tourn
-        .apply_op(TournOp::RemoveRound(round_number.clone()))
+        .apply_op(TournOp::RemoveRound(*SQUIRE_ACCOUNT_ID, round_number.clone()))
     {
         error_to_reply(ctx, msg, err).await?;
     } else {

@@ -4,12 +4,15 @@ use serenity::{
     prelude::*,
 };
 
-use squire_lib::{operations::TournOp, player_registry::PlayerIdentifier};
+use squire_lib::{operations::TournOp, player_registry::PlayerIdentifier, pairings::PairingAlgorithm};
 
 use crate::{
-    model::containers::{
-        CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
-        TournamentNameAndIDMapContainer,
+    model::{
+        consts::SQUIRE_ACCOUNT_ID,
+        containers::{
+            CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
+            TournamentNameAndIDMapContainer,
+        },
     },
     utils::{
         error_to_reply::error_to_reply,
@@ -66,7 +69,7 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(format)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, format)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -132,7 +135,7 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -182,7 +185,7 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -243,7 +246,7 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -302,7 +305,7 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -314,7 +317,7 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
 #[command]
 #[only_in(guild)]
-#[sub_commands(swiss, fluid)]
+#[sub_commands(match_size, repair_tolerance, algorithm, swiss, fluid)]
 #[allowed_roles("Tournament Admin")]
 #[usage("<option>")]
 #[description("Adjust the settings of a specfic tournament.")]
@@ -326,24 +329,12 @@ async fn pairings(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[sub_commands("swiss_match_size", "do_checkins")]
-#[usage("<option>")]
-#[min_args(1)]
-#[description("Adjusts the default swiss pairing settings for future tournament.")]
-async fn swiss(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    msg.reply(&ctx.http, "Please specify a subcommand.").await?;
-    Ok(())
-}
-
-#[command]
-#[only_in(guild)]
-#[allowed_roles("Tournament Admin")]
 #[aliases("match-size")]
 #[usage("<size>, [tournament name]")]
 #[example("4")]
 #[min_args(1)]
-#[description("Sets the default match size for future swiss tournaments.")]
-async fn swiss_match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+#[description("Sets the default match size for future tournaments.")]
+async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::{PairingSetting::*, SwissPairingsSetting::*, TournamentSetting::*};
     let data = ctx.data.read().await;
     let name_and_id = data
@@ -366,7 +357,7 @@ async fn swiss_match_size(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         }
         Ok(n) => n,
     };
-    let setting = PairingSetting(Swiss(MatchSize(raw_setting)));
+    let setting = MatchSize(raw_setting);
     let tourn_name = args.rest().trim().to_string();
     let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
     {
@@ -376,13 +367,134 @@ async fn swiss_match_size(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting.into())) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
         msg.reply(&ctx.http, "Setting successfully updated!")
             .await?;
     }
+    Ok(())
+}
+
+#[command]
+#[only_in(guild)]
+#[allowed_roles("Tournament Admin")]
+#[aliases("repair-tolerance")]
+#[usage("<size>, [tournament name]")]
+#[example("4")]
+#[min_args(1)]
+#[description("Sets the default repair tolerance for matches in future tournaments.")]
+async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    use squire_lib::settings::{PairingSetting::*, SwissPairingsSetting::*, TournamentSetting::*};
+    let data = ctx.data.read().await;
+    let name_and_id = data
+        .get::<TournamentNameAndIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
+    let ids = data
+        .get::<GuildAndTournamentIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
+    // Resolve the tournament id
+    let raw_setting = match args.single_quoted::<u64>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify a number.").await?;
+            return Ok(());
+        }
+        Ok(n) => n,
+    };
+    let setting = RepairTolerance(raw_setting);
+    let tourn_name = args.rest().trim().to_string();
+    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
+    {
+        Some(id) => id,
+        None => {
+            return Ok(());
+        }
+    };
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting.into())) {
+        error_to_reply(ctx, msg, err).await?;
+    } else {
+        tourn.update_status = true;
+        msg.reply(&ctx.http, "Setting successfully updated!")
+            .await?;
+    }
+    Ok(())
+}
+
+#[command]
+#[only_in(guild)]
+#[allowed_roles("Tournament Admin")]
+#[usage("<size>, [tournament name]")]
+#[example("4")]
+#[min_args(1)]
+#[description("Sets the default pairings algorithm for future tournaments.")]
+async fn algorithm(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    use squire_lib::settings::{PairingSetting::*, SwissPairingsSetting::*, TournamentSetting::*};
+    let data = ctx.data.read().await;
+    let name_and_id = data
+        .get::<TournamentNameAndIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
+    let ids = data
+        .get::<GuildAndTournamentIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
+    // Resolve the tournament id
+    let raw_setting = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please specify a number.").await?;
+            return Ok(());
+        }
+        Ok(val) => match val.as_str() {
+            "greedy" | "Greedy" => {
+                PairingAlgorithm::Greedy
+            },
+            _ => {
+                msg.reply(&ctx.http, "Please specify an algorithm. The options are:\n - Greedy").await?;
+                return Ok(());
+            }
+        },
+    };
+    let setting = Algorithm(raw_setting);
+    let tourn_name = args.rest().trim().to_string();
+    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
+    {
+        Some(id) => id,
+        None => {
+            return Ok(());
+        }
+    };
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting.into())) {
+        error_to_reply(ctx, msg, err).await?;
+    } else {
+        tourn.update_status = true;
+        msg.reply(&ctx.http, "Setting successfully updated!")
+            .await?;
+    }
+    Ok(())
+}
+
+#[command]
+#[only_in(guild)]
+#[allowed_roles("Tournament Admin")]
+#[sub_commands("do_checkins")]
+#[usage("<option>")]
+#[min_args(1)]
+#[description("Adjusts the default swiss pairing settings for future tournament.")]
+async fn swiss(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    msg.reply(&ctx.http, "Please specify a subcommand.").await?;
     Ok(())
 }
 
@@ -437,7 +549,7 @@ async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -450,63 +562,11 @@ async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 #[command]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
-#[sub_commands("fluid_match_size")]
 #[usage("<option>")]
 #[min_args(1)]
 #[description("Adjusts the default fluid-round pairing settings for future tournament.")]
 async fn fluid(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     msg.reply(&ctx.http, "Please specify a subcommand.").await?;
-    Ok(())
-}
-
-#[command]
-#[only_in(guild)]
-#[allowed_roles("Tournament Admin")]
-#[aliases("match-size")]
-#[usage("<size>, [tournament name]")]
-#[example("4")]
-#[min_args(1)]
-#[description("Sets the default match size for future fluid-round tournaments.")]
-async fn fluid_match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{FluidPairingsSetting::*, PairingSetting::*, TournamentSetting::*};
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let raw_setting = match args.single_quoted::<u8>() {
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number.").await?;
-            return Ok(());
-        }
-        Ok(n) => n,
-    };
-    let setting = PairingSetting(Fluid(MatchSize(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
     Ok(())
 }
 
@@ -591,7 +651,7 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -645,7 +705,7 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -699,7 +759,7 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -753,7 +813,7 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -807,7 +867,7 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -861,7 +921,7 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -915,7 +975,7 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -976,7 +1036,7 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -1037,7 +1097,7 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -1098,7 +1158,7 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -1159,7 +1219,7 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -1220,7 +1280,7 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -1281,7 +1341,7 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -1342,7 +1402,7 @@ async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(setting)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;

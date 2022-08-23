@@ -1,32 +1,14 @@
 #![allow(unused_mut, unused_imports, dead_code, unused_variables)]
 
-mod misc_commands;
-mod model;
-mod setup_commands;
-mod tournament_commands;
-mod utils;
-
-use cycle_map::{CycleMap, GroupMap};
-use mtgjson::mtgjson::meta::Meta;
-use squire_lib::{self, round::RoundId, tournament::TournamentId};
-
-use misc_commands::{flip_coins::*, group::MISCCOMMANDS_GROUP};
-use model::{
-    confirmation::Confirmation, consts::*, containers::*, guild_settings::GuildSettings,
-    misfortune::*,
-};
-use setup_commands::{group::SETUPCOMMANDS_GROUP, setup::*};
-use tournament_commands::group::TOURNAMENTCOMMANDS_GROUP;
-
-use utils::{
-    card_collection::build_collection,
-    embeds::{update_match_message, update_standings_message, update_status_message},
-    spin_lock::spin_mut,
+use std::{
+    collections::{HashMap, HashSet},
+    fs::{read_to_string, File},
+    io::Write,
+    path::Path,
+    sync::Arc,
+    time::Duration,
 };
 
-use dashmap::{rayon, try_result::TryResult, DashMap};
-use dotenv::vars;
-use serde_json;
 use serenity::{
     async_trait,
     framework::standard::{
@@ -48,18 +30,36 @@ use serenity::{
     },
     prelude::*,
 };
+
+use dashmap::{rayon, try_result::TryResult, DashMap};
+use dotenv::vars;
+use serde_json;
 use tokio::{runtime, sync::Mutex, time::Instant};
 
-use std::{
-    collections::{HashMap, HashSet},
-    fs::{read_to_string, File},
-    io::Write,
-    path::Path,
-    sync::Arc,
-    time::Duration,
-};
+use cycle_map::{CycleMap, GroupMap};
+use mtgjson::mtgjson::meta::Meta;
+use squire_lib::{self, round::RoundId, tournament::TournamentId};
 
-use crate::model::guild_tournament::GuildTournament;
+mod misc_commands;
+mod model;
+mod setup_commands;
+mod tournament_commands;
+mod utils;
+
+use crate::{
+    misc_commands::{flip_coins::*, group::MISCCOMMANDS_GROUP},
+    model::{
+        confirmation::Confirmation, consts::*, containers::*, guild_settings::GuildSettings,
+        guild_tournament::GuildTournament, misfortune::*,
+    },
+    setup_commands::{group::SETUPCOMMANDS_GROUP, setup::*},
+    tournament_commands::group::TOURNAMENTCOMMANDS_GROUP,
+    utils::{
+        card_collection::build_collection,
+        embeds::{update_match_message, update_standings_message, update_status_message},
+        spin_lock::spin_mut,
+    },
+};
 
 struct Handler;
 

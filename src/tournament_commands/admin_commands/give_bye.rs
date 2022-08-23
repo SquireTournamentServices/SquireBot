@@ -4,11 +4,15 @@ use serenity::{
     prelude::*,
 };
 
-use squire_lib::{operations::TournOp, player_registry::PlayerIdentifier};
+use squire_lib::{identifiers::AdminId, operations::TournOp, player_registry::PlayerIdentifier};
 
 use crate::{
-    model::containers::{
-        GuildAndTournamentIDMapContainer, TournamentMapContainer, TournamentNameAndIDMapContainer,
+    model::{
+        consts::SQUIRE_ACCOUNT_ID,
+        containers::{
+            GuildAndTournamentIDMapContainer, TournamentMapContainer,
+            TournamentNameAndIDMapContainer,
+        },
     },
     utils::{
         error_to_reply::error_to_reply,
@@ -76,7 +80,7 @@ async fn give_bye(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             return Ok(());
         }
     };
-    if let Err(err) = tourn.tourn.apply_op(TournOp::GiveBye(plyr_id)) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::GiveBye(*SQUIRE_ACCOUNT_ID, plyr_id)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;

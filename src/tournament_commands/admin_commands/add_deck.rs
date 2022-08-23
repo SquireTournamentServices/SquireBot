@@ -7,10 +7,10 @@ use serenity::{
 use squire_lib::{operations::TournOp, player_registry::PlayerIdentifier};
 
 use crate::{
-    model::containers::{
+    model::{containers::{
         CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
         TournamentNameAndIDMapContainer,
-    },
+    }, consts::SQUIRE_ACCOUNT_ID},
     utils::{
         error_to_reply::error_to_reply,
         spin_lock::spin_mut,
@@ -94,8 +94,6 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     let card_coll = data.get::<CardCollectionContainer>().unwrap().read().await;
     let deck = if let Some(deck) = card_coll.import_deck(raw_deck.clone()).await {
         deck
-    } else if let Some(deck) = card_coll.import_deck(raw_deck).await {
-        deck
     } else {
         msg.reply(&ctx.http, "Unable to create a deck from this.")
             .await?;
@@ -103,7 +101,7 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     };
     if let Err(err) = tourn
         .tourn
-        .apply_op(TournOp::AddDeck(plyr_id, deck_name, deck))
+        .apply_op(TournOp::AdminAddDeck((*SQUIRE_ACCOUNT_ID).into(), plyr_id, deck_name, deck))
     {
         error_to_reply(ctx, msg, err).await?;
     } else {

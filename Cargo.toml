@@ -7,8 +7,10 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [dependencies]
 # "In-house" deps
-mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
-squire_lib = { git = "https://github.com/MonarchDevelopment/SquireCore.git", branch = "main" }
+#mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", default-features = false, features = ["deck_sites"], branch = "main" }
+mtgjson = { path = "../mtgjson-rust-sdk", features = ["deck_sites"] }
+#squire_lib = { git = "https://github.com/MonarchDevelopment/SquireCore.git", branch = "main" }
+squire_lib = { path = "../SquireCore/squire_lib" }
 cycle_map = { version = "0.1.1", features = ["serde"] }
 
 serenity = { version = "0.11.2", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model", "utils"] }
@@ -22,4 +24,4 @@ serde_json = { version = "1.0.68" }
 dashmap = { version = "5.0", features = ["serde", "rayon"] }
 rand = { version = "0.8" }
 tempfile = { version = "3.3.0" }
-uuid = { version = "0.8", features = ["serde", "v4"] }
+uuid = { version = "1.1", features = ["serde", "v4"] }

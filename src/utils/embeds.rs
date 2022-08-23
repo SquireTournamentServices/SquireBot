@@ -18,17 +18,19 @@ use serenity::{
 
 use cycle_map::CycleMap;
 use squire_lib::{
+    identifiers::PlayerId,
+    pairings::PairingStyle,
     player_registry::PlayerIdentifier,
     round::Round,
     scoring::Standings,
     standard_scoring::StandardScore,
-    swiss_pairings::PlayerId,
-    tournament::{PairingSystem, ScoringSystem, Tournament, TournamentStatus},
+    tournament::{ScoringSystem, Tournament, TournamentStatus},
 };
 
-use crate::utils::tourn_resolver::player_name_resolver;
-
-use crate::model::guild_tournament::{self, GuildTournament};
+use crate::{
+    model::guild_tournament::{self, GuildTournament},
+    utils::tourn_resolver::player_name_resolver,
+};
 
 pub fn embed_fields<I, T>(iter: I) -> Vec<String>
 where
@@ -185,9 +187,9 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
     let _ = writeln!(
         settings_info,
         "Pairing method: {}",
-        match tourn.tourn.pairing_sys {
-            PairingSystem::Swiss(_) => "Swiss",
-            PairingSystem::Fluid(_) => "Fluid",
+        match tourn.tourn.pairing_sys.style {
+            PairingStyle::Swiss(_) => "Swiss",
+            PairingStyle::Fluid(_) => "Fluid",
         }
     );
     let _ = writeln!(

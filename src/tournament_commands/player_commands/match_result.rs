@@ -19,7 +19,7 @@ use crate::{
 
 use squire_lib::{
     operations::TournOp, round::RoundResult, round_registry::RoundIdentifier,
-    standard_scoring::PlayerIdentifier,
+    identifiers::PlayerIdentifier,
 };
 
 #[command("match-result")]

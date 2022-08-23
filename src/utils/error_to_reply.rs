@@ -1,5 +1,5 @@
 use serenity::{client::Context, framework::standard::CommandResult, model::channel::Message};
-use squire_lib::swiss_pairings::TournamentError;
+use squire_lib::error::TournamentError;
 
 // A function for deliverying canned responses based on a TournamentError
 pub async fn error_to_reply(ctx: &Context, msg: &Message, err: TournamentError) -> CommandResult {
@@ -14,6 +14,18 @@ pub async fn error_to_reply(ctx: &Context, msg: &Message, err: TournamentError) 
                 TournamentStatus::Cancelled => "That tournament has been cancelled.",
             };
             msg.reply(&ctx.http, text).await?;
+        }
+        RoundConfirmed => {
+            msg.reply(&ctx.http, "That round has already been certified.")
+                .await?;
+        },
+        InvalidDeckCount => {
+            msg.reply(&ctx.http, "The minimum deck count must be less than the maximum count.")
+                .await?;
+        }
+        OfficalLookup => {
+            msg.reply(&ctx.http, "That person could not be found as an official.")
+                .await?;
         }
         RegClosed => {
             msg.reply(&ctx.http, "Registertion is closed for that tournament.")

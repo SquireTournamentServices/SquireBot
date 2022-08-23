@@ -140,7 +140,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .unwrap();
     user_round_map.insert_right(round_id.clone());
     let mut mis = Misfortune::new(HashSet::new(), msg.channel_id, msg.id);
-    for plyr in round.get_all_players() {
+    for plyr in round.players.iter() {
         let user = tourn.get_user_id(&plyr).unwrap();
         user_round_map.insert_left(user, &round_id);
         mis.players.insert(user);

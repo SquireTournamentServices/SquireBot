@@ -8,12 +8,17 @@ use serenity::{
 };
 
 use squire_lib::{
-    operations::TournOp, player_registry::PlayerIdentifier, round_registry::RoundIdentifier,
+    identifiers::AdminId, operations::TournOp, player_registry::PlayerIdentifier,
+    round_registry::RoundIdentifier,
 };
 
 use crate::{
-    model::containers::{
-        GuildAndTournamentIDMapContainer, TournamentMapContainer, TournamentNameAndIDMapContainer,
+    model::{
+        consts::SQUIRE_ACCOUNT_ID,
+        containers::{
+            GuildAndTournamentIDMapContainer, TournamentMapContainer,
+            TournamentNameAndIDMapContainer,
+        },
     },
     utils::{
         error_to_reply::error_to_reply,
@@ -96,7 +101,7 @@ async fn time_extension(ctx: &Context, msg: &Message, mut args: Args) -> Command
     }
     if let Err(err) = tourn
         .tourn
-        .apply_op(TournOp::TimeExtension(round_number, ext))
+        .apply_op(TournOp::TimeExtension((*SQUIRE_ACCOUNT_ID).into(), round_number, ext))
     {
         error_to_reply(ctx, msg, err).await?;
     } else {

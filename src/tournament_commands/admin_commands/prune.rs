@@ -9,6 +9,7 @@ use serenity::{
 
 use squire_lib::{
     operations::TournOp, player_registry::PlayerIdentifier, tournament::TournamentId,
+    identifiers::AdminId,
 };
 
 use crate::{
@@ -18,6 +19,7 @@ use crate::{
             ConfirmationsContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
             TournamentNameAndIDMapContainer,
         },
+        consts::SQUIRE_ACCOUNT_ID,
     },
     utils::{
         error_to_reply::error_to_reply,
@@ -190,7 +192,7 @@ impl Confirmation for PrunePlayersConfirmation {
         let data = ctx.data.read().await;
         let all_tourns = data.get::<TournamentMapContainer>().unwrap();
         let mut tourn = spin_mut(all_tourns, &self.tourn_id).await.unwrap();
-        if let Err(err) = tourn.tourn.apply_op(TournOp::PrunePlayers()) {
+        if let Err(err) = tourn.tourn.apply_op(TournOp::PrunePlayers(*SQUIRE_ACCOUNT_ID)) {
             error_to_reply(ctx, msg, err).await?;
         } else {
             tourn.update_status = true;
@@ -214,7 +216,7 @@ impl Confirmation for PruneDecksConfirmation {
         let data = ctx.data.read().await;
         let all_tourns = data.get::<TournamentMapContainer>().unwrap();
         let mut tourn = spin_mut(all_tourns, &self.tourn_id).await.unwrap();
-        if let Err(err) = tourn.tourn.apply_op(TournOp::PruneDecks()) {
+        if let Err(err) = tourn.tourn.apply_op(TournOp::PruneDecks(*SQUIRE_ACCOUNT_ID)) {
             error_to_reply(ctx, msg, err).await?;
         } else {
             tourn.update_status = true;

@@ -5,12 +5,14 @@ use serenity::{
 };
 
 use squire_lib::{
+    identifiers::AdminId,
     operations::{OpData, TournOp},
     player_registry::PlayerIdentifier,
 };
 
 use crate::{
     model::{
+        consts::SQUIRE_ACCOUNT_ID,
         containers::{
             GuildAndTournamentIDMapContainer, TournamentMapContainer,
             TournamentNameAndIDMapContainer,
@@ -79,7 +81,7 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             }
         };
     }
-    match tourn.tourn.apply_op(TournOp::CreateRound(plyr_ids)) {
+    match tourn.tourn.apply_op(TournOp::CreateRound(*SQUIRE_ACCOUNT_ID, plyr_ids)) {
         Err(err) => {
             error_to_reply(ctx, msg, err).await?;
         }

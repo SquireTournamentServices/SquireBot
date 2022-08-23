@@ -1,14 +1,23 @@
-use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::prelude::*;
-use serenity::prelude::*;
-use squire_lib::operations::TournOp;
+use serenity::{
+    framework::standard::{macros::command, Args, CommandResult},
+    model::prelude::*,
+    prelude::*,
+};
 
-use crate::utils::spin_lock::spin_mut;
+use squire_lib::{identifiers::AdminId, operations::TournOp};
+
 use crate::{
-    model::containers::{
-        GuildAndTournamentIDMapContainer, TournamentMapContainer, TournamentNameAndIDMapContainer,
+    model::{
+        consts::SQUIRE_ACCOUNT_ID,
+        containers::{
+            GuildAndTournamentIDMapContainer, TournamentMapContainer,
+            TournamentNameAndIDMapContainer,
+        },
     },
-    utils::{error_to_reply::error_to_reply, tourn_resolver::admin_tourn_id_resolver},
+    utils::{
+        error_to_reply::error_to_reply, tourn_resolver::admin_tourn_id_resolver,
+        spin_lock::spin_mut,
+    },
 };
 
 #[command("freeze")]
@@ -42,7 +51,7 @@ async fn freeze(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     };
     // Freeze the tournament
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::Freeze()) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::Freeze(*SQUIRE_ACCOUNT_ID)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         msg.reply(&ctx.http, "Tournament successfully frozen!")
@@ -82,7 +91,7 @@ async fn thaw(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     };
     // Freeze the tournament
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::Thaw()) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::Thaw(*SQUIRE_ACCOUNT_ID)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;

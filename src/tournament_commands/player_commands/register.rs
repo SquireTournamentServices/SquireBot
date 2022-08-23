@@ -1,3 +1,11 @@
+use serenity::{
+    framework::standard::{macros::command, Args, CommandResult},
+    model::prelude::*,
+    prelude::*,
+};
+
+use squire_lib::{error::TournamentError, tournament::Tournament};
+
 use crate::{
     model::{
         containers::{
@@ -9,13 +17,6 @@ use crate::{
     },
     utils::{error_to_reply::error_to_reply, tourn_resolver::tourn_id_resolver},
 };
-
-use serenity::{
-    framework::standard::{macros::command, Args, CommandResult},
-    model::prelude::*,
-    prelude::*,
-};
-use squire_lib::{swiss_pairings::TournamentError, tournament::Tournament};
 
 #[command("register")]
 #[only_in(guild)]

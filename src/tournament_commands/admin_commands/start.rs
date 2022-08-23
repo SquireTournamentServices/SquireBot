@@ -7,6 +7,7 @@ use serenity::{
 
 use squire_lib::{
     operations::TournOp, player_registry::PlayerIdentifier, tournament::TournamentId,
+    identifiers::AdminId,
 };
 
 use crate::{
@@ -16,6 +17,7 @@ use crate::{
             ConfirmationsContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
             TournamentNameAndIDMapContainer,
         },
+        consts::SQUIRE_ACCOUNT_ID,
     },
     utils::{
         error_to_reply::error_to_reply,
@@ -53,7 +55,7 @@ async fn start(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::Start()) {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::Start(*SQUIRE_ACCOUNT_ID)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
