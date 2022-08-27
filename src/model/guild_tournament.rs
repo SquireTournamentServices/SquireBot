@@ -90,6 +90,9 @@ impl GuildTournament {
         format: String,
         name: String,
     ) -> Self {
+        let mut tourn = Tournament::from_preset(name, preset, format);
+        let admin = Admin { id: (*SQUIRE_ACCOUNT_ID).into(), name: "Squire Bot".into() };
+        tourn.admins.insert((*SQUIRE_ACCOUNT_ID).into(), admin);
         Self {
             guild_id,
             tourn_role,
@@ -107,7 +110,7 @@ impl GuildTournament {
             match_timers: HashMap::new(),
             round_warnings: HashMap::new(),
             standings_message: None,
-            tourn: Tournament::from_preset(name, preset, format),
+            tourn,
             update_standings: false,
             update_status: false,
         }
@@ -200,6 +203,11 @@ impl GuildTournament {
         {
             self.players.insert(user, id);
         }
+        Ok(())
+    }
+
+    pub fn add_guest(&mut self, name: String) -> Result<(), TournamentError> {
+        self.tourn.apply_op(TournOp::RegisterGuest((*SQUIRE_ACCOUNT_ID).into(), name))?;
         Ok(())
     }
 

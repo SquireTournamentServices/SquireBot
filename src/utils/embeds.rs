@@ -166,7 +166,7 @@ pub async fn update_match_message(
 
 // Tournament contains the message
 pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTournament) {
-    let mut discord_info = format!("tournament role: <@&{}>\n", tourn.tourn_role.id);
+    let mut discord_info = format!("Tournament role: <@&{}>\n", tourn.tourn_role.id);
     let _ = writeln!(discord_info, "Judge role: <@&{}>", tourn.judge_role);
     let _ = writeln!(
         discord_info,
@@ -183,7 +183,7 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
         "Matches category: <#{}>",
         tourn.matches_category.id
     );
-    let mut settings_info = format!("format: {}", tourn.tourn.format);
+    let mut settings_info = format!("Format: {}\n", tourn.tourn.format);
     let _ = writeln!(
         settings_info,
         "Pairing method: {}",
@@ -211,7 +211,7 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
     let _ = writeln!(settings_info, "Match size: {}", tourn.tourn.game_size);
     let _ = writeln!(
         settings_info,
-        "Assign table number:{}\n",
+        "Assign table number: {}",
         if tourn.tourn.use_table_number {
             "True"
         } else {
@@ -280,7 +280,7 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
     let match_count = tourn.tourn.round_reg.active_round_count();
     let _ = write!(
         match_info,
-        "There are {} matches that are yet to be certified.",
+        " There are {} matches that are yet to be certified.",
         match_count
     );
     let color = match tourn.tourn.status {

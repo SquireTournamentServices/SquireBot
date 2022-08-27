@@ -5,10 +5,14 @@ edition = "2021"
 license = "GPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
+[features]
+default = ["deck_sites"]
+deck_sites = ["mtgjson/deck_sites"]
+
 [dependencies]
 # "In-house" deps
-#mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", default-features = false, features = ["deck_sites"], branch = "main" }
-mtgjson = { path = "../mtgjson-rust-sdk", features = ["deck_sites"] }
+mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk" }
+#mtgjson = { path = "../mtgjson-rust-sdk", features = ["deck_sites"] }
 #squire_lib = { git = "https://github.com/MonarchDevelopment/SquireCore.git", branch = "main" }
 squire_lib = { path = "../SquireCore/squire_lib" }
 cycle_map = { version = "0.1.1", features = ["serde"] }
