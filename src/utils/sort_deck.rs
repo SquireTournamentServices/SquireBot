@@ -3,7 +3,8 @@ use std::{collections::HashSet, ops::RangeBounds};
 use itertools::Itertools;
 use serenity::builder::CreateEmbed;
 
-use mtgjson::model::{abstract_card::AbstractCard, card_attribute::CardFace, deck::Deck};
+use mtgjson::model::{abstract_card::AbstractCard, card_attribute::CardFace};
+use squire_lib::player::Deck;
 
 static CREATURE: &str = "Creature";
 static LAND: &str = "Land";

@@ -16,7 +16,7 @@ use squire_lib::operations::TournOp;
 
 #[command("register")]
 #[only_in(guild)]
-#[subcommands("guest")]
+#[sub_commands("guest")]
 #[allowed_roles("Tournament Admin", "Judge")]
 #[usage("<player name/mention>, [tournament name]")]
 #[example("'SomePlayer'")]

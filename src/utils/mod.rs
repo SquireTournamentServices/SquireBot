@@ -6,5 +6,5 @@ pub mod sort_deck;
 pub mod spin_lock;
 pub mod stringify;
 pub mod tourn_resolver;
-#[cfg(not(release))]
+#[cfg(debug_assertions)]
 mod lib_sync;

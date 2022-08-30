@@ -11,7 +11,8 @@ deck_sites = ["mtgjson/deck_sites"]
 
 [dependencies]
 # "In-house" deps
-mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk" }
+mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev="864d71022fd285defb371626e06d6de7c7119f45", default-features = false }
+#mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk" }
 #mtgjson = { path = "../mtgjson-rust-sdk", features = ["deck_sites"] }
 #squire_lib = { git = "https://github.com/MonarchDevelopment/SquireCore.git", branch = "main" }
 squire_lib = { path = "../SquireCore/squire_lib" }
