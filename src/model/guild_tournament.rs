@@ -29,11 +29,9 @@ use serenity::{
 
 use cycle_map::CycleMap;
 use squire_lib::{
+    identifiers::{PlayerIdentifier, AdminId, PlayerId, RoundIdentifier},
     operations::{OpData, TournOp},
-    player_registry::PlayerIdentifier,
-    round_registry::RoundIdentifier,
     admin::Admin,
-    identifiers::{PlayerId, AdminId},
     error::TournamentError,
     tournament::{Tournament, TournamentId, TournamentPreset},
 };

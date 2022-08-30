@@ -138,7 +138,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     };
     if let Err(err) = tourn
         .tourn
-        .apply_op(TournOp::RecordResult(round_number, round_result))
+        .apply_op(TournOp::AdminRecordResult(round_number, round_result))
     {
         error_to_reply(ctx, msg, err).await?;
     } else {
