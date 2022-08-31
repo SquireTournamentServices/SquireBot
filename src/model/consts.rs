@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use uuid::Uuid;
 
 use lazy_static::lazy_static;
@@ -11,5 +13,5 @@ pub const DEFAULT_MATCHES_CATEGORY_NAME: &str = "Matches";
 pub const MAX_COIN_FLIPS: u64 = 10_000_000;
 pub const MAX_KRARK_THUMBS: u64 = 32;
 lazy_static!{
-    pub static ref SQUIRE_ACCOUNT_ID: AdminId = AdminId::new(Uuid::new_v4());
+    pub static ref SQUIRE_ACCOUNT_ID: AdminId = AdminId::new(Uuid::from_str("2163fbe6-b00c-4207-8e7b-2d8dc5dc8bd7").unwrap());
 }
