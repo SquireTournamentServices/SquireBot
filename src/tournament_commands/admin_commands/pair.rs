@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serenity::{
     async_trait,
     framework::standard::{macros::command, Args, CommandResult},
@@ -6,20 +8,20 @@ use serenity::{
 };
 
 use squire_lib::{
+    identifiers::AdminId,
     operations::{OpData, TournOp},
     player_registry::PlayerIdentifier,
     tournament::TournamentId,
-    identifiers::AdminId,
 };
 
 use crate::{
     model::{
         confirmation::Confirmation,
+        consts::SQUIRE_ACCOUNT_ID,
         containers::{
             ConfirmationsContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
             TournamentNameAndIDMapContainer,
         },
-        consts::SQUIRE_ACCOUNT_ID,
     },
     utils::{
         error_to_reply::error_to_reply,
@@ -63,14 +65,40 @@ async fn pair(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
         Ok(data) => {
             tourn.update_status = true;
+            let mut members: HashMap<UserId, Member> = msg
+                .guild(ctx)
+                .unwrap()
+                .members(&ctx.http, None, None)
+                .await
+                .unwrap()
+                .into_iter()
+                .map(|m| (m.user.id, m))
+                .collect();
             if let OpData::Pair(rounds) = data {
                 for ident in rounds {
                     let rnd = tourn.tourn.get_round(&ident).unwrap();
                     let num = rnd.match_number;
-                    // TODO: We should do something if this fails...
-                    let _ = tourn
+                    match tourn
                         .create_round_data(&ctx.http, &msg.guild(&ctx.cache).unwrap(), &ident, num)
-                        .await;
+                        .await
+                    {
+                        Ok(_) => {
+                            for plyr in rnd.players {
+                                if let Some(member) = tourn
+                                    .players
+                                    .get_left(&plyr)
+                                    .map(|user| members.get_mut(user))
+                                    .flatten()
+                                {
+                                    // TODO: Do something with this result?
+                                    let _ = member
+                                        .add_role(&ctx.http, tourn.match_roles.get(&ident).unwrap())
+                                        .await;
+                                }
+                            }
+                        }
+                        Err(_) => { /* TODO: Do something on fail... */ }
+                    };
                 }
             }
         }

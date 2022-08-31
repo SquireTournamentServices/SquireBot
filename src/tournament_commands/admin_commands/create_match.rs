@@ -109,6 +109,21 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                     .await
                 {
                     Ok(_) => {
+                        for plyr in rnd.players {
+                            if let Some(user) = tourn
+                                .players
+                                .get_left(&plyr)
+                            {
+                                let _ = msg
+                                    .guild(ctx)
+                                    .unwrap()
+                                    .member(ctx, user)
+                                    .await
+                                    .unwrap()
+                                    .add_role(ctx, tourn.match_roles.get(&ident).unwrap())
+                                    .await;
+                            }
+                        }
                         msg.reply(&ctx.http, "Match successfully created!").await?;
                     }
                     Err(e) => {

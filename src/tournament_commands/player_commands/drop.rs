@@ -7,8 +7,7 @@ use serenity::{
 use squire_lib::{operations::TournOp, identifiers::PlayerIdentifier};
 
 use crate::{
-    model::{
-        containers::{
+    model::{ containers::{
             GuildAndTournamentIDMapContainer, TournamentMapContainer,
             TournamentNameAndIDMapContainer,
         },
@@ -62,6 +61,14 @@ async fn drop(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
+        let member = msg
+            .guild(ctx)
+            .unwrap()
+            .member(ctx, msg.author.id)
+            .await
+            .unwrap()
+            .remove_role(ctx, tourn.tourn_role.id)
+            .await;
         msg.reply(&ctx.http, "You have been dropped from the tournament")
             .await?;
     }

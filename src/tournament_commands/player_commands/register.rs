@@ -15,7 +15,9 @@ use crate::{
         guild_tournament::GuildTournament,
         lookup_error::LookupError,
     },
-    utils::{error_to_reply::error_to_reply, tourn_resolver::tourn_id_resolver, spin_lock::spin_mut},
+    utils::{
+        error_to_reply::error_to_reply, spin_lock::spin_mut, tourn_resolver::tourn_id_resolver,
+    },
 };
 
 #[command("register")]
@@ -59,6 +61,14 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     match tourn.add_player(plyr_name, msg.author.id) {
         Ok(_) => {
             tourn.update_status = true;
+            let member = msg
+                .guild(ctx)
+                .unwrap()
+                .member(ctx, msg.author.id)
+                .await
+                .unwrap()
+                .add_role(ctx, tourn.tourn_role.id)
+                .await;
             msg.reply(
                 &ctx.http,
                 format!("You have been registered for {}", tourn.tourn.name),

@@ -61,7 +61,17 @@ async fn drop(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     let plyr_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
         Some(user_id) => match tourn.players.get_right(&user_id) {
-            Some(id) => id.clone().into(),
+            Some(id) => {
+                let member = msg
+                    .guild(ctx)
+                    .unwrap()
+                    .member(ctx, user_id)
+                    .await
+                    .unwrap()
+                    .remove_role(ctx, tourn.tourn_role.id)
+                    .await;
+                id.clone().into()
+            },
             None => {
                 msg.reply(
                     &ctx.http,

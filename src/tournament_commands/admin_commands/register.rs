@@ -74,6 +74,14 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
+        let _ = msg
+            .guild(ctx)
+            .unwrap()
+            .member(ctx, user_id)
+            .await
+            .unwrap()
+            .add_role(ctx, tourn.tourn_role.id)
+            .await;
         msg.reply(&ctx.http, "Player successfully registered!")
             .await?;
     }
