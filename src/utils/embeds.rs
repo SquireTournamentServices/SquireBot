@@ -208,7 +208,7 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
             "Closed"
         }
     );
-    let _ = writeln!(settings_info, "Match size: {}", tourn.tourn.game_size);
+    let _ = writeln!(settings_info, "Match size: {}", tourn.tourn.pairing_sys.match_size);
     let _ = writeln!(
         settings_info,
         "Assign table number: {}",
