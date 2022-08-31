@@ -50,12 +50,6 @@ async fn remove_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         }
         Ok(s) => s,
     };
-    let user_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
     let deck_name = match args.single_quoted::<String>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please include a deck name.").await?;
@@ -72,15 +66,32 @@ async fn remove_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    let plyr_id = match tourn.players.get_right(&user_id) {
-        Some(id) => PlayerIdentifier::Id(id.clone()),
+    let plyr_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
+        Some(user_id) => {
+            match tourn.players.get_right(&user_id) {
+                Some(id) => id.clone().into(),
+                None => {
+                    msg.reply(
+                        &ctx.http,
+                        "That player is not registered for the tournament.",
+                    )
+                    .await?;
+                    return Ok(());
+                }
+            }
+        },
         None => {
-            msg.reply(
-                &ctx.http,
-                "That player is not registered for the tournament.",
-            )
-            .await?;
-            return Ok(());
+            match tourn.guests.get_right(&raw_user_id) {
+                Some(id) => id.clone().into(),
+                None => {
+                    msg.reply(
+                        &ctx.http,
+                        "That guest is not registered for the tournament. You may have mistyped their name.",
+                    )
+                    .await?;
+                    return Ok(());
+                }
+            }
         }
     };
     if let Err(err) = tourn

@@ -48,38 +48,52 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let mut user_ids: Vec<UserId> = Vec::new();
-    let mut tourn_name = String::new();
-    for ident in args.iter::<String>().quoted().map(|id| id.unwrap()) {
-        match user_id_resolver(ctx, msg, &ident).await {
-            Some(id) => user_ids.push(id),
-            None => {
-                tourn_name = ident;
-                break;
-            }
-        };
-    }
+    let mut raw_players: Vec<String> = args.iter::<String>().quoted().filter_map(|a| a.ok()).collect();
+    let tourn_name: String = raw_players.last().cloned().unwrap_or_default();
     let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
     {
-        Some(id) => id,
+        Some(id) => {
+            if name_and_id.get_right(&tourn_name).is_some() {
+                raw_players.pop();
+            }
+            id
+        },
         None => {
             return Ok(());
         }
     };
     let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
-    let mut plyr_ids: Vec<PlayerIdentifier> = Vec::with_capacity(user_ids.len());
-    for u_id in user_ids {
-        match tourn.players.get_right(&u_id) {
-            Some(id) => plyr_ids.push(PlayerIdentifier::Id(id.clone())),
+    let mut plyr_ids: Vec<PlayerIdentifier> = Vec::with_capacity(raw_players.len());
+    for plyr in raw_players {
+        let plyr_id = match user_id_resolver(ctx, msg, &plyr).await {
+            Some(user_id) => {
+                match tourn.players.get_right(&user_id) {
+                    Some(id) => id.clone().into(),
+                    None => {
+                        msg.reply(
+                            &ctx.http,
+                            "That player is not registered for the tournament.",
+                        )
+                        .await?;
+                        return Ok(());
+                    }
+                }
+            },
             None => {
-                msg.reply(
-                    &ctx.http,
-                    format!(r#"<@{u_id}> is not registered for the tournament."#),
-                )
-                .await?;
-                return Ok(());
+                match tourn.guests.get_right(&plyr) {
+                    Some(id) => id.clone().into(),
+                    None => {
+                        msg.reply(
+                            &ctx.http,
+                            "That guest is not registered for the tournament. You may have mistyped their name.",
+                        )
+                        .await?;
+                        return Ok(());
+                    }
+                }
             }
         };
+        plyr_ids.push(plyr_id);
     }
     match tourn.tourn.apply_op(TournOp::CreateRound(*SQUIRE_ACCOUNT_ID, plyr_ids)) {
         Err(err) => {

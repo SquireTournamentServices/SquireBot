@@ -26,7 +26,6 @@ use super::{
 };
 
 #[command("tournament")]
-#[only_in(guild)]
 #[aliases("tourn", "T", "t")]
 #[sub_commands(
     admin,

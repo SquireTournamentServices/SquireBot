@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::prelude::*,
@@ -296,6 +298,57 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         }
     };
     let setting = RequireDeckReg(raw_setting);
+    let tourn_name = args.rest().trim().to_string();
+    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
+    {
+        Some(id) => id,
+        None => {
+            return Ok(());
+        }
+    };
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
+        error_to_reply(ctx, msg, err).await?;
+    } else {
+        tourn.update_status = true;
+        msg.reply(&ctx.http, "Setting successfully updated!")
+            .await?;
+    }
+    Ok(())
+}
+
+#[command("round_length")]
+#[only_in(guild)]
+#[allowed_roles("Tournament Admin")]
+#[aliases("round-length")]
+#[usage("<# of minutes>, [tournament name]")]
+#[min_args(1)]
+#[description("Adjusts the length of future rounds.")]
+async fn round_length(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    use squire_lib::settings::TournamentSetting::*;
+    let data = ctx.data.read().await;
+    let name_and_id = data
+        .get::<TournamentNameAndIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
+    let ids = data
+        .get::<GuildAndTournamentIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
+    // Resolve the tournament id
+    let dur = match args.single_quoted::<u64>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "The number of minutes you want new round to be.")
+                .await?;
+            return Ok(());
+        }
+        Ok(dur) => Duration::from_secs(dur * 60),
+    };
+    let setting = RoundLength(dur);
     let tourn_name = args.rest().trim().to_string();
     let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
     {

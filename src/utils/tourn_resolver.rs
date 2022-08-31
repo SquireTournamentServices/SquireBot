@@ -48,12 +48,6 @@ pub async fn user_id_resolver(ctx: &Context, msg: &Message, ident: &str) -> Opti
         if by_username.len() == 1 {
             Some(by_username[0].0.user.id)
         } else {
-            let _ = msg
-                .reply(
-                    &ctx.http,
-                    format!(r#"No user by "{ident}" could be found."#),
-                )
-                .await;
             None
         }
     }

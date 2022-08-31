@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use itertools::Itertools;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -52,12 +54,6 @@ async fn profile(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         }
         Ok(s) => s,
     };
-    let user_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
     let tourn_name = args.rest().trim().to_string();
     let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
     {
@@ -67,19 +63,35 @@ async fn profile(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         }
     };
     let tourn = spin(all_tourns, &tourn_id).await.unwrap();
-    let plyr_id = match tourn.players.get_right(&user_id) {
-        Some(id) => PlayerIdentifier::Id(id.clone()),
-        None => {
-            msg.reply(
-                &ctx.http,
-                "That player is not registered for the tournament.",
-            )
-            .await?;
-            return Ok(());
-        }
+    let plyr_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
+        Some(user_id) => match tourn.players.get_right(&user_id) {
+            Some(id) => id.clone().into(),
+            None => {
+                msg.reply(
+                    &ctx.http,
+                    "That player is not registered for the tournament.",
+                )
+                .await?;
+                return Ok(());
+            }
+        },
+        None => match tourn.guests.get_right(&raw_user_id) {
+            Some(id) => id.clone().into(),
+            None => {
+                msg.reply(
+                        &ctx.http,
+                        "That guest is not registered for the tournament. You may have mistyped their name.",
+                    )
+                    .await?;
+                return Ok(());
+            }
+        },
     };
     let plyr = tourn.tourn.get_player(&plyr_id).unwrap();
     let rounds = tourn.tourn.get_player_rounds(&plyr_id).unwrap();
+    let mention = UserId::from_str(&plyr.name)
+        .map(|id| format!("<@{id}>"))
+        .unwrap_or_else(|_| plyr.name.clone());
     match msg.channel(&ctx.http).await.unwrap() {
         Channel::Guild(c) => {
             c.send_message(&ctx.http, |m| {
@@ -87,7 +99,7 @@ async fn profile(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                     if let Some(tag) = plyr.game_name {
                         e.field("Game Tag:", tag, false);
                     }
-                    e.title(format!("<@{}> Profile", user_id))
+                    e.title(format!("{mention}'s Profile"))
                         .field(
                             "Status:",
                             match plyr.status {
@@ -96,13 +108,20 @@ async fn profile(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                             },
                             false,
                         )
-                        .field("Decks:", plyr.decks.keys().join("\n"), false)
+                        .field(
+                            "Decks:",
+                            format!("\u{200b}{}", plyr.decks.keys().join("\n")),
+                            false,
+                        )
                         .field(
                             "Matches:",
-                            rounds
-                                .iter()
-                                .map(|r| format!("Match #{}", r.match_number))
-                                .join("\n"),
+                            format!(
+                                "\u{200b}{}",
+                                rounds
+                                    .iter()
+                                    .map(|r| format!("Match #{}", r.match_number))
+                                    .join("\n")
+                            ),
                             false,
                         )
                 })

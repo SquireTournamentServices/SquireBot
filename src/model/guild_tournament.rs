@@ -60,6 +60,8 @@ pub struct GuildTournament {
     pub(crate) matches_category: ChannelCategory,
     pub(crate) tourn_status: Option<Message>,
     pub(crate) players: CycleMap<UserId, PlayerId>,
+    #[serde(default)]
+    pub(crate) guests: CycleMap<String, PlayerId>,
     pub(crate) make_vc: bool,
     pub(crate) make_tc: bool,
     pub(crate) match_vcs: HashMap<RoundIdentifier, GuildChannel>,
@@ -104,6 +106,7 @@ impl GuildTournament {
             match_tcs: HashMap::new(),
             tourn_status: None,
             players: CycleMap::new(),
+            guests: CycleMap::new(),
             match_roles: HashMap::new(),
             match_timers: HashMap::new(),
             round_warnings: HashMap::new(),

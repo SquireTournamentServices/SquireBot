@@ -15,7 +15,7 @@ use crate::{
         guild_tournament::GuildTournament,
         lookup_error::LookupError,
     },
-    utils::{error_to_reply::error_to_reply, tourn_resolver::tourn_id_resolver},
+    utils::{error_to_reply::error_to_reply, tourn_resolver::tourn_id_resolver, spin_lock::spin_mut},
 };
 
 #[command("register")]
@@ -51,7 +51,7 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     };
     // With the tournament id, we can now get the tournament and add them
     let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-    let mut tourn = all_tourns.get_mut(&tourn_id).unwrap();
+    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
     let plyr_name = msg.author.id.0.to_string();
     // NOTE: The GuildTournament and Tournament structs take care of the nitty-gritty. We just need
     // to inform the player of the outcome. The tournament communicates through TournamentError

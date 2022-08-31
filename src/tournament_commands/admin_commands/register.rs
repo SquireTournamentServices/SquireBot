@@ -51,6 +51,11 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     let user_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
         Some(id) => id,
         None => {
+            msg.reply(
+                &ctx.http,
+                "That person could not be found.",
+            )
+            .await?;
             return Ok(());
         }
     };
