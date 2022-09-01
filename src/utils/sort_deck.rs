@@ -91,56 +91,68 @@ impl From<Deck> for TypeSortedDeck {
 
 impl TypeSortedDeck {
     pub fn populate_embed<'a>(&self, mut e: &'a mut CreateEmbed) -> &'a mut CreateEmbed {
-        let e = e
-            .field(
+        if !self.lands.is_empty() {
+            e.field(
                 format!("Land ({}):", self.count_lands()),
                 self.lands
                     .iter()
                     .map(|(n, c)| format!("{n} {c}"))
                     .join("\n"),
                 true,
-            )
-            .field(
+            );
+        }
+        if !self.creatures.is_empty() {
+            e.field(
                 format!("Creature ({}):", self.count_creatures()),
                 self.creatures
                     .iter()
                     .map(|(n, c)| format!("{n} {c}"))
                     .join("\n"),
                 true,
-            )
-            .field(
+            );
+        }
+        if !self.artifacts.is_empty() {
+            e.field(
                 format!("Artifacts ({}):", self.count_artifacts()),
                 self.artifacts
                     .iter()
                     .map(|(n, c)| format!("{n} {c}"))
                     .join("\n"),
                 true,
-            )
-            .field(
+            );
+        }
+        if !self.enchantments.is_empty() {
+            e.field(
                 format!("Enchantments ({}):", self.count_enchantments()),
                 self.enchantments
                     .iter()
                     .map(|(n, c)| format!("{n} {c}"))
                     .join("\n"),
                 true,
-            )
-            .field(
+            );
+        }
+        if !self.instants.is_empty() {
+            e.field(
                 format!("Instant ({}):", self.count_instants()),
                 self.instants
                     .iter()
                     .map(|(n, c)| format!("{n} {c}"))
                     .join("\n"),
                 true,
-            )
-            .field(
+            );
+        }
+        if !self.sorceries.is_empty() {
+            e.field(
                 format!("Sorceries ({}):", self.count_sorceries()),
                 self.sorceries
                     .iter()
                     .map(|(n, c)| format!("{n} {c}"))
                     .join("\n"),
                 true,
-            )
-            .field(
+            );
+        }
+        if !self.planewalkers.is_empty() {
+            e.field(
                 format!("Planewalkers ({}):", self.count_planeswalkers()),
                 self.planewalkers
                     .iter()
@@ -148,7 +160,8 @@ impl TypeSortedDeck {
                     .join("\n"),
                 true,
             );
-        let e = if self.other.is_empty() {
+        }
+        if !self.other.is_empty() {
             e.field(
                 format!("Others ({}):", self.count_other()),
                 self.other
@@ -156,18 +169,19 @@ impl TypeSortedDeck {
                     .map(|(n, c)| format!("{n} {c}"))
                     .join("\n"),
                 true,
-            )
-        } else {
-            e
-        };
-        e.field(
-            format!("Sideboard ({}):", self.count_sideboard()),
-            self.sideboard
-                .iter()
-                .map(|(n, c)| format!("{n} {c}"))
-                .join("\n"),
-            true,
-        )
+            );
+        }
+        if !self.sideboard.is_empty() {
+            e.field(
+                format!("Sideboard ({}):", self.count_sideboard()),
+                self.sideboard
+                    .iter()
+                    .map(|(n, c)| format!("{n} {c}"))
+                    .join("\n"),
+                true,
+            );
+        }
+        e
     }
 
     pub fn count_all(&self) -> usize {

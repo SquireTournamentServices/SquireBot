@@ -419,7 +419,7 @@ async fn main() {
         tokio::spawn(async move {
             let tourns = ref_one;
             let cache = cache_one;
-            let loop_length = Duration::from_secs(30);
+            let loop_length = Duration::from_secs(90);
             loop {
                 let timer = Instant::now();
                 let tourn_lock = tourns.write().await;
@@ -557,7 +557,7 @@ async fn main() {
         tokio::spawn(async move {
             let tourns = ref_three;
             let cache = cache_three;
-            let loop_length = Duration::from_secs(30);
+            let loop_length = Duration::from_secs(1800);
             loop {
                 let timer = Instant::now();
                 let tourns_lock = tourns.write().await;

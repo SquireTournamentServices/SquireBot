@@ -10,14 +10,14 @@ pub async fn spin<'a, A: Eq + Hash, B>(
     map: &'a DashMap<A, B>,
     key: &'a A,
 ) -> Option<Ref<'a, A, B>> {
-    dur_spin(map, key, Duration::from_millis(10)).await
+    dur_spin(map, key, Duration::from_micros(100)).await
 }
 
 pub async fn spin_mut<'a, A: Eq + Hash, B>(
     map: &'a DashMap<A, B>,
     key: &'a A,
 ) -> Option<RefMut<'a, A, B>> {
-    dur_spin_mut(map, key, Duration::from_millis(10)).await
+    dur_spin_mut(map, key, Duration::from_micros(100)).await
 }
 
 pub async fn dur_spin<'a, A: Eq + Hash, B>(
