@@ -154,6 +154,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     deck_count,
     require_checkin,
     require_deck,
+    round_length,
     pairings,
     scoring,
     discord
