@@ -39,6 +39,7 @@ use tokio::{runtime, sync::Mutex, time::Instant};
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::mtgjson::meta::Meta;
 use squire_lib::{self, round::RoundId, tournament::TournamentId};
+use utils::spin_lock::spin;
 
 mod misc_commands;
 mod model;
@@ -72,26 +73,22 @@ impl EventHandler for Handler {
     async fn guild_create(&self, ctx: Context, guild: Guild, _: bool) {
         println!("Look, a guild: {}", guild.name);
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = spin_mut(all_settings, &guild.id).await {
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        if let Some(mut settings) = spin_mut(&all_settings, &guild.id).await {
             settings.update(&guild);
         } else {
             let settings = GuildSettings::from_existing(&guild);
             println!("{:#?}", settings);
             all_settings.insert(guild.id, settings);
         }
-        std::fs::write(
-            "guild_settings.json",
-            serde_json::to_string(all_settings.as_ref())
-                .expect("Failed to serialize guild settings."),
-        )
-        .expect("Failed to save guild settings json.");
+        drop(all_settings);
+        drop(data);
     }
 
     async fn category_create(&self, ctx: Context, new: &ChannelCategory) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = spin_mut(all_settings, &new.guild_id).await {
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        if let Some(mut settings) = spin_mut(&all_settings, &new.guild_id).await {
             match settings.matches_category {
                 None => {
                     if new.name == DEFAULT_MATCHES_CATEGORY_NAME {
@@ -105,8 +102,8 @@ impl EventHandler for Handler {
 
     async fn category_delete(&self, ctx: Context, category: &ChannelCategory) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = spin_mut(all_settings, &category.guild_id).await {
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        if let Some(mut settings) = spin_mut(&all_settings, &category.guild_id).await {
             match &settings.matches_category {
                 Some(c) => {
                     if c.id == category.id {
@@ -120,8 +117,8 @@ impl EventHandler for Handler {
 
     async fn channel_create(&self, ctx: Context, new: &GuildChannel) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = spin_mut(all_settings, &new.guild_id).await {
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        if let Some(mut settings) = spin_mut(&all_settings, &new.guild_id).await {
             match &settings.pairings_channel {
                 None => {
                     if new.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
@@ -135,8 +132,8 @@ impl EventHandler for Handler {
 
     async fn channel_delete(&self, ctx: Context, channel: &GuildChannel) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = spin_mut(all_settings, &channel.guild_id).await {
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        if let Some(mut settings) = spin_mut(&all_settings, &channel.guild_id).await {
             match &settings.pairings_channel {
                 Some(c) => {
                     if c.id == channel.id {
@@ -151,11 +148,11 @@ impl EventHandler for Handler {
     // NOTE: This covers both categories and guild channels
     async fn channel_update(&self, ctx: Context, _: Option<Channel>, new: Channel) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
         match new {
             Channel::Guild(c) => {
                 if c.kind == ChannelType::Text && c.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
-                    if let Some(mut settings) = spin_mut(all_settings, &c.guild_id).await {
+                    if let Some(mut settings) = spin_mut(&all_settings, &c.guild_id).await {
                         match &settings.pairings_channel {
                             None => {
                                 settings.pairings_channel = Some(c.clone());
@@ -167,7 +164,7 @@ impl EventHandler for Handler {
             }
             Channel::Category(c) => {
                 if c.name == DEFAULT_MATCHES_CATEGORY_NAME {
-                    if let Some(mut settings) = spin_mut(all_settings, &c.guild_id).await {
+                    if let Some(mut settings) = spin_mut(&all_settings, &c.guild_id).await {
                         match settings.matches_category {
                             None => {
                                 settings.matches_category = Some(c.clone());
@@ -184,7 +181,7 @@ impl EventHandler for Handler {
     async fn guild_role_create(&self, ctx: Context, new: Role) {
         println!("Handling new role");
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
         loop {
             match all_settings.try_get_mut(&new.guild_id) {
                 TryResult::Present(mut settings) => {
@@ -219,8 +216,8 @@ impl EventHandler for Handler {
     async fn guild_role_update(&self, ctx: Context, _: Option<Role>, new: Role) {
         println!("Handling role update");
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = spin_mut(all_settings, &new.guild_id).await {
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        if let Some(mut settings) = spin_mut(&all_settings, &new.guild_id).await {
             match new.name.as_str() {
                 DEFAULT_JUDGE_ROLE_NAME => {
                     if settings.judge_role.is_none() {
@@ -265,8 +262,8 @@ impl EventHandler for Handler {
     ) {
         println!("Handling role delete");
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
-        if let Some(mut settings) = spin_mut(all_settings, &guild_id).await {
+        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        if let Some(mut settings) = spin_mut(&all_settings, &guild_id).await {
             match settings.judge_role {
                 Some(id) => {
                     if id == removed_role {
@@ -385,6 +382,7 @@ async fn main() {
             &read_to_string("./guild_settings.json").expect("Guilds settings file not found."),
         )
         .expect("The guild settings data is malformed.");
+        let all_guild_settings = RwLock::new(all_guild_settings);
         let ref_main = Arc::new(all_guild_settings);
         let settings_ref = ref_main.clone();
         data.insert::<GuildSettingsMapContainer>(ref_main);
@@ -394,12 +392,15 @@ async fn main() {
             &read_to_string("./tournaments.json").expect("Tournament file could not be found."),
         )
         .expect("The tournament data is malformed.");
+        let all_tournaments = RwLock::new(all_tournaments);
 
         let tourn_name_and_id_map: CycleMap<String, TournamentId> = all_tournaments
+            .read().await
             .iter()
             .map(|t| (t.tourn.name.clone(), t.tourn.id.clone()))
             .collect();
         let guild_and_tourn_id_map: GroupMap<TournamentId, GuildId> = all_tournaments
+            .read().await
             .iter()
             .map(|t| (t.tourn.id.clone(), t.guild_id))
             .collect();
@@ -421,9 +422,10 @@ async fn main() {
             let loop_length = Duration::from_secs(30);
             loop {
                 let timer = Instant::now();
+                let tourn_lock = tourns.write().await;
                 //println!( "Tournament saver still spinning" );
                 // TODO: This should be par_iter via rayon
-                for mut pair in tourns.iter_mut() {
+                for mut pair in tourn_lock.iter_mut() {
                     let mut tourn = pair.value_mut();
                     if !tourn.update_standings || tourn.standings_message.is_none() {
                         continue;
@@ -458,8 +460,9 @@ async fn main() {
             let loop_length = Duration::from_secs(60);
             loop {
                 let timer = Instant::now();
+                let tourns_lock = tourns.write().await;
                 // TODO: This should be par_iter via rayon
-                for mut pair in tourns.iter_mut() {
+                for mut pair in tourns_lock.iter_mut() {
                     let mut tourn = pair.value_mut();
                     for (id, msg) in tourn.match_timers.iter_mut() {
                         let round = tourn.tourn.get_round(id).unwrap();
@@ -557,8 +560,9 @@ async fn main() {
             let loop_length = Duration::from_secs(30);
             loop {
                 let timer = Instant::now();
+                let tourns_lock = tourns.write().await;
                 // TODO: This should be par_iter via rayon
-                for mut pair in tourns.iter_mut() {
+                for mut pair in tourns_lock.iter_mut() {
                     let mut tourn = pair.value_mut();
                     if !tourn.update_status || tourn.tourn_status.is_none() {
                         continue;
@@ -634,12 +638,14 @@ async fn main() {
             let mut interval = tokio::time::interval(Duration::from_secs(900));
             loop {
                 interval.tick().await;
-                if let Ok(data) = serde_json::to_string(&*tourns) {
+                let tourns_lock = tourns.write().await;
+                if let Ok(data) = serde_json::to_string(&*tourns_lock) {
                     if let Ok(mut file) = File::create("tournaments.json") {
                         let _ = write!(file, "{data}");
                     }
                 }
-                if let Ok(data) = serde_json::to_string(&*settings) {
+                let settings_lock = settings.write().await;
+                if let Ok(data) = serde_json::to_string(&*settings_lock) {
                     if let Ok(mut file) = File::create("guild_settings.json") {
                         let _ = write!(file, "{data}");
                     }

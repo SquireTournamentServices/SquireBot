@@ -45,7 +45,7 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_format = match args.single_quoted::<String>() {
@@ -70,7 +70,7 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, format)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -117,7 +117,7 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_setting = match args.single_quoted::<u8>() {
@@ -136,7 +136,7 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -167,7 +167,7 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_setting = match args.single_quoted::<u8>() {
@@ -186,7 +186,7 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -219,7 +219,7 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -247,7 +247,7 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -278,7 +278,7 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -306,7 +306,7 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -337,7 +337,7 @@ async fn round_length(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let dur = match args.single_quoted::<u64>() {
@@ -357,7 +357,7 @@ async fn round_length(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -400,7 +400,7 @@ async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_setting = match args.single_quoted::<u8>() {
@@ -419,7 +419,7 @@ async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting.into())) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -451,7 +451,7 @@ async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_setting = match args.single_quoted::<u64>() {
@@ -470,7 +470,7 @@ async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting.into())) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -501,7 +501,7 @@ async fn algorithm(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_setting = match args.single_quoted::<String>() {
@@ -528,7 +528,7 @@ async fn algorithm(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting.into())) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -573,7 +573,7 @@ async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -601,7 +601,7 @@ async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -683,7 +683,7 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
@@ -703,7 +703,7 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -737,7 +737,7 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
@@ -757,7 +757,7 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -791,7 +791,7 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
@@ -811,7 +811,7 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -845,7 +845,7 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
@@ -865,7 +865,7 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -899,7 +899,7 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
@@ -919,7 +919,7 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -953,7 +953,7 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
@@ -973,7 +973,7 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1007,7 +1007,7 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
@@ -1027,7 +1027,7 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1060,7 +1060,7 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -1088,7 +1088,7 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1121,7 +1121,7 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -1149,7 +1149,7 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1182,7 +1182,7 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -1210,7 +1210,7 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1243,7 +1243,7 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -1271,7 +1271,7 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1304,7 +1304,7 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -1332,7 +1332,7 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1365,7 +1365,7 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -1393,7 +1393,7 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1426,7 +1426,7 @@ async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -1454,7 +1454,7 @@ async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -1497,7 +1497,7 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -1534,7 +1534,7 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Some(channel) = guild.channels.get(&channel_id) {
         match channel {
             Channel::Guild(c) => {
@@ -1582,7 +1582,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -1619,7 +1619,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Some(channel) = guild.channels.get(&channel_id) {
         match channel {
             Channel::Category(c) => {
@@ -1660,7 +1660,7 @@ async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -1687,7 +1687,7 @@ async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     tourn.update_status = true;
     tourn.make_vc = setting;
     msg.reply(&ctx.http, "Setting successfully updated!")
@@ -1716,7 +1716,7 @@ async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let arg = match args.single_quoted::<String>() {
@@ -1743,7 +1743,7 @@ async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     tourn.update_status = true;
     tourn.make_tc = setting;
     msg.reply(&ctx.http, "Setting successfully updated!")

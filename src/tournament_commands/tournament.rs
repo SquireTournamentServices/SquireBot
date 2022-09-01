@@ -93,9 +93,9 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     }
     // Get the settings data
     let data = ctx.data.read().await;
-    let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
+    let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let settings = spin_mut(all_settings, &guild.id).await.unwrap();
+    let settings = spin_mut(&all_settings, &guild.id).await.unwrap();
     // Ensure that tournaments can be ran
     if !settings.is_configured() {
         msg.reply(
@@ -125,7 +125,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .create_tournament(tourn_role.clone(), preset, name.clone())
         .unwrap();
     let tourn_id = tourn.tourn.id.clone();
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     all_tourns.insert(tourn_id.clone(), tourn);
     let mut name_and_id = data
         .get::<TournamentNameAndIDMapContainer>()

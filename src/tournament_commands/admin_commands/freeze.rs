@@ -38,7 +38,7 @@ async fn freeze(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let tourn_name = args.rest().trim().to_string();
@@ -50,7 +50,7 @@ async fn freeze(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     // Freeze the tournament
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::Freeze(*SQUIRE_ACCOUNT_ID)) {
         error_to_reply(ctx, msg, err).await?;
     } else {
@@ -78,7 +78,7 @@ async fn thaw(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let tourn_name = args.rest().trim().to_string();
@@ -90,7 +90,7 @@ async fn thaw(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     // Freeze the tournament
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.tourn.apply_op(TournOp::Thaw(*SQUIRE_ACCOUNT_ID)) {
         error_to_reply(ctx, msg, err).await?;
     } else {

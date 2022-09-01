@@ -8,7 +8,7 @@ use crate::{
         },
         misfortune::*,
     },
-    utils::tourn_resolver::tourn_id_resolver,
+    utils::{tourn_resolver::tourn_id_resolver, spin_lock::spin},
 };
 
 use serenity::{
@@ -77,7 +77,7 @@ async fn misfortune(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     /* Old version */
     let data = ctx.data.read().await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let name_and_id = data
         .get::<TournamentNameAndIDMapContainer>()
         .unwrap()
@@ -99,7 +99,7 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let tourn = all_tourns.get(&tourn_id).unwrap();
+    let tourn = spin(&all_tourns, &tourn_id).await.unwrap();
     let plyr_id = match tourn.get_player_id(&msg.author.id) {
         Some(id) => PlayerIdentifier::Id(id),
         None => {

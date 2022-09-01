@@ -40,7 +40,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let user_name = msg.author.id;
     let wins = match args.single::<u8>() {
         Err(_) => {
@@ -55,7 +55,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         ctx,
         msg,
         tourn_name,
-        all_tourns,
+        &all_tourns,
         ids.get_left_iter(&msg.guild_id.unwrap()).unwrap(),
     )
     .await
@@ -65,7 +65,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         }
         Some(id) => id,
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let player_id = tourn.players.get_right(&user_name).unwrap().clone();
     let rounds = tourn.tourn.round_reg.get_player_active_rounds(&player_id.into());
     let round_number = match rounds.len() {
@@ -112,7 +112,7 @@ async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let user_name = msg.author.id;
     let draws = match args.single::<u8>() {
         Err(_) => {
@@ -127,7 +127,7 @@ async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         ctx,
         msg,
         tourn_name,
-        all_tourns,
+        &all_tourns,
         ids.get_left_iter(&msg.guild_id.unwrap()).unwrap(),
     )
     .await
@@ -137,7 +137,7 @@ async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
         Some(id) => id,
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let player_id = tourn.players.get_right(&user_name).unwrap().clone();
     let rounds = tourn.tourn.round_reg.get_player_active_rounds(&player_id.into());
     let round_number = match rounds.len() {

@@ -45,7 +45,7 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let mut raw_players: Vec<String> = args.iter::<String>().quoted().filter_map(|a| a.ok()).collect();
@@ -62,7 +62,7 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let mut plyr_ids: Vec<PlayerIdentifier> = Vec::with_capacity(raw_players.len());
     for plyr in raw_players {
         let plyr_id = match user_id_resolver(ctx, msg, &plyr).await {

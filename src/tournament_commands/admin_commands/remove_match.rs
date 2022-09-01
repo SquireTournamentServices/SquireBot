@@ -44,7 +44,7 @@ async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     let round_number = match args.single::<u64>() {
         Ok(n) => RoundIdentifier::Number(n),
@@ -65,7 +65,7 @@ async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     match tourn.tourn.get_round(&round_number) {
         Ok(rnd) => {
             if rnd.is_certified() {

@@ -34,14 +34,14 @@ async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let user_name = msg.author.id;
     let tourn_name = args.rest().trim().to_string();
     let tourn_id = match player_tourn_resolver(
         ctx,
         msg,
         tourn_name,
-        all_tourns,
+        &all_tourns,
         ids.get_left_iter(&msg.guild_id.unwrap()).unwrap(),
     )
     .await
@@ -51,7 +51,7 @@ async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         }
         Some(id) => id,
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let player_id = tourn.players.get_right(&user_name).unwrap().clone();
     let player = tourn
         .tourn

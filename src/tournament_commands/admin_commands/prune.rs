@@ -58,7 +58,7 @@ async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve cut size
     let len = match args.single_quoted::<usize>() {
@@ -78,7 +78,7 @@ async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
             return Ok(());
         }
     };
-    let tourn = spin(all_tourns, &tourn_id).await.unwrap();
+    let tourn = spin(&all_tourns, &tourn_id).await.unwrap();
     let mut req_text = String::new();
     let mut has_req = false;
     if tourn.tourn.require_check_in {
@@ -139,7 +139,7 @@ async fn decks(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve cut size
     let len = match args.single_quoted::<usize>() {
@@ -159,7 +159,7 @@ async fn decks(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let tourn = spin(all_tourns, &tourn_id).await.unwrap();
+    let tourn = spin(&all_tourns, &tourn_id).await.unwrap();
     if !tourn.tourn.require_deck_reg {
         msg.reply(
             &ctx.http,
@@ -190,8 +190,8 @@ struct PrunePlayersConfirmation {
 impl Confirmation for PrunePlayersConfirmation {
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
         let data = ctx.data.read().await;
-        let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-        let mut tourn = spin_mut(all_tourns, &self.tourn_id).await.unwrap();
+        let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
+        let mut tourn = spin_mut(&all_tourns, &self.tourn_id).await.unwrap();
         if let Err(err) = tourn.tourn.apply_op(TournOp::PrunePlayers(*SQUIRE_ACCOUNT_ID)) {
             error_to_reply(ctx, msg, err).await?;
         } else {
@@ -214,8 +214,8 @@ struct PruneDecksConfirmation {
 impl Confirmation for PruneDecksConfirmation {
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
         let data = ctx.data.read().await;
-        let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-        let mut tourn = spin_mut(all_tourns, &self.tourn_id).await.unwrap();
+        let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
+        let mut tourn = spin_mut(&all_tourns, &self.tourn_id).await.unwrap();
         if let Err(err) = tourn.tourn.apply_op(TournOp::PruneDecks(*SQUIRE_ACCOUNT_ID)) {
             error_to_reply(ctx, msg, err).await?;
         } else {

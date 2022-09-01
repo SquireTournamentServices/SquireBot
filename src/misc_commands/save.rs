@@ -15,9 +15,9 @@ use std::{
 #[description("Force saves all data.")]
 async fn save(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let tourns = data.get::<TournamentMapContainer>().unwrap();
-    let settings = data.get::<GuildSettingsMapContainer>().unwrap();
-    if let Ok(data) = serde_json::to_string(&**tourns) {
+    let tourns = data.get::<TournamentMapContainer>().unwrap().write().await;
+    let settings = data.get::<GuildSettingsMapContainer>().unwrap().write().await;
+    if let Ok(data) = serde_json::to_string(&*tourns) {
         if let Ok(mut file) = File::create("tournaments.json") {
             let r = write!(file, "{data}");
             if let Err(_) = r {
@@ -43,7 +43,7 @@ async fn save(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         )
         .await?;
     }
-    if let Ok(data) = serde_json::to_string(&**settings) {
+    if let Ok(data) = serde_json::to_string(&*settings) {
         if let Ok(mut file) = File::create("guild_settings.json") {
             let r = write!(file, "{data}");
             if let Err(_) = r {

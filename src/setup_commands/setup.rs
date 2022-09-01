@@ -18,16 +18,16 @@ use serenity::prelude::*;
 #[description("Sets up the server to be able to run tournaments.")]
 async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
+    let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     // Gets a copy of the setting. We don't want to a reference to the copy since creating what
     // needs to be created will trigger the hooks and update the shared settings object.
-    let settings: GuildSettings = match spin(all_settings, &guild.id).await {
+    let settings: GuildSettings = match spin(&all_settings, &guild.id).await {
         Some(s) => s.clone(),
         None => {
             // This case should never happen... but just in case
             all_settings.insert(guild.id, GuildSettings::from_existing(&guild));
-            spin_mut(all_settings, &guild.id).await.unwrap().clone()
+            spin_mut(&all_settings, &guild.id).await.unwrap().clone()
         }
     };
 
@@ -72,16 +72,16 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[description("Prints out the current tournament-related settings.")]
 async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
+    let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
     // Gets a copy of the setting. We don't want to a reference to the copy since creating what
     // needs to be created will trigger the hooks and update the shared settings object.
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let settings: GuildSettings = match spin_mut(all_settings, &guild.id).await {
+    let settings: GuildSettings = match spin_mut(&all_settings, &guild.id).await {
         Some(s) => s.clone(),
         None => {
             // This case should never happen... but just in case
             all_settings.insert(guild.id, GuildSettings::from_existing(&guild));
-            spin_mut(all_settings, &guild.id).await.unwrap().clone()
+            spin_mut(&all_settings, &guild.id).await.unwrap().clone()
         }
     };
     if let Channel::Guild(c) = msg.channel(&ctx.http).await? {
@@ -104,16 +104,16 @@ async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[description("Tests the setup of the server.")]
 async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let all_settings = data.get::<GuildSettingsMapContainer>().unwrap();
+    let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
     // Gets a copy of the setting. We don't want to a reference to the copy since creating what
     // needs to be created will trigger the hooks and update the shared settings object.
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let settings: GuildSettings = match spin_mut(all_settings, &guild.id).await {
+    let settings: GuildSettings = match spin_mut(&all_settings, &guild.id).await {
         Some(s) => s.clone(),
         None => {
             // This case should never happen... but just in case
             all_settings.insert(guild.id, GuildSettings::from_existing(&guild));
-            spin_mut(all_settings, &guild.id).await.unwrap().clone()
+            spin_mut(&all_settings, &guild.id).await.unwrap().clone()
         }
     };
     let tests = String::from("Judge Role Exists:\nAdmin Role Exists:\nPairings Channel Exists:\nSend Pairings:\nEdit Pairings:\nSend Embed:\nEdit Embed:\nMatches Category Exists:\nCreate VC:\nDelete VC:\nCreate TC:\nDelete TC:\nRole Created:\nRole Deleted:");

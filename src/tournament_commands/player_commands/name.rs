@@ -34,7 +34,7 @@ async fn name(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     // Resolve the tournament id
     let gamer_tag = match args.single_quoted::<String>() {
         Err(_) => {
@@ -49,7 +49,7 @@ async fn name(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         ctx,
         msg,
         tourn_name,
-        all_tourns,
+        &all_tourns,
         ids.get_left_iter(&msg.guild_id.unwrap()).unwrap(),
     )
     .await
@@ -59,7 +59,7 @@ async fn name(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
         Some(id) => id,
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let plyr_id = match tourn.players.get_right(&msg.author.id) {
         Some(id) => PlayerIdentifier::Id(id.clone()),
         None => {

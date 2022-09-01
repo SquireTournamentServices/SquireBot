@@ -34,7 +34,7 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_user_id = match args.single_quoted::<String>() {
@@ -68,7 +68,7 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         }
     };
 
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
 
     if let Err(err) = tourn.add_player(user_id.0.to_string(), user_id) {
         error_to_reply(ctx, msg, err).await?;
@@ -106,7 +106,7 @@ async fn guest(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let user_name = match args.single_quoted::<String>() {
@@ -129,7 +129,7 @@ async fn guest(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
 
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
 
     if let Err(err) = tourn.add_guest(user_name) {
         error_to_reply(ctx, msg, err).await?;

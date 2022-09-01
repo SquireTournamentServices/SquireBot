@@ -1,9 +1,10 @@
+use std::sync::Arc;
+
 use dashmap::DashMap;
 use serenity::{
     model::id::{GuildId, UserId},
     prelude::*,
 };
-use std::sync::Arc;
 
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::model::atomics_collection::AtomicCardCollection;
@@ -19,12 +20,12 @@ use super::{
 
 pub struct TournamentMapContainer;
 impl TypeMapKey for TournamentMapContainer {
-    type Value = Arc<DashMap<TournamentId, GuildTournament>>;
+    type Value = Arc<RwLock<DashMap<TournamentId, GuildTournament>>>;
 }
 
 pub struct GuildSettingsMapContainer;
 impl TypeMapKey for GuildSettingsMapContainer {
-    type Value = Arc<DashMap<GuildId, GuildSettings>>;
+    type Value = Arc<RwLock<DashMap<GuildId, GuildSettings>>>;
 }
 
 pub struct TournamentNameAndIDMapContainer;

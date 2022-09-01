@@ -42,7 +42,7 @@ async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let tourn_name = args.rest().trim().to_string();
@@ -53,7 +53,7 @@ async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
             return Ok(());
         }
     };
-    let tourn = spin(all_tourns, &tourn_id).await.unwrap();
+    let tourn = spin(&all_tourns, &tourn_id).await.unwrap();
     let name_iter = tourn
         .tourn
         .player_reg

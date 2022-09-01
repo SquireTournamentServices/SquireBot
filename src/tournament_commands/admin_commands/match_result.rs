@@ -42,7 +42,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_user_id = match args.single_quoted::<String>() {
@@ -86,7 +86,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let plyr_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
         Some(user_id) => match tourn.players.get_right(&user_id) {
             Some(id) => id.clone().into(),
@@ -163,7 +163,7 @@ async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
     let raw_user_id = match args.single_quoted::<String>() {
@@ -207,7 +207,7 @@ async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let plyr_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
         Some(user_id) => match tourn.players.get_right(&user_id) {
             Some(id) => id.clone().into(),

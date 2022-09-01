@@ -52,8 +52,8 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         }
     };
     // With the tournament id, we can now get the tournament and add them
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let plyr_name = msg.author.id.0.to_string();
     // NOTE: The GuildTournament and Tournament structs take care of the nitty-gritty. We just need
     // to inform the player of the outcome. The tournament communicates through TournamentError

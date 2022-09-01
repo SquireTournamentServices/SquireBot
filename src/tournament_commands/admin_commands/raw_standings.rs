@@ -42,7 +42,7 @@ async fn raw_standings(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap();
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     let raw_count = match args.single_quoted::<String>() {
         Err(_) => {
@@ -63,7 +63,7 @@ async fn raw_standings(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(all_tourns, &tourn_id).await.unwrap();
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let standings = tourn.tourn.get_standings();
     let count = match raw_count.as_str() {
         "all" | "All" | "a" | "A" => standings.scores.len(),
