@@ -422,10 +422,10 @@ async fn main() {
             let loop_length = Duration::from_secs(90);
             loop {
                 let timer = Instant::now();
-                let tourn_lock = tourns.write().await;
+                let tourns_lock = tourns.write().await;
                 //println!( "Tournament saver still spinning" );
                 // TODO: This should be par_iter via rayon
-                for mut pair in tourn_lock.iter_mut() {
+                for mut pair in tourns_lock.iter_mut() {
                     let mut tourn = pair.value_mut();
                     if !tourn.update_standings || tourn.standings_message.is_none() {
                         continue;
@@ -442,6 +442,7 @@ async fn main() {
                     tourn.update_standings = false;
                 }
                 // Sleep so that the next loop starts 30 seconds after the start of this one
+                drop(tourns_lock);
                 if timer.elapsed() < loop_length {
                     println!(
                         "Tournament saver sleeping for {:?}",
@@ -542,6 +543,7 @@ async fn main() {
                     }
                 }
                 // Sleep so that the next loop starts 60 seconds after the start of this one
+                drop(tourns_lock);
                 if timer.elapsed() < loop_length {
                     println!(
                         "Message updater sleeping for {:?}",
@@ -571,6 +573,7 @@ async fn main() {
                     tourn.update_status = false;
                 }
                 // Sleep so that the next loop starts 30 seconds after the start of this one
+                drop(tourns_lock);
                 if timer.elapsed() < loop_length {
                     println!(
                         "Status updater sleeping for {:?}",
