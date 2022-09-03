@@ -12,6 +12,7 @@ use serenity::{
 };
 
 #[command]
+#[aliases("a")]
 #[only_in(guild)]
 #[sub_commands(
     add_deck,

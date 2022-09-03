@@ -76,10 +76,11 @@ async fn ready(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             if let OpData::Pair(rounds) = data {
                 for ident in rounds {
                     let rnd = tourn.tourn.get_round(&ident).unwrap();
+                    let id = rnd.id;
                     let num = rnd.match_number;
                     // TODO: We should do something if this fails...
                     let _ = tourn
-                        .create_round_data(&ctx.http, &msg.guild(&ctx.cache).unwrap(), &ident, num)
+                        .create_round_data(&ctx.http, &msg.guild(&ctx.cache).unwrap(), &id, num)
                         .await;
                 }
             }

@@ -65,39 +65,37 @@ async fn pair(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
         Ok(data) => {
             tourn.update_status = true;
-            let mut members: HashMap<UserId, Member> = msg
-                .guild(ctx)
-                .unwrap()
-                .members(&ctx.http, None, None)
-                .await
-                .unwrap()
-                .into_iter()
-                .map(|m| (m.user.id, m))
-                .collect();
             if let OpData::Pair(rounds) = data {
                 for ident in rounds {
                     let rnd = tourn.tourn.get_round(&ident).unwrap();
+                    let id = rnd.id;
                     let num = rnd.match_number;
                     match tourn
-                        .create_round_data(&ctx.http, &msg.guild(&ctx.cache).unwrap(), &ident, num)
+                        .create_round_data(&ctx.http, &msg.guild(&ctx.cache).unwrap(), &id, num)
                         .await
                     {
                         Ok(_) => {
                             for plyr in rnd.players {
-                                if let Some(member) = tourn
+                                if let Some(user_id) = tourn
                                     .players
                                     .get_left(&plyr)
-                                    .map(|user| members.get_mut(user))
-                                    .flatten()
                                 {
                                     // TODO: Do something with this result?
-                                    let _ = member
-                                        .add_role(&ctx.http, tourn.match_roles.get(&ident).unwrap())
+                                    let _ = msg
+                                        .guild(ctx)
+                                        .unwrap()
+                                        .member(ctx, user_id)
+                                        .await
+                                        .unwrap()
+                                        .add_role(ctx, tourn.match_roles.get(&id).unwrap())
                                         .await;
                                 }
                             }
                         }
-                        Err(_) => { /* TODO: Do something on fail... */ }
+                        Err(e) => { 
+                            // TODO: Do this properly
+                            println!("Issue with round data: {e}");
+                        }
                     };
                 }
             }

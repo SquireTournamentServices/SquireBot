@@ -66,16 +66,9 @@ async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         }
     };
     let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    match tourn.tourn.get_round(&round_number) {
+    let rnd_id = match tourn.tourn.get_round(&round_number) {
         Ok(rnd) => {
-            if rnd.is_certified() {
-                msg.reply(
-                    &ctx.http,
-                    "That round is already certified. No need to give it an extenstion.",
-                )
-                .await?;
-                return Ok(());
-            }
+            rnd.id
         }
         Err(_) => {
             msg.reply(
@@ -85,7 +78,7 @@ async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             .await?;
             return Ok(());
         }
-    }
+    };
     if let Err(err) = tourn
         .tourn
         .apply_op(TournOp::RemoveRound(*SQUIRE_ACCOUNT_ID, round_number.clone()))
@@ -95,7 +88,7 @@ async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         tourn.update_status = true;
         tourn.update_standings = true;
         msg.reply(&ctx.http, "Round successfully removed").await?;
-        tourn.clear_round_data(&round_number, &ctx.http).await;
+        tourn.clear_round_data(&rnd_id, &ctx.http).await;
     }
     Ok(())
 }

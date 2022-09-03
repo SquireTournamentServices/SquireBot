@@ -122,7 +122,7 @@ pub async fn update_match_message(
     let _ = msg
         .edit(cache, |m| {
             m.embed(|e| {
-                let mut e = e.title(if has_table_number {
+                e.title(if has_table_number {
                     format!(
                         "Match #{}: Table {}",
                         round.match_number, round.table_number
@@ -145,10 +145,10 @@ pub async fn update_match_message(
                 }
                 e.field("Status:", round.status.to_string(), false);
                 if let Some(vc) = vc_id {
-                    e.field("Voice Channel:", format!("<#{vc}"), false);
+                    e.field("Voice Channel:", format!("<#{vc}>"), false);
                 }
                 if let Some(tc) = tc_id {
-                    e.field("Text Channel:", format!("<#{tc}"), false);
+                    e.field("Text Channel:", format!("<#{tc}>"), false);
                 }
                 e.field(
                     "Players:",

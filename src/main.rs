@@ -466,7 +466,7 @@ async fn main() {
                 for mut pair in tourns_lock.iter_mut() {
                     let mut tourn = pair.value_mut();
                     for (id, msg) in tourn.match_timers.iter_mut() {
-                        let round = tourn.tourn.get_round(id).unwrap();
+                        let round = tourn.tourn.get_round(&(*id).into()).unwrap();
                         let time_left = round.time_left().as_secs();
                         let mut warnings = tourn.round_warnings.get_mut(id).unwrap();
                         if time_left > 0 {
@@ -559,7 +559,7 @@ async fn main() {
         tokio::spawn(async move {
             let tourns = ref_three;
             let cache = cache_three;
-            let loop_length = Duration::from_secs(1800);
+            let loop_length = Duration::from_secs(60);
             loop {
                 let timer = Instant::now();
                 let tourns_lock = tourns.write().await;

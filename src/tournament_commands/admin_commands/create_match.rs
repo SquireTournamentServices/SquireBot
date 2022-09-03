@@ -103,9 +103,10 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             tourn.update_status = true;
             if let OpData::CreateRound(ident) = data {
                 let rnd = tourn.tourn.get_round(&ident).unwrap();
+                let id = rnd.id;
                 let num = rnd.match_number;
                 match tourn
-                    .create_round_data(&ctx.http, &msg.guild(&ctx.cache).unwrap(), &ident, num)
+                    .create_round_data(&ctx.http, &msg.guild(&ctx.cache).unwrap(), &id, num)
                     .await
                 {
                     Ok(_) => {
@@ -120,7 +121,7 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                                     .member(ctx, user)
                                     .await
                                     .unwrap()
-                                    .add_role(ctx, tourn.match_roles.get(&ident).unwrap())
+                                    .add_role(ctx, tourn.match_roles.get(&id).unwrap())
                                     .await;
                             }
                         }

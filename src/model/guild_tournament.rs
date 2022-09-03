@@ -33,7 +33,7 @@ use squire_lib::{
     operations::{OpData, TournOp},
     admin::Admin,
     error::TournamentError,
-    tournament::{Tournament, TournamentId, TournamentPreset},
+    tournament::{Tournament, TournamentId, TournamentPreset}, round::RoundId,
 };
 
 use crate::{
@@ -64,11 +64,11 @@ pub struct GuildTournament {
     pub(crate) guests: CycleMap<String, PlayerId>,
     pub(crate) make_vc: bool,
     pub(crate) make_tc: bool,
-    pub(crate) match_vcs: HashMap<RoundIdentifier, GuildChannel>,
-    pub(crate) match_tcs: HashMap<RoundIdentifier, GuildChannel>,
-    pub(crate) match_roles: HashMap<RoundIdentifier, Role>,
-    pub(crate) match_timers: HashMap<RoundIdentifier, Message>,
-    pub(crate) round_warnings: HashMap<RoundIdentifier, TimerWarnings>,
+    pub(crate) match_vcs: HashMap<RoundId, GuildChannel>,
+    pub(crate) match_tcs: HashMap<RoundId, GuildChannel>,
+    pub(crate) match_roles: HashMap<RoundId, Role>,
+    pub(crate) match_timers: HashMap<RoundId, Message>,
+    pub(crate) round_warnings: HashMap<RoundId, TimerWarnings>,
     pub(crate) standings_message: Option<Message>,
     pub(crate) tourn: Tournament,
     pub(crate) update_standings: bool,
@@ -129,62 +129,65 @@ impl GuildTournament {
         &mut self,
         cache: &impl CacheHttp,
         gld: &Guild,
-        rnd: &RoundIdentifier,
+        rnd: &RoundId,
         number: u64,
     ) -> Result<(), RoundCreationFailure> {
-        let role = gld
+        self.round_warnings.insert(*rnd, TimerWarnings::default());
+        let mut mention = format!("Match #{number}");
+        if let Ok(role) = gld
             .create_role(cache, |r| {
                 r.mentionable(true).name(format!("Match {}", number))
             })
-            .await
-            .map_err(|_| RoundCreationFailure::Role)?;
+            .await {
+                mention = role.mention().to_string();
+                let mut allowed_perms = Permissions::VIEW_CHANNEL;
+                allowed_perms.insert(Permissions::CONNECT);
+                allowed_perms.insert(Permissions::SEND_MESSAGES);
+                allowed_perms.insert(Permissions::SPEAK);
+                let overwrites = vec![PermissionOverwrite {
+                    allow: allowed_perms,
+                    deny: Permissions::empty(),
+                    kind: PermissionOverwriteType::Role(role.id),
+                }];
+                self.match_roles.insert(rnd.clone(), role);
+                if self.make_tc {
+                    if let Ok(tc) = gld
+                        .create_channel(cache, |c| {
+                            c.kind(ChannelType::Text)
+                                .name(format!("Match {}", number))
+                                .category(self.matches_category.id)
+                                .permissions(overwrites.iter().cloned())
+                        })
+                        .await {
+                        self.match_tcs.insert(rnd.clone(), tc);
+                        }
+                }
+                if self.make_vc {
+                    if let Ok(vc) = gld
+                        .create_channel(cache, |c| {
+                            c.kind(ChannelType::Voice)
+                                .name(format!("Match {}", number))
+                                .category(self.matches_category.id)
+                                .permissions(overwrites.into_iter())
+                        })
+                        .await {
+                        self.match_vcs.insert(rnd.clone(), vc);
+                    }
+                }
+        }
         let msg = self
             .pairings_channel
             .send_message(&cache, |m| {
-                m.content(format!("{} you have been paired!", role.mention()))
+                m.content(format!("{mention} you have been paired!"))
             })
             .await
             .map_err(|_| RoundCreationFailure::Message)?;
         self.match_timers.insert(rnd.clone(), msg);
-        let mut allowed_perms = Permissions::VIEW_CHANNEL;
-        allowed_perms.insert(Permissions::CONNECT);
-        allowed_perms.insert(Permissions::SEND_MESSAGES);
-        allowed_perms.insert(Permissions::SPEAK);
-        let overwrites = vec![PermissionOverwrite {
-            allow: allowed_perms,
-            deny: Permissions::empty(),
-            kind: PermissionOverwriteType::Role(role.id),
-        }];
-        self.match_roles.insert(rnd.clone(), role);
-        if self.make_tc {
-            let tc = gld
-                .create_channel(cache, |c| {
-                    c.kind(ChannelType::Text)
-                        .name(format!("Match {}", number))
-                        .category(self.matches_category.id)
-                        .permissions(overwrites.iter().cloned())
-                })
-                .await
-                .map_err(|_| RoundCreationFailure::TC)?;
-            self.match_tcs.insert(rnd.clone(), tc);
-        }
-        if self.make_vc {
-            let vc = gld
-                .create_channel(cache, |c| {
-                    c.kind(ChannelType::Voice)
-                        .name(format!("Match {}", number))
-                        .category(self.matches_category.id)
-                        .permissions(overwrites.into_iter())
-                })
-                .await
-                .map_err(|_| RoundCreationFailure::VC)?;
-            self.match_vcs.insert(rnd.clone(), vc);
-        }
         Ok(())
     }
 
     // NOTE: This will not delete roles. That is done at the end of the tournament
-    pub async fn clear_round_data(&mut self, rnd: &RoundIdentifier, http: &Http) {
+    pub async fn clear_round_data(&mut self, rnd: &RoundId, http: &Http) {
         if let Some(tc) = self.match_tcs.remove(rnd) {
             let _ = tc.delete(http).await;
         }
@@ -208,7 +211,10 @@ impl GuildTournament {
     }
 
     pub fn add_guest(&mut self, name: String) -> Result<(), TournamentError> {
-        self.tourn.apply_op(TournOp::RegisterGuest((*SQUIRE_ACCOUNT_ID).into(), name))?;
+        let plyr_ident = self.tourn.apply_op(TournOp::RegisterGuest((*SQUIRE_ACCOUNT_ID).into(), name.clone()))?;
+        if let OpData::RegisterPlayer(PlayerIdentifier::Id(plyr_id)) = plyr_ident {
+            self.guests.insert(name, plyr_id);
+        }
         Ok(())
     }
 
