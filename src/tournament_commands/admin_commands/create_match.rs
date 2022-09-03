@@ -95,6 +95,7 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         };
         plyr_ids.push(plyr_id);
     }
+    println!("Players: {plyr_ids:?}");
     match tourn.tourn.apply_op(TournOp::CreateRound(*SQUIRE_ACCOUNT_ID, plyr_ids)) {
         Err(err) => {
             error_to_reply(ctx, msg, err).await?;

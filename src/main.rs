@@ -24,9 +24,9 @@ use serenity::{
         },
         gateway::GatewayIntents,
         gateway::Ready,
-        guild::{Guild, Role},
+        guild::{Guild, Role, Member},
         id::{GuildId, RoleId, UserId},
-        permissions::Permissions,
+        permissions::Permissions, user::User,
     },
     prelude::*,
 };
@@ -38,7 +38,7 @@ use tokio::{runtime, sync::Mutex, time::Instant};
 
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::mtgjson::meta::Meta;
-use squire_lib::{self, round::RoundId, tournament::TournamentId};
+use squire_lib::{self, round::RoundId, tournament::TournamentId, operations::TournOp};
 use utils::spin_lock::spin;
 
 mod misc_commands;
@@ -283,6 +283,28 @@ impl EventHandler for Handler {
         };
         println!("Handled role delete");
     }
+    
+    async fn guild_member_removal(
+        &self,
+        ctx: Context,
+        guild_id: GuildId,
+        user: User,
+        _: Option<Member>,
+    ) {
+        println!("Handling member leaving");
+        let data = ctx.data.read().await;
+        let ids = data.get::<GuildAndTournamentIDMapContainer>().unwrap().read().await;
+        let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
+        if let Some(mut iter) = ids.get_left_iter(&guild_id) {
+            for t_id in iter {
+                let mut tourn = spin_mut(&all_tourns, &t_id).await.unwrap();
+                if let Some(plyr_id) = tourn.get_player_id(&user.id) {
+                    let _ = tourn.tourn.apply_op(TournOp::DropPlayer(plyr_id.into()));
+                }
+            }
+        }
+        println!("Handled member leaving");
+    }
 }
 
 // The framework provides two built-in help commands for you to use.
@@ -419,7 +441,7 @@ async fn main() {
         tokio::spawn(async move {
             let tourns = ref_one;
             let cache = cache_one;
-            let loop_length = Duration::from_secs(90);
+            let loop_length = Duration::from_secs(60);
             loop {
                 let timer = Instant::now();
                 let tourns_lock = tourns.write().await;
@@ -440,7 +462,7 @@ async fn main() {
                         standings,
                     )
                     .await;
-                    tourn.update_standings = false;
+                    //tourn.update_standings = false;
                 }
                 // Sleep so that the next loop starts 30 seconds after the start of this one
                 drop(tourns_lock);
@@ -459,7 +481,7 @@ async fn main() {
         tokio::spawn(async move {
             let tourns = ref_two;
             let cache = cache_two;
-            let loop_length = Duration::from_secs(60);
+            let loop_length = Duration::from_secs(30);
             loop {
                 let timer = Instant::now();
                 let tourns_lock = tourns.write().await;
@@ -560,7 +582,7 @@ async fn main() {
         tokio::spawn(async move {
             let tourns = ref_three;
             let cache = cache_three;
-            let loop_length = Duration::from_secs(60);
+            let loop_length = Duration::from_secs(30);
             loop {
                 let timer = Instant::now();
                 let tourns_lock = tourns.write().await;
@@ -571,7 +593,7 @@ async fn main() {
                         continue;
                     }
                     update_status_message(&cache, tourn).await;
-                    tourn.update_status = false;
+                    //tourn.update_status = false;
                 }
                 // Sleep so that the next loop starts 30 seconds after the start of this one
                 drop(tourns_lock);

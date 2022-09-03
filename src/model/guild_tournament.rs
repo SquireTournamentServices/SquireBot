@@ -112,8 +112,8 @@ impl GuildTournament {
             round_warnings: HashMap::new(),
             standings_message: None,
             tourn,
-            update_standings: false,
-            update_status: false,
+            update_standings: true,
+            update_status: true,
         }
     }
 

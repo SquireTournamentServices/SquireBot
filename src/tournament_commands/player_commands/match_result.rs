@@ -25,7 +25,7 @@ use squire_lib::{
 #[command("match-result")]
 #[only_in(guild)]
 #[sub_commands(draws)]
-#[usage("<# of wins>, [match number], [tournament name]")]
+#[usage("<# of wins>, [tournament name]")]
 #[example("2")]
 #[description("Submit the result of a match.")]
 async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -67,7 +67,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     };
     let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let player_id = tourn.players.get_right(&user_name).unwrap().clone();
-    let rounds = tourn.tourn.round_reg.get_player_active_rounds(&player_id.into());
+    let rounds = tourn.tourn.round_reg.get_player_active_rounds(&player_id);
     let round_number = match rounds.len() {
         1 => RoundIdentifier::Number(rounds[0].match_number),
         0 => {
