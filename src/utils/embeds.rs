@@ -62,8 +62,8 @@ pub async fn update_standings_message(
     let mut e = CreateEmbed(HashMap::new());
     let mut name_buffer = String::with_capacity(1024);
     let mut score_buffer = String::with_capacity(1024);
-    for (i, (id, score)) in standings.scores.drain(0..).enumerate() {
-        let mut name = format!("{i}) {}", player_name_resolver(id, plyrs, tourn));
+    for (i, (id, score)) in standings.scores.drain(0..).rev().enumerate() {
+        let mut name = format!("{}) {}", i+1, player_name_resolver(id, plyrs, tourn));
         let mut score_s = String::new();
         score_s += &if score.include_match_points {
             format!("{:.2}, ", score.match_points)
@@ -106,7 +106,8 @@ pub async fn update_standings_message(
         e.field("Points | Percent | Opp. %", score_buffer.clone(), true);
         embeds.push(e);
     }
-    let _ = msg.edit(cache, |m| m.set_embeds(embeds)).await;
+    println!("Attaching {} embeds", embeds.len());
+    let _ = msg.edit(cache, |m| m.content("\u{200b}").set_embeds(embeds)).await;
 }
 
 pub async fn update_match_message(
@@ -208,7 +209,11 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
             "Closed"
         }
     );
-    let _ = writeln!(settings_info, "Match size: {}", tourn.tourn.pairing_sys.match_size);
+    let _ = writeln!(
+        settings_info,
+        "Match size: {}",
+        tourn.tourn.pairing_sys.match_size
+    );
     let _ = writeln!(
         settings_info,
         "Assign table number: {}",

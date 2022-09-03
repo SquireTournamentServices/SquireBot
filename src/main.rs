@@ -431,6 +431,7 @@ async fn main() {
                         continue;
                     }
                     let standings = tourn.tourn.get_standings();
+                    println!("Standings:\n{standings:?}");
                     update_standings_message(
                         &cache,
                         tourn.standings_message.as_mut().unwrap(),
@@ -445,7 +446,7 @@ async fn main() {
                 drop(tourns_lock);
                 if timer.elapsed() < loop_length {
                     println!(
-                        "Tournament saver sleeping for {:?}",
+                        "Standings updater sleeping for {:?}",
                         loop_length - timer.elapsed()
                     );
                     let mut sleep = tokio::time::interval(loop_length - timer.elapsed());

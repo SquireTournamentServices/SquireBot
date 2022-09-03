@@ -194,7 +194,11 @@ impl GuildTournament {
         if let Some(vc) = self.match_vcs.remove(rnd) {
             let _ = vc.delete(http).await;
         }
+        if let Some(mut role) = self.match_roles.remove(rnd) {
+            let _ = role.delete(http).await;
+        }
         self.match_timers.remove(rnd);
+        self.round_warnings.remove(rnd);
     }
 
     pub fn get_user_id(&self, user: &PlayerId) -> Option<UserId> {

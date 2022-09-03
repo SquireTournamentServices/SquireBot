@@ -8,7 +8,7 @@ use serenity::{
 };
 
 use squire_lib::{
-    identifiers::AdminId,
+    identifiers::{AdminId, PlayerId},
     operations::{OpData, TournOp},
     player_registry::PlayerIdentifier,
     tournament::TournamentId,
@@ -68,6 +68,23 @@ async fn pair(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             if let OpData::Pair(rounds) = data {
                 for ident in rounds {
                     let rnd = tourn.tourn.get_round(&ident).unwrap();
+                    // I.e is a bye
+                    if rnd.is_certified() {
+                        let plyr: PlayerId = *rnd.players.iter().next().unwrap();
+                        let mention = tourn
+                            .get_user_id(&plyr)
+                            .map(|p| format!("<@{p}>"))
+                            .unwrap_or_else(|| {
+                                tourn.guests.get_left(&plyr).cloned().unwrap_or_default()
+                            });
+                        let _ = tourn
+                            .pairings_channel
+                            .send_message(&ctx, |m| {
+                                m.content(format!("{mention}, you have a bye!"))
+                            })
+                            .await;
+                        continue;
+                    }
                     let id = rnd.id;
                     let num = rnd.match_number;
                     match tourn
@@ -76,10 +93,7 @@ async fn pair(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                     {
                         Ok(_) => {
                             for plyr in rnd.players {
-                                if let Some(user_id) = tourn
-                                    .players
-                                    .get_left(&plyr)
-                                {
+                                if let Some(user_id) = tourn.players.get_left(&plyr) {
                                     // TODO: Do something with this result?
                                     let _ = msg
                                         .guild(ctx)
@@ -92,7 +106,7 @@ async fn pair(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                                 }
                             }
                         }
-                        Err(e) => { 
+                        Err(e) => {
                             // TODO: Do this properly
                             println!("Issue with round data: {e}");
                         }

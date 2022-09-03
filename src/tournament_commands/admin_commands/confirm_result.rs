@@ -4,7 +4,7 @@ use serenity::{
     prelude::*,
 };
 
-use squire_lib::{operations::TournOp, player_registry::PlayerIdentifier};
+use squire_lib::{operations::{TournOp, OpData}, player_registry::PlayerIdentifier, round::RoundStatus};
 
 use crate::{
     model::containers::{
@@ -87,13 +87,26 @@ async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> Command
             }
         }
     };
-    if let Err(err) = tourn.tourn.apply_op(TournOp::ConfirmResult(plyr_id)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        tourn.update_standings = true;
-        msg.reply(&ctx.http, "Result successfully confirmed!")
-            .await?;
+    match tourn.tourn.apply_op(TournOp::ConfirmResult(plyr_id)) {
+        Err(err) => {
+            error_to_reply(ctx, msg, err).await?;
+        },
+        Ok(data) => {
+            match data {
+                OpData::ConfirmResult(id, status) => {
+                    if status == RoundStatus::Certified {
+                        tourn.clear_round_data(&id, &ctx.http).await;
+                    }
+                }
+                _ => {
+                    unreachable!("Got wrong data back from confirm result");
+                }
+            }
+            tourn.update_status = true;
+            tourn.update_standings = true;
+            msg.reply(&ctx.http, "Result successfully confirmed!")
+                .await?;
+        }
     }
     Ok(())
 }

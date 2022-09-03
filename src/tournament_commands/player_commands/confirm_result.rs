@@ -16,7 +16,7 @@ use crate::{
 };
 
 use crate::utils::error_to_reply::error_to_reply;
-use squire_lib::{operations::TournOp, identifiers::PlayerIdentifier};
+use squire_lib::{operations::{TournOp, OpData}, identifiers::PlayerIdentifier, round::RoundStatus};
 
 #[command("confirm-result")]
 #[only_in(guild)]
@@ -54,16 +54,28 @@ async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> Command
     };
     let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let player_id = tourn.players.get_right(&user_name).unwrap().clone();
-    if let Err(err) = tourn
+    match tourn
         .tourn
-        .apply_op(TournOp::ConfirmResult(PlayerIdentifier::Id(player_id)))
-    {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        tourn.update_standings = true;
-        msg.reply(&ctx.http, "Result successfully confirmed!")
-            .await?;
+        .apply_op(TournOp::ConfirmResult(PlayerIdentifier::Id(player_id))) {
+        Err(err) => {
+            error_to_reply(ctx, msg, err).await?;
+        },
+        Ok(data) => {
+            match data {
+                OpData::ConfirmResult(id, status) => {
+                    if status == RoundStatus::Certified {
+                        tourn.clear_round_data(&id, &ctx.http).await;
+                    }
+                }
+                _ => {
+                    unreachable!("Got wrong data back from confirm result");
+                }
+            }
+            tourn.update_status = true;
+            tourn.update_standings = true;
+            msg.reply(&ctx.http, "Result successfully confirmed!")
+                .await?;
+        }
     }
     Ok(())
 }
