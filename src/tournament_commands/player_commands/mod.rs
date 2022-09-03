@@ -1,3 +1,4 @@
+mod common_command;
 pub mod add_deck;
 pub mod confirm_result;
 pub mod decklist;
