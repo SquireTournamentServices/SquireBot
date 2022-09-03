@@ -93,7 +93,10 @@ async fn pair(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                     {
                         Ok(_) => {
                             for plyr in rnd.players {
-                                if let Some(user_id) = tourn.players.get_left(&plyr) {
+                                if let Some(user_id) = tourn
+                                    .players
+                                    .get_left(&plyr)
+                                {
                                     // TODO: Do something with this result?
                                     let _ = msg
                                         .guild(ctx)
@@ -106,7 +109,7 @@ async fn pair(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                                 }
                             }
                         }
-                        Err(e) => {
+                        Err(e) => { 
                             // TODO: Do this properly
                             println!("Issue with round data: {e}");
                         }

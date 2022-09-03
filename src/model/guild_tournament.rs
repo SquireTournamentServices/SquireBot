@@ -33,7 +33,7 @@ use squire_lib::{
     operations::{OpData, TournOp, OpResult},
     admin::Admin,
     error::TournamentError,
-    tournament::{Tournament, TournamentId, TournamentPreset}, settings::TournamentSetting,round::RoundId,
+    tournament::{Tournament, TournamentId, TournamentPreset},round::RoundId, settings::TournamentSetting,
 };
 
 use crate::{
