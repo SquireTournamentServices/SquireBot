@@ -6,7 +6,10 @@ use serenity::{
     prelude::*,
 };
 
-use squire_lib::{operations::TournOp, player_registry::PlayerIdentifier, pairings::PairingAlgorithm};
+use squire_lib::{
+    operations::TournOp, pairings::PairingAlgorithm, player_registry::PlayerIdentifier,
+    settings::TournamentSetting,
+};
 
 use crate::{
     model::{
@@ -15,6 +18,7 @@ use crate::{
             CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
             TournamentNameAndIDMapContainer,
         },
+        guild_tournament::SquireTournamentSetting,
     },
     utils::{
         error_to_reply::error_to_reply,
@@ -25,15 +29,12 @@ use crate::{
     },
 };
 
-#[command]
-#[only_in(guild)]
-#[allowed_roles("Tournament Admin")]
-#[usage("<format name>, [tournament name]")]
-#[example("cEDH")]
-#[min_args(1)]
-#[description("Adjusts the default format for future tournaments.")]
-async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::TournamentSetting::*;
+async fn settings_command(
+    ctx: &Context,
+    msg: &Message,
+    setting: SquireTournamentSetting,
+    tourn_name: String,
+) -> CommandResult {
     let data = ctx.data.read().await;
     let name_and_id = data
         .get::<TournamentNameAndIDMapContainer>()
@@ -47,7 +48,33 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .await;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
+    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
+    {
+        Some(id) => id,
+        None => {
+            return Ok(());
+        }
+    };
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
+    if let Err(err) = tourn.update_setting(setting) {
+        error_to_reply(ctx, msg, err).await?;
+    } else {
+        tourn.update_status = true;
+        msg.reply(&ctx.http, "Setting successfully updated!")
+            .await?;
+    }
+    Ok(())
+}
+
+#[command]
+#[only_in(guild)]
+#[allowed_roles("Tournament Admin")]
+#[usage("<format name>, [tournament name]")]
+#[example("cEDH")]
+#[min_args(1)]
+#[description("Adjusts the default format for future tournaments.")]
+async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    use squire_lib::settings::TournamentSetting::*;
     let raw_format = match args.single_quoted::<String>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please include the name of a format.")
@@ -61,24 +88,8 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             .await?;
         return Ok(());
     }
-    let format = Format(raw_format);
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, format)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = Format(raw_format).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -107,19 +118,6 @@ async fn deck_count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
     let raw_setting = match args.single_quoted::<u8>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -127,24 +125,8 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
         Ok(n) => n,
     };
-    let setting = MinDeckCount(raw_setting);
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = MinDeckCount(raw_setting).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -156,20 +138,6 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[description("Adjusts the required deck count for future tournaments.")]
 async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::TournamentSetting::*;
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
     let raw_setting = match args.single_quoted::<u8>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -177,24 +145,8 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
         Ok(n) => n,
     };
-    let setting = MaxDeckCount(raw_setting);
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = MaxDeckCount(raw_setting).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -208,54 +160,14 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 )]
 async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::TournamentSetting::*;
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
-                .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
-    let raw_setting = match bool_from_string(&arg) {
+    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
         Some(b) => b,
         None => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
-                .await?;
             return Ok(());
         }
     };
-    let setting = RequireCheckIn(raw_setting);
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = RequireCheckIn(raw_setting).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -267,54 +179,14 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[description("Toggles whether or not decks must be registered for future tournaments.")]
 async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::TournamentSetting::*;
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
-                .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
-    let raw_setting = match bool_from_string(&arg) {
+    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
         Some(b) => b,
         None => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
-                .await?;
             return Ok(());
         }
     };
-    let setting = RequireDeckReg(raw_setting);
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = RequireDeckReg(raw_setting).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command("round_length")]
@@ -326,20 +198,6 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[description("Adjusts the length of future rounds.")]
 async fn round_length(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::TournamentSetting::*;
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
     let dur = match args.single_quoted::<u64>() {
         Err(_) => {
             msg.reply(&ctx.http, "The number of minutes you want new round to be.")
@@ -348,24 +206,8 @@ async fn round_length(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         }
         Ok(dur) => Duration::from_secs(dur * 60),
     };
-    let setting = RoundLength(dur);
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = RoundLength(dur).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -389,20 +231,6 @@ async fn pairings(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[description("Sets the default match size for future tournaments.")]
 async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::{PairingSetting::*, SwissPairingsSetting::*, TournamentSetting::*};
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
     let raw_setting = match args.single_quoted::<u8>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -410,24 +238,8 @@ async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         }
         Ok(n) => n,
     };
-    let setting = MatchSize(raw_setting);
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting.into())) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = MatchSize(raw_setting).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -440,20 +252,6 @@ async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[description("Sets the default repair tolerance for matches in future tournaments.")]
 async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::{PairingSetting::*, SwissPairingsSetting::*, TournamentSetting::*};
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
     let raw_setting = match args.single_quoted::<u64>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -461,24 +259,8 @@ async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         }
         Ok(n) => n,
     };
-    let setting = RepairTolerance(raw_setting);
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting.into())) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = RepairTolerance(raw_setting).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -490,53 +272,25 @@ async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[description("Sets the default pairings algorithm for future tournaments.")]
 async fn algorithm(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::{PairingSetting::*, SwissPairingsSetting::*, TournamentSetting::*};
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
     let raw_setting = match args.single_quoted::<String>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
             return Ok(());
         }
         Ok(val) => match val.as_str() {
-            "greedy" | "Greedy" => {
-                PairingAlgorithm::Greedy
-            },
+            "greedy" | "Greedy" => PairingAlgorithm::Greedy,
             _ => {
-                msg.reply(&ctx.http, "Please specify an algorithm. The options are:\n - Greedy").await?;
+                msg.reply(
+                    &ctx.http,
+                    "Please specify an algorithm. The options are:\n - Greedy",
+                )
+                .await?;
                 return Ok(());
             }
         },
     };
-    let setting = Algorithm(raw_setting);
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting.into())) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = Algorithm(raw_setting).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -563,53 +317,14 @@ async fn swiss(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::{PairingSetting::*, SwissPairingsSetting::*, TournamentSetting::*};
     let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
-                .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
-    let raw_setting = match bool_from_string(&arg) {
+    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
         Some(b) => b,
         None => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
-                .await?;
             return Ok(());
         }
     };
-    let setting = PairingSetting(Swiss(DoCheckIns(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = PairingSetting(Swiss(DoCheckIns(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -672,20 +387,6 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -694,24 +395,8 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         }
         Ok(n) => n,
     };
-    let setting = ScoringSetting(Standard(MatchWinPoints(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(MatchWinPoints(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -726,20 +411,6 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -748,24 +419,8 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
         }
         Ok(n) => n,
     };
-    let setting = ScoringSetting(Standard(MatchDrawPoints(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(MatchDrawPoints(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -780,20 +435,6 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -802,24 +443,8 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
         }
         Ok(n) => n,
     };
-    let setting = ScoringSetting(Standard(MatchLossPoints(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(MatchLossPoints(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -834,20 +459,6 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -856,24 +467,8 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
         }
         Ok(n) => n,
     };
-    let setting = ScoringSetting(Standard(GameWinPoints(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(GameWinPoints(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -888,20 +483,6 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -910,24 +491,8 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         }
         Ok(n) => n,
     };
-    let setting = ScoringSetting(Standard(GameDrawPoints(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(GameDrawPoints(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -942,20 +507,6 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -964,24 +515,8 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         }
         Ok(n) => n,
     };
-    let setting = ScoringSetting(Standard(GameLossPoints(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(GameLossPoints(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -996,20 +531,6 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
     let raw_setting = match args.single_quoted::<f64>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -1018,24 +539,8 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         }
         Ok(n) => n,
     };
-    let setting = ScoringSetting(Standard(ByePoints(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(ByePoints(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -1049,54 +554,14 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
-                .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
-    let raw_setting = match bool_from_string(&arg) {
+    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
         Some(b) => b,
         None => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
-                .await?;
             return Ok(());
         }
     };
-    let setting = ScoringSetting(Standard(IncludeByes(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(IncludeByes(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -1110,54 +575,14 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
-                .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
-    let raw_setting = match bool_from_string(&arg) {
+    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
         Some(b) => b,
         None => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
-                .await?;
             return Ok(());
         }
     };
-    let setting = ScoringSetting(Standard(IncludeMatchPoints(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(IncludeMatchPoints(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -1171,54 +596,14 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
-                .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
-    let raw_setting = match bool_from_string(&arg) {
+    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
         Some(b) => b,
         None => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
-                .await?;
             return Ok(());
         }
     };
-    let setting = ScoringSetting(Standard(IncludeGamePoints(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(IncludeGamePoints(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -1232,54 +617,14 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
-                .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
-    let raw_setting = match bool_from_string(&arg) {
+    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
         Some(b) => b,
         None => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
-                .await?;
             return Ok(());
         }
     };
-    let setting = ScoringSetting(Standard(IncludeMwp(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(IncludeMwp(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -1293,54 +638,14 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
-                .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
-    let raw_setting = match bool_from_string(&arg) {
+    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
         Some(b) => b,
         None => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
-                .await?;
             return Ok(());
         }
     };
-    let setting = ScoringSetting(Standard(IncludeGwp(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(IncludeGwp(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -1354,54 +659,14 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
-                .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
-    let raw_setting = match bool_from_string(&arg) {
+    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
         Some(b) => b,
         None => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
-                .await?;
             return Ok(());
         }
     };
-    let setting = ScoringSetting(Standard(IncludeOppMwp(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(IncludeOppMwp(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -1415,54 +680,14 @@ async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
-                .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
-    let raw_setting = match bool_from_string(&arg) {
+    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
         Some(b) => b,
         None => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
-                .await?;
             return Ok(());
         }
     };
-    let setting = ScoringSetting(Standard(IncludeOppGwp(raw_setting)));
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting)) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
+    let setting = ScoringSetting(Standard(IncludeOppGwp(raw_setting))).into();
+    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
 
 #[command]
@@ -1486,75 +711,43 @@ async fn discord(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[min_args(1)]
 #[description("Sets the default channel where future tournament will post pairings in.")]
 async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(
-                &ctx.http,
-                "Please include a channel, either by name or mention.",
+    use crate::model::guild_tournament::SquireTournamentSetting::*;
+    let guild = msg.guild(&ctx.cache).unwrap();
+    let result = args
+        .single_quoted::<String>()
+        .map(|arg| {
+            extract_id(&arg).map_or_else(||
+                guild
+                    .channel_id_from_name(&ctx.cache, arg)
+                    .ok_or("Please include a channel, either by name or mention.")
+            ,
+            |id| Ok(ChannelId(id))
             )
-            .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
-    let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let channel_id = match extract_id(&arg) {
-        Some(id) => ChannelId(id),
-        None => match guild.channel_id_from_name(&ctx.cache, arg) {
-            Some(id) => id,
-            None => {
-                msg.reply(
-                    &ctx.http,
-                    "Please include a channel, either by name or mention.",
-                )
-                .await?;
-                return Ok(());
-            }
-        },
-    };
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Some(channel) = guild.channels.get(&channel_id) {
-        match channel {
-            Channel::Guild(c) => {
-                if c.kind == ChannelType::Text {
-                    tourn.pairings_channel = c.clone();
-                    tourn.update_status = true;
-                    msg.reply(&ctx.http, "Pairings channel updated.").await?;
-                } else {
-                    msg.reply(&ctx.http, "Please specify a text channel.")
-                        .await?;
-                }
-            }
-            _ => {
-                msg.reply(&ctx.http, "Please specify a text channel.")
-                    .await?;
+        })
+        .map_err(|_| "Please include a channel, either by name or mention.")
+        .flatten();
+    if let Some(content) = result {
+        msg.reply(&ctx.http, content).await?;
+        return Ok(());
+    }
+    let response = match result {
+        Err(content) => { msg.reply(&ctx.http, content).await?; None }
+        Ok(channel_id) => {
+            match guild.channels.get(&channel_id) {
+                Some(channel) => match channel {
+                    Channel::Guild(c) if c.kind == ChannelType::Text => {
+                        let setting = PairingsChannel(c.clone());
+                        settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
+                        None
+                    }
+                    _ => Some("Please specify a text channel."),
+                },
+                None => Some("Please specify an active channel in this guild."),
             }
         }
-    } else {
-        msg.reply(&ctx.http, "Please specify an active channel in this guild.")
-            .await?;
+    };
+    if let Some(content) = response {
+        msg.reply(&ctx.http, content).await?;
     }
     Ok(())
 }
@@ -1719,22 +912,6 @@ async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
-                .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
-    let setting = match bool_from_string(&arg) {
-        Some(b) => b,
-        None => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
-                .await?;
-            return Ok(());
-        }
-    };
     let tourn_name = args.rest().trim().to_string();
     let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
     {
@@ -1749,4 +926,25 @@ async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     msg.reply(&ctx.http, "Setting successfully updated!")
         .await?;
     Ok(())
+}
+
+async fn arg_to_bool(ctx: &Context, msg: &Message, args: &mut Args) -> Option<bool> {
+    // TODO: Communicate the reply errors?
+    match args.single_quoted::<String>() {
+        Err(_) => {
+            let _ = msg
+                .reply(&ctx.http, "Please specify 'true' or 'false'")
+                .await;
+            None
+        }
+        Ok(s) => match bool_from_string(&s) {
+            Some(b) => Some(b),
+            None => {
+                let _ = msg
+                    .reply(&ctx.http, "Please specify 'true' or 'false'.")
+                    .await;
+                None
+            }
+        },
+    }
 }

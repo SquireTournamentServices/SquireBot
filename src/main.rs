@@ -1,5 +1,7 @@
 #![allow(unused_mut, unused_imports, dead_code, unused_variables)]
 
+#![feature(result_flattening)]
+
 use std::{
     collections::{HashMap, HashSet},
     fs::{read_to_string, File},
@@ -9,6 +11,7 @@ use std::{
     time::Duration,
 };
 
+use rayon::prelude::*;
 use serenity::{
     async_trait,
     framework::standard::{

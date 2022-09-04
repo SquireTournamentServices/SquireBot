@@ -30,10 +30,10 @@ use serenity::{
 use cycle_map::CycleMap;
 use squire_lib::{
     identifiers::{PlayerIdentifier, AdminId, PlayerId, RoundIdentifier},
-    operations::{OpData, TournOp},
+    operations::{OpData, TournOp, OpResult},
     admin::Admin,
     error::TournamentError,
-    tournament::{Tournament, TournamentId, TournamentPreset}, round::RoundId,
+    tournament::{Tournament, TournamentId, TournamentPreset}, settings::TournamentSetting,round::RoundId,
 };
 
 use crate::{
@@ -49,6 +49,15 @@ pub enum RoundCreationFailure {
     TC,
     Role,
     Message,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum SquireTournamentSetting {
+    PairingsChannel(GuildChannel),
+    MatchesCategory(ChannelCategory),
+    CreateVC(bool),
+    CreateTC(bool),
+    TournamentSetting(TournamentSetting),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -115,6 +124,28 @@ impl GuildTournament {
             update_standings: true,
             update_status: true,
         }
+    }
+    
+    pub fn update_setting(&mut self, setting: SquireTournamentSetting) -> OpResult {
+        use SquireTournamentSetting::*;
+        match setting {
+            PairingsChannel(channel) => {
+                self.pairings_channel = channel;
+            },
+            MatchesCategory(category) => {
+                self.matches_category = category;
+            },
+            CreateVC(b) => {
+                self.make_vc = b;
+            },
+            CreateTC(b) => {
+                self.make_tc = b;
+            },
+            TournamentSetting(setting) => {
+                self.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting))?;
+            },
+        };
+        Ok(OpData::Nothing)
     }
 
     pub fn get_id(&self) -> TournamentId {
@@ -247,5 +278,11 @@ impl fmt::Display for RoundCreationFailure {
                 Message => "match message",
             }
         )
+    }
+}
+
+impl From<TournamentSetting> for SquireTournamentSetting {
+    fn from(setting: TournamentSetting) -> Self {
+        SquireTournamentSetting::TournamentSetting(setting)
     }
 }
