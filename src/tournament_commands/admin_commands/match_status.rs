@@ -95,21 +95,21 @@ async fn match_status(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                     e.field(
                         "Time left:",
                         format!("{} min", round.time_left().as_secs() / 60),
-                        false,
+                        true,
                     );
                 } else {
                     e.field(
                         "Winner:",
                         player_name_resolver(round.winner.clone().unwrap(), plyrs, tourn),
-                        false,
+                        true,
                     );
                 }
-                e.field("Status:", round.status.to_string(), false);
+                e.field("Status:", round.status.to_string(), true);
                 if let Some(vc) = vc_id {
-                    e.field("Voice Channel:", format!("<#{vc}>"), false);
+                    e.field("Voice Channel:", format!("<#{vc}>"), true);
                 }
                 if let Some(tc) = tc_id {
-                    e.field("Text Channel:", format!("<#{tc}>"), false);
+                    e.field("Text Channel:", format!("<#{tc}>"), true);
                 }
                 e.field(
                     "Players:",
@@ -118,7 +118,7 @@ async fn match_status(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                         .iter()
                         .map(|id| player_name_resolver(id.clone(), plyrs, tourn))
                         .join("\n"),
-                    false,
+                    true,
                 )
             })
         })

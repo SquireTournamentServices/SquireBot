@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     fmt::{Display, Write},
+    sync::Arc
 };
 
 use itertools::Itertools;
@@ -63,7 +64,7 @@ pub async fn update_standings_message(
     let mut name_buffer = String::with_capacity(1024);
     let mut score_buffer = String::with_capacity(1024);
     for (i, (id, score)) in standings.scores.drain(0..).rev().enumerate() {
-        let mut name = format!("{}) {}", i+1, player_name_resolver(id, plyrs, tourn));
+        let mut name = format!("{}) {}", i + 1, player_name_resolver(id, plyrs, tourn));
         let mut score_s = String::new();
         score_s += &if score.include_match_points {
             format!("{:.2}, ", score.match_points)
@@ -107,12 +108,14 @@ pub async fn update_standings_message(
         embeds.push(e);
     }
     println!("Attaching {} embeds", embeds.len());
-    let _ = msg.edit(cache, |m| m.content("\u{200b}").set_embeds(embeds)).await;
+    let _ = msg
+        .edit(cache, |m| m.content("\u{200b}").set_embeds(embeds))
+        .await;
 }
 
 pub async fn update_match_message(
-    cache: &CacheAndHttp,
-    mut msg: &mut Message,
+    cache: Arc<CacheAndHttp>,
+    mut msg: Message,
     has_table_number: bool,
     vc_id: Option<ChannelId>,
     tc_id: Option<ChannelId>,
@@ -120,49 +123,49 @@ pub async fn update_match_message(
     tourn: &Tournament,
     round: &Round,
 ) {
-    let _ = msg
-        .edit(cache, |m| {
-            m.embed(|e| {
-                e.title(if has_table_number {
-                    format!(
-                        "Match #{}: Table {}",
-                        round.match_number, round.table_number
-                    )
-                } else {
-                    format!("Match #{}:", round.match_number)
-                });
-                if !round.is_certified() {
-                    e.field(
-                        "Time left:",
-                        format!("{} min", round.time_left().as_secs() / 60),
-                        false,
-                    );
-                } else {
-                    e.field(
-                        "Winner:",
-                        player_name_resolver(round.winner.clone().unwrap(), plyrs, tourn),
-                        false,
-                    );
-                }
-                e.field("Status:", round.status.to_string(), false);
-                if let Some(vc) = vc_id {
-                    e.field("Voice Channel:", format!("<#{vc}>"), false);
-                }
-                if let Some(tc) = tc_id {
-                    e.field("Text Channel:", format!("<#{tc}>"), false);
-                }
-                e.field(
-                    "Players:",
-                    round
-                        .players
-                        .iter()
-                        .map(|id| player_name_resolver(id.clone(), plyrs, tourn))
-                        .join("\n"),
-                    false,
-                )
-            })
-        })
-        .await;
+    let title = if has_table_number {
+        format!(
+            "Match #{}: Table {}",
+            round.match_number, round.table_number
+        )
+    } else {
+        format!("Match #{}:", round.match_number)
+    };
+    let mut fields: Vec<(String, String, bool)> = Vec::new();
+    if !round.is_certified() {
+        fields.push((
+            "Time left:".into(),
+            format!("{} min", round.time_left().as_secs() / 60),
+            true,
+        ));
+    } else {
+        fields.push((
+            "Winner:".into(),
+            player_name_resolver(round.winner.clone().unwrap(), plyrs, tourn),
+            true,
+        ));
+    }
+    fields.push(("Status:".into(), round.status.to_string(), true));
+    if let Some(vc) = vc_id {
+        fields.push(("Voice Channel:".into(), format!("<#{vc}>"), true));
+    }
+    if let Some(tc) = tc_id {
+        fields.push(("Text Channel:".into(), format!("<#{tc}>"), true));
+    }
+    fields.push((
+        "Players:".into(),
+        round
+            .players
+            .iter()
+            .map(|id| player_name_resolver(id.clone(), plyrs, tourn))
+            .join("\n"),
+        true,
+    ));
+    tokio::spawn(async move {
+        let _ = msg
+            .edit(cache, |m| m.embed(|e| e.title(title).fields(fields)))
+            .await;
+    });
 }
 
 // Tournament contains the message

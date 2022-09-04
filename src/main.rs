@@ -494,8 +494,8 @@ async fn main() {
                         let mut warnings = tourn.round_warnings.get_mut(id).unwrap();
                         if time_left > 0 {
                             update_match_message(
-                                &cache,
-                                msg,
+                                cache.clone(),
+                                msg.clone(),
                                 tourn.tourn.use_table_number,
                                 tourn.match_vcs.get(id).map(|c| c.id),
                                 tourn.match_tcs.get(id).map(|c| c.id),
