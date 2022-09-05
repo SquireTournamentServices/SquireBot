@@ -16,7 +16,11 @@ use std::{
 async fn save(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
     let tourns = data.get::<TournamentMapContainer>().unwrap().write().await;
-    let settings = data.get::<GuildSettingsMapContainer>().unwrap().write().await;
+    let settings = data
+        .get::<GuildSettingsMapContainer>()
+        .unwrap()
+        .write()
+        .await;
     if let Ok(data) = serde_json::to_string(&*tourns) {
         if let Ok(mut file) = File::create("tournaments.json") {
             let r = write!(file, "{data}");

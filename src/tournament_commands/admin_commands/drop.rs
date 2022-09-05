@@ -71,7 +71,7 @@ async fn drop(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                     .remove_role(ctx, tourn.tourn_role.id)
                     .await;
                 id.clone().into()
-            },
+            }
             None => {
                 msg.reply(
                     &ctx.http,

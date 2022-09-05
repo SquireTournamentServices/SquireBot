@@ -15,12 +15,14 @@ use crate::{
     model::{
         consts::SQUIRE_ACCOUNT_ID,
         containers::{
-        GuildAndTournamentIDMapContainer, TournamentMapContainer, TournamentNameAndIDMapContainer},
+            GuildAndTournamentIDMapContainer, TournamentMapContainer,
+            TournamentNameAndIDMapContainer,
+        },
     },
     utils::{
         error_to_reply::error_to_reply,
         spin_lock::spin,
-        tourn_resolver::{player_name_resolver, admin_tourn_id_resolver, user_id_resolver},
+        tourn_resolver::{admin_tourn_id_resolver, player_name_resolver, user_id_resolver},
     },
 };
 

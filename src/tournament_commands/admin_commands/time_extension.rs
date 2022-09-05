@@ -99,10 +99,11 @@ async fn time_extension(ctx: &Context, msg: &Message, mut args: Args) -> Command
             return Ok(());
         }
     }
-    if let Err(err) = tourn
-        .tourn
-        .apply_op(TournOp::TimeExtension((*SQUIRE_ACCOUNT_ID).into(), round_number, ext))
-    {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::TimeExtension(
+        (*SQUIRE_ACCOUNT_ID).into(),
+        round_number,
+        ext,
+    )) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         msg.reply(&ctx.http, "Time extension successfully given.")

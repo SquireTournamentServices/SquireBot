@@ -70,7 +70,10 @@ async fn registration(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         }
     };
     let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.tourn.apply_op(TournOp::UpdateReg(*SQUIRE_ACCOUNT_ID, reg_status)) {
+    if let Err(err) = tourn
+        .tourn
+        .apply_op(TournOp::UpdateReg(*SQUIRE_ACCOUNT_ID, reg_status))
+    {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;

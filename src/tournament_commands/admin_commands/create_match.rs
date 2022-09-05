@@ -48,7 +48,11 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     // Resolve the tournament id
-    let mut raw_players: Vec<String> = args.iter::<String>().quoted().filter_map(|a| a.ok()).collect();
+    let mut raw_players: Vec<String> = args
+        .iter::<String>()
+        .quoted()
+        .filter_map(|a| a.ok())
+        .collect();
     let tourn_name: String = raw_players.last().cloned().unwrap_or_default();
     let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
     {
@@ -57,7 +61,7 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                 raw_players.pop();
             }
             id
-        },
+        }
         None => {
             return Ok(());
         }
@@ -66,37 +70,36 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     let mut plyr_ids: Vec<PlayerIdentifier> = Vec::with_capacity(raw_players.len());
     for plyr in raw_players {
         let plyr_id = match user_id_resolver(ctx, msg, &plyr).await {
-            Some(user_id) => {
-                match tourn.players.get_right(&user_id) {
-                    Some(id) => id.clone().into(),
-                    None => {
-                        msg.reply(
-                            &ctx.http,
-                            "That player is not registered for the tournament.",
-                        )
-                        .await?;
-                        return Ok(());
-                    }
+            Some(user_id) => match tourn.players.get_right(&user_id) {
+                Some(id) => id.clone().into(),
+                None => {
+                    msg.reply(
+                        &ctx.http,
+                        "That player is not registered for the tournament.",
+                    )
+                    .await?;
+                    return Ok(());
                 }
             },
-            None => {
-                match tourn.guests.get_right(&plyr) {
-                    Some(id) => id.clone().into(),
-                    None => {
-                        msg.reply(
+            None => match tourn.guests.get_right(&plyr) {
+                Some(id) => id.clone().into(),
+                None => {
+                    msg.reply(
                             &ctx.http,
                             "That guest is not registered for the tournament. You may have mistyped their name.",
                         )
                         .await?;
-                        return Ok(());
-                    }
+                    return Ok(());
                 }
-            }
+            },
         };
         plyr_ids.push(plyr_id);
     }
     println!("Players: {plyr_ids:?}");
-    match tourn.tourn.apply_op(TournOp::CreateRound(*SQUIRE_ACCOUNT_ID, plyr_ids)) {
+    match tourn
+        .tourn
+        .apply_op(TournOp::CreateRound(*SQUIRE_ACCOUNT_ID, plyr_ids))
+    {
         Err(err) => {
             error_to_reply(ctx, msg, err).await?;
         }
@@ -112,10 +115,7 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                 {
                     Ok(_) => {
                         for plyr in rnd.players {
-                            if let Some(user) = tourn
-                                .players
-                                .get_left(&plyr)
-                            {
+                            if let Some(user) = tourn.players.get_left(&plyr) {
                                 let _ = msg
                                     .guild(ctx)
                                     .unwrap()

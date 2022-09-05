@@ -15,8 +15,8 @@ use crate::{
         },
     },
     utils::{
-        error_to_reply::error_to_reply, tourn_resolver::admin_tourn_id_resolver,
-        spin_lock::spin_mut,
+        error_to_reply::error_to_reply, spin_lock::spin_mut,
+        tourn_resolver::admin_tourn_id_resolver,
     },
 };
 

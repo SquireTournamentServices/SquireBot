@@ -13,7 +13,9 @@ use crate::{
     model::{
         consts::SQUIRE_ACCOUNT_ID,
         containers::{
-        GuildAndTournamentIDMapContainer, TournamentMapContainer, TournamentNameAndIDMapContainer},
+            GuildAndTournamentIDMapContainer, TournamentMapContainer,
+            TournamentNameAndIDMapContainer,
+        },
     },
     utils::{
         error_to_reply::error_to_reply,
@@ -131,10 +133,11 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     }
-    if let Err(err) = tourn
-        .tourn
-        .apply_op(TournOp::AdminRecordResult((*SQUIRE_ACCOUNT_ID).into(), round_number, RoundResult::Wins(plyr_id, wins)))
-    {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::AdminRecordResult(
+        (*SQUIRE_ACCOUNT_ID).into(),
+        round_number,
+        RoundResult::Wins(plyr_id, wins),
+    )) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;
@@ -190,11 +193,8 @@ async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     };
     let draws = match args.single::<u8>() {
         Err(_) => {
-            msg.reply(
-                &ctx.http,
-                "Please include the number of draws.",
-            )
-            .await?;
+            msg.reply(&ctx.http, "Please include the number of draws.")
+                .await?;
             return Ok(());
         }
         Ok(s) => s,
@@ -252,10 +252,11 @@ async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     }
-    if let Err(err) = tourn
-        .tourn
-        .apply_op(TournOp::AdminRecordResult((*SQUIRE_ACCOUNT_ID).into(), round_number, RoundResult::Draw(draws)))
-    {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::AdminRecordResult(
+        (*SQUIRE_ACCOUNT_ID).into(),
+        round_number,
+        RoundResult::Draw(draws),
+    )) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;

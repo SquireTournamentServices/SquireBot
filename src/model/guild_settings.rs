@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    fmt::Write,
-};
+use std::{collections::HashMap, fmt::Write};
 
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -24,7 +21,7 @@ use squire_lib::{
 };
 
 use crate::{
-    model::{consts::*, tourn_settings_tree, guild_tournament::GuildTournament},
+    model::{consts::*, guild_tournament::GuildTournament, tourn_settings_tree},
     utils::stringify::stringify_option,
 };
 
@@ -193,11 +190,12 @@ impl GuildSettings {
         );
         let _ = writeln!(data, "VCs?: {}", if self.make_vc { "yes" } else { "no" });
         let _ = write!(data, "TCs?: {}", if self.make_tc { "yes" } else { "no" });
-        tourn_settings_tree::populate_embed(&self.tourn_settings, embed.title("Default Tournament Settings:").field(
-            "Server Settings:",
-            data,
-            true,
-        ));
+        tourn_settings_tree::populate_embed(
+            &self.tourn_settings,
+            embed
+                .title("Default Tournament Settings:")
+                .field("Server Settings:", data, true),
+        );
     }
 }
 

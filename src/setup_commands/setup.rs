@@ -18,7 +18,11 @@ use serenity::prelude::*;
 #[description("Sets up the server to be able to run tournaments.")]
 async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+    let all_settings = data
+        .get::<GuildSettingsMapContainer>()
+        .unwrap()
+        .read()
+        .await;
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     // Gets a copy of the setting. We don't want to a reference to the copy since creating what
     // needs to be created will trigger the hooks and update the shared settings object.
@@ -72,7 +76,11 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[description("Prints out the current tournament-related settings.")]
 async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+    let all_settings = data
+        .get::<GuildSettingsMapContainer>()
+        .unwrap()
+        .read()
+        .await;
     // Gets a copy of the setting. We don't want to a reference to the copy since creating what
     // needs to be created will trigger the hooks and update the shared settings object.
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
@@ -104,7 +112,11 @@ async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[description("Tests the setup of the server.")]
 async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+    let all_settings = data
+        .get::<GuildSettingsMapContainer>()
+        .unwrap()
+        .read()
+        .await;
     // Gets a copy of the setting. We don't want to a reference to the copy since creating what
     // needs to be created will trigger the hooks and update the shared settings object.
     let guild: Guild = msg.guild(&ctx.cache).unwrap();

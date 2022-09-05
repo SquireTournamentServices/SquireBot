@@ -1,8 +1,8 @@
 use super::{
     add_deck::*, confirm_result::*, create_match::*, cut::*, decklist::*, drop::*, end::*,
-    freeze::*, give_bye::*, match_result::MATCH_RESULT_COMMAND, pair::*, players::*, profile::*,
-    prune::PRUNE_COMMAND, raw_standings::*, register::*, registration::*, remove_deck::*,
-    remove_match::*, start::*, status::*, time_extension::*, standings::*, match_status::*,
+    freeze::*, give_bye::*, match_result::MATCH_RESULT_COMMAND, match_status::*, pair::*,
+    players::*, profile::*, prune::PRUNE_COMMAND, raw_standings::*, register::*, registration::*,
+    remove_deck::*, remove_match::*, standings::*, start::*, status::*, time_extension::*,
 };
 
 use serenity::{

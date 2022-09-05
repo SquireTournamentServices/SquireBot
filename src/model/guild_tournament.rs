@@ -29,19 +29,18 @@ use serenity::{
 
 use cycle_map::CycleMap;
 use squire_lib::{
-    identifiers::{PlayerIdentifier, AdminId, PlayerId, RoundIdentifier},
-    operations::{OpData, TournOp, OpResult},
     admin::Admin,
     error::TournamentError,
-    tournament::{Tournament, TournamentId, TournamentPreset},round::RoundId, settings::TournamentSetting,
+    identifiers::{AdminId, PlayerId, PlayerIdentifier, RoundIdentifier},
+    operations::{OpData, OpResult, TournOp},
+    round::RoundId,
+    settings::TournamentSetting,
+    tournament::{Tournament, TournamentId, TournamentPreset},
 };
 
 use crate::{
+    model::{consts::SQUIRE_ACCOUNT_ID, timer_warnings::TimerWarnings},
     utils::embeds::update_status_message,
-    model::{
-        timer_warnings::TimerWarnings,
-        consts::SQUIRE_ACCOUNT_ID,
-    },
 };
 
 pub enum RoundCreationFailure {
@@ -58,6 +57,12 @@ pub enum SquireTournamentSetting {
     CreateVC(bool),
     CreateTC(bool),
     TournamentSetting(TournamentSetting),
+}
+
+pub enum GuildTournamentAction {
+    ViewDecklist(PlayerIdentifier, String),
+    ViewPlayerDecks(PlayerIdentifier),
+    Operation(TournOp),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -100,7 +105,10 @@ impl GuildTournament {
         name: String,
     ) -> Self {
         let mut tourn = Tournament::from_preset(name, preset, format);
-        let admin = Admin { id: (*SQUIRE_ACCOUNT_ID).into(), name: "Squire Bot".into() };
+        let admin = Admin {
+            id: (*SQUIRE_ACCOUNT_ID).into(),
+            name: "Squire Bot".into(),
+        };
         tourn.admins.insert((*SQUIRE_ACCOUNT_ID).into(), admin);
         Self {
             guild_id,
@@ -125,27 +133,37 @@ impl GuildTournament {
             update_status: true,
         }
     }
-    
+
     pub fn update_setting(&mut self, setting: SquireTournamentSetting) -> OpResult {
         use SquireTournamentSetting::*;
         match setting {
             PairingsChannel(channel) => {
                 self.pairings_channel = channel;
-            },
+            }
             MatchesCategory(category) => {
                 self.matches_category = category;
-            },
+            }
             CreateVC(b) => {
                 self.make_vc = b;
-            },
+            }
             CreateTC(b) => {
                 self.make_tc = b;
-            },
+            }
             TournamentSetting(setting) => {
-                self.tourn.apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting))?;
-            },
+                self.tourn
+                    .apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting))?;
+            }
         };
         Ok(OpData::Nothing)
+    }
+
+    pub fn take_action(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        action: GuildTournamentAction,
+    ) -> OpResult {
+        todo!()
     }
 
     pub fn get_id(&self) -> TournamentId {
@@ -169,42 +187,45 @@ impl GuildTournament {
             .create_role(cache, |r| {
                 r.mentionable(true).name(format!("Match {}", number))
             })
-            .await {
-                mention = role.mention().to_string();
-                let mut allowed_perms = Permissions::VIEW_CHANNEL;
-                allowed_perms.insert(Permissions::CONNECT);
-                allowed_perms.insert(Permissions::SEND_MESSAGES);
-                allowed_perms.insert(Permissions::SPEAK);
-                let overwrites = vec![PermissionOverwrite {
-                    allow: allowed_perms,
-                    deny: Permissions::empty(),
-                    kind: PermissionOverwriteType::Role(role.id),
-                }];
-                self.match_roles.insert(rnd.clone(), role);
-                if self.make_tc {
-                    if let Ok(tc) = gld
-                        .create_channel(cache, |c| {
-                            c.kind(ChannelType::Text)
-                                .name(format!("Match {}", number))
-                                .category(self.matches_category.id)
-                                .permissions(overwrites.iter().cloned())
-                        })
-                        .await {
-                        self.match_tcs.insert(rnd.clone(), tc);
-                        }
+            .await
+        {
+            mention = role.mention().to_string();
+            let mut allowed_perms = Permissions::VIEW_CHANNEL;
+            allowed_perms.insert(Permissions::CONNECT);
+            allowed_perms.insert(Permissions::SEND_MESSAGES);
+            allowed_perms.insert(Permissions::SPEAK);
+            let overwrites = vec![PermissionOverwrite {
+                allow: allowed_perms,
+                deny: Permissions::empty(),
+                kind: PermissionOverwriteType::Role(role.id),
+            }];
+            self.match_roles.insert(rnd.clone(), role);
+            if self.make_tc {
+                if let Ok(tc) = gld
+                    .create_channel(cache, |c| {
+                        c.kind(ChannelType::Text)
+                            .name(format!("Match {}", number))
+                            .category(self.matches_category.id)
+                            .permissions(overwrites.iter().cloned())
+                    })
+                    .await
+                {
+                    self.match_tcs.insert(rnd.clone(), tc);
                 }
-                if self.make_vc {
-                    if let Ok(vc) = gld
-                        .create_channel(cache, |c| {
-                            c.kind(ChannelType::Voice)
-                                .name(format!("Match {}", number))
-                                .category(self.matches_category.id)
-                                .permissions(overwrites.into_iter())
-                        })
-                        .await {
-                        self.match_vcs.insert(rnd.clone(), vc);
-                    }
+            }
+            if self.make_vc {
+                if let Ok(vc) = gld
+                    .create_channel(cache, |c| {
+                        c.kind(ChannelType::Voice)
+                            .name(format!("Match {}", number))
+                            .category(self.matches_category.id)
+                            .permissions(overwrites.into_iter())
+                    })
+                    .await
+                {
+                    self.match_vcs.insert(rnd.clone(), vc);
                 }
+            }
         }
         let msg = self
             .pairings_channel
@@ -237,8 +258,9 @@ impl GuildTournament {
     }
 
     pub fn add_player(&mut self, name: String, user: UserId) -> Result<(), TournamentError> {
-        if let OpData::RegisterPlayer(PlayerIdentifier::Id(id)) =
-            self.tourn.apply_op(TournOp::RegisterGuest((*SQUIRE_ACCOUNT_ID).into(), name))?
+        if let OpData::RegisterPlayer(PlayerIdentifier::Id(id)) = self
+            .tourn
+            .apply_op(TournOp::RegisterGuest((*SQUIRE_ACCOUNT_ID).into(), name))?
         {
             self.players.insert(user, id);
         }
@@ -246,7 +268,10 @@ impl GuildTournament {
     }
 
     pub fn add_guest(&mut self, name: String) -> Result<(), TournamentError> {
-        let plyr_ident = self.tourn.apply_op(TournOp::RegisterGuest((*SQUIRE_ACCOUNT_ID).into(), name.clone()))?;
+        let plyr_ident = self.tourn.apply_op(TournOp::RegisterGuest(
+            (*SQUIRE_ACCOUNT_ID).into(),
+            name.clone(),
+        ))?;
         if let OpData::RegisterPlayer(PlayerIdentifier::Id(plyr_id)) = plyr_ident {
             self.guests.insert(name, plyr_id);
         }
@@ -284,5 +309,11 @@ impl fmt::Display for RoundCreationFailure {
 impl From<TournamentSetting> for SquireTournamentSetting {
     fn from(setting: TournamentSetting) -> Self {
         SquireTournamentSetting::TournamentSetting(setting)
+    }
+}
+
+impl From<TournOp> for GuildTournamentAction {
+    fn from(op: TournOp) -> Self {
+        GuildTournamentAction::Operation(op)
     }
 }

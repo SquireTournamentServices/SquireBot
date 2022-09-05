@@ -18,10 +18,13 @@ pub async fn error_to_reply(ctx: &Context, msg: &Message, err: TournamentError) 
         RoundConfirmed => {
             msg.reply(&ctx.http, "That round has already been certified.")
                 .await?;
-        },
+        }
         InvalidDeckCount => {
-            msg.reply(&ctx.http, "The minimum deck count must be less than the maximum count.")
-                .await?;
+            msg.reply(
+                &ctx.http,
+                "The minimum deck count must be less than the maximum count.",
+            )
+            .await?;
         }
         OfficalLookup => {
             msg.reply(&ctx.http, "That person could not be found as an official.")
@@ -64,11 +67,7 @@ pub async fn error_to_reply(ctx: &Context, msg: &Message, err: TournamentError) 
         }
         PlayerNotCheckedIn => {
             // Not sure what to say here...
-            msg.reply(
-                &ctx.http,
-                "You are not checked in.",
-            )
-            .await?;
+            msg.reply(&ctx.http, "You are not checked in.").await?;
         }
         IncompatiblePairingSystem => {
             msg.reply(

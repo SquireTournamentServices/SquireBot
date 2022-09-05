@@ -51,11 +51,8 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     let user_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
         Some(id) => id,
         None => {
-            msg.reply(
-                &ctx.http,
-                "That person could not be found.",
-            )
-            .await?;
+            msg.reply(&ctx.http, "That person could not be found.")
+                .await?;
             return Ok(());
         }
     };
@@ -111,11 +108,8 @@ async fn guest(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     // Resolve the tournament id
     let user_name = match args.single_quoted::<String>() {
         Err(_) => {
-            msg.reply(
-                &ctx.http,
-                "Please include the player's name.",
-            )
-            .await?;
+            msg.reply(&ctx.http, "Please include the player's name.")
+                .await?;
             return Ok(());
         }
         Ok(s) => s,

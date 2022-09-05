@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use serenity::{
-    framework::standard::{macros::command, Args, CommandResult},
+    framework::standard::{macros::command, Args, CommandError, CommandResult},
     model::prelude::*,
     prelude::*,
 };
@@ -28,43 +28,6 @@ use crate::{
         tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
     },
 };
-
-async fn settings_command(
-    ctx: &Context,
-    msg: &Message,
-    setting: SquireTournamentSetting,
-    tourn_name: String,
-) -> CommandResult {
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.update_setting(setting) {
-        error_to_reply(ctx, msg, err).await?;
-    } else {
-        tourn.update_status = true;
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
-    Ok(())
-}
 
 #[command]
 #[only_in(guild)]
@@ -160,14 +123,11 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 )]
 async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::TournamentSetting::*;
-    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
-        Some(b) => b,
-        None => {
-            return Ok(());
-        }
-    };
-    let setting = RequireCheckIn(raw_setting).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
+        let setting = RequireCheckIn(b).into();
+        settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
+    }
+    Ok(())
 }
 
 #[command]
@@ -179,14 +139,11 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[description("Toggles whether or not decks must be registered for future tournaments.")]
 async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::TournamentSetting::*;
-    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
-        Some(b) => b,
-        None => {
-            return Ok(());
-        }
-    };
-    let setting = RequireDeckReg(raw_setting).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
+        let setting = RequireDeckReg(b).into();
+        settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
+    }
+    Ok(())
 }
 
 #[command("round_length")]
@@ -198,16 +155,17 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[description("Adjusts the length of future rounds.")]
 async fn round_length(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::TournamentSetting::*;
-    let dur = match args.single_quoted::<u64>() {
+    match args.single_quoted::<u64>() {
+        Ok(dur) => {
+            let setting = RoundLength(Duration::from_secs(dur * 60)).into();
+            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+        }
         Err(_) => {
             msg.reply(&ctx.http, "The number of minutes you want new round to be.")
                 .await?;
-            return Ok(());
+            Ok(())
         }
-        Ok(dur) => Duration::from_secs(dur * 60),
-    };
-    let setting = RoundLength(dur).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    }
 }
 
 #[command]
@@ -230,16 +188,17 @@ async fn pairings(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[min_args(1)]
 #[description("Sets the default match size for future tournaments.")]
 async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{PairingSetting::*, SwissPairingsSetting::*, TournamentSetting::*};
-    let raw_setting = match args.single_quoted::<u8>() {
+    use squire_lib::settings::{PairingSetting::*, TournamentSetting::*};
+    match args.single_quoted::<u8>() {
+        Ok(n) => {
+            let setting: TournamentSetting = MatchSize(n).into();
+            settings_command(ctx, msg, setting.into(), args.rest().trim().to_string()).await
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
-            return Ok(());
+            Ok(())
         }
-        Ok(n) => n,
-    };
-    let setting = MatchSize(raw_setting).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    }
 }
 
 #[command]
@@ -251,16 +210,17 @@ async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[min_args(1)]
 #[description("Sets the default repair tolerance for matches in future tournaments.")]
 async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{PairingSetting::*, SwissPairingsSetting::*, TournamentSetting::*};
-    let raw_setting = match args.single_quoted::<u64>() {
+    use squire_lib::settings::{PairingSetting::*, TournamentSetting::*};
+    match args.single_quoted::<u64>() {
+        Ok(n) => {
+            let setting: TournamentSetting = RepairTolerance(n).into();
+            settings_command(ctx, msg, setting.into(), args.rest().trim().to_string()).await
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
-            return Ok(());
+            Ok(())
         }
-        Ok(n) => n,
-    };
-    let setting = RepairTolerance(raw_setting).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    }
 }
 
 #[command]
@@ -271,26 +231,28 @@ async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[min_args(1)]
 #[description("Sets the default pairings algorithm for future tournaments.")]
 async fn algorithm(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{PairingSetting::*, SwissPairingsSetting::*, TournamentSetting::*};
-    let raw_setting = match args.single_quoted::<String>() {
+    use squire_lib::settings::{PairingSetting::*, TournamentSetting::*};
+    match args.single_quoted::<String>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
             return Ok(());
         }
-        Ok(val) => match val.as_str() {
-            "greedy" | "Greedy" => PairingAlgorithm::Greedy,
-            _ => {
-                msg.reply(
-                    &ctx.http,
-                    "Please specify an algorithm. The options are:\n - Greedy",
-                )
-                .await?;
-                return Ok(());
-            }
-        },
-    };
-    let setting = Algorithm(raw_setting).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+        Ok(val) => {
+            let alg = match val.as_str() {
+                "greedy" | "Greedy" => PairingAlgorithm::Greedy,
+                _ => {
+                    msg.reply(
+                        &ctx.http,
+                        "Please specify an algorithm. The options are:\n - Greedy",
+                    )
+                    .await?;
+                    return Ok(());
+                }
+            };
+            let setting: TournamentSetting = Algorithm(alg).into();
+            settings_command(ctx, msg, setting.into(), args.rest().trim().to_string()).await
+        }
+    }
 }
 
 #[command]
@@ -316,15 +278,11 @@ async fn swiss(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 )]
 async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::{PairingSetting::*, SwissPairingsSetting::*, TournamentSetting::*};
-    let data = ctx.data.read().await;
-    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
-        Some(b) => b,
-        None => {
-            return Ok(());
-        }
-    };
-    let setting = PairingSetting(Swiss(DoCheckIns(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
+        let setting = PairingSetting(Swiss(DoCheckIns(b))).into();
+        settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
+    }
+    Ok(())
 }
 
 #[command]
@@ -387,16 +345,17 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match args.single_quoted::<f64>() {
+    match args.single_quoted::<f64>() {
+        Ok(n) => {
+            let setting = ScoringSetting(Standard(MatchWinPoints(n))).into();
+            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
                 .await?;
-            return Ok(());
+            Ok(())
         }
-        Ok(n) => n,
-    };
-    let setting = ScoringSetting(Standard(MatchWinPoints(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    }
 }
 
 #[command]
@@ -411,16 +370,17 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match args.single_quoted::<f64>() {
+    match args.single_quoted::<f64>() {
+        Ok(n) => {
+            let setting = ScoringSetting(Standard(MatchDrawPoints(n))).into();
+            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
                 .await?;
-            return Ok(());
+            Ok(())
         }
-        Ok(n) => n,
-    };
-    let setting = ScoringSetting(Standard(MatchDrawPoints(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    }
 }
 
 #[command]
@@ -435,16 +395,17 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match args.single_quoted::<f64>() {
+    match args.single_quoted::<f64>() {
+        Ok(n) => {
+            let setting = ScoringSetting(Standard(MatchLossPoints(n))).into();
+            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
                 .await?;
-            return Ok(());
+            Ok(())
         }
-        Ok(n) => n,
-    };
-    let setting = ScoringSetting(Standard(MatchLossPoints(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    }
 }
 
 #[command]
@@ -459,16 +420,17 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match args.single_quoted::<f64>() {
+    match args.single_quoted::<f64>() {
+        Ok(n) => {
+            let setting = ScoringSetting(Standard(GameWinPoints(n))).into();
+            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
                 .await?;
             return Ok(());
         }
-        Ok(n) => n,
-    };
-    let setting = ScoringSetting(Standard(GameWinPoints(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    }
 }
 
 #[command]
@@ -483,16 +445,17 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match args.single_quoted::<f64>() {
+    match args.single_quoted::<f64>() {
+        Ok(n) => {
+            let setting = ScoringSetting(Standard(GameDrawPoints(n))).into();
+            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
                 .await?;
-            return Ok(());
+            Ok(())
         }
-        Ok(n) => n,
-    };
-    let setting = ScoringSetting(Standard(GameDrawPoints(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    }
 }
 
 #[command]
@@ -507,16 +470,17 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match args.single_quoted::<f64>() {
+    match args.single_quoted::<f64>() {
+        Ok(n) => {
+            let setting = ScoringSetting(Standard(GameLossPoints(n))).into();
+            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
                 .await?;
-            return Ok(());
+            Ok(())
         }
-        Ok(n) => n,
-    };
-    let setting = ScoringSetting(Standard(GameLossPoints(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    }
 }
 
 #[command]
@@ -531,16 +495,17 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match args.single_quoted::<f64>() {
+    match args.single_quoted::<f64>() {
+        Ok(n) => {
+            let setting = ScoringSetting(Standard(ByePoints(n))).into();
+            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+        }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
                 .await?;
-            return Ok(());
+            Ok(())
         }
-        Ok(n) => n,
-    };
-    let setting = ScoringSetting(Standard(ByePoints(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    }
 }
 
 #[command]
@@ -554,14 +519,11 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
-        Some(b) => b,
-        None => {
-            return Ok(());
-        }
-    };
-    let setting = ScoringSetting(Standard(IncludeByes(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
+        let setting = ScoringSetting(Standard(IncludeByes(b))).into();
+        settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
+    }
+    Ok(())
 }
 
 #[command]
@@ -575,14 +537,11 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
-        Some(b) => b,
-        None => {
-            return Ok(());
-        }
-    };
-    let setting = ScoringSetting(Standard(IncludeMatchPoints(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
+        let setting = ScoringSetting(Standard(IncludeMatchPoints(b))).into();
+        settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
+    }
+    Ok(())
 }
 
 #[command]
@@ -596,14 +555,11 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
-        Some(b) => b,
-        None => {
-            return Ok(());
-        }
-    };
-    let setting = ScoringSetting(Standard(IncludeGamePoints(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
+        let setting = ScoringSetting(Standard(IncludeGamePoints(b))).into();
+        settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
+    }
+    Ok(())
 }
 
 #[command]
@@ -617,14 +573,11 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
-        Some(b) => b,
-        None => {
-            return Ok(());
-        }
-    };
-    let setting = ScoringSetting(Standard(IncludeMwp(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
+        let setting = ScoringSetting(Standard(IncludeMwp(b))).into();
+        settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
+    }
+    Ok(())
 }
 
 #[command]
@@ -638,14 +591,11 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
-        Some(b) => b,
-        None => {
-            return Ok(());
-        }
-    };
-    let setting = ScoringSetting(Standard(IncludeGwp(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
+        let setting = ScoringSetting(Standard(IncludeGwp(b))).into();
+        settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
+    }
+    Ok(())
 }
 
 #[command]
@@ -659,14 +609,11 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
-        Some(b) => b,
-        None => {
-            return Ok(());
-        }
-    };
-    let setting = ScoringSetting(Standard(IncludeOppMwp(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
+        let setting = ScoringSetting(Standard(IncludeOppMwp(b))).into();
+        settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
+    }
+    Ok(())
 }
 
 #[command]
@@ -680,14 +627,11 @@ async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    let raw_setting = match arg_to_bool(ctx, msg, &mut args).await {
-        Some(b) => b,
-        None => {
-            return Ok(());
-        }
-    };
-    let setting = ScoringSetting(Standard(IncludeOppGwp(raw_setting))).into();
-    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
+    if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
+        let setting = ScoringSetting(Standard(IncludeOppGwp(b))).into();
+        settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
+    }
+    Ok(())
 }
 
 #[command]
@@ -716,35 +660,37 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     let result = args
         .single_quoted::<String>()
         .map(|arg| {
-            extract_id(&arg).map_or_else(||
-                guild
-                    .channel_id_from_name(&ctx.cache, arg)
-                    .ok_or("Please include a channel, either by name or mention.")
-            ,
-            |id| Ok(ChannelId(id))
+            extract_id(&arg).map_or_else(
+                || {
+                    guild
+                        .channel_id_from_name(&ctx.cache, arg)
+                        .ok_or("Please include a channel, either by name or mention.")
+                },
+                |id| Ok(ChannelId(id)),
             )
         })
         .map_err(|_| "Please include a channel, either by name or mention.")
         .flatten();
-    if let Some(content) = result {
+    if let Ok(content) = result {
         msg.reply(&ctx.http, content).await?;
         return Ok(());
     }
     let response = match result {
-        Err(content) => { msg.reply(&ctx.http, content).await?; None }
-        Ok(channel_id) => {
-            match guild.channels.get(&channel_id) {
-                Some(channel) => match channel {
-                    Channel::Guild(c) if c.kind == ChannelType::Text => {
-                        let setting = PairingsChannel(c.clone());
-                        settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
-                        None
-                    }
-                    _ => Some("Please specify a text channel."),
-                },
-                None => Some("Please specify an active channel in this guild."),
-            }
+        Err(content) => {
+            msg.reply(&ctx.http, content).await?;
+            None
         }
+        Ok(channel_id) => match guild.channels.get(&channel_id) {
+            Some(channel) => match channel {
+                Channel::Guild(c) if c.kind == ChannelType::Text => {
+                    let setting = PairingsChannel(c.clone());
+                    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
+                    None
+                }
+                _ => Some("Please specify a text channel."),
+            },
+            None => Some("Please specify an active channel in this guild."),
+        },
     };
     if let Some(content) = response {
         msg.reply(&ctx.http, content).await?;
@@ -764,20 +710,22 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     "Sets the default category where future tournament will create channels for matches."
 )]
 async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
+    use crate::model::guild_tournament::SquireTournamentSetting::*;
+    let guild = msg.guild(&ctx.cache).unwrap();
+    let result = args
+        .single_quoted::<String>()
+        .map(|arg| {
+            extract_id(&arg).map_or_else(
+                || {
+                    guild
+                        .channel_id_from_name(&ctx.cache, arg)
+                        .ok_or("Please include a channel, either by name or mention.")
+                },
+                |id| Ok(ChannelId(id)),
+            )
+        })
+        .map_err(|_| "Please include a channel, either by name or mention.")
+        .flatten();
     let arg = match args.single_quoted::<String>() {
         Err(_) => {
             msg.reply(
@@ -789,45 +737,29 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         }
         Ok(s) => s,
     };
-    let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let channel_id = match extract_id(&arg) {
-        Some(id) => ChannelId(id),
-        None => match guild.channel_id_from_name(&ctx.cache, arg) {
-            Some(id) => id,
-            None => {
-                msg.reply(
-                    &ctx.http,
-                    "Please include a category, either by name or mention.",
-                )
-                .await?;
-                return Ok(());
-            }
+    if let Ok(content) = result {
+        msg.reply(&ctx.http, content).await?;
+        return Ok(());
+    }
+    let response = match result {
+        Err(content) => {
+            msg.reply(&ctx.http, content).await?;
+            None
+        }
+        Ok(channel_id) => match guild.channels.get(&channel_id) {
+            Some(channel) => match channel {
+                Channel::Category(c) => {
+                    let setting = MatchesCategory(c.clone());
+                    settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
+                    None
+                }
+                _ => Some("Please specify a category channel."),
+            },
+            None => Some("Please specify an active channel in this guild."),
         },
     };
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Some(channel) = guild.channels.get(&channel_id) {
-        match channel {
-            Channel::Category(c) => {
-                tourn.matches_category = c.clone();
-                tourn.update_status = true;
-                msg.reply(&ctx.http, "Matches category updated.").await?;
-            }
-            _ => {
-                msg.reply(&ctx.http, "Please specify a category channel.")
-                    .await?;
-            }
-        }
-    } else {
-        msg.reply(&ctx.http, "Please specify an active channel in this guild.")
-            .await?;
+    if let Some(content) = response {
+        msg.reply(&ctx.http, content).await?;
     }
     Ok(())
 }
@@ -842,49 +774,10 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     "Toggles whether or not voice channels will be created for each match of future tournaments."
 )]
 async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'")
-                .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
-    let setting = match bool_from_string(&arg) {
-        Some(b) => b,
-        None => {
-            msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
-                .await?;
-            return Ok(());
-        }
-    };
-    let tourn_name = args.rest().trim().to_string();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
-        None => {
-            return Ok(());
-        }
-    };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    tourn.update_status = true;
-    tourn.make_vc = setting;
-    msg.reply(&ctx.http, "Setting successfully updated!")
-        .await?;
+    use crate::model::guild_tournament::SquireTournamentSetting::*;
+    if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
+        settings_command(ctx, msg, CreateVC(b), args.rest().trim().to_string()).await?;
+    }
     Ok(())
 }
 
@@ -898,6 +791,19 @@ async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     "Toggles whether or not text channels will be created for each match of future tournaments."
 )]
 async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    use crate::model::guild_tournament::SquireTournamentSetting::*;
+    if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
+        settings_command(ctx, msg, CreateTC(b), args.rest().trim().to_string()).await?;
+    }
+    Ok(())
+}
+
+async fn settings_command(
+    ctx: &Context,
+    msg: &Message,
+    setting: SquireTournamentSetting,
+    tourn_name: String,
+) -> CommandResult {
     let data = ctx.data.read().await;
     let name_and_id = data
         .get::<TournamentNameAndIDMapContainer>()
@@ -911,8 +817,6 @@ async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
         .await;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    // Resolve the tournament id
-    let tourn_name = args.rest().trim().to_string();
     let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
     {
         Some(id) => id,
@@ -921,30 +825,46 @@ async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
         }
     };
     let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    tourn.update_status = true;
-    tourn.make_tc = setting;
-    msg.reply(&ctx.http, "Setting successfully updated!")
-        .await?;
+    if let Err(err) = tourn.update_setting(setting) {
+        error_to_reply(ctx, msg, err).await?;
+    } else {
+        tourn.update_status = true;
+        msg.reply(&ctx.http, "Setting successfully updated!")
+            .await?;
+    }
     Ok(())
 }
 
-async fn arg_to_bool(ctx: &Context, msg: &Message, args: &mut Args) -> Option<bool> {
-    // TODO: Communicate the reply errors?
-    match args.single_quoted::<String>() {
-        Err(_) => {
-            let _ = msg
-                .reply(&ctx.http, "Please specify 'true' or 'false'")
-                .await;
-            None
+async fn arg_to_bool(
+    ctx: &Context,
+    msg: &Message,
+    args: &mut Args,
+) -> Result<Option<bool>, CommandError> {
+    parse_arg(
+        ctx,
+        msg,
+        args,
+        bool_from_string,
+        "Please specify 'true' or 'false'.",
+    )
+    .await
+}
+
+async fn parse_arg<F, T>(
+    ctx: &Context,
+    msg: &Message,
+    args: &mut Args,
+    f: F,
+    err_msg: &str,
+) -> Result<Option<T>, CommandError>
+where
+    F: FnOnce(&str) -> Option<T>,
+{
+    match args.single_quoted::<String>().map(|s| f(s.as_str())) {
+        Ok(Some(s)) => Ok(Some(s)),
+        _ => {
+            msg.reply(&ctx.http, err_msg).await?;
+            Ok(None)
         }
-        Ok(s) => match bool_from_string(&s) {
-            Some(b) => Some(b),
-            None => {
-                let _ = msg
-                    .reply(&ctx.http, "Please specify 'true' or 'false'.")
-                    .await;
-                None
-            }
-        },
     }
 }

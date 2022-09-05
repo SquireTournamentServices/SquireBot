@@ -8,7 +8,7 @@ use crate::{
         },
         misfortune::*,
     },
-    utils::{tourn_resolver::tourn_id_resolver, spin_lock::spin},
+    utils::{spin_lock::spin, tourn_resolver::tourn_id_resolver},
 };
 
 use serenity::{

@@ -16,14 +16,7 @@ use crate::{
     utils::spin_lock::spin_mut,
 };
 
-use super::{
-    admin_commands::admin::*,
-    player_commands::{
-        add_deck::*, confirm_result::*, decklist::*, decks::*, drop::*, list::*, match_result::*,
-        name::*, ready::*, register::*, remove_deck::*,
-    },
-    settings_commands::*,
-};
+use super::{admin_commands::admin::*, player_commands::*, settings_commands::*};
 
 #[command("tournament")]
 #[aliases("tourn", "T", "t")]
@@ -93,7 +86,11 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     }
     // Get the settings data
     let data = ctx.data.read().await;
-    let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+    let all_settings = data
+        .get::<GuildSettingsMapContainer>()
+        .unwrap()
+        .read()
+        .await;
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     let settings = spin_mut(&all_settings, &guild.id).await.unwrap();
     // Ensure that tournaments can be ran

@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use dashmap::DashMap;
 use serenity::{
-    framework::standard::macros::hook,
+    framework::standard::{macros::hook, CommandError},
     gateway::WebSocketGatewayClientExt,
     model::{channel::Message, id::UserId, mention::Mention},
     prelude::Context,
@@ -10,8 +10,8 @@ use serenity::{
 
 use cycle_map::CycleMap;
 use squire_lib::{
-    player_registry::PlayerIdentifier,
     identifiers::PlayerId,
+    player_registry::PlayerIdentifier,
     tournament::{Tournament, TournamentId},
 };
 
@@ -60,7 +60,7 @@ pub async fn player_tourn_resolver(
     tourn_name: String,
     all_tourns: &DashMap<TournamentId, GuildTournament>,
     mut ids: impl ExactSizeIterator<Item = &'fut TournamentId> + Send + Sync + 'fut,
-) -> Option<TournamentId> {
+) -> Result<Option<TournamentId>, CommandError> {
     let mut opt_tourn_id: Option<TournamentId> = None;
     let mut found_mult = false;
     for id in ids {
@@ -76,21 +76,19 @@ pub async fn player_tourn_resolver(
     match opt_tourn_id {
         Some(id) => {
             if found_mult {
-                let _ = msg
-                    .reply(
-                        &ctx.http,
-                        "You are in multiple tournament. Please specify the name of one of them.",
-                    )
-                    .await;
-                return None;
+                msg.reply(
+                    &ctx.http,
+                    "You are in multiple tournament. Please specify the name of one of them.",
+                )
+                .await?;
+                return Ok(None);
             }
-            Some(id)
+            Ok(Some(id))
         }
         None => {
-            let _ = msg
-                .reply(&ctx.http, "You are not registered for any tournament here.")
-                .await;
-            return None;
+            msg.reply(&ctx.http, "You are not registered for any tournament here.")
+                .await?;
+            return Ok(None);
         }
     }
 }

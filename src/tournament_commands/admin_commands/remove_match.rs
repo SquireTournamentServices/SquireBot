@@ -6,8 +6,8 @@ use serenity::{
 };
 
 use squire_lib::{
-    operations::TournOp, player_registry::PlayerIdentifier, round_registry::RoundIdentifier,
-    identifiers::AdminId,
+    identifiers::AdminId, operations::TournOp, player_registry::PlayerIdentifier,
+    round_registry::RoundIdentifier,
 };
 
 use crate::{
@@ -67,9 +67,7 @@ async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     };
     let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let rnd_id = match tourn.tourn.get_round(&round_number) {
-        Ok(rnd) => {
-            rnd.id
-        }
+        Ok(rnd) => rnd.id,
         Err(_) => {
             msg.reply(
                 &ctx.http,
@@ -79,10 +77,10 @@ async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     };
-    if let Err(err) = tourn
-        .tourn
-        .apply_op(TournOp::RemoveRound(*SQUIRE_ACCOUNT_ID, round_number.clone()))
-    {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::RemoveRound(
+        *SQUIRE_ACCOUNT_ID,
+        round_number.clone(),
+    )) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;

@@ -4,7 +4,11 @@ use serenity::{
     prelude::*,
 };
 
-use squire_lib::{operations::{TournOp, OpData}, player_registry::PlayerIdentifier, round::RoundStatus};
+use squire_lib::{
+    operations::{OpData, TournOp},
+    player_registry::PlayerIdentifier,
+    round::RoundStatus,
+};
 
 use crate::{
     model::containers::{
@@ -60,37 +64,33 @@ async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> Command
     };
     let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let plyr_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
-        Some(user_id) => {
-            match tourn.players.get_right(&user_id) {
-                Some(id) => id.clone().into(),
-                None => {
-                    msg.reply(
-                        &ctx.http,
-                        "That player is not registered for the tournament.",
-                    )
-                    .await?;
-                    return Ok(());
-                }
+        Some(user_id) => match tourn.players.get_right(&user_id) {
+            Some(id) => id.clone().into(),
+            None => {
+                msg.reply(
+                    &ctx.http,
+                    "That player is not registered for the tournament.",
+                )
+                .await?;
+                return Ok(());
             }
         },
-        None => {
-            match tourn.guests.get_right(&raw_user_id) {
-                Some(id) => id.clone().into(),
-                None => {
-                    msg.reply(
+        None => match tourn.guests.get_right(&raw_user_id) {
+            Some(id) => id.clone().into(),
+            None => {
+                msg.reply(
                         &ctx.http,
                         "That guest is not registered for the tournament. You may have mistyped their name.",
                     )
                     .await?;
-                    return Ok(());
-                }
+                return Ok(());
             }
-        }
+        },
     };
     match tourn.tourn.apply_op(TournOp::ConfirmResult(plyr_id)) {
         Err(err) => {
             error_to_reply(ctx, msg, err).await?;
-        },
+        }
         Ok(data) => {
             match data {
                 OpData::ConfirmResult(id, status) => {

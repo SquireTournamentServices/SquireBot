@@ -1,5 +1,4 @@
 #![allow(unused_mut, unused_imports, dead_code, unused_variables)]
-
 #![feature(result_flattening)]
 
 use std::{
@@ -11,7 +10,6 @@ use std::{
     time::Duration,
 };
 
-use rayon::prelude::*;
 use serenity::{
     async_trait,
     framework::standard::{
@@ -27,9 +25,10 @@ use serenity::{
         },
         gateway::GatewayIntents,
         gateway::Ready,
-        guild::{Guild, Role, Member},
+        guild::{Guild, Member, Role},
         id::{GuildId, RoleId, UserId},
-        permissions::Permissions, user::User,
+        permissions::Permissions,
+        user::User,
     },
     prelude::*,
 };
@@ -41,7 +40,7 @@ use tokio::{runtime, sync::Mutex, time::Instant};
 
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::mtgjson::meta::Meta;
-use squire_lib::{self, round::RoundId, tournament::TournamentId, operations::TournOp};
+use squire_lib::{self, operations::TournOp, round::RoundId, tournament::TournamentId};
 use utils::spin_lock::spin;
 
 mod misc_commands;
@@ -76,7 +75,11 @@ impl EventHandler for Handler {
     async fn guild_create(&self, ctx: Context, guild: Guild, _: bool) {
         println!("Look, a guild: {}", guild.name);
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        let all_settings = data
+            .get::<GuildSettingsMapContainer>()
+            .unwrap()
+            .read()
+            .await;
         if let Some(mut settings) = spin_mut(&all_settings, &guild.id).await {
             settings.update(&guild);
         } else {
@@ -90,7 +93,11 @@ impl EventHandler for Handler {
 
     async fn category_create(&self, ctx: Context, new: &ChannelCategory) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        let all_settings = data
+            .get::<GuildSettingsMapContainer>()
+            .unwrap()
+            .read()
+            .await;
         if let Some(mut settings) = spin_mut(&all_settings, &new.guild_id).await {
             match settings.matches_category {
                 None => {
@@ -105,7 +112,11 @@ impl EventHandler for Handler {
 
     async fn category_delete(&self, ctx: Context, category: &ChannelCategory) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        let all_settings = data
+            .get::<GuildSettingsMapContainer>()
+            .unwrap()
+            .read()
+            .await;
         if let Some(mut settings) = spin_mut(&all_settings, &category.guild_id).await {
             match &settings.matches_category {
                 Some(c) => {
@@ -120,7 +131,11 @@ impl EventHandler for Handler {
 
     async fn channel_create(&self, ctx: Context, new: &GuildChannel) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        let all_settings = data
+            .get::<GuildSettingsMapContainer>()
+            .unwrap()
+            .read()
+            .await;
         if let Some(mut settings) = spin_mut(&all_settings, &new.guild_id).await {
             match &settings.pairings_channel {
                 None => {
@@ -135,7 +150,11 @@ impl EventHandler for Handler {
 
     async fn channel_delete(&self, ctx: Context, channel: &GuildChannel) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        let all_settings = data
+            .get::<GuildSettingsMapContainer>()
+            .unwrap()
+            .read()
+            .await;
         if let Some(mut settings) = spin_mut(&all_settings, &channel.guild_id).await {
             match &settings.pairings_channel {
                 Some(c) => {
@@ -151,7 +170,11 @@ impl EventHandler for Handler {
     // NOTE: This covers both categories and guild channels
     async fn channel_update(&self, ctx: Context, _: Option<Channel>, new: Channel) {
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        let all_settings = data
+            .get::<GuildSettingsMapContainer>()
+            .unwrap()
+            .read()
+            .await;
         match new {
             Channel::Guild(c) => {
                 if c.kind == ChannelType::Text && c.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
@@ -184,7 +207,11 @@ impl EventHandler for Handler {
     async fn guild_role_create(&self, ctx: Context, new: Role) {
         println!("Handling new role");
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        let all_settings = data
+            .get::<GuildSettingsMapContainer>()
+            .unwrap()
+            .read()
+            .await;
         loop {
             match all_settings.try_get_mut(&new.guild_id) {
                 TryResult::Present(mut settings) => {
@@ -219,7 +246,11 @@ impl EventHandler for Handler {
     async fn guild_role_update(&self, ctx: Context, _: Option<Role>, new: Role) {
         println!("Handling role update");
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        let all_settings = data
+            .get::<GuildSettingsMapContainer>()
+            .unwrap()
+            .read()
+            .await;
         if let Some(mut settings) = spin_mut(&all_settings, &new.guild_id).await {
             match new.name.as_str() {
                 DEFAULT_JUDGE_ROLE_NAME => {
@@ -265,7 +296,11 @@ impl EventHandler for Handler {
     ) {
         println!("Handling role delete");
         let data = ctx.data.read().await;
-        let all_settings = data.get::<GuildSettingsMapContainer>().unwrap().read().await;
+        let all_settings = data
+            .get::<GuildSettingsMapContainer>()
+            .unwrap()
+            .read()
+            .await;
         if let Some(mut settings) = spin_mut(&all_settings, &guild_id).await {
             match settings.judge_role {
                 Some(id) => {
@@ -286,7 +321,7 @@ impl EventHandler for Handler {
         };
         println!("Handled role delete");
     }
-    
+
     async fn guild_member_removal(
         &self,
         ctx: Context,
@@ -296,7 +331,11 @@ impl EventHandler for Handler {
     ) {
         println!("Handling member leaving");
         let data = ctx.data.read().await;
-        let ids = data.get::<GuildAndTournamentIDMapContainer>().unwrap().read().await;
+        let ids = data
+            .get::<GuildAndTournamentIDMapContainer>()
+            .unwrap()
+            .read()
+            .await;
         let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
         if let Some(mut iter) = ids.get_left_iter(&guild_id) {
             for t_id in iter {
@@ -420,12 +459,14 @@ async fn main() {
         let all_tournaments = RwLock::new(all_tournaments);
 
         let tourn_name_and_id_map: CycleMap<String, TournamentId> = all_tournaments
-            .read().await
+            .read()
+            .await
             .iter()
             .map(|t| (t.tourn.name.clone(), t.tourn.id.clone()))
             .collect();
         let guild_and_tourn_id_map: GroupMap<TournamentId, GuildId> = all_tournaments
-            .read().await
+            .read()
+            .await
             .iter()
             .map(|t| (t.tourn.id.clone(), t.guild_id))
             .collect();

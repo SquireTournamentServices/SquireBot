@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fmt::{Display, Write},
-    sync::Arc
+    sync::Arc,
 };
 
 use itertools::Itertools;

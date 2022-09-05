@@ -4,13 +4,16 @@ use serenity::{
     prelude::*,
 };
 
-use squire_lib::{player::Deck, operations::TournOp, player_registry::PlayerIdentifier};
+use squire_lib::{operations::TournOp, player::Deck, player_registry::PlayerIdentifier};
 
 use crate::{
-    model::{containers::{
-        CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
-        TournamentNameAndIDMapContainer,
-    }, consts::SQUIRE_ACCOUNT_ID},
+    model::{
+        consts::SQUIRE_ACCOUNT_ID,
+        containers::{
+            CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
+            TournamentNameAndIDMapContainer,
+        },
+    },
     utils::{
         error_to_reply::error_to_reply,
         spin_lock::spin_mut,
@@ -75,32 +78,28 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     };
     let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let plyr_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
-        Some(user_id) => {
-            match tourn.players.get_right(&user_id) {
-                Some(id) => id.clone().into(),
-                None => {
-                    msg.reply(
-                        &ctx.http,
-                        "That player is not registered for the tournament.",
-                    )
-                    .await?;
-                    return Ok(());
-                }
+        Some(user_id) => match tourn.players.get_right(&user_id) {
+            Some(id) => id.clone().into(),
+            None => {
+                msg.reply(
+                    &ctx.http,
+                    "That player is not registered for the tournament.",
+                )
+                .await?;
+                return Ok(());
             }
         },
-        None => {
-            match tourn.guests.get_right(&raw_user_id) {
-                Some(id) => id.clone().into(),
-                None => {
-                    msg.reply(
+        None => match tourn.guests.get_right(&raw_user_id) {
+            Some(id) => id.clone().into(),
+            None => {
+                msg.reply(
                         &ctx.http,
                         "That guest is not registered for the tournament. You may have mistyped their name.",
                     )
                     .await?;
-                    return Ok(());
-                }
+                return Ok(());
             }
-        }
+        },
     };
     let card_coll = data.get::<CardCollectionContainer>().unwrap().read().await;
     let deck = if let Some(deck) = card_coll.import_deck(raw_deck.clone()).await {
@@ -110,10 +109,12 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             .await?;
         return Ok(());
     };
-    if let Err(err) = tourn
-        .tourn
-        .apply_op(TournOp::AdminAddDeck((*SQUIRE_ACCOUNT_ID).into(), plyr_id, deck_name, deck))
-    {
+    if let Err(err) = tourn.tourn.apply_op(TournOp::AdminAddDeck(
+        (*SQUIRE_ACCOUNT_ID).into(),
+        plyr_id,
+        deck_name,
+        deck,
+    )) {
         error_to_reply(ctx, msg, err).await?;
     } else {
         tourn.update_status = true;

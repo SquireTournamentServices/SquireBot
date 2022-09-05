@@ -6,18 +6,18 @@ use serenity::{
 };
 
 use squire_lib::{
-    operations::TournOp, player_registry::PlayerIdentifier, tournament::TournamentId,
-    identifiers::AdminId,
+    identifiers::AdminId, operations::TournOp, player_registry::PlayerIdentifier,
+    tournament::TournamentId,
 };
 
 use crate::{
     model::{
         confirmation::Confirmation,
+        consts::SQUIRE_ACCOUNT_ID,
         containers::{
             ConfirmationsContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
             TournamentNameAndIDMapContainer,
         },
-        consts::SQUIRE_ACCOUNT_ID,
     },
     utils::{
         error_to_reply::error_to_reply,
