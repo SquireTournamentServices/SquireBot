@@ -1,4 +1,4 @@
-use serenity::framework::standard::macros::{check, command, group, help, hook};
+use serenity::framework::standard::macros::group;
 
 use super::setup::*;
 

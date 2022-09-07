@@ -6,26 +6,19 @@ use serenity::{
     prelude::*,
 };
 
-use squire_lib::{
-    operations::TournOp, pairings::PairingAlgorithm, player_registry::PlayerIdentifier,
-    settings::TournamentSetting,
-};
+use squire_lib::{pairings::PairingAlgorithm, settings::TournamentSetting};
 
 use crate::{
     model::{
-        consts::SQUIRE_ACCOUNT_ID,
         containers::{
-            CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
+            GuildAndTournamentIDMapContainer, TournamentMapContainer,
             TournamentNameAndIDMapContainer,
         },
         guild_tournament::SquireTournamentSetting,
     },
     utils::{
-        error_to_reply::error_to_reply,
-        extract_id::extract_id,
-        spin_lock::spin_mut,
-        stringify::bool_from_string,
-        tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
+        error_to_reply::error_to_reply, extract_id::extract_id, spin_lock::spin_mut,
+        stringify::bool_from_string, tourn_resolver::admin_tourn_id_resolver,
     },
 };
 
@@ -188,7 +181,7 @@ async fn pairings(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[min_args(1)]
 #[description("Sets the default match size for future tournaments.")]
 async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{PairingSetting::*, TournamentSetting::*};
+    use squire_lib::settings::PairingSetting::*;
     match args.single_quoted::<u8>() {
         Ok(n) => {
             let setting: TournamentSetting = MatchSize(n).into();
@@ -210,7 +203,7 @@ async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[min_args(1)]
 #[description("Sets the default repair tolerance for matches in future tournaments.")]
 async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{PairingSetting::*, TournamentSetting::*};
+    use squire_lib::settings::PairingSetting::*;
     match args.single_quoted::<u64>() {
         Ok(n) => {
             let setting: TournamentSetting = RepairTolerance(n).into();
@@ -231,7 +224,7 @@ async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[min_args(1)]
 #[description("Sets the default pairings algorithm for future tournaments.")]
 async fn algorithm(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{PairingSetting::*, TournamentSetting::*};
+    use squire_lib::settings::PairingSetting::*;
     match args.single_quoted::<String>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -816,7 +809,7 @@ async fn settings_command(
         .read()
         .await;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
+    let id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
     {
         Some(id) => id,

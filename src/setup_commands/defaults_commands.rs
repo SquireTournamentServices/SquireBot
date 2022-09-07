@@ -1,5 +1,3 @@
-use std::slice::SliceIndex;
-
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::prelude::*,
@@ -8,7 +6,7 @@ use serenity::{
 
 use squire_lib::{
     pairings::PairingAlgorithm,
-    settings::{PairingSetting, StandardScoringSetting, TournamentSetting},
+    settings::{PairingSetting, TournamentSetting},
 };
 
 use crate::{
@@ -269,7 +267,6 @@ async fn tournament(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[min_args(1)]
 #[description("Adjusts the default format for future tournaments.")]
 async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<String>() {
         Ok(val) => {
@@ -316,7 +313,6 @@ async fn deck_count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[min_args(1)]
 #[description("Adjusts the required deck count for future tournaments.")]
 async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<u8>() {
         Ok(val) => {
@@ -357,9 +353,7 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 .await;
             let id = msg.guild_id.unwrap();
             let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
-                .tourn_settings
-                .update_setting(TournamentSetting::MaxDeckCount(val));
+            settings.tourn_settings.update_setting(MaxDeckCount(val));
         }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -514,7 +508,6 @@ async fn algorithm(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 #[min_args(1)]
 #[description("Sets the default match size for future swiss tournaments.")]
 async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::SwissPairingsSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<u8>() {
         Ok(val) => {

@@ -3,7 +3,6 @@ use std::str::FromStr;
 use dashmap::DashMap;
 use serenity::{
     framework::standard::{macros::hook, CommandError},
-    gateway::WebSocketGatewayClientExt,
     model::{channel::Message, id::UserId, mention::Mention},
     prelude::Context,
 };
@@ -15,10 +14,7 @@ use squire_lib::{
     tournament::{Tournament, TournamentId},
 };
 
-use crate::{
-    model::{guild_tournament::GuildTournament, lookup_error::LookupError},
-    utils::spin_lock::spin,
-};
+use crate::{model::guild_tournament::GuildTournament, utils::spin_lock::spin};
 
 #[hook]
 /// Given a command context, the inciting message, and an identifier for a user, this method

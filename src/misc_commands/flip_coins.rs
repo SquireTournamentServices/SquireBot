@@ -2,8 +2,7 @@ use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
-use rand::prelude::*;
-use rand::{Rng, SeedableRng};
+use rand::Rng;
 
 pub const MAX_COIN_FLIPS: u64 = 10_000_000;
 pub const MAX_KRARK_THUMBS: u64 = 32;

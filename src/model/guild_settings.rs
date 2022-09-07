@@ -1,23 +1,17 @@
-use std::{collections::HashMap, fmt::Write};
+use std::fmt::Write;
 
-use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use serenity::{
     builder::CreateEmbed,
     model::{
         channel::{Channel, ChannelCategory, ChannelType, GuildChannel},
         guild::{Guild, Role},
-        id::{ChannelId, GuildId, RoleId},
+        id::{GuildId, RoleId},
     },
-    prelude::*,
 };
 
 use squire_lib::{
-    admin::TournOfficialId,
-    identifiers::AdminId,
-    operations::TournOp,
-    settings::{TournamentSetting, TournamentSettingsTree},
-    tournament::TournamentPreset,
+    operations::TournOp, settings::TournamentSettingsTree, tournament::TournamentPreset,
 };
 
 use crate::{
@@ -58,10 +52,6 @@ impl GuildSettings {
         preset: TournamentPreset,
         name: String,
     ) -> Option<GuildTournament> {
-        use squire_lib::settings::{
-            FluidPairingsSetting, PairingSetting::*, ScoringSetting::*, StandardScoringSetting::*,
-            SwissPairingsSetting, TournamentSetting::*,
-        };
         if self.is_configured() {
             let mut tourn = GuildTournament::new(
                 self.guild_id,
@@ -157,7 +147,7 @@ impl GuildSettings {
     }
 
     pub fn populate_embed(&self, embed: &mut CreateEmbed) {
-        let data = String::new();
+        let _data = String::new();
         "Pairings Channel:\nJudge Role:\nTourn Admin Role:\nMatches Category:\nMake VC:\nMake TC:";
         let mut data = String::new();
         let _ = writeln!(

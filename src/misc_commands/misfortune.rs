@@ -18,10 +18,7 @@ use serenity::{
 };
 
 use squire_lib::{
-    player_registry::PlayerIdentifier,
-    round::{Round, RoundId},
-    round_registry::RoundIdentifier,
-    tournament::TournamentId,
+    player_registry::PlayerIdentifier, round::Round, round_registry::RoundIdentifier,
 };
 
 #[command("misfortune")]
@@ -30,7 +27,7 @@ use squire_lib::{
 #[max_args(1)]
 #[help_available(false)]
 #[description("Helps you resolve Wheel of Misfortune.")]
-async fn misfortune(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+async fn misfortune(_ctx: &Context, _msg: &Message, _args: Args) -> CommandResult {
     /* Old version
     let data = ctx.data.read().await;
     let mis_players = data.get::<MisfortunePlayerMapContainer>().unwrap();
@@ -74,7 +71,7 @@ async fn misfortune(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[min_args(0)]
 #[max_args(1)]
 #[description("Start resolving Wheel of Misfortune.")]
-async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     /* Old version */
     let data = ctx.data.read().await;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;

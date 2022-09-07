@@ -1,9 +1,9 @@
-use std::{collections::HashSet, ops::RangeBounds};
+#![allow(dead_code)]
+use std::collections::HashSet;
 
 use itertools::Itertools;
 use serenity::builder::CreateEmbed;
 
-use mtgjson::model::{abstract_card::AbstractCard, card_attribute::CardFace};
 use squire_lib::player::Deck;
 
 static CREATURE: &str = "Creature";

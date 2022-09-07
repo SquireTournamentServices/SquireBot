@@ -1,4 +1,6 @@
-#![allow(unused_mut, unused_imports, dead_code, unused_variables)]
+//#![allow(unused_mut, unused_imports, dead_code, unused_variables)]
+
+#![deny(unused)]
 #![feature(result_flattening)]
 
 use std::{
@@ -14,34 +16,28 @@ use serenity::{
     async_trait,
     framework::standard::{
         help_commands,
-        macros::{check, command, group, help, hook},
-        Args, CommandGroup, CommandOptions, CommandResult, Delimiter, DispatchError, HelpOptions,
-        Reason, StandardFramework,
+        macros::{help, hook},
+        Args, CommandGroup, CommandResult, HelpOptions, StandardFramework,
     },
     http::Http,
     model::{
-        channel::{
-            Channel, ChannelCategory, ChannelType, Embed, EmbedField, GuildChannel, Message,
-        },
+        channel::{Channel, ChannelCategory, ChannelType, GuildChannel, Message},
         gateway::GatewayIntents,
         gateway::Ready,
         guild::{Guild, Member, Role},
         id::{GuildId, RoleId, UserId},
-        permissions::Permissions,
         user::User,
     },
     prelude::*,
 };
 
-use dashmap::{rayon, try_result::TryResult, DashMap};
-use dotenv::vars;
+use dashmap::{try_result::TryResult, DashMap};
 use serde_json;
-use tokio::{runtime, sync::Mutex, time::Instant};
+use tokio::time::Instant;
 
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::mtgjson::meta::Meta;
 use squire_lib::{self, operations::TournOp, round::RoundId, tournament::TournamentId};
-use utils::spin_lock::spin;
 
 mod misc_commands;
 mod model;
@@ -50,13 +46,13 @@ mod tournament_commands;
 mod utils;
 
 use crate::{
-    misc_commands::{flip_coins::*, group::MISCCOMMANDS_GROUP},
+    misc_commands::group::MISCCOMMANDS_GROUP,
     model::{
         confirmation::Confirmation, consts::*, containers::*, guild_settings::GuildSettings,
-        guild_tournament::GuildTournament, misfortune::*,
+        guild_tournament::GuildTournament,
     },
-    setup_commands::{group::SETUPCOMMANDS_GROUP, setup::*},
-    tournament_commands::group::TOURNAMENTCOMMANDS_GROUP,
+    setup_commands::group::SETUPCOMMANDS_GROUP,
+    tournament_commands::tournament::TOURNAMENTCOMMANDS_GROUP,
     utils::{
         card_collection::build_collection,
         embeds::{update_match_message, update_standings_message, update_status_message},
@@ -143,7 +139,7 @@ impl EventHandler for Handler {
                         settings.pairings_channel = Some(new.clone());
                     }
                 }
-                Some(c) => {}
+                Some(_) => {}
             }
         };
     }
@@ -183,7 +179,7 @@ impl EventHandler for Handler {
                             None => {
                                 settings.pairings_channel = Some(c.clone());
                             }
-                            Some(c) => {}
+                            Some(_) => {}
                         }
                     };
                 }
@@ -337,7 +333,7 @@ impl EventHandler for Handler {
             .read()
             .await;
         let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-        if let Some(mut iter) = ids.get_left_iter(&guild_id) {
+        if let Some(iter) = ids.get_left_iter(&guild_id) {
             for t_id in iter {
                 let mut tourn = spin_mut(&all_tourns, &t_id).await.unwrap();
                 if let Some(plyr_id) = tourn.get_player_id(&user.id) {
@@ -367,7 +363,7 @@ async fn my_help(
 }
 
 #[hook]
-async fn before_command(ctx: &Context, msg: &Message, command_name: &str) -> bool {
+async fn before_command(_ctx: &Context, _msg: &Message, command_name: &str) -> bool {
     println!("Processing command: {command_name}");
     true
 }
@@ -492,7 +488,7 @@ async fn main() {
                 //println!( "Tournament saver still spinning" );
                 // TODO: This should be par_iter via rayon
                 for mut pair in tourns_lock.iter_mut() {
-                    let mut tourn = pair.value_mut();
+                    let tourn = pair.value_mut();
                     if !tourn.update_standings || tourn.standings_message.is_none() {
                         continue;
                     }
@@ -531,7 +527,7 @@ async fn main() {
                 let tourns_lock = tourns.write().await;
                 // TODO: This should be par_iter via rayon
                 for mut pair in tourns_lock.iter_mut() {
-                    let mut tourn = pair.value_mut();
+                    let tourn = pair.value_mut();
                     for (id, msg) in tourn.match_timers.iter_mut() {
                         let round = tourn.tourn.get_round(&(*id).into()).unwrap();
                         let time_left = round.time_left().as_secs();
@@ -632,7 +628,7 @@ async fn main() {
                 let tourns_lock = tourns.write().await;
                 // TODO: This should be par_iter via rayon
                 for mut pair in tourns_lock.iter_mut() {
-                    let mut tourn = pair.value_mut();
+                    let tourn = pair.value_mut();
                     if !tourn.update_status || tourn.tourn_status.is_none() {
                         continue;
                     }
@@ -680,14 +676,15 @@ async fn main() {
         let other_card_ref = card_ref.clone();
         // Spawns an await task to update the card collection every week.
         tokio::spawn(async move {
-            let meta = meta;
+            let mut meta = meta;
             let cards = other_card_ref;
             let path = Path::new("./AtomicCards.json");
             let mut interval = tokio::time::interval(Duration::from_secs(1800));
             interval.tick().await;
             loop {
-                if let Some((meta, coll)) = build_collection(&meta, path).await {
+                if let Some((m, coll)) = build_collection(&meta, path).await {
                     let mut card_lock = cards.write().await;
+                    meta = m;
                     *card_lock = coll;
                 }
                 interval.tick().await;
@@ -697,8 +694,8 @@ async fn main() {
 
         // Construct the misfortunes map, used with !misfortune
         let mis_players: GroupMap<UserId, RoundId> = GroupMap::new();
-        let misfortunes: DashMap<RoundId, Misfortune> = DashMap::new();
-        data.insert::<MisfortuneMapContainer>(Arc::new(misfortunes));
+        //let misfortunes: DashMap<RoundId, Misfortune> = DashMap::new();
+        //data.insert::<MisfortuneMapContainer>(Arc::new(misfortunes));
         data.insert::<MisfortuneUserMapContainer>(Arc::new(RwLock::new(mis_players)));
 
         // Spawns an await task to save all data every 15 minutes

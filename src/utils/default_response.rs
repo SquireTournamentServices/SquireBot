@@ -1,8 +1,4 @@
-use serenity::{
-    framework::standard::{macros::command, Args, CommandResult},
-    model::prelude::Message,
-    prelude::Context,
-};
+use serenity::{framework::standard::CommandResult, model::prelude::Message, prelude::Context};
 
 pub async fn subcommand_default(ctx: &Context, msg: &Message, cmd: &str) -> CommandResult {
     msg.reply(

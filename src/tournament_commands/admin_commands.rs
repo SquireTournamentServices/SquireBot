@@ -9,8 +9,6 @@ use serenity::{
 use squire_lib::{
     identifiers::{AdminId, PlayerId, RoundIdentifier},
     operations::TournOp,
-    player::Deck,
-    player_registry::PlayerIdentifier,
 };
 
 use crate::{
@@ -23,7 +21,7 @@ use crate::{
         guild_tournament::GuildTournamentAction,
     },
     utils::{
-        default_response::{self, subcommand_default},
+        default_response::subcommand_default,
         spin_lock::spin_mut,
         tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
     },
@@ -405,7 +403,7 @@ async fn cut(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[usage("[tournament name]")]
 #[example("end")]
 #[description("Ends a tournament.")]
-async fn end(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn end(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
         TournOp::End(admin.into()).into()
@@ -419,7 +417,7 @@ async fn end(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[usage("[tournament name]")]
 #[example("cancel")]
 #[description("Cancels a tournament.")]
-async fn cancel(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn cancel(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
         TournOp::Cancel(admin.into()).into()
@@ -433,7 +431,7 @@ async fn cancel(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[usage("[tournament name]")]
 #[example("freeze")]
 #[description("Pauses a tournament.")]
-async fn freeze(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn freeze(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
         TournOp::Freeze(admin.into()).into()
@@ -447,7 +445,7 @@ async fn freeze(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[usage("[tournament name]")]
 #[example("thaw")]
 #[description("Resumes a frozen a tournament.")]
-async fn thaw(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn thaw(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
         TournOp::Thaw(admin.into()).into()
@@ -474,7 +472,7 @@ async fn match_status(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         }
     };
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |admin| {
+    admin_command_without_player(ctx, msg, tourn_name, move |_| {
         GuildTournamentAction::ViewMatchStatus(round_number)
     })
     .await
@@ -485,7 +483,7 @@ async fn match_status(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[allowed_roles("Tournament Admin")]
 #[usage("[tournament name]")]
 #[description("Pairs the next round of matches.")]
-async fn pair(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn pair(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
         TournOp::PairRound(admin.into()).into()
@@ -498,9 +496,9 @@ async fn pair(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[allowed_roles("Tournament Admin", "Judge")]
 #[usage("[tournament name]")]
 #[description("Prints out a list of all players.")]
-async fn view_players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn view_players(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |admin| {
+    admin_command_without_player(ctx, msg, tourn_name, move |_| {
         GuildTournamentAction::ViewAllPlayers
     })
     .await
@@ -522,7 +520,7 @@ async fn prune(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[allowed_roles("Tournament Admin")]
 #[usage("[tournament name]")]
 #[description("Removes players that aren't fully registered.")]
-async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn players(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
         TournOp::PrunePlayers(admin.into()).into()
@@ -535,7 +533,7 @@ async fn players(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
 #[allowed_roles("Tournament Admin")]
 #[usage("[tournament name]")]
 #[description("Removes decks from players that have them in excess.")]
-async fn decks(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
         TournOp::PruneDecks(admin.into()).into()
@@ -548,9 +546,9 @@ async fn decks(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[usage("<top N>, [tournament name]")]
 #[example("25")]
 #[description("Delivers a txt file with simplified standings.")]
-async fn raw_standings(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn raw_standings(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |admin| {
+    admin_command_without_player(ctx, msg, tourn_name, move |_| {
         GuildTournamentAction::GetRawStandings
     })
     .await
@@ -607,9 +605,9 @@ async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[allowed_roles("Tournament Admin", "Judge")]
 #[usage("[tournament name]")]
 #[description("Creates an auto-updating standings message.")]
-async fn standings(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn standings(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |admin| {
+    admin_command_without_player(ctx, msg, tourn_name, move |_| {
         GuildTournamentAction::ViewStandings
     })
     .await
@@ -620,7 +618,7 @@ async fn standings(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 #[allowed_roles("Tournament Admin")]
 #[usage("[tournament name]")]
 #[description("Starts a tournament.")]
-async fn start(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn start(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
         TournOp::Start(admin.into()).into()
@@ -633,9 +631,9 @@ async fn start(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[allowed_roles("Tournament Admin")]
 #[usage("[tournament name]")]
 #[description("Creates an auto-updating status containing all information about the tournament.")]
-async fn status(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn status(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |admin| {
+    admin_command_without_player(ctx, msg, tourn_name, move |_| {
         GuildTournamentAction::ViewTournamentStatus
     })
     .await
@@ -737,7 +735,7 @@ where
         .read()
         .await;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
+    let id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
     {
         Some(id) => id,
@@ -797,7 +795,7 @@ where
         .read()
         .await;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
+    let id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
     let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
     {
         Some(id) => id,

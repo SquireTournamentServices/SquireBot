@@ -1,9 +1,6 @@
-use std::fmt::Write;
-
-use serde::{Deserialize, Serialize};
 use serenity::builder::CreateEmbed;
 
-use squire_lib::{settings::TournamentSettingsTree, tournament::TournamentPreset::Swiss};
+use squire_lib::settings::TournamentSettingsTree;
 
 pub fn populate_embed<'a>(
     tree: &TournamentSettingsTree,

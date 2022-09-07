@@ -4,10 +4,7 @@ use serenity::prelude::*;
 
 use crate::model::containers::{GuildSettingsMapContainer, TournamentMapContainer};
 
-use std::{
-    fs::{read_to_string, File},
-    io::Write,
-};
+use std::{fs::File, io::Write};
 
 #[command("save")]
 #[owners_only]

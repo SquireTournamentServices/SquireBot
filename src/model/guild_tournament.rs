@@ -1,41 +1,33 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt,
-    hash::{Hash, Hasher},
-};
+#![allow(dead_code)]
 
-use dashmap::{DashMap, DashSet};
+use std::{collections::HashMap, fmt};
+
 use serde::{Deserialize, Serialize};
 
 use serenity::{
-    client::Cache,
     framework::standard::CommandResult,
     http::{CacheHttp, Http},
     model::channel::ChannelCategory,
-    CacheAndHttp,
-    {
-        model::{
-            channel::{
-                Channel, ChannelType, GuildChannel, Message, PermissionOverwrite,
-                PermissionOverwriteType,
-            },
-            guild::{Guild, Role},
-            id::{ChannelId, GuildId, MessageId, RoleId, UserId},
-            Permissions,
+    model::{
+        channel::{
+            ChannelType, GuildChannel, Message, PermissionOverwrite, PermissionOverwriteType,
         },
-        prelude::*,
+        guild::{Guild, Role},
+        id::{GuildId, RoleId, UserId},
+        Permissions,
     },
+    prelude::*,
 };
 
 use cycle_map::CycleMap;
 use squire_lib::{
     admin::Admin,
     error::TournamentError,
-    identifiers::{AdminId, PlayerId, PlayerIdentifier, RoundIdentifier},
+    identifiers::{PlayerId, PlayerIdentifier, RoundIdentifier},
     operations::{OpData, OpResult, TournOp},
     round::RoundId,
     settings::TournamentSetting,
-    tournament::{Tournament, TournamentId, TournamentPreset},
+    tournament::{Tournament, TournamentPreset},
 };
 
 use crate::{
@@ -168,15 +160,11 @@ impl GuildTournament {
 
     pub async fn take_action(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
-        action: GuildTournamentAction,
+        _ctx: &Context,
+        _msg: &Message,
+        _action: GuildTournamentAction,
     ) -> OpResult {
         todo!()
-    }
-
-    pub fn get_id(&self) -> TournamentId {
-        self.tourn.id.clone()
     }
 
     pub fn get_player_id(&self, user: &UserId) -> Option<PlayerId> {

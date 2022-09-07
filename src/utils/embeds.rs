@@ -7,7 +7,6 @@ use std::{
 use itertools::Itertools;
 use serenity::{
     builder::CreateEmbed,
-    client::Cache,
     http::CacheHttp,
     model::{
         channel::Message,
@@ -21,7 +20,6 @@ use cycle_map::CycleMap;
 use squire_lib::{
     identifiers::PlayerId,
     pairings::PairingStyle,
-    player_registry::PlayerIdentifier,
     round::Round,
     scoring::Standings,
     standard_scoring::StandardScore,
@@ -29,8 +27,7 @@ use squire_lib::{
 };
 
 use crate::{
-    model::guild_tournament::{self, GuildTournament},
-    utils::tourn_resolver::player_name_resolver,
+    model::guild_tournament::GuildTournament, utils::tourn_resolver::player_name_resolver,
 };
 
 pub fn embed_fields<I, T>(iter: I) -> Vec<String>
@@ -54,7 +51,7 @@ where
 
 pub async fn update_standings_message(
     cache: &CacheAndHttp,
-    mut msg: &mut Message,
+    msg: &mut Message,
     plyrs: &CycleMap<UserId, PlayerId>,
     tourn: &Tournament,
     mut standings: Standings<StandardScore>,
@@ -64,9 +61,8 @@ pub async fn update_standings_message(
     let mut name_buffer = String::with_capacity(1024);
     let mut score_buffer = String::with_capacity(1024);
     for (i, (id, score)) in standings.scores.drain(0..).rev().enumerate() {
-        let mut name = format!("{}) {}", i + 1, player_name_resolver(id, plyrs, tourn));
-        let mut score_s = String::new();
-        score_s += &if score.include_match_points {
+        let name = format!("{}) {}", i + 1, player_name_resolver(id, plyrs, tourn));
+        let mut score_s = if score.include_match_points {
             format!("{:.2}, ", score.match_points)
         } else if score.include_game_points {
             format!("{:.2}, ", score.game_points)

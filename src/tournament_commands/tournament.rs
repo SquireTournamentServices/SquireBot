@@ -1,7 +1,5 @@
-use std::fmt::format;
-
 use serenity::{
-    framework::standard::{macros::command, Args, CommandResult},
+    framework::standard::{macros::{group, command}, Args, CommandResult},
     model::prelude::*,
     prelude::*,
 };
@@ -17,6 +15,10 @@ use crate::{
 };
 
 use super::{admin::*, player_commands::*, settings_commands::*};
+
+#[group]
+#[commands(tournament)]
+pub struct TournamentCommands;
 
 #[command("tournament")]
 #[aliases("tourn", "T", "t")]

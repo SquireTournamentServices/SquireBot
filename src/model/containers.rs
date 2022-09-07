@@ -8,14 +8,10 @@ use serenity::{
 
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::model::atomics_collection::AtomicCardCollection;
-use squire_lib::{
-    round::RoundId,
-    tournament::{Tournament, TournamentId},
-};
+use squire_lib::{round::RoundId, tournament::TournamentId};
 
 use super::{
     confirmation::Confirmation, guild_settings::GuildSettings, guild_tournament::GuildTournament,
-    misfortune::Misfortune,
 };
 
 pub struct TournamentMapContainer;
@@ -53,7 +49,7 @@ impl TypeMapKey for MisfortuneUserMapContainer {
     type Value = Arc<RwLock<GroupMap<UserId, RoundId>>>;
 }
 
-pub struct MisfortuneMapContainer;
-impl TypeMapKey for MisfortuneMapContainer {
-    type Value = Arc<DashMap<RoundId, Misfortune>>;
-}
+//pub struct MisfortuneMapContainer;
+//impl TypeMapKey for MisfortuneMapContainer {
+//    type Value = Arc<DashMap<RoundId, Misfortune>>;
+//}
