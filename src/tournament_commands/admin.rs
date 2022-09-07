@@ -1,15 +1,12 @@
-use super::{
-    add_deck::*, confirm_result::*, create_match::*, cut::*, decklist::*, drop::*, end::*,
-    freeze::*, give_bye::*, match_result::MATCH_RESULT_COMMAND, match_status::*, pair::*,
-    players::*, profile::*, prune::PRUNE_COMMAND, raw_standings::*, register::*, registration::*,
-    remove_deck::*, remove_match::*, standings::*, start::*, status::*, time_extension::*,
+use serenity::{
+    framework::standard::{macros::command, Args, CommandError, CommandResult},
+    model::prelude::Message,
+    prelude::Context,
 };
 
-use serenity::{
-    framework::standard::{macros::command, Args, CommandResult},
-    model::prelude::*,
-    prelude::*,
-};
+use crate::utils::default_response::subcommand_default;
+
+use super::admin_commands::*;
 
 #[command]
 #[aliases("a")]
@@ -22,6 +19,7 @@ use serenity::{
     decklist,
     drop,
     end,
+    cancel,
     freeze,
     give_bye,
     match_result,
@@ -44,6 +42,5 @@ use serenity::{
 #[allowed_roles("Tournament Admin")]
 #[description("Adjust the settings of a specfic tournament.")]
 async fn admin(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
-    msg.reply(&ctx.http, "Please specify a subcommand.").await?;
-    Ok(())
+    subcommand_default(ctx, msg, "tournament admin").await
 }

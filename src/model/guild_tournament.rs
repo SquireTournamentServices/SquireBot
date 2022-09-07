@@ -60,8 +60,17 @@ pub enum SquireTournamentSetting {
 }
 
 pub enum GuildTournamentAction {
+    GetRawStandings,
     ViewDecklist(PlayerIdentifier, String),
     ViewPlayerDecks(PlayerIdentifier),
+    ViewPlayerProfile(PlayerIdentifier),
+    ViewAllPlayers,
+    ViewStandings,
+    ViewMatchStatus(RoundIdentifier),
+    ViewTournamentStatus,
+    RegisterPlayer(UserId),
+    RegisterGuest(String),
+    CreateMatch(Vec<String>),
     Operation(TournOp),
 }
 
@@ -157,7 +166,7 @@ impl GuildTournament {
         Ok(OpData::Nothing)
     }
 
-    pub fn take_action(
+    pub async fn take_action(
         &mut self,
         ctx: &Context,
         msg: &Message,

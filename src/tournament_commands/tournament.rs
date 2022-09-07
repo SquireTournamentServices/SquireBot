@@ -16,7 +16,7 @@ use crate::{
     utils::spin_lock::spin_mut,
 };
 
-use super::{admin_commands::admin::*, player_commands::*, settings_commands::*};
+use super::{admin::*, player_commands::*, settings_commands::*};
 
 #[command("tournament")]
 #[aliases("tourn", "T", "t")]
@@ -34,7 +34,8 @@ use super::{admin_commands::admin::*, player_commands::*, settings_commands::*};
     name,
     ready,
     register,
-    remove_deck
+    remove_deck,
+    profile
 )]
 #[usage("<option>")]
 #[description("Commands pretaining to tournaments.")]

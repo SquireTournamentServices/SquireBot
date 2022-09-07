@@ -1,6 +1,3 @@
-#![deny(unused)]
-use std::collections::HashMap;
-
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::prelude::Message,
@@ -8,7 +5,6 @@ use serenity::{
 };
 
 use squire_lib::{
-    accounts::{SharingPermissions::Everything, SquireAccount},
     identifiers::PlayerId,
     operations::TournOp,
     round::RoundResult::*,
@@ -57,7 +53,7 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         None => {
             msg.reply(&ctx.http, "Unable to create a deck from this.")
                 .await?;
-            return Ok(());
+            Ok(())
         }
     }
 }
@@ -99,6 +95,14 @@ async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
     player_command(ctx, msg, tourn_name, |p| ViewPlayerDecks(p.into())).await
+}
+
+#[command("profile")]
+#[usage("[tournament name]")]
+#[description("See your current status in the tournament.")]
+async fn profile(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let tourn_name = args.rest().to_string();
+    player_command(ctx, msg, tourn_name, |p| ViewPlayerProfile(p.into()).into()).await
 }
 
 #[command("drop")]
@@ -241,15 +245,8 @@ async fn unready(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[description("Register for a tournament.")]
 async fn register(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
-    player_command(ctx, msg, tourn_name, |p| {
-        let account = SquireAccount {
-            user_name: p.to_string(),
-            display_name: p.to_string(),
-            gamer_tags: HashMap::new(),
-            user_id: (*p).into(),
-            permissions: Everything,
-        };
-        TournOp::RegisterPlayer(account).into()
+    player_command(ctx, msg, tourn_name, |_| {
+        GuildTournamentAction::RegisterPlayer(msg.author.id)
     })
     .await
 }
@@ -303,7 +300,7 @@ where
     match tourn.players.get_right(&msg.author.id) {
         Some(id) => {
             let id = id.clone().into();
-            tourn.take_action(ctx, msg, f(id))?;
+            tourn.take_action(ctx, msg, f(id)).await?;
         }
         None => {
             msg.reply(&ctx.http, "You are not registered for that tournament.")
