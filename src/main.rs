@@ -44,8 +44,10 @@ mod model;
 mod setup_commands;
 mod tournament_commands;
 mod utils;
+mod match_manager;
 
 use crate::{
+    match_status_manager::MatchManager,
     misc_commands::group::MISCCOMMANDS_GROUP,
     model::{
         confirmation::Confirmation, consts::*, containers::*, guild_settings::GuildSettings,

@@ -1,15 +1,26 @@
-use crate::model::consts::*;
-use crate::model::{containers::GuildSettingsMapContainer, guild_settings::GuildSettings};
-use crate::utils::spin_lock::{spin, spin_mut};
-//use crate::utils::is_configured;
+use serenity::{
+    framework::standard::{
+        macros::{command, group},
+        Args, CommandResult,
+    },
+    model::prelude::*,
+    prelude::*,
+};
+
+use crate::{
+    model::{consts::*, containers::GuildSettingsMapContainer, guild_settings::GuildSettings},
+    utils::{
+        default_response::subcommand_default,
+        spin_lock::{spin, spin_mut},
+    },
+};
 
 use super::defaults_commands::*;
 
-use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::prelude::*;
-use serenity::prelude::*;
+#[group]
+#[commands(setup)]
+pub struct SetupCommands;
 
-// TODO: Find a work around for this
 //#[required_permissions("ADMINISTRATOR")]
 #[command("setup")]
 #[sub_commands(view, test, defaults)]
@@ -319,10 +330,5 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[usage("<option name>")]
 #[description("Changes the default tournament settings for new tournaments in the server.")]
 async fn defaults(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    msg.reply(
-        &ctx.http,
-        "Please specify a subcommand in order to adjust settings.",
-    )
-    .await?;
-    Ok(())
+    subcommand_default(ctx, msg, "settings defaults").await
 }

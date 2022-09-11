@@ -79,11 +79,7 @@ pub struct GuildTournament {
     pub(crate) guests: CycleMap<String, PlayerId>,
     pub(crate) make_vc: bool,
     pub(crate) make_tc: bool,
-    pub(crate) match_vcs: HashMap<RoundId, GuildChannel>,
-    pub(crate) match_tcs: HashMap<RoundId, GuildChannel>,
-    pub(crate) match_roles: HashMap<RoundId, Role>,
-    pub(crate) match_timers: HashMap<RoundId, Message>,
-    pub(crate) round_warnings: HashMap<RoundId, TimerWarnings>,
+    pub(crate) guild_roles: HashMap<RoundId, GuildRound>,
     pub(crate) standings_message: Option<Message>,
     pub(crate) tourn: Tournament,
     pub(crate) update_standings: bool,
@@ -162,9 +158,47 @@ impl GuildTournament {
         &mut self,
         _ctx: &Context,
         _msg: &Message,
-        _action: GuildTournamentAction,
+        action: GuildTournamentAction,
     ) -> OpResult {
-        todo!()
+        use GuildTournamentAction::*;
+        match action {
+            GetRawStandings => {
+                todo!()
+            }
+            ViewDecklist(p_ident, deck_name) => {
+                todo!()
+            }
+            ViewPlayerDecks(p_ident) => {
+                todo!()
+            }
+            ViewPlayerProfile(p_ident) => {
+                todo!()
+            }
+            ViewAllPlayers => {
+                todo!()
+            }
+            ViewStandings => {
+                todo!()
+            }
+            ViewMatchStatus(r_ident) => {
+                todo!()
+            }
+            ViewTournamentStatus => {
+                todo!()
+            }
+            RegisterPlayer(user_id) => {
+                todo!()
+            }
+            RegisterGuest(name) => {
+                todo!()
+            }
+            CreateMatch(raw_plyrs) => {
+                todo!()
+            }
+            Operation(op) => {
+                todo!()
+            }
+        }
     }
 
     pub fn get_player_id(&self, user: &UserId) -> Option<PlayerId> {
