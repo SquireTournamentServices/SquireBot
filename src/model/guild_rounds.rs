@@ -1,6 +1,12 @@
 use std::{collections::HashMap, fmt::Write};
 
-use serenity::{http::CacheHttp, model::channel::Message};
+use serenity::{
+    http::{CacheHttp, Http},
+    model::{
+        channel::{GuildChannel, Message},
+        guild::Role,
+    },
+};
 
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -14,24 +20,76 @@ pub struct TimerWarnings {
     pub time_up: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct GuildRound {
+    pub(crate) message: Option<Message>,
+    pub(crate) vc: Option<GuildChannel>,
+    pub(crate) tc: Option<GuildChannel>,
+    pub(crate) role: Option<Role>,
+    pub(crate) warnings: TimerWarnings,
+}
+
+#[derive(Clone, Debug)]
+pub struct TrackingRound {
     pub(crate) round: Round,
+    pub(crate) message: Message,
     pub(crate) use_table_number: bool,
-    pub(crate) round_warnings: TimerWarnings,
+    pub(crate) warnings: TimerWarnings,
     pub(crate) players: HashMap<PlayerId, String>,
     pub(crate) vc_mention: String,
     pub(crate) tc_mention: String,
     pub(crate) role_mention: String,
-    pub(crate) match_timers: Message,
 }
 
-impl GuildRound {
+impl TrackingRound {
     pub async fn update_message<'a>(&'a mut self, cache: impl CacheHttp) {
         let (title, fields) = self.embed_info();
-        self.match_timers
+        let _ = self
+            .message
             .edit(cache, |m| m.embed(|e| e.title(title).fields(fields)))
             .await;
+    }
+
+    pub async fn send_warning<'a>(&'a mut self, cache: impl CacheHttp) {
+        match self.round.time_left().as_secs() {
+            0 => {
+                self.warnings.sent_last();
+                let _ = self
+                    .message
+                    .reply(
+                        cache,
+                        format!("{} time in your match is up!!", self.role_mention),
+                    )
+                    .await;
+            }
+            1..=60 => {
+                self.warnings.sent_second();
+                let _ = self
+                    .message
+                    .reply(
+                        cache,
+                        format!(
+                            "{}, you have 1 minute left in your match!!",
+                            self.role_mention
+                        ),
+                    )
+                    .await;
+            }
+            61..=300 => {
+                self.warnings.sent_first();
+                let _ = self
+                    .message
+                    .reply(
+                        cache,
+                        format!(
+                            "{}, you have 5 minutes left in your match!!",
+                            self.role_mention
+                        ),
+                    )
+                    .await;
+            }
+            _ => {}
+        }
     }
 
     fn embed_info(&self) -> (String, Vec<(String, String, bool)>) {
@@ -65,7 +123,7 @@ impl GuildRound {
         fields.push(("Status:".into(), self.round.status.to_string(), true));
         let mut info = String::from("\u{200b}");
         if !self.role_mention.is_empty() {
-            write!(info, "role: {}", self.role_mention);
+            let _ = write!(info, "role: {}", self.role_mention);
         }
         if !self.vc_mention.is_empty() {
             let _ = write!(info, "VC: {}", self.vc_mention);
@@ -100,8 +158,39 @@ impl GuildRound {
                 .iter()
                 .map(|p| format!("{}", self.players.get(p).unwrap()))
                 .join(" ");
-            fields.push(("Confirmed?:".into(), confirmations, true));
+            fields.push(("Drops:".into(), drops, true));
         }
         (title, fields)
+    }
+}
+
+impl GuildRound {
+    pub async fn delete_guild_data(self, http: &Http) {
+        if let Some(tc) = self.tc {
+            let _ = tc.delete(http).await;
+        }
+        if let Some(vc) = self.vc {
+            let _ = vc.delete(http).await;
+        }
+        if let Some(mut role) = self.role {
+            let _ = role.delete(http).await;
+        }
+    }
+}
+
+impl TimerWarnings {
+    pub fn sent_first(&mut self) {
+        self.five_min = true;
+    }
+
+    pub fn sent_second(&mut self) {
+        self.five_min = true;
+        self.one_min = true;
+    }
+
+    pub fn sent_last(&mut self) {
+        self.five_min = true;
+        self.one_min = true;
+        self.time_up = true;
     }
 }

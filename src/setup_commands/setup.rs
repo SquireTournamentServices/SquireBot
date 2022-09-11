@@ -221,7 +221,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                 test_results += &"Failed - No matches category found.\n".repeat(5);
             }
             Some(channel) => {
-                if let Channel::Category(matches_category) =
+                if let Channel::Category(_) =
                     guild.channels.get(&channel.id).unwrap()
                 {
                     test_results += "Passed\n";
@@ -329,6 +329,6 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 )]
 #[usage("<option name>")]
 #[description("Changes the default tournament settings for new tournaments in the server.")]
-async fn defaults(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn defaults(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     subcommand_default(ctx, msg, "settings defaults").await
 }

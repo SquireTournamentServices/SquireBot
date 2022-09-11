@@ -55,7 +55,7 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[usage("<min/max>")]
 #[sub_commands(min, max)]
 #[description("Adjusts the required deck count for future tournaments.")]
-async fn deck_count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn deck_count(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     msg.reply(
         &ctx.http,
         "Please specify a subcommand in order to adjust settings.",
@@ -73,7 +73,6 @@ async fn deck_count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[description("Adjusts the required deck count for future tournaments.")]
 async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::TournamentSetting::*;
-    let data = ctx.data.read().await;
     let raw_setting = match args.single_quoted::<u8>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -255,7 +254,7 @@ async fn algorithm(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 #[usage("<option>")]
 #[min_args(1)]
 #[description("Adjusts the default swiss pairing settings for future tournament.")]
-async fn swiss(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn swiss(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     msg.reply(&ctx.http, "Please specify a subcommand.").await?;
     Ok(())
 }
@@ -284,7 +283,7 @@ async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 #[usage("<option>")]
 #[min_args(1)]
 #[description("Adjusts the default fluid-round pairing settings for future tournament.")]
-async fn fluid(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn fluid(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     msg.reply(&ctx.http, "Please specify a subcommand.").await?;
     Ok(())
 }
@@ -321,7 +320,7 @@ async fn scoring(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 )]
 #[usage("<option>")]
 #[description("Adjusts how a tournament calculates scores using the standard model.")]
-async fn standard(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn standard(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     msg.reply(&ctx.http, "Please specify a subcommand.").await?;
     Ok(())
 }
@@ -719,17 +718,6 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         })
         .map_err(|_| "Please include a channel, either by name or mention.")
         .flatten();
-    let arg = match args.single_quoted::<String>() {
-        Err(_) => {
-            msg.reply(
-                &ctx.http,
-                "Please include a category, either by name or mention.",
-            )
-            .await?;
-            return Ok(());
-        }
-        Ok(s) => s,
-    };
     if let Ok(content) = result {
         msg.reply(&ctx.http, content).await?;
         return Ok(());
@@ -821,7 +809,6 @@ async fn settings_command(
     if let Err(err) = tourn.update_setting(setting) {
         error_to_reply(ctx, msg, err).await?;
     } else {
-        tourn.update_status = true;
         msg.reply(&ctx.http, "Setting successfully updated!")
             .await?;
     }

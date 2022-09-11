@@ -33,31 +33,31 @@ use serenity::{
 
 use dashmap::{try_result::TryResult, DashMap};
 use serde_json;
-use tokio::time::Instant;
+use tokio::{sync::mpsc::unbounded_channel, time::Instant};
 
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::mtgjson::meta::Meta;
 use squire_lib::{self, operations::TournOp, round::RoundId, tournament::TournamentId};
 
+mod match_manager;
 mod misc_commands;
 mod model;
 mod setup_commands;
 mod tournament_commands;
 mod utils;
-mod match_manager;
 
 use crate::{
-    match_status_manager::MatchManager,
+    match_manager::MatchManager,
     misc_commands::group::MISCCOMMANDS_GROUP,
     model::{
         confirmation::Confirmation, consts::*, containers::*, guild_settings::GuildSettings,
         guild_tournament::GuildTournament,
     },
-    setup_commands::group::SETUPCOMMANDS_GROUP,
+    setup_commands::setup::SETUPCOMMANDS_GROUP,
     tournament_commands::tournament::TOURNAMENTCOMMANDS_GROUP,
     utils::{
         card_collection::build_collection,
-        embeds::{update_match_message, update_standings_message, update_status_message},
+        embeds::{update_standings_message, update_status_message},
         spin_lock::spin_mut,
     },
 };
@@ -454,6 +454,22 @@ async fn main() {
             &read_to_string("./tournaments.json").expect("Tournament file could not be found."),
         )
         .expect("The tournament data is malformed.");
+
+        let (match_send, match_rec) = unbounded_channel();
+        data.insert::<MatchUpdateSenderContainer>(Arc::new(match_send));
+        let mut match_manager = MatchManager::new(match_rec);
+        match_manager.populate(
+            all_tournaments
+                .iter()
+                .map(|t| {
+                    t.guild_rounds
+                        .keys()
+                        .filter_map(|r| t.get_tracking_round(r))
+                        .collect::<Vec<_>>()
+                })
+                .flatten(),
+        );
+
         let all_tournaments = RwLock::new(all_tournaments);
 
         let tourn_name_and_id_map: CycleMap<String, TournamentId> = all_tournaments
@@ -474,7 +490,6 @@ async fn main() {
         let tourns_ref = ref_main.clone();
         let ref_one = ref_main.clone();
         let cache_one = client.cache_and_http.clone();
-        let ref_two = ref_main.clone();
         let cache_two = client.cache_and_http.clone();
         let ref_three = ref_main.clone();
         let cache_three = client.cache_and_http.clone();
@@ -491,9 +506,6 @@ async fn main() {
                 // TODO: This should be par_iter via rayon
                 for mut pair in tourns_lock.iter_mut() {
                     let tourn = pair.value_mut();
-                    if !tourn.update_standings || tourn.standings_message.is_none() {
-                        continue;
-                    }
                     let standings = tourn.tourn.get_standings();
                     println!("Standings:\n{standings:?}");
                     update_standings_message(
@@ -521,97 +533,14 @@ async fn main() {
         });
         // Match embed and timer notification updater
         tokio::spawn(async move {
-            let tourns = ref_two;
             let cache = cache_two;
             let loop_length = Duration::from_secs(30);
             loop {
                 let timer = Instant::now();
-                let tourns_lock = tourns.write().await;
-                // TODO: This should be par_iter via rayon
-                for mut pair in tourns_lock.iter_mut() {
-                    let tourn = pair.value_mut();
-                    for (id, msg) in tourn.match_timers.iter_mut() {
-                        let round = tourn.tourn.get_round(&(*id).into()).unwrap();
-                        let time_left = round.time_left().as_secs();
-                        let mut warnings = tourn.round_warnings.get_mut(id).unwrap();
-                        if time_left > 0 {
-                            update_match_message(
-                                cache.clone(),
-                                msg.clone(),
-                                tourn.tourn.use_table_number,
-                                tourn.match_vcs.get(id).map(|c| c.id),
-                                tourn.match_tcs.get(id).map(|c| c.id),
-                                &tourn.players,
-                                &tourn.tourn,
-                                &round,
-                            )
-                            .await;
-                        }
-                        if time_left == 0 && !warnings.time_up {
-                            warnings.time_up = true;
-                            let content = match tourn.match_roles.get(id) {
-                                Some(role) => {
-                                    format!("<@&{}>, time is up in your match.", role.id.0)
-                                }
-                                None => {
-                                    format!(
-                                        "Match {}, time is up in your match.",
-                                        round.match_number
-                                    )
-                                }
-                            };
-                            let _ = tourn
-                                .pairings_channel
-                                .send_message(&cache, |m| m.content(content))
-                                .await;
-                        } else if time_left <= 60 && !warnings.one_min {
-                            warnings.one_min = true;
-                            let content = match tourn.match_roles.get(id) {
-                                Some(role) => {
-                                    format!(
-                                        "<@&{}>, you have 1 minute left in your match.",
-                                        role.id.0
-                                    )
-                                }
-                                None => {
-                                    format!(
-                                        "Match {}, you have 1 minute left in your match.",
-                                        round.match_number
-                                    )
-                                }
-                            };
-                            let _ = tourn
-                                .pairings_channel
-                                .send_message(&cache, |m| m.content(content))
-                                .await;
-                        } else if time_left <= 300 && !warnings.five_min {
-                            warnings.five_min = true;
-                            let content = match tourn.match_roles.get(id) {
-                                Some(role) => {
-                                    format!(
-                                        "<@&{}>, you have 5 minutes left in your match.",
-                                        role.id.0
-                                    )
-                                }
-                                None => {
-                                    format!(
-                                        "Match {}, you have 5 minutes left in your match.",
-                                        round.match_number
-                                    )
-                                }
-                            };
-                            let _ = tourn
-                                .pairings_channel
-                                .send_message(&cache, |m| m.content(content))
-                                .await;
-                        }
-                    }
-                }
-                // Sleep so that the next loop starts 60 seconds after the start of this one
-                drop(tourns_lock);
+                match_manager.update_matches(&cache).await;
                 if timer.elapsed() < loop_length {
                     println!(
-                        "Message updater sleeping for {:?}",
+                        "Match message updater sleeping for {:?}",
                         loop_length - timer.elapsed()
                     );
                     let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
@@ -631,9 +560,6 @@ async fn main() {
                 // TODO: This should be par_iter via rayon
                 for mut pair in tourns_lock.iter_mut() {
                     let tourn = pair.value_mut();
-                    if !tourn.update_status || tourn.tourn_status.is_none() {
-                        continue;
-                    }
                     update_status_message(&cache, tourn).await;
                     //tourn.update_status = false;
                 }

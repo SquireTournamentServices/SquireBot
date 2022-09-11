@@ -67,7 +67,7 @@ impl From<Deck> for TypeSortedDeck {
                 other.insert((count, card.get_name()));
             }
         }
-        let commanders = deck.commanders.drain().map(|(c, n)| c.get_name()).collect();
+        let commanders = deck.commanders.drain().map(|(c, _)| c.get_name()).collect();
         let sideboard = deck
             .sideboard
             .drain()
@@ -90,7 +90,7 @@ impl From<Deck> for TypeSortedDeck {
 }
 
 impl TypeSortedDeck {
-    pub fn populate_embed<'a>(&self, mut e: &'a mut CreateEmbed) -> &'a mut CreateEmbed {
+    pub fn populate_embed<'a>(&self, e: &'a mut CreateEmbed) -> &'a mut CreateEmbed {
         if !self.lands.is_empty() {
             e.field(
                 format!("Land ({}):", self.count_lands()),

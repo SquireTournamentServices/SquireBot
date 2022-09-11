@@ -23,7 +23,7 @@ use crate::{
 #[sub_commands("pairings_channel", "matches_category", "create_vc", "create_tc")]
 #[usage("<option name>")]
 #[description("Adjusts the default ways future tournaments will interact with this server.")]
-async fn server(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn server(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     subcommand_default(ctx, msg, "settings defaults server").await
 }
 
@@ -248,7 +248,7 @@ async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 #[usage("<option>")]
 #[min_args(1)]
 #[description("Adjusts the defaults for future tournaments.")]
-async fn tournament(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn tournament(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     subcommand_default(ctx, msg, "settings defaults tournament").await
 }
 
@@ -289,7 +289,7 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[sub_commands(min, max)]
 #[usage("<min/max>")]
 #[description("Adjusts the required deck count for future tournaments.")]
-async fn deck_count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn deck_count(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     subcommand_default(ctx, msg, "settings defaults tournament deck-count").await
 }
 
@@ -436,7 +436,7 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[sub_commands(algorithm, match_size, repair_tolerance, swiss, fluid)]
 #[usage("<option>")]
 #[description("Adjusts the default pairing settings for future tournament.")]
-async fn pairing(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn pairing(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     subcommand_default(ctx, msg, "settings defaults tournament pairings").await
 }
 
@@ -550,7 +550,7 @@ async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[sub_commands("do_checkins")]
 #[usage("<option>")]
 #[description("Adjusts the default swiss pairing settings for future tournament.")]
-async fn swiss(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn swiss(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     subcommand_default(ctx, msg, "settings defaults tournament pairings swiss").await
 }
 
@@ -599,7 +599,7 @@ async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 #[allowed_roles("Tournament Admin")]
 #[usage("<option>")]
 #[description("Adjusts the default fluid-round pairing settings for future tournament.")]
-async fn fluid(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn fluid(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     subcommand_default(ctx, msg, "settings defaults tournament pairings fluid").await
 }
 
@@ -609,7 +609,7 @@ async fn fluid(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[sub_commands("standard")]
 #[usage("<option>")]
 #[description("Adjusts the default settings for future tournament that pretain to scoring.")]
-async fn scoring(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn scoring(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     subcommand_default(ctx, msg, "settings defaults tournament scoring").await
 }
 
@@ -636,7 +636,7 @@ async fn scoring(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
 #[description(
     "Adjusts the default settings for future tournament that use the standard scoring model."
 )]
-async fn standard(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn standard(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     subcommand_default(ctx, msg, "settings defaults tournament scoring standard").await
 }
 

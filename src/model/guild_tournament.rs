@@ -31,9 +31,11 @@ use squire_lib::{
 };
 
 use crate::{
-    model::{consts::SQUIRE_ACCOUNT_ID, timer_warnings::TimerWarnings},
+    model::{consts::SQUIRE_ACCOUNT_ID, guild_rounds::GuildRound},
     utils::embeds::update_status_message,
 };
+
+use super::guild_rounds::{TimerWarnings, TrackingRound};
 
 pub enum RoundCreationFailure {
     VC,
@@ -68,6 +70,8 @@ pub enum GuildTournamentAction {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GuildTournament {
+    pub(crate) guild_id: GuildId,
+    pub(crate) tourn: Tournament,
     pub(crate) tourn_role: Role,
     pub(crate) judge_role: RoleId,
     pub(crate) tourn_admin_role: RoleId,
@@ -79,12 +83,8 @@ pub struct GuildTournament {
     pub(crate) guests: CycleMap<String, PlayerId>,
     pub(crate) make_vc: bool,
     pub(crate) make_tc: bool,
-    pub(crate) guild_roles: HashMap<RoundId, GuildRound>,
+    pub(crate) guild_rounds: HashMap<RoundId, GuildRound>,
     pub(crate) standings_message: Option<Message>,
-    pub(crate) tourn: Tournament,
-    pub(crate) update_standings: bool,
-    pub(crate) update_status: bool,
-    pub(crate) guild_id: GuildId,
 }
 
 impl GuildTournament {
@@ -115,19 +115,13 @@ impl GuildTournament {
             pairings_channel,
             matches_category,
             make_vc,
-            match_vcs: HashMap::new(),
             make_tc,
-            match_tcs: HashMap::new(),
             tourn_status: None,
             players: CycleMap::new(),
             guests: CycleMap::new(),
-            match_roles: HashMap::new(),
-            match_timers: HashMap::new(),
-            round_warnings: HashMap::new(),
+            guild_rounds: HashMap::new(),
             standings_message: None,
             tourn,
-            update_standings: true,
-            update_status: true,
         }
     }
 
@@ -154,6 +148,7 @@ impl GuildTournament {
         Ok(OpData::Nothing)
     }
 
+    #[allow(unused)]
     pub async fn take_action(
         &mut self,
         _ctx: &Context,
@@ -205,14 +200,44 @@ impl GuildTournament {
         self.players.get_right(user).cloned()
     }
 
+    pub fn get_tracking_round(&self, r_id: &RoundId) -> Option<TrackingRound> {
+        let round = self.tourn.get_round(&(*r_id).into()).ok()?;
+        let g_rnd = self.guild_rounds.get(r_id).cloned()?;
+        let message = g_rnd.message?;
+        let players = round
+            .players
+            .iter()
+            .filter_map(|p| {
+                self.players
+                    .get_left(p)
+                    .map(|u| u.mention().to_string())
+                    .or_else(|| self.guests.get_left(p).cloned())
+                    .map(|s| (*p, s))
+            })
+            .collect();
+        let vc_mention = g_rnd.vc.map(|vc| vc.mention().to_string()).unwrap_or_default();
+        let tc_mention = g_rnd.tc.map(|tc| tc.mention().to_string()).unwrap_or_default();
+        let role_mention = g_rnd.role.map(|role| role.mention().to_string()).unwrap_or_default();
+        Some(TrackingRound {
+            round,
+            message,
+            players,
+            vc_mention,
+            tc_mention,
+            role_mention,
+            warnings: TimerWarnings::default(),
+            use_table_number: self.tourn.use_table_number,
+        })
+    }
+
     pub async fn create_round_data(
         &mut self,
         cache: &impl CacheHttp,
         gld: &Guild,
         rnd: &RoundId,
         number: u64,
-    ) -> Result<(), RoundCreationFailure> {
-        self.round_warnings.insert(*rnd, TimerWarnings::default());
+    ) -> GuildRound {
+        let mut g_rnd = GuildRound::default();
         let mut mention = format!("Match #{number}");
         if let Ok(role) = gld
             .create_role(cache, |r| {
@@ -230,7 +255,7 @@ impl GuildTournament {
                 deny: Permissions::empty(),
                 kind: PermissionOverwriteType::Role(role.id),
             }];
-            self.match_roles.insert(rnd.clone(), role);
+            g_rnd.role = Some(role);
             if self.make_tc {
                 if let Ok(tc) = gld
                     .create_channel(cache, |c| {
@@ -241,7 +266,7 @@ impl GuildTournament {
                     })
                     .await
                 {
-                    self.match_tcs.insert(rnd.clone(), tc);
+                    g_rnd.tc = Some(tc);
                 }
             }
             if self.make_vc {
@@ -254,34 +279,25 @@ impl GuildTournament {
                     })
                     .await
                 {
-                    self.match_vcs.insert(rnd.clone(), vc);
+                    g_rnd.vc = Some(vc);
                 }
             }
         }
-        let msg = self
+        g_rnd.message = self
             .pairings_channel
             .send_message(&cache, |m| {
                 m.content(format!("{mention} you have been paired!"))
             })
             .await
-            .map_err(|_| RoundCreationFailure::Message)?;
-        self.match_timers.insert(rnd.clone(), msg);
-        Ok(())
+            .ok();
+        self.guild_rounds.insert(*rnd, g_rnd.clone());
+        g_rnd
     }
 
-    // NOTE: This will not delete roles. That is done at the end of the tournament
     pub async fn clear_round_data(&mut self, rnd: &RoundId, http: &Http) {
-        if let Some(tc) = self.match_tcs.remove(rnd) {
-            let _ = tc.delete(http).await;
+        if let Some(g_rnd) = self.guild_rounds.remove(rnd) {
+            g_rnd.delete_guild_data(http).await;
         }
-        if let Some(vc) = self.match_vcs.remove(rnd) {
-            let _ = vc.delete(http).await;
-        }
-        if let Some(mut role) = self.match_roles.remove(rnd) {
-            let _ = role.delete(http).await;
-        }
-        self.match_timers.remove(rnd);
-        self.round_warnings.remove(rnd);
     }
 
     pub fn get_user_id(&self, user: &PlayerId) -> Option<UserId> {

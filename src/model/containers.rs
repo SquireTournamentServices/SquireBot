@@ -9,6 +9,9 @@ use serenity::{
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::model::atomics_collection::AtomicCardCollection;
 use squire_lib::{round::RoundId, tournament::TournamentId};
+use tokio::sync::mpsc::UnboundedSender;
+
+use crate::match_manager::MatchUpdateMessage;
 
 use super::{
     confirmation::Confirmation, guild_settings::GuildSettings, guild_tournament::GuildTournament,
@@ -42,6 +45,11 @@ impl TypeMapKey for ConfirmationsContainer {
 pub struct CardCollectionContainer;
 impl TypeMapKey for CardCollectionContainer {
     type Value = Arc<RwLock<AtomicCardCollection>>;
+}
+
+pub struct MatchUpdateSenderContainer;
+impl TypeMapKey for MatchUpdateSenderContainer {
+    type Value = Arc<UnboundedSender<MatchUpdateMessage>>;
 }
 
 pub struct MisfortuneUserMapContainer;

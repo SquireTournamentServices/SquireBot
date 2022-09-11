@@ -55,7 +55,7 @@ pub async fn player_tourn_resolver(
     msg: &Message,
     tourn_name: String,
     all_tourns: &DashMap<TournamentId, GuildTournament>,
-    mut ids: impl ExactSizeIterator<Item = &'fut TournamentId> + Send + Sync + 'fut,
+    ids: impl ExactSizeIterator<Item = &'fut TournamentId> + Send + Sync + 'fut,
 ) -> Result<Option<TournamentId>, CommandError> {
     let mut opt_tourn_id: Option<TournamentId> = None;
     let mut found_mult = false;

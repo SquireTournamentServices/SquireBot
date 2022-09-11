@@ -1,17 +1,12 @@
 use std::{
     collections::HashMap,
     fmt::{Display, Write},
-    sync::Arc,
 };
 
-use itertools::Itertools;
 use serenity::{
     builder::CreateEmbed,
     http::CacheHttp,
-    model::{
-        channel::Message,
-        id::{ChannelId, UserId},
-    },
+    model::{channel::Message, id::UserId},
     utils::Colour,
     CacheAndHttp,
 };
@@ -20,7 +15,6 @@ use cycle_map::CycleMap;
 use squire_lib::{
     identifiers::PlayerId,
     pairings::PairingStyle,
-    round::Round,
     scoring::Standings,
     standard_scoring::StandardScore,
     tournament::{ScoringSystem, Tournament, TournamentStatus},
@@ -30,6 +24,7 @@ use crate::{
     model::guild_tournament::GuildTournament, utils::tourn_resolver::player_name_resolver,
 };
 
+#[allow(dead_code)]
 pub fn embed_fields<I, T>(iter: I) -> Vec<String>
 where
     I: Iterator<Item = T>,
@@ -107,61 +102,6 @@ pub async fn update_standings_message(
     let _ = msg
         .edit(cache, |m| m.content("\u{200b}").set_embeds(embeds))
         .await;
-}
-
-pub async fn update_match_message(
-    cache: Arc<CacheAndHttp>,
-    mut msg: Message,
-    has_table_number: bool,
-    vc_id: Option<ChannelId>,
-    tc_id: Option<ChannelId>,
-    plyrs: &CycleMap<UserId, PlayerId>,
-    tourn: &Tournament,
-    round: &Round,
-) {
-    let title = if has_table_number {
-        format!(
-            "Match #{}: Table {}",
-            round.match_number, round.table_number
-        )
-    } else {
-        format!("Match #{}:", round.match_number)
-    };
-    let mut fields: Vec<(String, String, bool)> = Vec::new();
-    if !round.is_certified() {
-        fields.push((
-            "Time left:".into(),
-            format!("{} min", round.time_left().as_secs() / 60),
-            true,
-        ));
-    } else {
-        fields.push((
-            "Winner:".into(),
-            player_name_resolver(round.winner.clone().unwrap(), plyrs, tourn),
-            true,
-        ));
-    }
-    fields.push(("Status:".into(), round.status.to_string(), true));
-    if let Some(vc) = vc_id {
-        fields.push(("Voice Channel:".into(), format!("<#{vc}>"), true));
-    }
-    if let Some(tc) = tc_id {
-        fields.push(("Text Channel:".into(), format!("<#{tc}>"), true));
-    }
-    fields.push((
-        "Players:".into(),
-        round
-            .players
-            .iter()
-            .map(|id| player_name_resolver(id.clone(), plyrs, tourn))
-            .join("\n"),
-        true,
-    ));
-    tokio::spawn(async move {
-        let _ = msg
-            .edit(cache, |m| m.embed(|e| e.title(title).fields(fields)))
-            .await;
-    });
 }
 
 // Tournament contains the message
