@@ -1,88 +1,90 @@
-use serenity::{client::Context, framework::standard::CommandResult, model::channel::Message};
-use squire_lib::error::TournamentError;
+use squire_lib::{
+    error::TournamentError::{self, *},
+    operations::TournOp::{self, *},
+    round::RoundStatus::*,
+    tournament::TournamentStatus::*,
+};
 
-// A function for deliverying canned responses based on a TournamentError
-pub async fn error_to_reply(ctx: &Context, msg: &Message, err: TournamentError) -> CommandResult {
-    use squire_lib::{error::TournamentError::*, tournament::TournamentStatus};
+pub fn op_to_content(op: &TournOp) -> &'static str {
+    match op {
+        Create(..) => {
+            unreachable!("You shouldn't be creating a tournament this way");
+        }
+        CheckIn(..) => "You successfully checked in!!",
+        RegisterPlayer(..) => "You have been successfully registered!!",
+        DropPlayer(..) => "You have been successfully dropped!!",
+        RecordResult(..) => "Your result was successfully recorded!!",
+        ConfirmResult(..) => "You have successfully confirmed the result of your match!!",
+        AddDeck(..) => "You have successfully registered a deck!!",
+        RemoveDeck(..) => "You have successfully removed a deck!!",
+        SetGamerTag(..) => "You have successfully set your gamer tag!!",
+        ReadyPlayer(..) => "You have successfully marked yourself as ready to play!!",
+        UnReadyPlayer(..) => "You have successfully marked yourself as unready to play!!",
+        RegisterGuest(..) => "You have successfully registered a player!!",
+        AdminRegisterPlayer(..) => "You have successfully registed a player!!",
+        AdminRecordResult(..) => {
+            "You have successfully recorded that player's result of that match!!"
+        }
+        AdminConfirmResult(..) => {
+            "You have successfully recorded that match's result for that player!!"
+        }
+        AdminAddDeck(..) => "You have successfully added a deck for that player!!",
+        AdminRemoveDeck(..) => "You have successfully removed that deck from that player!!",
+        AdminReadyPlayer(..) => "You have successfully marked that player as ready to play!!",
+        AdminUnReadyPlayer(..) => "You have successfully marked that player as not ready to play!!",
+        TimeExtension(..) => "You have successfully given that match a time extension!!",
+        UpdateReg(..) => "You have successfully updated the registration status!!",
+        Start(..) => "You have successfully started the tournament!!",
+        Freeze(..) => "You have successfully frozen the tournament!!",
+        Thaw(..) => "You have successfully thawed the tournament!!",
+        End(..) => "You have successfully ended the tournament!!",
+        Cancel(..) => "You have successfully cancelled the tournament!!",
+        AdminOverwriteResult(..) => "You have successfully overwriten the result of that match!!",
+        RegisterJudge(..) => "You have successfully registered that person as a judge!!",
+        RegisterAdmin(..) => "You have successfully registered that person as an admin!!",
+        AdminDropPlayer(..) => "You have successfully dropped that player!!",
+        RemoveRound(..) => "You have successfully removed that round!!",
+        UpdateTournSetting(..) => "You have successfully updated that tournament setting!!",
+        GiveBye(..) => "You have successfully given a bye to that player!!",
+        CreateRound(..) => "You have successfully created a match for those players!!",
+        PairRound(..) => "You have successfully paired the next round!!",
+        Cut(..) => "You have successfully such to the top of the tournament!!",
+        PruneDecks(..) => "You have successfully pruned excess decks from players!!",
+        PrunePlayers(..) => "You have successfully pruned excess players!!",
+    }
+}
+
+pub fn error_to_content(err: TournamentError) -> &'static str {
     match err {
-        IncorrectStatus(s) => {
-            let text = match s {
-                TournamentStatus::Planned => "That tournament hasn't started yet.",
-                TournamentStatus::Started => "That tournament has already started.",
-                TournamentStatus::Frozen => "That tournament is currently frozen.",
-                TournamentStatus::Ended => "That tournament has already ended.",
-                TournamentStatus::Cancelled => "That tournament has been cancelled.",
-            };
-            msg.reply(&ctx.http, text).await?;
-        }
-        RoundConfirmed => {
-            msg.reply(&ctx.http, "That round has already been certified.")
-                .await?;
-        }
-        InvalidDeckCount => {
-            msg.reply(
-                &ctx.http,
-                "The minimum deck count must be less than the maximum count.",
-            )
-            .await?;
-        }
-        OfficalLookup => {
-            msg.reply(&ctx.http, "That person could not be found as an official.")
-                .await?;
-        }
-        RegClosed => {
-            msg.reply(&ctx.http, "Registertion is closed for that tournament.")
-                .await?;
-        }
-        PlayerLookup => {
-            msg.reply(&ctx.http, "That person is not a player in that tournament.")
-                .await?;
-        }
-        RoundLookup => {
-            msg.reply(&ctx.http, "That round could not be found.")
-                .await?;
-        }
-        DeckLookup => {
-            msg.reply(&ctx.http, "That deck could not be found.")
-                .await?;
-        }
-        PlayerNotInRound => {
-            msg.reply(&ctx.http, "That player isn't in that round.")
-                .await?;
-        }
-        NoActiveRound => {
-            msg.reply(&ctx.http, "That player isn't in an active round.")
-                .await?;
-        }
-        InvalidBye => {
-            msg.reply(&ctx.http, "There must be exactly one player in a bye.")
-                .await?;
-        }
-        ActiveMatches => {
-            msg.reply(
-                &ctx.http,
-                "That tournament has outstanding matches. They need to finish first.",
-            )
-            .await?;
-        }
-        PlayerNotCheckedIn => {
-            // Not sure what to say here...
-            msg.reply(&ctx.http, "You are not checked in.").await?;
-        }
+        IncorrectStatus(s) => match s {
+            Planned => "That tournament hasn't started yet.",
+            Started => "That tournament has already started.",
+            Frozen => "That tournament is currently frozen.",
+            Ended => "That tournament has already ended.",
+            Cancelled => "That tournament has been cancelled.",
+        },
+        IncorrectRoundStatus(s) => match s {
+            Active => "That round is active.",
+            Certified => "That round is certified.",
+            Dead => "That round has been removed.",
+        },
+        RoundConfirmed => "That round has already been certified.",
+        InvalidDeckCount => "The minimum deck count must be less than the maximum count.",
+        OfficalLookup => "That person could not be found as an official.",
+        RegClosed => "Registertion is closed for that tournament.",
+        PlayerLookup => "That person is not a player in that tournament.",
+        RoundLookup => "That round could not be found.",
+        DeckLookup => "That deck could not be found.",
+        PlayerNotInRound => "That player isn't in that round.",
+        NoActiveRound => "That player isn't in an active round.",
+        InvalidBye => "There must be exactly one player in a bye.",
+        ActiveMatches => "That tournament has outstanding matches. They need to finish first.",
+        PlayerNotCheckedIn => "You are not checked in.",
         IncompatiblePairingSystem => {
-            msg.reply(
-                &ctx.http,
-                "That tournament has an incompatible pairing system for that to work.",
-            )
-            .await?;
+            "That tournament has an incompatible pairing system for that to work."
         }
         IncompatibleScoringSystem => {
-            msg.reply(
-                &ctx.http,
-                "That tournament has an incompatible scoring system for that to work.",
-            )
-            .await?;
+            "That tournament has an incompatible scoring system for that to work."
         }
-    };
-    Ok(())
+    }
 }

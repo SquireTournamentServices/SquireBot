@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::{collections::HashMap, fmt};
 
 use serde::{Deserialize, Serialize};
@@ -32,7 +30,10 @@ use squire_lib::{
 
 use crate::{
     model::{consts::SQUIRE_ACCOUNT_ID, guild_rounds::GuildRound},
-    utils::embeds::update_status_message,
+    utils::{
+        embeds::update_status_message,
+        error_to_reply::{error_to_content, op_to_content},
+    },
 };
 
 use super::guild_rounds::{TimerWarnings, TrackingRound};
@@ -61,10 +62,17 @@ pub enum GuildTournamentAction {
     ViewAllPlayers,
     ViewStandings,
     ViewMatchStatus(RoundIdentifier),
+    RemoveMatch(RoundIdentifier, TournOp),
+    Prune(TournOp),
+    Close(TournOp),
+    MatchResult(TournOp),
+    GiveBye(TournOp),
     ViewTournamentStatus,
     RegisterPlayer(UserId),
     RegisterGuest(String),
+    DropPlayer(PlayerIdentifier, TournOp),
     CreateMatch(Vec<String>),
+    PairRound,
     Operation(TournOp),
 }
 
@@ -148,54 +156,6 @@ impl GuildTournament {
         Ok(OpData::Nothing)
     }
 
-    #[allow(unused)]
-    pub async fn take_action(
-        &mut self,
-        _ctx: &Context,
-        _msg: &Message,
-        action: GuildTournamentAction,
-    ) -> OpResult {
-        use GuildTournamentAction::*;
-        match action {
-            GetRawStandings => {
-                todo!()
-            }
-            ViewDecklist(p_ident, deck_name) => {
-                todo!()
-            }
-            ViewPlayerDecks(p_ident) => {
-                todo!()
-            }
-            ViewPlayerProfile(p_ident) => {
-                todo!()
-            }
-            ViewAllPlayers => {
-                todo!()
-            }
-            ViewStandings => {
-                todo!()
-            }
-            ViewMatchStatus(r_ident) => {
-                todo!()
-            }
-            ViewTournamentStatus => {
-                todo!()
-            }
-            RegisterPlayer(user_id) => {
-                todo!()
-            }
-            RegisterGuest(name) => {
-                todo!()
-            }
-            CreateMatch(raw_plyrs) => {
-                todo!()
-            }
-            Operation(op) => {
-                todo!()
-            }
-        }
-    }
-
     pub fn get_player_id(&self, user: &UserId) -> Option<PlayerId> {
         self.players.get_right(user).cloned()
     }
@@ -215,9 +175,18 @@ impl GuildTournament {
                     .map(|s| (*p, s))
             })
             .collect();
-        let vc_mention = g_rnd.vc.map(|vc| vc.mention().to_string()).unwrap_or_default();
-        let tc_mention = g_rnd.tc.map(|tc| tc.mention().to_string()).unwrap_or_default();
-        let role_mention = g_rnd.role.map(|role| role.mention().to_string()).unwrap_or_default();
+        let vc_mention = g_rnd
+            .vc
+            .map(|vc| vc.mention().to_string())
+            .unwrap_or_default();
+        let tc_mention = g_rnd
+            .tc
+            .map(|tc| tc.mention().to_string())
+            .unwrap_or_default();
+        let role_mention = g_rnd
+            .role
+            .map(|role| role.mention().to_string())
+            .unwrap_or_default();
         Some(TrackingRound {
             round,
             message,
@@ -335,6 +304,59 @@ impl GuildTournament {
         update_status_message(cache, self).await;
         Ok(())
     }
+
+    pub async fn take_action(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        action: GuildTournamentAction,
+    ) -> OpResult {
+        use GuildTournamentAction::*;
+        match action {
+            GetRawStandings => {
+                todo!()
+            }
+            ViewAllPlayers => {
+                todo!()
+            }
+            ViewStandings => {
+                todo!()
+            }
+            ViewDecklist(p_ident, deck_name) => {
+                todo!()
+            }
+            ViewPlayerDecks(p_ident) => {
+                todo!()
+            }
+            ViewPlayerProfile(p_ident) => {
+                todo!()
+            }
+            ViewMatchStatus(r_ident) => {
+                todo!()
+            }
+            ViewTournamentStatus => {
+                todo!()
+            }
+            RegisterPlayer(user_id) => {
+                todo!()
+            }
+            RegisterGuest(name) => {
+                todo!()
+            }
+            CreateMatch(raw_plyrs) => {
+                todo!()
+            }
+            Operation(op) => match self.tourn.apply_op(op.clone()) {
+                Err(err) => {
+                    let _ = msg.reply(&ctx.http, error_to_content(err)).await;
+                }
+                Ok(data) => {
+                    let content = op_to_content(&op);
+                }
+            },
+        }
+        todo!()
+    }
 }
 
 impl fmt::Display for RoundCreationFailure {
@@ -356,11 +378,5 @@ impl fmt::Display for RoundCreationFailure {
 impl From<TournamentSetting> for SquireTournamentSetting {
     fn from(setting: TournamentSetting) -> Self {
         SquireTournamentSetting::TournamentSetting(setting)
-    }
-}
-
-impl From<TournOp> for GuildTournamentAction {
-    fn from(op: TournOp) -> Self {
-        GuildTournamentAction::Operation(op)
     }
 }

@@ -18,7 +18,7 @@ use crate::{
             CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
             TournamentNameAndIDMapContainer,
         },
-        guild_tournament::GuildTournamentAction,
+        guild_tournament::GuildTournamentAction::{self, RemoveMatch, PairRound, Close, Prune, GiveBye, Operation, MatchResult, DropPlayer},
     },
     utils::{
         default_response::subcommand_default,
@@ -62,7 +62,12 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     match card_coll.import_deck(raw_deck.clone()).await {
         Some(deck) => {
             admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, p| {
-                TournOp::AdminAddDeck(admin.into(), p.into(), deck_name, deck).into()
+                Operation(TournOp::AdminAddDeck(
+                    admin.into(),
+                    p.into(),
+                    deck_name,
+                    deck,
+                ))
             })
             .await
         }
@@ -98,7 +103,7 @@ async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> Command
     };
     let tourn_name = args.rest().trim().to_string();
     admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, p| {
-        TournOp::AdminConfirmResult(admin.into(), r_ident, p.into()).into()
+        Operation(TournOp::AdminConfirmResult(admin.into(), r_ident, p.into()))
     })
     .await
 }
@@ -152,7 +157,7 @@ async fn drop(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     };
     let tourn_name = args.rest().trim().to_string();
     admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, p| {
-        TournOp::AdminDropPlayer(admin.into(), p.into()).into()
+        DropPlayer(p.into(), TournOp::AdminDropPlayer(admin.into(), p.into()))
     })
     .await
 }
@@ -173,7 +178,7 @@ async fn give_bye(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     };
     let tourn_name = args.rest().trim().to_string();
     admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, p| {
-        TournOp::GiveBye(admin.into(), p.into()).into()
+        GiveBye(TournOp::GiveBye(admin.into(), p.into()))
     })
     .await
 }
@@ -275,7 +280,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     };
     let tourn_name = args.rest().trim().to_string();
     admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, p| {
-        TournOp::AdminRecordResult(admin.into(), r_ident, Wins(p, wins)).into()
+        MatchResult(TournOp::AdminRecordResult(admin.into(), r_ident, Wins(p, wins)))
     })
     .await
 }
@@ -319,7 +324,7 @@ async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     };
     let tourn_name = args.rest().trim().to_string();
     admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, _| {
-        TournOp::AdminRecordResult(admin.into(), r_ident, Draw(draws)).into()
+        MatchResult(TournOp::AdminRecordResult(admin.into(), r_ident, Draw(draws)))
     })
     .await
 }
@@ -369,7 +374,7 @@ async fn remove_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     };
     let tourn_name = args.rest().trim().to_string();
     admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, p_id| {
-        TournOp::AdminRemoveDeck(admin.into(), p_id.into(), deck_name).into()
+        Operation(TournOp::AdminRemoveDeck(admin.into(), p_id.into(), deck_name))
     })
     .await
 }
@@ -392,7 +397,7 @@ async fn cut(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     };
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        TournOp::Cut(admin.into(), len).into()
+        Operation(TournOp::Cut(admin.into(), len))
     })
     .await
 }
@@ -406,7 +411,7 @@ async fn cut(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 async fn end(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        TournOp::End(admin.into()).into()
+        Close(TournOp::End(admin.into()))
     })
     .await
 }
@@ -420,7 +425,7 @@ async fn end(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn cancel(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        TournOp::Cancel(admin.into()).into()
+        Close(TournOp::Cancel(admin.into()))
     })
     .await
 }
@@ -434,7 +439,7 @@ async fn cancel(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn freeze(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        TournOp::Freeze(admin.into()).into()
+        Operation(TournOp::Freeze(admin.into()))
     })
     .await
 }
@@ -448,7 +453,7 @@ async fn freeze(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn thaw(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        TournOp::Thaw(admin.into()).into()
+        Operation(TournOp::Thaw(admin.into()))
     })
     .await
 }
@@ -486,7 +491,7 @@ async fn match_status(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 async fn pair(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        TournOp::PairRound(admin.into()).into()
+        PairRound
     })
     .await
 }
@@ -523,7 +528,7 @@ async fn prune(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 async fn players(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        TournOp::PrunePlayers(admin.into()).into()
+        Prune(TournOp::PrunePlayers(admin.into()))
     })
     .await
 }
@@ -536,7 +541,7 @@ async fn players(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        TournOp::PruneDecks(admin.into()).into()
+        Prune(TournOp::PruneDecks(admin.into()))
     })
     .await
 }
@@ -571,7 +576,7 @@ async fn registration(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     };
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        TournOp::UpdateReg(admin.into(), reg_status).into()
+        Operation(TournOp::UpdateReg(admin.into(), reg_status))
     })
     .await
 }
@@ -595,7 +600,7 @@ async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     };
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        TournOp::RemoveRound(admin.into(), round_number).into()
+        RemoveMatch(round_number.into(), TournOp::RemoveRound(admin.into(), round_number))
     })
     .await
 }
@@ -621,7 +626,7 @@ async fn standings(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn start(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        TournOp::Start(admin.into()).into()
+        Operation(TournOp::Start(admin.into()))
     })
     .await
 }
@@ -669,7 +674,7 @@ async fn time_extension(ctx: &Context, msg: &Message, mut args: Args) -> Command
     };
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        TournOp::TimeExtension(admin.into(), round_number, ext).into()
+        Operation(TournOp::TimeExtension(admin.into(), round_number, ext))
     })
     .await
 }

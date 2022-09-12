@@ -17,7 +17,6 @@ pub struct MatchUpdateMessage {
 }
 
 /// The type of update being sent to the match
-#[allow(unused)]
 pub enum MatchUpdate {
     NewMatch(TrackingRound),
     TimeExtention(Duration),
