@@ -17,8 +17,8 @@ use crate::{
         guild_tournament::SquireTournamentSetting,
     },
     utils::{
-        error_to_reply::error_to_reply, extract_id::extract_id, spin_lock::spin_mut,
-        stringify::bool_from_string, tourn_resolver::admin_tourn_id_resolver,
+        extract_id::extract_id, spin_lock::spin_mut,
+        stringify::bool_from_string, tourn_resolver::admin_tourn_id_resolver, error_to_reply::error_to_content,
     },
 };
 
@@ -807,7 +807,7 @@ async fn settings_command(
     };
     let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     if let Err(err) = tourn.update_setting(setting) {
-        error_to_reply(ctx, msg, err).await?;
+        msg.reply(&ctx.http, error_to_content(err)).await?;
     } else {
         msg.reply(&ctx.http, "Setting successfully updated!")
             .await?;

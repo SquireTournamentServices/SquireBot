@@ -23,7 +23,7 @@ use squire_lib::{
     error::TournamentError,
     identifiers::{PlayerId, PlayerIdentifier, RoundIdentifier},
     operations::{OpData, OpResult, TournOp},
-    round::RoundId,
+    round::{RoundId, RoundResult},
     settings::TournamentSetting,
     tournament::{Tournament, TournamentPreset},
 };
@@ -55,22 +55,27 @@ pub enum SquireTournamentSetting {
 }
 
 pub enum GuildTournamentAction {
+    // Actions to query information
     GetRawStandings,
     ViewDecklist(PlayerIdentifier, String),
     ViewPlayerDecks(PlayerIdentifier),
     ViewPlayerProfile(PlayerIdentifier),
     ViewAllPlayers,
     ViewStandings,
-    ViewMatchStatus(RoundIdentifier),
-    RemoveMatch(RoundIdentifier, TournOp),
-    Prune(TournOp),
-    Close(TournOp),
-    MatchResult(TournOp),
-    GiveBye(TournOp),
     ViewTournamentStatus,
+    ViewMatchStatus(RoundIdentifier),
+    // Wrappers for tournament operations
+    RemoveMatch(RoundIdentifier),
+    PrunePlayers,
+    PruneDecks,
+    End,
+    Cancel,
+    RecordResult(PlayerIdentifier, RoundResult),
+    ConfirmResult(PlayerIdentifier),
+    GiveBye(PlayerIdentifier),
     RegisterPlayer(UserId),
     RegisterGuest(String),
-    DropPlayer(PlayerIdentifier, TournOp),
+    DropPlayer(PlayerIdentifier),
     CreateMatch(Vec<String>),
     PairRound,
     Operation(TournOp),
@@ -313,6 +318,36 @@ impl GuildTournament {
     ) -> OpResult {
         use GuildTournamentAction::*;
         match action {
+            PairRound => {
+                todo!()
+            }
+            RemoveMatch(r_id) => {
+                todo!()
+            }
+            RecordResult(r_id, result) => {
+                todo!()
+            }
+            ConfirmResult(p_ident) => {
+                todo!()
+            }
+            DropPlayer(p_ident) => {
+                todo!()
+            }
+            PruneDecks => {
+                todo!()
+            }
+            PrunePlayers => {
+                todo!()
+            }
+            End => {
+                todo!()
+            }
+            Cancel => {
+                todo!()
+            }
+            GiveBye(p_ident) => {
+                todo!()
+            }
             GetRawStandings => {
                 todo!()
             }
