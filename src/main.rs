@@ -37,7 +37,7 @@ use tokio::{sync::mpsc::unbounded_channel, time::Instant};
 
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::mtgjson::meta::Meta;
-use squire_lib::{self, operations::TournOp, round::RoundId, tournament::TournamentId};
+use squire_lib::{self, operations::TournOp, tournament::TournamentId};
 
 mod match_manager;
 mod misc_commands;
@@ -57,7 +57,6 @@ use crate::{
     tournament_commands::tournament::TOURNAMENTCOMMANDS_GROUP,
     utils::{
         card_collection::build_collection,
-        embeds::{update_standings_message, update_status_message},
         spin_lock::spin_mut,
     },
 };
@@ -494,43 +493,6 @@ async fn main() {
         let ref_three = ref_main.clone();
         let cache_three = client.cache_and_http.clone();
         data.insert::<TournamentMapContainer>(ref_main);
-        // Set up a the standings, match, and status embed updaters
-        tokio::spawn(async move {
-            let tourns = ref_one;
-            let cache = cache_one;
-            let loop_length = Duration::from_secs(60);
-            loop {
-                let timer = Instant::now();
-                let tourns_lock = tourns.write().await;
-                //println!( "Tournament saver still spinning" );
-                // TODO: This should be par_iter via rayon
-                for mut pair in tourns_lock.iter_mut() {
-                    let tourn = pair.value_mut();
-                    let standings = tourn.tourn.get_standings();
-                    println!("Standings:\n{standings:?}");
-                    update_standings_message(
-                        &cache,
-                        tourn.standings_message.as_mut().unwrap(),
-                        &tourn.players,
-                        &tourn.tourn,
-                        standings,
-                    )
-                    .await;
-                    //tourn.update_standings = false;
-                }
-                // Sleep so that the next loop starts 30 seconds after the start of this one
-                drop(tourns_lock);
-                if timer.elapsed() < loop_length {
-                    println!(
-                        "Standings updater sleeping for {:?}",
-                        loop_length - timer.elapsed()
-                    );
-                    let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
-                    sleep.tick().await;
-                    sleep.tick().await;
-                }
-            }
-        });
         // Match embed and timer notification updater
         tokio::spawn(async move {
             let cache = cache_two;
@@ -541,33 +503,6 @@ async fn main() {
                 if timer.elapsed() < loop_length {
                     println!(
                         "Match message updater sleeping for {:?}",
-                        loop_length - timer.elapsed()
-                    );
-                    let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
-                    sleep.tick().await;
-                    sleep.tick().await;
-                }
-            }
-        });
-        // Tournament status updater
-        tokio::spawn(async move {
-            let tourns = ref_three;
-            let cache = cache_three;
-            let loop_length = Duration::from_secs(30);
-            loop {
-                let timer = Instant::now();
-                let tourns_lock = tourns.write().await;
-                // TODO: This should be par_iter via rayon
-                for mut pair in tourns_lock.iter_mut() {
-                    let tourn = pair.value_mut();
-                    update_status_message(&cache, tourn).await;
-                    //tourn.update_status = false;
-                }
-                // Sleep so that the next loop starts 30 seconds after the start of this one
-                drop(tourns_lock);
-                if timer.elapsed() < loop_length {
-                    println!(
-                        "Status updater sleeping for {:?}",
                         loop_length - timer.elapsed()
                     );
                     let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
@@ -620,15 +555,20 @@ async fn main() {
         });
         data.insert::<CardCollectionContainer>(card_ref);
 
-        // Construct the misfortunes map, used with !misfortune
-        let mis_players: GroupMap<UserId, RoundId> = GroupMap::new();
-        //let misfortunes: DashMap<RoundId, Misfortune> = DashMap::new();
-        //data.insert::<MisfortuneMapContainer>(Arc::new(misfortunes));
-        data.insert::<MisfortuneUserMapContainer>(Arc::new(RwLock::new(mis_players)));
+        let dead_tournaments: HashMap<TournamentId, GuildTournament> =
+            read_to_string("./dead_tournaments.json")
+                .and_then(|data| {
+                    Ok(serde_json::from_str(data.as_str()).expect("Malformed dead tournament data"))
+                })
+                .unwrap_or_default();
+        let dead_tourns = Arc::new(RwLock::new(dead_tournaments));
+        let dead_tourns_ref = dead_tourns.clone();
+        data.insert::<DeadTournamentMapContainer>(dead_tourns);
 
         // Spawns an await task to save all data every 15 minutes
         tokio::spawn(async move {
             let tourns = tourns_ref;
+            let dead_tourns = dead_tourns_ref;
             let settings = settings_ref;
             let mut interval = tokio::time::interval(Duration::from_secs(900));
             loop {
@@ -636,6 +576,12 @@ async fn main() {
                 let tourns_lock = tourns.write().await;
                 if let Ok(data) = serde_json::to_string(&*tourns_lock) {
                     if let Ok(mut file) = File::create("tournaments.json") {
+                        let _ = write!(file, "{data}");
+                    }
+                }
+                let dead_tourns_lock = dead_tourns.write().await;
+                if let Ok(data) = serde_json::to_string(&*dead_tourns_lock) {
+                    if let Ok(mut file) = File::create("dead_tournaments.json") {
                         let _ = write!(file, "{data}");
                     }
                 }

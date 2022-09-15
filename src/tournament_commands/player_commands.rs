@@ -4,11 +4,7 @@ use serenity::{
     prelude::Context,
 };
 
-use squire_lib::{
-    identifiers::PlayerId,
-    operations::TournOp,
-    round::RoundResult::*,
-};
+use squire_lib::{identifiers::PlayerId, operations::TournOp, round::RoundResult::*};
 
 use crate::{
     model::{
@@ -16,7 +12,7 @@ use crate::{
             CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
             TournamentNameAndIDMapContainer,
         },
-        guild_tournament::{GuildTournamentAction, GuildTournamentAction::*},
+        guild_tournament::GuildTournamentAction::{self, *},
     },
     utils::{spin_lock::spin_mut, tourn_resolver::player_tourn_resolver},
 };
@@ -46,7 +42,7 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     match card_coll.import_deck(raw_deck.clone()).await {
         Some(deck) => {
             player_command(ctx, msg, tourn_name, move |p| {
-                TournOp::AddDeck(p.into(), deck_name, deck).into()
+                Operation(TournOp::AddDeck(p.into(), deck_name, deck))
             })
             .await
         }
@@ -64,10 +60,7 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 #[description("Confirm the result of your match.")]
 async fn confirm_result(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
-    player_command(ctx, msg, tourn_name, |p| {
-        TournOp::ConfirmResult(p.into()).into()
-    })
-    .await
+    player_command(ctx, msg, tourn_name, |p| ConfirmResult(p.into())).await
 }
 
 #[command("decklist")]
@@ -102,7 +95,7 @@ async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[description("See your current status in the tournament.")]
 async fn profile(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
-    player_command(ctx, msg, tourn_name, |p| ViewPlayerProfile(p.into()).into()).await
+    player_command(ctx, msg, tourn_name, |p| ViewPlayerProfile(p.into())).await
 }
 
 #[command("drop")]
@@ -112,7 +105,7 @@ async fn profile(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn drop(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
     player_command(ctx, msg, tourn_name, |p| {
-        TournOp::DropPlayer(p.into()).into()
+        Operation(TournOp::DropPlayer(p.into()))
     })
     .await
 }
@@ -155,7 +148,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         Ok(wins) => {
             let tourn_name = args.rest().trim().to_string();
             player_command(ctx, msg, tourn_name, move |p| {
-                TournOp::RecordResult(p.into(), Wins(p, wins)).into()
+                RecordResult(p.into(), Wins(p, wins))
             })
             .await
         }
@@ -177,7 +170,7 @@ async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         Ok(draws) => {
             let tourn_name = args.rest().trim().to_string();
             player_command(ctx, msg, tourn_name, move |p| {
-                TournOp::RecordResult(p.into(), Draw(draws)).into()
+                RecordResult(p.into(), Draw(draws))
             })
             .await
         }
@@ -201,7 +194,7 @@ async fn name(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         Ok(gamer_tag) => {
             let tourn_name = args.rest().trim().to_string();
             player_command(ctx, msg, tourn_name, move |p| {
-                TournOp::SetGamerTag(p.into(), gamer_tag).into()
+                Operation(TournOp::SetGamerTag(p.into(), gamer_tag))
             })
             .await
         }
@@ -221,7 +214,7 @@ async fn name(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 async fn ready(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
     player_command(ctx, msg, tourn_name, |p| {
-        TournOp::ReadyPlayer(p.into()).into()
+        Operation(TournOp::ReadyPlayer(p.into()))
     })
     .await
 }
@@ -234,7 +227,7 @@ async fn ready(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn unready(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
     player_command(ctx, msg, tourn_name, |p| {
-        TournOp::UnReadyPlayer(p.into()).into()
+        Operation(TournOp::UnReadyPlayer(p.into()))
     })
     .await
 }
@@ -258,10 +251,7 @@ async fn register(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[description("Removes one of your decks.")]
 async fn remove_deck(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
-    player_command(ctx, msg, tourn_name, |p| {
-        TournOp::DropPlayer(p.into()).into()
-    })
-    .await
+    player_command(ctx, msg, tourn_name, |p| DropPlayer(p.into())).await
 }
 
 /// Handles 90% of a player command what performs an action

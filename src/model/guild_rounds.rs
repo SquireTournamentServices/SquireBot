@@ -92,7 +92,7 @@ impl TrackingRound {
         }
     }
 
-    fn embed_info(&self) -> (String, Vec<(String, String, bool)>) {
+    pub fn embed_info(&self) -> (String, Vec<(String, String, bool)>) {
         let title = if self.use_table_number {
             format!(
                 "Match #{}: Table {}",

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, collections::HashMap};
 
 use dashmap::DashMap;
 use serenity::{
@@ -55,6 +55,11 @@ impl TypeMapKey for MatchUpdateSenderContainer {
 pub struct MisfortuneUserMapContainer;
 impl TypeMapKey for MisfortuneUserMapContainer {
     type Value = Arc<RwLock<GroupMap<UserId, RoundId>>>;
+}
+
+pub struct DeadTournamentMapContainer;
+impl TypeMapKey for DeadTournamentMapContainer {
+    type Value = Arc<RwLock<HashMap<TournamentId, GuildTournament>>>;
 }
 
 //pub struct MisfortuneMapContainer;

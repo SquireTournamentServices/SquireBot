@@ -29,7 +29,10 @@ use squire_lib::{
 };
 
 use crate::{
-    model::{consts::SQUIRE_ACCOUNT_ID, guild_rounds::GuildRound},
+    match_manager::{MatchUpdate, MatchUpdateMessage},
+    model::{
+        consts::SQUIRE_ACCOUNT_ID, containers::MatchUpdateSenderContainer, guild_rounds::GuildRound,
+    },
     utils::{
         embeds::update_status_message,
         error_to_reply::{error_to_content, op_to_content},
@@ -70,10 +73,14 @@ pub enum GuildTournamentAction {
     PruneDecks,
     End,
     Cancel,
+    Cut(usize),
     RecordResult(PlayerIdentifier, RoundResult),
     ConfirmResult(PlayerIdentifier),
+    AdminRecordResult(RoundIdentifier, RoundResult),
+    AdminConfirmResult(RoundIdentifier, PlayerIdentifier),
     GiveBye(PlayerIdentifier),
     RegisterPlayer(UserId),
+    AdminRegisterPlayer(UserId),
     RegisterGuest(String),
     DropPlayer(PlayerIdentifier),
     CreateMatch(Vec<String>),
@@ -310,25 +317,193 @@ impl GuildTournament {
         Ok(())
     }
 
+    /// Remove all tournament data from the guild
+    pub async fn purge(&mut self) {
+        todo!()
+    }
+
+    /// Remove all tournament data from the guild and end the tournament
+    pub async fn end(&mut self) -> OpResult {
+        todo!()
+    }
+
+    /// Remove all tournament data from the guild and cancel the tournament
+    pub async fn cancel(&mut self) -> OpResult {
+        todo!()
+    }
+
+    /// Updates the standings embed
+    pub async fn update_standings(&mut self) {
+        todo!()
+    }
+
+    /// Updates the status embed
+    pub async fn update_status(&mut self) {
+        todo!()
+    }
+
     pub async fn take_action(
         &mut self,
         ctx: &Context,
         msg: &Message,
         action: GuildTournamentAction,
-    ) -> OpResult {
+    ) -> CommandResult {
         use GuildTournamentAction::*;
         match action {
+            Cut(count) => {
+                todo!()
+            }
             PairRound => {
                 todo!()
             }
             RemoveMatch(r_id) => {
                 todo!()
             }
-            RecordResult(r_id, result) => {
-                todo!()
+            RecordResult(p_ident, result) => {
+                let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
+                let op = TournOp::RecordResult(p_ident, result.clone());
+                match self.tourn.apply_op(op) {
+                    Err(err) => {
+                        msg.reply(&ctx.http, error_to_content(err)).await?;
+                    }
+                    Ok(_) => {
+                        let p_id = opt_p_id.unwrap();
+                        let r_id = self.tourn.round_reg.get_player_active_round(&p_id).unwrap().id;
+                        let update = MatchUpdateMessage {
+                            id: r_id,
+                            update: MatchUpdate::RecordResult(result),
+                        };
+                        ctx
+                            .data
+                            .read()
+                            .await
+                            .get::<MatchUpdateSenderContainer>()
+                            .unwrap()
+                            .send(update);
+                        let mut resp = msg
+                            .reply(
+                                &ctx.http,
+                                "Result recorded!! The current status of our round is:",
+                            )
+                            .await?;
+                        if let Some(tr) = self.get_tracking_round(&r_id) {
+                            let (title, fields) = tr.embed_info();
+                            resp.edit(&ctx.http, |m| m.embed(|e| e.title(title).fields(fields)))
+                                .await?;
+                        }
+                    }
+                }
             }
             ConfirmResult(p_ident) => {
-                todo!()
+                let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
+                let op = TournOp::ConfirmResult(p_ident);
+                match self.tourn.apply_op(op) {
+                    Err(err) => {
+                        msg.reply(&ctx.http, error_to_content(err)).await?;
+                    }
+                    Ok(_) => {
+                        let p_id = opt_p_id.unwrap();
+                        let r_id = self.tourn.round_reg.get_player_active_round(&p_id).unwrap().id;
+                        let update = MatchUpdateMessage {
+                            id: r_id,
+                            update: MatchUpdate::RecordConfirmation(p_id),
+                        };
+                        ctx
+                            .data
+                            .read()
+                            .await
+                            .get::<MatchUpdateSenderContainer>()
+                            .unwrap()
+                            .send(update);
+                        let mut resp = msg
+                            .reply(
+                                &ctx.http,
+                                "Confirmation recorded!! The current status of our round is:",
+                            )
+                            .await?;
+                        if let Some(tr) = self.get_tracking_round(&r_id) {
+                            let (title, fields) = tr.embed_info();
+                            resp.edit(&ctx.http, |m| m.embed(|e| e.title(title).fields(fields)))
+                                .await?;
+                        }
+                        // TODO: Check the rnd status first
+                        self.update_status().await;
+                        self.update_standings().await;
+                    }
+                }
+            }
+            AdminRecordResult(r_ident, result) => {
+                let opt_r_id = self.tourn.round_reg.get_round_id(&r_ident);
+                let op = TournOp::AdminRecordResult((*SQUIRE_ACCOUNT_ID).into(), r_ident, result.clone());
+                match self.tourn.apply_op(op) {
+                    Err(err) => {
+                        msg.reply(&ctx.http, error_to_content(err)).await?;
+                    }
+                    Ok(_) => {
+                        let r_id = opt_r_id.unwrap();
+                        let update = MatchUpdateMessage {
+                            id: r_id,
+                            update: MatchUpdate::RecordResult(result),
+                        };
+                        ctx
+                            .data
+                            .read()
+                            .await
+                            .get::<MatchUpdateSenderContainer>()
+                            .unwrap()
+                            .send(update);
+                        let mut resp = msg
+                            .reply(
+                                &ctx.http,
+                                "Result recorded!! The current status of the round is:",
+                            )
+                            .await?;
+                        if let Some(tr) = self.get_tracking_round(&r_id) {
+                            let (title, fields) = tr.embed_info();
+                            resp.edit(&ctx.http, |m| m.embed(|e| e.title(title).fields(fields)))
+                                .await?;
+                        }
+                    }
+                }
+            }
+            AdminConfirmResult(r_ident, p_ident) => {
+                let opt_r_id = self.tourn.round_reg.get_round_id(&r_ident);
+                let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
+                let op = TournOp::AdminConfirmResult((*SQUIRE_ACCOUNT_ID).into(), r_ident, p_ident);
+                match self.tourn.apply_op(op) {
+                    Err(err) => {
+                        msg.reply(&ctx.http, error_to_content(err)).await?;
+                    }
+                    Ok(_) => {
+                        let p_id = opt_p_id.unwrap();
+                        let r_id = opt_r_id.unwrap();
+                        let update = MatchUpdateMessage {
+                            id: r_id,
+                            update: MatchUpdate::RecordConfirmation(p_id),
+                        };
+                        ctx
+                            .data
+                            .read()
+                            .await
+                            .get::<MatchUpdateSenderContainer>()
+                            .unwrap()
+                            .send(update);
+                        let mut resp = msg
+                            .reply(
+                                &ctx.http,
+                                "Result recorded!! The current status of the round is:",
+                            )
+                            .await?;
+                        if let Some(tr) = self.get_tracking_round(&r_id) {
+                            let (title, fields) = tr.embed_info();
+                            resp.edit(&ctx.http, |m| m.embed(|e| e.title(title).fields(fields)))
+                                .await?;
+                        }
+                        // TODO: Check the rnd status first
+                        self.update_status().await;
+                        self.update_standings().await;
+                    }
+                }
             }
             DropPlayer(p_ident) => {
                 todo!()
@@ -375,20 +550,22 @@ impl GuildTournament {
             RegisterPlayer(user_id) => {
                 todo!()
             }
+            AdminRegisterPlayer(user_id) => {
+                todo!()
+            }
             RegisterGuest(name) => {
                 todo!()
             }
             CreateMatch(raw_plyrs) => {
                 todo!()
             }
-            Operation(op) => match self.tourn.apply_op(op.clone()) {
-                Err(err) => {
-                    let _ = msg.reply(&ctx.http, error_to_content(err)).await;
-                }
-                Ok(data) => {
-                    let content = op_to_content(&op);
-                }
-            },
+            Operation(op) => {
+                let mut content = op_to_content(&op);
+                if let Err(err) = self.tourn.apply_op(op) {
+                    content = error_to_content(err);
+                };
+                let _ = msg.reply(&ctx.http, content).await;
+            }
         }
         todo!()
     }
