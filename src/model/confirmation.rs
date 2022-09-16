@@ -20,7 +20,7 @@ where
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult;
 }
 
-struct CutToTopConfirmation {
+pub struct CutToTopConfirmation {
     tourn_id: TournamentId,
     len: usize,
 }
@@ -37,6 +37,8 @@ impl Confirmation for CutToTopConfirmation {
         {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
+            tourn.update_status().await;
+            tourn.update_standings().await;
             msg.reply(
                 &ctx.http,
                 format!("Tournament successfully cut to the top {}!", self.len),
@@ -47,7 +49,7 @@ impl Confirmation for CutToTopConfirmation {
     }
 }
 
-struct EndTournamentConfirmation {
+pub struct EndTournamentConfirmation {
     tourn_id: TournamentId,
 }
 
@@ -62,6 +64,8 @@ impl Confirmation for EndTournamentConfirmation {
         if let Err(err) = tourn.end().await {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
+            tourn.update_status().await;
+            tourn.update_standings().await;
             let dead_tourns = data
                 .get::<DeadTournamentMapContainer>()
                 .unwrap()
@@ -75,7 +79,7 @@ impl Confirmation for EndTournamentConfirmation {
     }
 }
 
-struct CancelTournamentConfirmation {
+pub struct CancelTournamentConfirmation {
     tourn_id: TournamentId,
 }
 
@@ -90,6 +94,8 @@ impl Confirmation for CancelTournamentConfirmation {
         if let Err(err) = tourn.cancel().await {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
+            tourn.update_status().await;
+            tourn.update_standings().await;
             let dead_tourns = data
                 .get::<DeadTournamentMapContainer>()
                 .unwrap()
@@ -103,7 +109,7 @@ impl Confirmation for CancelTournamentConfirmation {
     }
 }
 
-struct PrunePlayersConfirmation {
+pub struct PrunePlayersConfirmation {
     tourn_id: TournamentId,
 }
 
@@ -119,6 +125,8 @@ impl Confirmation for PrunePlayersConfirmation {
         {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
+            tourn.update_status().await;
+            tourn.update_standings().await;
             msg.reply(
                 &ctx.http,
                 "Players that were to completely registered have been successfully dropped!",
@@ -129,7 +137,7 @@ impl Confirmation for PrunePlayersConfirmation {
     }
 }
 
-struct PruneDecksConfirmation {
+pub struct PruneDecksConfirmation {
     tourn_id: TournamentId,
 }
 
@@ -145,6 +153,7 @@ impl Confirmation for PruneDecksConfirmation {
         {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
+            tourn.update_status().await;
             msg.reply(
                 &ctx.http,
                 format!(
@@ -158,7 +167,7 @@ impl Confirmation for PruneDecksConfirmation {
     }
 }
 
-struct PairRoundConfirmation {
+pub struct PairRoundConfirmation {
     tourn_id: TournamentId,
 }
 

@@ -21,7 +21,7 @@ pub struct TimerWarnings {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
-pub struct GuildRound {
+pub struct GuildRoundData {
     pub(crate) message: Option<Message>,
     pub(crate) vc: Option<GuildChannel>,
     pub(crate) tc: Option<GuildChannel>,
@@ -30,15 +30,20 @@ pub struct GuildRound {
 }
 
 #[derive(Clone, Debug)]
-pub struct TrackingRound {
+pub struct GuildRound {
     pub(crate) round: Round,
-    pub(crate) message: Message,
     pub(crate) use_table_number: bool,
     pub(crate) warnings: TimerWarnings,
     pub(crate) players: HashMap<PlayerId, String>,
     pub(crate) vc_mention: String,
     pub(crate) tc_mention: String,
     pub(crate) role_mention: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct TrackingRound {
+    pub(crate) round: GuildRound,
+    pub(crate) message: Message,
 }
 
 impl TrackingRound {
@@ -51,39 +56,39 @@ impl TrackingRound {
     }
 
     pub async fn send_warning<'a>(&'a mut self, cache: impl CacheHttp) {
-        match self.round.time_left().as_secs() {
+        match self.round.round.time_left().as_secs() {
             0 => {
-                self.warnings.sent_last();
+                self.round.warnings.sent_last();
                 let _ = self
                     .message
                     .reply(
                         cache,
-                        format!("{} time in your match is up!!", self.role_mention),
+                        format!("{} time in your match is up!!", self.round.role_mention),
                     )
                     .await;
             }
             1..=60 => {
-                self.warnings.sent_second();
+                self.round.warnings.sent_second();
                 let _ = self
                     .message
                     .reply(
                         cache,
                         format!(
                             "{}, you have 1 minute left in your match!!",
-                            self.role_mention
+                            self.round.role_mention
                         ),
                     )
                     .await;
             }
             61..=300 => {
-                self.warnings.sent_first();
+                self.round.warnings.sent_first();
                 let _ = self
                     .message
                     .reply(
                         cache,
                         format!(
                             "{}, you have 5 minutes left in your match!!",
-                            self.role_mention
+                            self.round.role_mention
                         ),
                     )
                     .await;
@@ -92,6 +97,12 @@ impl TrackingRound {
         }
     }
 
+    pub fn embed_info(&self) -> (String, Vec<(String, String, bool)>) {
+        self.round.embed_info()
+    }
+}
+
+impl GuildRound {
     pub fn embed_info(&self) -> (String, Vec<(String, String, bool)>) {
         let title = if self.use_table_number {
             format!(
@@ -164,7 +175,7 @@ impl TrackingRound {
     }
 }
 
-impl GuildRound {
+impl GuildRoundData {
     pub async fn delete_guild_data(self, http: &Http) {
         if let Some(tc) = self.tc {
             let _ = tc.delete(http).await;

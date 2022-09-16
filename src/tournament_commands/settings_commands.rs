@@ -17,8 +17,8 @@ use crate::{
         guild_tournament::SquireTournamentSetting,
     },
     utils::{
-        extract_id::extract_id, spin_lock::spin_mut,
-        stringify::bool_from_string, tourn_resolver::admin_tourn_id_resolver, error_to_reply::error_to_content,
+        error_to_reply::error_to_content, extract_id::extract_id, spin_lock::spin_mut,
+        stringify::bool_from_string, tourn_resolver::admin_tourn_id_resolver,
     },
 };
 

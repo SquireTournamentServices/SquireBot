@@ -1,5 +1,8 @@
 use serenity::{
-    framework::standard::{macros::{group, command}, Args, CommandResult},
+    framework::standard::{
+        macros::{command, group},
+        Args, CommandResult,
+    },
     model::prelude::*,
     prelude::*,
 };

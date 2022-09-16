@@ -31,15 +31,19 @@ use squire_lib::{
 use crate::{
     match_manager::{MatchUpdate, MatchUpdateMessage},
     model::{
-        consts::SQUIRE_ACCOUNT_ID, containers::MatchUpdateSenderContainer, guild_rounds::GuildRound,
+        confirmation::{
+            CancelTournamentConfirmation, CutToTopConfirmation, EndTournamentConfirmation,
+            PairRoundConfirmation, PruneDecksConfirmation, PrunePlayersConfirmation,
+        },
+        consts::SQUIRE_ACCOUNT_ID,
+        containers::{ConfirmationsContainer, MatchUpdateSenderContainer},
+        guild_rounds::{GuildRound, GuildRoundData, TimerWarnings, TrackingRound},
     },
     utils::{
         embeds::update_status_message,
         error_to_reply::{error_to_content, op_to_content},
     },
 };
-
-use super::guild_rounds::{TimerWarnings, TrackingRound};
 
 pub enum RoundCreationFailure {
     VC,
@@ -64,8 +68,8 @@ pub enum GuildTournamentAction {
     ViewPlayerDecks(PlayerIdentifier),
     ViewPlayerProfile(PlayerIdentifier),
     ViewAllPlayers,
-    ViewStandings,
-    ViewTournamentStatus,
+    CreateStandings,
+    CreateTournamentStatus,
     ViewMatchStatus(RoundIdentifier),
     // Wrappers for tournament operations
     RemoveMatch(RoundIdentifier),
@@ -103,7 +107,7 @@ pub struct GuildTournament {
     pub(crate) guests: CycleMap<String, PlayerId>,
     pub(crate) make_vc: bool,
     pub(crate) make_tc: bool,
-    pub(crate) guild_rounds: HashMap<RoundId, GuildRound>,
+    pub(crate) guild_rounds: HashMap<RoundId, GuildRoundData>,
     pub(crate) standings_message: Option<Message>,
 }
 
@@ -172,10 +176,9 @@ impl GuildTournament {
         self.players.get_right(user).cloned()
     }
 
-    pub fn get_tracking_round(&self, r_id: &RoundId) -> Option<TrackingRound> {
+    pub fn get_guild_round(&self, r_id: &RoundId) -> Option<GuildRound> {
         let round = self.tourn.get_round(&(*r_id).into()).ok()?;
         let g_rnd = self.guild_rounds.get(r_id).cloned()?;
-        let message = g_rnd.message?;
         let players = round
             .players
             .iter()
@@ -199,9 +202,8 @@ impl GuildTournament {
             .role
             .map(|role| role.mention().to_string())
             .unwrap_or_default();
-        Some(TrackingRound {
+        Some(GuildRound {
             round,
-            message,
             players,
             vc_mention,
             tc_mention,
@@ -211,14 +213,25 @@ impl GuildTournament {
         })
     }
 
+    pub fn get_tracking_round(&self, r_id: &RoundId) -> Option<TrackingRound> {
+        let message = self
+            .guild_rounds
+            .get(r_id)
+            .map(|r| r.message)
+            .flatten()?
+            .clone();
+        self.get_guild_round(r_id)
+            .map(|round| TrackingRound { round, message })
+    }
+
     pub async fn create_round_data(
         &mut self,
         cache: &impl CacheHttp,
         gld: &Guild,
         rnd: &RoundId,
         number: u64,
-    ) -> GuildRound {
-        let mut g_rnd = GuildRound::default();
+    ) -> GuildRoundData {
+        let mut g_rnd = GuildRoundData::default();
         let mut mention = format!("Match #{number}");
         if let Ok(role) = gld
             .create_role(cache, |r| {
@@ -350,14 +363,61 @@ impl GuildTournament {
     ) -> CommandResult {
         use GuildTournamentAction::*;
         match action {
-            Cut(count) => {
-                todo!()
+            Cut(len) => {
+                let confirm = CutToTopConfirmation {
+                    tourn_id: self.tourn.id,
+                    len,
+                };
+                ctx.data
+                    .read()
+                    .await
+                    .get::<ConfirmationsContainer>()
+                    .unwrap()
+                    .insert(msg.author.id, Box::new(confirm));
+                msg.reply(&ctx.http, format!("You are about to cut the tournament to the top {len} players. Are you sure you want to? (!yes or !no)")).await?;
             }
             PairRound => {
-                todo!()
+                let confirm = PairRoundConfirmation {
+                    tourn_id: self.tourn.id,
+                };
+                ctx.data
+                    .read()
+                    .await
+                    .get::<ConfirmationsContainer>()
+                    .unwrap()
+                    .insert(msg.author.id, Box::new(confirm));
+                msg.reply(&ctx.http, "You are about to pair the next round of the tournament. Are you sure you want to? (!yes or !no)").await?;
+                self.update_status().await;
             }
-            RemoveMatch(r_id) => {
-                todo!()
+            RemoveMatch(r_ident) => {
+                let r_id = match self.tourn.round_reg.get_round_id(&r_ident) {
+                    Ok(id) => id,
+                    Err(err) => {
+                        msg.reply(&ctx.http, error_to_content(err)).await?;
+                        return Ok(());
+                    }
+                };
+                let update = MatchUpdateMessage {
+                    id: r_id,
+                    update: MatchUpdate::MatchCancelled,
+                };
+                ctx.data
+                    .read()
+                    .await
+                    .get::<MatchUpdateSenderContainer>()
+                    .unwrap()
+                    .send(update);
+                self.clear_round_data(&r_id, &ctx.http).await;
+                let content = match self
+                    .tourn
+                    .apply_op(TournOp::RemoveRound(*SQUIRE_ACCOUNT_ID, r_id.into()))
+                {
+                    Ok(_) => "Match successfully removed.",
+                    Err(err) => error_to_content(err),
+                };
+                msg.reply(&ctx.http, content).await?;
+                self.update_status().await;
+                self.update_standings().await;
             }
             RecordResult(p_ident, result) => {
                 let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
@@ -368,13 +428,17 @@ impl GuildTournament {
                     }
                     Ok(_) => {
                         let p_id = opt_p_id.unwrap();
-                        let r_id = self.tourn.round_reg.get_player_active_round(&p_id).unwrap().id;
+                        let r_id = self
+                            .tourn
+                            .round_reg
+                            .get_player_active_round(&p_id)
+                            .unwrap()
+                            .id;
                         let update = MatchUpdateMessage {
                             id: r_id,
                             update: MatchUpdate::RecordResult(result),
                         };
-                        ctx
-                            .data
+                        ctx.data
                             .read()
                             .await
                             .get::<MatchUpdateSenderContainer>()
@@ -386,8 +450,8 @@ impl GuildTournament {
                                 "Result recorded!! The current status of our round is:",
                             )
                             .await?;
-                        if let Some(tr) = self.get_tracking_round(&r_id) {
-                            let (title, fields) = tr.embed_info();
+                        if let Some(gr) = self.get_guild_round(&r_id) {
+                            let (title, fields) = gr.embed_info();
                             resp.edit(&ctx.http, |m| m.embed(|e| e.title(title).fields(fields)))
                                 .await?;
                         }
@@ -403,13 +467,17 @@ impl GuildTournament {
                     }
                     Ok(_) => {
                         let p_id = opt_p_id.unwrap();
-                        let r_id = self.tourn.round_reg.get_player_active_round(&p_id).unwrap().id;
+                        let r_id = self
+                            .tourn
+                            .round_reg
+                            .get_player_active_round(&p_id)
+                            .unwrap()
+                            .id;
                         let update = MatchUpdateMessage {
                             id: r_id,
                             update: MatchUpdate::RecordConfirmation(p_id),
                         };
-                        ctx
-                            .data
+                        ctx.data
                             .read()
                             .await
                             .get::<MatchUpdateSenderContainer>()
@@ -434,7 +502,11 @@ impl GuildTournament {
             }
             AdminRecordResult(r_ident, result) => {
                 let opt_r_id = self.tourn.round_reg.get_round_id(&r_ident);
-                let op = TournOp::AdminRecordResult((*SQUIRE_ACCOUNT_ID).into(), r_ident, result.clone());
+                let op = TournOp::AdminRecordResult(
+                    (*SQUIRE_ACCOUNT_ID).into(),
+                    r_ident,
+                    result.clone(),
+                );
                 match self.tourn.apply_op(op) {
                     Err(err) => {
                         msg.reply(&ctx.http, error_to_content(err)).await?;
@@ -445,8 +517,7 @@ impl GuildTournament {
                             id: r_id,
                             update: MatchUpdate::RecordResult(result),
                         };
-                        ctx
-                            .data
+                        ctx.data
                             .read()
                             .await
                             .get::<MatchUpdateSenderContainer>()
@@ -481,8 +552,7 @@ impl GuildTournament {
                             id: r_id,
                             update: MatchUpdate::RecordConfirmation(p_id),
                         };
-                        ctx
-                            .data
+                        ctx.data
                             .read()
                             .await
                             .get::<MatchUpdateSenderContainer>()
@@ -506,21 +576,85 @@ impl GuildTournament {
                 }
             }
             DropPlayer(p_ident) => {
+                self.update_status().await;
+                self.update_standings().await;
                 todo!()
             }
             PruneDecks => {
-                todo!()
+                let confirm = PruneDecksConfirmation {
+                    tourn_id: self.tourn.id,
+                };
+                ctx.data
+                    .read()
+                    .await
+                    .get::<ConfirmationsContainer>()
+                    .unwrap()
+                    .insert(msg.author.id, Box::new(confirm));
+                let content = if self.tourn.require_deck_reg {
+                    let max = self.tourn.max_deck_count;
+                    format!("Prune players' decks. After this, every player will have at most {max} decks. Are you sure you want to? (!yes or !no)")
+                } else {
+                    "That tournament doesn't require deck registration. Pruning will do nothing.".to_string()
+                };
+                msg.reply(&ctx.http, content).await?;
             }
             PrunePlayers => {
-                todo!()
+                let confirm = PrunePlayersConfirmation {
+                    tourn_id: self.tourn.id,
+                };
+                ctx.data
+                    .read()
+                    .await
+                    .get::<ConfirmationsContainer>()
+                    .unwrap()
+                    .insert(msg.author.id, Box::new(confirm));
+                let min = self.tourn.min_deck_count;
+                let (decks, checkin) = self.tourn.count_to_prune_players();
+                let content = match (self.tourn.require_deck_reg, self.tourn.require_check_in) {
+                    (true, true) => {
+                        format!("You are about to prune {decks} players because they didn't register at least {min} decks and {checkin} players because they didn't check in. Are you sure you want to? (!yes or !no)")
+                    },
+                    (true, false) => {
+                        format!("You are about to prune {decks} players because they didn't register at least {min} decks. Are you sure you want to? (!yes or !no)")
+                    },
+                    (false, true) => {
+                        format!("You are about to prune {checkin} players because they didn't check in. Are you sure you want to? (!yes or !no)")
+                    },
+                    (false, false) => {
+                        "That tournament doesn't require deck registration nor player check in, so pruning players will do nothing.".to_string()
+                    },
+                };
+                msg.reply(&ctx.http, format!(" Are you sure you want to? (!yes or !no)")).await?;
             }
             End => {
+                let confirm = EndTournamentConfirmation {
+                    tourn_id: self.tourn.id,
+                };
+                ctx.data
+                    .read()
+                    .await
+                    .get::<ConfirmationsContainer>()
+                    .unwrap()
+                    .insert(msg.author.id, Box::new(confirm));
+                msg.reply(&ctx.http, format!("You are about to cut the tournament to the top {len} players. Are you sure you want to? (!yes or !no)")).await?;
                 todo!()
             }
             Cancel => {
+                let confirm = CancelTournamentConfirmation {
+                    tourn_id: self.tourn.id,
+                };
+                ctx.data
+                    .read()
+                    .await
+                    .get::<ConfirmationsContainer>()
+                    .unwrap()
+                    .insert(msg.author.id, Box::new(confirm));
+                msg.reply(&ctx.http, format!("You are about to cut the tournament to the top {len} players. Are you sure you want to? (!yes or !no)")).await?;
                 todo!()
             }
             GiveBye(p_ident) => {
+                self.update_status().await;
+                self.update_standings().await;
                 todo!()
             }
             GetRawStandings => {
@@ -529,7 +663,7 @@ impl GuildTournament {
             ViewAllPlayers => {
                 todo!()
             }
-            ViewStandings => {
+            CreateStandings => {
                 todo!()
             }
             ViewDecklist(p_ident, deck_name) => {
@@ -542,21 +676,77 @@ impl GuildTournament {
                 todo!()
             }
             ViewMatchStatus(r_ident) => {
-                todo!()
+                let r_id = match self.tourn.round_reg.get_round_id(&r_ident) {
+                    Ok(id) => id,
+                    Err(err) => {
+                        msg.reply(&ctx.http, error_to_content(err)).await?;
+                        return Ok(());
+                    }
+                };
+                let gr = self.get_guild_round(&r_id).unwrap();
+                let (title, fields) = gr.embed_info();
+                let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
+                resp.edit(&ctx.http, |m| m.embed(|e| e.title(title).fields(fields)))
+                    .await?;
             }
-            ViewTournamentStatus => {
+            CreateTournamentStatus => {
                 todo!()
             }
             RegisterPlayer(user_id) => {
-                todo!()
+                let content = match self.tourn.apply_op(TournOp::RegisterGuest(
+                    (*SQUIRE_ACCOUNT_ID).into(),
+                    user_id.to_string(),
+                )) {
+                    Ok(id) => {
+                        if let OpData::RegisterPlayer(ident) = id {
+                            let id = self.tourn.player_reg.get_player_id(&ident).unwrap();
+                            self.players.insert(user_id, id);
+                        }
+                        self.update_status().await;
+                        "You have been successfully registered!!"
+                    }
+                    Err(err) => error_to_content(err),
+                };
+                msg.reply(&ctx.http, content).await?;
+                todo!("Still need to give player role.");
             }
             AdminRegisterPlayer(user_id) => {
-                todo!()
+                let content = match self.tourn.apply_op(TournOp::RegisterGuest(
+                    (*SQUIRE_ACCOUNT_ID).into(),
+                    user_id.to_string(),
+                )) {
+                    Ok(id) => {
+                        if let OpData::RegisterPlayer(ident) = id {
+                            let id = self.tourn.player_reg.get_player_id(&ident).unwrap();
+                            self.players.insert(user_id, id);
+                        }
+                        self.update_status().await;
+                        "Player successfully registered!!"
+                    }
+                    Err(err) => error_to_content(err),
+                };
+                msg.reply(&ctx.http, content).await?;
+                todo!("Still need to give player role.");
             }
             RegisterGuest(name) => {
-                todo!()
+                let content = match self.tourn.apply_op(TournOp::RegisterGuest(
+                    (*SQUIRE_ACCOUNT_ID).into(),
+                    name.clone(),
+                )) {
+                    Ok(id) => {
+                        if let OpData::RegisterPlayer(ident) = id {
+                            let id = self.tourn.player_reg.get_player_id(&ident).unwrap();
+                            self.guests.insert(name, id);
+                        }
+                        self.update_status().await;
+                        "Guest successfully registered!!"
+                    }
+                    Err(err) => error_to_content(err),
+                };
+                msg.reply(&ctx.http, content).await?;
             }
             CreateMatch(raw_plyrs) => {
+                self.update_status().await;
                 todo!()
             }
             Operation(op) => {

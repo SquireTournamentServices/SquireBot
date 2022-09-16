@@ -55,10 +55,7 @@ use crate::{
     },
     setup_commands::setup::SETUPCOMMANDS_GROUP,
     tournament_commands::tournament::TOURNAMENTCOMMANDS_GROUP,
-    utils::{
-        card_collection::build_collection,
-        spin_lock::spin_mut,
-    },
+    utils::{card_collection::build_collection, spin_lock::spin_mut},
 };
 
 struct Handler;
@@ -558,7 +555,10 @@ async fn main() {
         let dead_tournaments: HashMap<TournamentId, GuildTournament> =
             read_to_string("./dead_tournaments.json")
                 .and_then(|data| {
-                    Ok(serde_json::from_str(data.as_str()).expect("Malformed dead tournament data"))
+                    Ok(
+                        serde_json::from_str(data.as_str())
+                            .expect("Malformed dead tournament data"),
+                    )
                 })
                 .unwrap_or_default();
         let dead_tourns = Arc::new(RwLock::new(dead_tournaments));

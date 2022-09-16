@@ -221,9 +221,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                 test_results += &"Failed - No matches category found.\n".repeat(5);
             }
             Some(channel) => {
-                if let Channel::Category(_) =
-                    guild.channels.get(&channel.id).unwrap()
-                {
+                if let Channel::Category(_) = guild.channels.get(&channel.id).unwrap() {
                     test_results += "Passed\n";
                     if settings.make_vc {
                         match guild
