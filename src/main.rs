@@ -484,15 +484,11 @@ async fn main() {
         // Insert the main TournamentID -> Tournament map
         let ref_main = Arc::new(all_tournaments);
         let tourns_ref = ref_main.clone();
-        let ref_one = ref_main.clone();
-        let cache_one = client.cache_and_http.clone();
-        let cache_two = client.cache_and_http.clone();
-        let ref_three = ref_main.clone();
-        let cache_three = client.cache_and_http.clone();
+        let cache_ref = client.cache_and_http.clone();
         data.insert::<TournamentMapContainer>(ref_main);
         // Match embed and timer notification updater
         tokio::spawn(async move {
-            let cache = cache_two;
+            let cache = cache_ref;
             let loop_length = Duration::from_secs(30);
             loop {
                 let timer = Instant::now();

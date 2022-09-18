@@ -9,7 +9,7 @@ use crate::{
         consts::SQUIRE_ACCOUNT_ID,
         containers::{DeadTournamentMapContainer, TournamentMapContainer},
     },
-    utils::{error_to_reply::error_to_content, spin_lock::spin_mut},
+    utils::{default_response::error_to_content, spin_lock::spin_mut},
 };
 
 #[async_trait]
@@ -21,8 +21,8 @@ where
 }
 
 pub struct CutToTopConfirmation {
-    tourn_id: TournamentId,
-    len: usize,
+    pub tourn_id: TournamentId,
+    pub len: usize,
 }
 
 #[async_trait]
@@ -50,7 +50,7 @@ impl Confirmation for CutToTopConfirmation {
 }
 
 pub struct EndTournamentConfirmation {
-    tourn_id: TournamentId,
+    pub tourn_id: TournamentId,
 }
 
 #[async_trait]
@@ -58,7 +58,7 @@ impl Confirmation for EndTournamentConfirmation {
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
         let data = ctx.data.read().await;
         let all_tourns = data.get::<TournamentMapContainer>().unwrap().write().await;
-        let (_, tourn) = all_tourns
+        let (_, mut tourn) = all_tourns
             .remove(&self.tourn_id)
             .ok_or_else(|| Box::new(TournamentError::PlayerLookup))?;
         if let Err(err) = tourn.end().await {
@@ -66,7 +66,7 @@ impl Confirmation for EndTournamentConfirmation {
         } else {
             tourn.update_status().await;
             tourn.update_standings().await;
-            let dead_tourns = data
+            let mut dead_tourns = data
                 .get::<DeadTournamentMapContainer>()
                 .unwrap()
                 .write()
@@ -80,7 +80,7 @@ impl Confirmation for EndTournamentConfirmation {
 }
 
 pub struct CancelTournamentConfirmation {
-    tourn_id: TournamentId,
+    pub tourn_id: TournamentId,
 }
 
 #[async_trait]
@@ -88,7 +88,7 @@ impl Confirmation for CancelTournamentConfirmation {
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
         let data = ctx.data.read().await;
         let all_tourns = data.get::<TournamentMapContainer>().unwrap().write().await;
-        let (_, tourn) = all_tourns
+        let (_, mut tourn) = all_tourns
             .remove(&self.tourn_id)
             .ok_or_else(|| Box::new(TournamentError::PlayerLookup))?;
         if let Err(err) = tourn.cancel().await {
@@ -96,7 +96,7 @@ impl Confirmation for CancelTournamentConfirmation {
         } else {
             tourn.update_status().await;
             tourn.update_standings().await;
-            let dead_tourns = data
+            let mut dead_tourns = data
                 .get::<DeadTournamentMapContainer>()
                 .unwrap()
                 .write()
@@ -110,7 +110,7 @@ impl Confirmation for CancelTournamentConfirmation {
 }
 
 pub struct PrunePlayersConfirmation {
-    tourn_id: TournamentId,
+    pub tourn_id: TournamentId,
 }
 
 #[async_trait]
@@ -138,7 +138,7 @@ impl Confirmation for PrunePlayersConfirmation {
 }
 
 pub struct PruneDecksConfirmation {
-    tourn_id: TournamentId,
+    pub tourn_id: TournamentId,
 }
 
 #[async_trait]
@@ -168,7 +168,7 @@ impl Confirmation for PruneDecksConfirmation {
 }
 
 pub struct PairRoundConfirmation {
-    tourn_id: TournamentId,
+    pub tourn_id: TournamentId,
 }
 
 #[async_trait]

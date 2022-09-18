@@ -1,8 +1,8 @@
-use std::time::Duration;
+use std::{time::Duration, str::FromStr};
 
 use serenity::{
     framework::standard::{macros::command, Args, CommandError, CommandResult},
-    model::prelude::*,
+    model::{mention::Mention, prelude::*},
     prelude::*,
 };
 
@@ -17,8 +17,8 @@ use crate::{
         guild_tournament::SquireTournamentSetting,
     },
     utils::{
-        error_to_reply::error_to_content, extract_id::extract_id, spin_lock::spin_mut,
-        stringify::bool_from_string, tourn_resolver::admin_tourn_id_resolver,
+        default_response::error_to_content, spin_lock::spin_mut,
+        stringify::bool_from_string, id_resolver::admin_tourn_id_resolver,
     },
 };
 
@@ -651,22 +651,17 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     let guild = msg.guild(&ctx.cache).unwrap();
     let result = args
         .single_quoted::<String>()
-        .map(|arg| {
-            extract_id(&arg).map_or_else(
-                || {
-                    guild
-                        .channel_id_from_name(&ctx.cache, arg)
-                        .ok_or("Please include a channel, either by name or mention.")
-                },
-                |id| Ok(ChannelId(id)),
-            )
-        })
         .map_err(|_| "Please include a channel, either by name or mention.")
-        .flatten();
-    if let Ok(content) = result {
-        msg.reply(&ctx.http, content).await?;
-        return Ok(());
-    }
+        .and_then(|arg| {
+            match Mention::from_str(&arg).ok() {
+                Some(Mention::Channel(id)) => Ok(id),
+                Some(_) => Err("Please specify a channel, not a User, Role, or something"),
+                None => match guild.channel_id_from_name(&ctx.cache, arg) {
+                    Some(id) => Ok(id),
+                    None => Err("Please include a channel, either by name or mention.")
+                },
+            }
+        });
     let response = match result {
         Err(content) => {
             msg.reply(&ctx.http, content).await?;
@@ -706,22 +701,17 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     let guild = msg.guild(&ctx.cache).unwrap();
     let result = args
         .single_quoted::<String>()
-        .map(|arg| {
-            extract_id(&arg).map_or_else(
-                || {
-                    guild
-                        .channel_id_from_name(&ctx.cache, arg)
-                        .ok_or("Please include a channel, either by name or mention.")
-                },
-                |id| Ok(ChannelId(id)),
-            )
-        })
         .map_err(|_| "Please include a channel, either by name or mention.")
-        .flatten();
-    if let Ok(content) = result {
-        msg.reply(&ctx.http, content).await?;
-        return Ok(());
-    }
+        .and_then(|arg| {
+            match Mention::from_str(&arg).ok() {
+                Some(Mention::Channel(id)) => Ok(id),
+                Some(_) => Err("Please specify a channel, not a User, Role, or something"),
+                None => match guild.channel_id_from_name(&ctx.cache, arg) {
+                    Some(id) => Ok(id),
+                    None => Err("Please include a channel, either by name or mention.")
+                },
+            }
+        });
     let response = match result {
         Err(content) => {
             msg.reply(&ctx.http, content).await?;

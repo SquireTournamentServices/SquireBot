@@ -8,6 +8,7 @@ use serenity::{
         guild::{Guild, Role},
         id::{GuildId, RoleId},
     },
+    prelude::Mentionable,
 };
 
 use squire_lib::{
@@ -153,30 +154,22 @@ impl GuildSettings {
         let _ = writeln!(
             data,
             "Judge Role: {}",
-            stringify_option(self.judge_role.as_ref().map(|r| format!("<@&{}>", r)))
+            stringify_option(&self.judge_role.as_ref().map(|r| r.mention()))
         );
         let _ = writeln!(
             data,
             "Tourn Admin Role: {}",
-            stringify_option(self.tourn_admin_role.as_ref().map(|r| format!("<@&{}>", r)))
+            stringify_option(&self.tourn_admin_role.as_ref().map(|r| r.mention()))
         );
         let _ = writeln!(
             data,
             "Pairings Channel: {}",
-            stringify_option(
-                self.pairings_channel
-                    .as_ref()
-                    .map(|c| format!("<#{}>", c.id.0)),
-            )
+            stringify_option(&self.pairings_channel.as_ref().map(|c| c.mention()),)
         );
         let _ = writeln!(
             data,
             "Matches Category: {}",
-            stringify_option(
-                self.matches_category
-                    .as_ref()
-                    .map(|c| format!("<#{}>", c.id.0)),
-            )
+            stringify_option(&self.matches_category.as_ref().map(|c| c.mention()),)
         );
         let _ = writeln!(data, "VCs?: {}", if self.make_vc { "yes" } else { "no" });
         let _ = write!(data, "TCs?: {}", if self.make_tc { "yes" } else { "no" });

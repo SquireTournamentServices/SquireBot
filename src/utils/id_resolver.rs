@@ -8,11 +8,8 @@ use serenity::{
 };
 
 use cycle_map::CycleMap;
-use squire_lib::{
-    identifiers::PlayerId,
-    player_registry::PlayerIdentifier,
-    tournament::{Tournament, TournamentId},
-};
+
+use squire_lib::tournament::TournamentId;
 
 use crate::{model::guild_tournament::GuildTournament, utils::spin_lock::spin};
 
@@ -157,20 +154,5 @@ pub async fn tourn_id_resolver(
                 None
             }
         }
-    }
-}
-
-pub fn player_name_resolver(
-    id: PlayerId,
-    plyrs: &CycleMap<UserId, PlayerId>,
-    tourn: &Tournament,
-) -> String {
-    if let Some(u_id) = plyrs.get_left(&id) {
-        format!("<@{u_id}>\n")
-    } else {
-        format!(
-            "{}\n",
-            tourn.get_player(&PlayerIdentifier::Id(id)).unwrap().name
-        )
     }
 }

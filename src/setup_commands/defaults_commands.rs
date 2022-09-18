@@ -1,6 +1,8 @@
+use std::str::FromStr;
+
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
-    model::prelude::*,
+    model::{mention::Mention, prelude::*},
     prelude::*,
 };
 
@@ -12,8 +14,7 @@ use squire_lib::{
 use crate::{
     model::containers::GuildSettingsMapContainer,
     utils::{
-        default_response::subcommand_default, extract_id::extract_id, spin_lock::spin_mut,
-        stringify::bool_from_string,
+        default_response::subcommand_default, spin_lock::spin_mut, stringify::bool_from_string,
     },
 };
 
@@ -56,8 +57,16 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         .await;
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     let mut settings = spin_mut(&all_settings, &guild.id).await.unwrap();
-    let channel_id = match extract_id(&arg) {
-        Some(id) => ChannelId(id),
+    let channel_id = match Mention::from_str(&arg).ok() {
+        Some(Mention::Channel(id)) => id,
+        Some(_) => {
+            msg.reply(
+                &ctx.http,
+                "Please specify a channel, not a User, Role, or something",
+            )
+            .await?;
+            return Ok(());
+        }
         None => match guild.channel_id_from_name(&ctx.cache, arg) {
             Some(id) => id,
             None => {
@@ -120,8 +129,16 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         .await;
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     let mut settings = spin_mut(&all_settings, &guild.id).await.unwrap();
-    let channel_id = match extract_id(&arg) {
-        Some(id) => ChannelId(id),
+    let channel_id = match Mention::from_str(&arg).ok() {
+        Some(Mention::Channel(id)) => id,
+        Some(_) => {
+            msg.reply(
+                &ctx.http,
+                "Please specify a channel, not a User, Role, or something",
+            )
+            .await?;
+            return Ok(());
+        }
         None => match guild.channel_id_from_name(&ctx.cache, arg) {
             Some(id) => id,
             None => {

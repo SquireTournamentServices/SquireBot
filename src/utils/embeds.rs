@@ -3,47 +3,62 @@ use std::{
     fmt::{Display, Write},
 };
 
-use serenity::{
-    builder::CreateEmbed,
-    http::CacheHttp,
-    model::{channel::Message, id::UserId},
-    utils::Colour,
-    CacheAndHttp,
-};
+use serenity::builder::CreateEmbed;
 
-use cycle_map::CycleMap;
-use squire_lib::{
-    identifiers::PlayerId,
-    pairings::PairingStyle,
-    scoring::Standings,
-    standard_scoring::StandardScore,
-    tournament::{ScoringSystem, Tournament, TournamentStatus},
-};
+const FIELD_CAPACITY: usize = 1024;
+const EMBED_CAPACITY: usize = 2048;
 
-use crate::{
-    model::guild_tournament::GuildTournament, utils::tourn_resolver::player_name_resolver,
-};
-
-#[allow(dead_code)]
-pub fn embed_fields<I, T>(iter: I) -> Vec<String>
+/// Takes the data from an embed and divides it between multiple embed to ensure the invariants
+/// needed for an embed. Namely:
+///  - Each field has at most 1024 characters (including title)
+///  - Each embed has at most 2048 characters (including title)
+///  - No field is empty
+///  
+/// NOTE: There will still be problems if single title or field item is greater than its
+/// respective limit. Under normal situations, this should not be an issue
+pub fn safe_embeds<'a, I, F, T>(title: String, fields: I) -> Vec<CreateEmbed>
 where
-    I: Iterator<Item = T>,
+    I: IntoIterator<Item = (String, F, &'a str, bool)>,
+    F: IntoIterator<Item = T>,
     T: Display,
 {
     let mut digest = Vec::new();
-    let mut buffer = String::with_capacity(1024);
-    for t in iter {
-        let s = t.to_string();
-        if buffer.len() + s.len() > 1024 {
-            digest.push(buffer.clone());
-            buffer.clear()
+    let mut safe_fields: Vec<(String, String, bool)> = Vec::new();
+    let mut field_buffer = String::with_capacity(FIELD_CAPACITY);
+    for field in fields {
+        let field_cap = FIELD_CAPACITY - field.0.len();
+        let delim_len = field.2.len();
+        for item in field.1.into_iter().map(|i| i.to_string()) {
+            if field_buffer.len() + item.len() + delim_len > field_cap {
+                safe_fields.push((field.0.clone(), field_buffer.clone(), field.3));
+                field_buffer.clear();
+                let _ = write!(field_buffer, "\u{200b}");
+            }
+            let _ = write!(field_buffer, "{}{}", item, field.2);
         }
-        buffer += &s;
+        safe_fields.push((field.0, field_buffer.clone(), field.3));
+        field_buffer.clear();
     }
-    digest.push(buffer);
+    // At this point, `safe_fields` contain fields that are at most 1024 (with title)
+    let mut creator = CreateEmbed(HashMap::new());
+    creator.title(title.clone());
+    let embed_cap = EMBED_CAPACITY - title.len();
+    let mut embed_len = 0;
+    for field in safe_fields {
+        if embed_len + field.0.len() + field.1.len() > embed_cap {
+            digest.push(creator);
+            creator = CreateEmbed(HashMap::new());
+            creator.title(title.clone());
+        }
+        embed_len += field.0.len() + field.1.len();
+        creator.field(field.0, field.1, field.2);
+    }
+    // Now, each embed has properly sized fields
+    digest.push(creator);
     digest
 }
 
+/*
 pub async fn update_standings_message(
     cache: &CacheAndHttp,
     msg: &mut Message,
@@ -247,3 +262,4 @@ pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTour
         })
         .await;
 }
+*/

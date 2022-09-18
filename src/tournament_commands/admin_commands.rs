@@ -23,7 +23,7 @@ use crate::{
     utils::{
         default_response::subcommand_default,
         spin_lock::spin_mut,
-        tourn_resolver::{admin_tourn_id_resolver, user_id_resolver},
+        id_resolver::{admin_tourn_id_resolver, user_id_resolver},
     },
 };
 
@@ -156,7 +156,7 @@ async fn drop(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     let tourn_name = args.rest().trim().to_string();
-    admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, p| {
+    admin_command(ctx, msg, raw_user_id, tourn_name, move |_, p| {
         DropPlayer(p.into())
     })
     .await
@@ -177,7 +177,7 @@ async fn give_bye(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         }
     };
     let tourn_name = args.rest().trim().to_string();
-    admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, p| {
+    admin_command(ctx, msg, raw_user_id, tourn_name, move |_, p| {
         GiveBye(p.into())
     })
     .await
@@ -273,7 +273,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         Ok(s) => s,
     };
     let tourn_name = args.rest().trim().to_string();
-    admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, p| {
+    admin_command(ctx, msg, raw_user_id, tourn_name, move |_, p| {
         AdminRecordResult(r_ident, Wins(p, wins))
     })
     .await
@@ -317,7 +317,7 @@ async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         Ok(s) => s,
     };
     let tourn_name = args.rest().trim().to_string();
-    admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, _| {
+    admin_command(ctx, msg, raw_user_id, tourn_name, move |_, _| {
         AdminRecordResult(r_ident, Draw(draws))
     })
     .await
@@ -478,7 +478,7 @@ async fn match_status(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[description("Pairs the next round of matches.")]
 async fn pair(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |admin| PairRound).await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| PairRound).await
 }
 
 #[command("view-players")]
@@ -519,7 +519,7 @@ async fn players(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[description("Removes decks from players that have them in excess.")]
 async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |admin| PruneDecks).await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| PruneDecks).await
 }
 #[command("raw-standings")]
 #[only_in(guild)]
@@ -527,9 +527,22 @@ async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[usage("<top N>, [tournament name]")]
 #[example("25")]
 #[description("Delivers a txt file with simplified standings.")]
-async fn raw_standings(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+async fn raw_standings(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let count = match args.single_quoted::<String>().as_ref().map(|s| s.as_str()) {
+        Ok("all" | "All" | "a" | "A") => usize::max_value(),
+        res => {
+            match res.ok().and_then(|s| s.parse::<usize>().ok()) {
+                Some(n) => n,
+                None => {
+                    msg.reply(&ctx.http, r#"Please specify a max count or the word "all""#)
+                    .await?;
+                return Ok(());
+                }
+            }
+        },
+    };
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| GetRawStandings).await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| GetRawStandings(count)).await
 }
 #[command("registration")]
 #[only_in(guild)]
@@ -582,7 +595,7 @@ async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[description("Creates an auto-updating standings message.")]
 async fn standings(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| ViewStandings).await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| CreateStandings).await
 }
 
 #[command("start")]
@@ -605,7 +618,7 @@ async fn start(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[description("Creates an auto-updating status containing all information about the tournament.")]
 async fn status(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| ViewTournamentStatus).await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| CreateTournamentStatus).await
 }
 #[command("time-extension")]
 #[only_in(guild)]

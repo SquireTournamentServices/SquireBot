@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Write};
+use std::collections::HashMap;
 
 use serenity::{
     http::{CacheHttp, Http},
@@ -8,10 +8,11 @@ use serenity::{
     },
 };
 
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 use squire_lib::{identifiers::PlayerId, round::Round};
+
+use crate::utils::{embeds::safe_embeds, stringify::stringify_option};
 
 #[derive(Serialize, Deserialize, Copy, Clone, Default, Debug)]
 pub struct TimerWarnings {
@@ -35,9 +36,9 @@ pub struct GuildRound {
     pub(crate) use_table_number: bool,
     pub(crate) warnings: TimerWarnings,
     pub(crate) players: HashMap<PlayerId, String>,
-    pub(crate) vc_mention: String,
-    pub(crate) tc_mention: String,
-    pub(crate) role_mention: String,
+    pub(crate) vc_mention: Option<String>,
+    pub(crate) tc_mention: Option<String>,
+    pub(crate) role_mention: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -51,7 +52,7 @@ impl TrackingRound {
         let (title, fields) = self.embed_info();
         let _ = self
             .message
-            .edit(cache, |m| m.embed(|e| e.title(title).fields(fields)))
+            .edit(cache, |m| m.add_embeds(safe_embeds(title, fields)))
             .await;
     }
 
@@ -63,7 +64,7 @@ impl TrackingRound {
                     .message
                     .reply(
                         cache,
-                        format!("{} time in your match is up!!", self.round.role_mention),
+                        format!("{} time in your match is up!!", self.round.mention()),
                     )
                     .await;
             }
@@ -75,7 +76,7 @@ impl TrackingRound {
                         cache,
                         format!(
                             "{}, you have 1 minute left in your match!!",
-                            self.round.role_mention
+                            self.round.mention()
                         ),
                     )
                     .await;
@@ -88,7 +89,7 @@ impl TrackingRound {
                         cache,
                         format!(
                             "{}, you have 5 minutes left in your match!!",
-                            self.round.role_mention
+                            self.round.mention()
                         ),
                     )
                     .await;
@@ -97,13 +98,19 @@ impl TrackingRound {
         }
     }
 
-    pub fn embed_info(&self) -> (String, Vec<(String, String, bool)>) {
+    pub fn embed_info(&self) -> (String, Vec<(String, Vec<String>, &'static str, bool)>) {
         self.round.embed_info()
     }
 }
 
 impl GuildRound {
-    pub fn embed_info(&self) -> (String, Vec<(String, String, bool)>) {
+    pub fn mention(&self) -> String {
+        self.role_mention
+            .clone()
+            .unwrap_or_else(|| format!("Match #{}", self.round.match_number))
+    }
+
+    pub fn embed_info(&self) -> (String, Vec<(String, Vec<String>, &'static str, bool)>) {
         let title = if self.use_table_number {
             format!(
                 "Match #{}: Table {}",
@@ -112,39 +119,47 @@ impl GuildRound {
         } else {
             format!("Match #{}:", self.round.match_number)
         };
-        let mut fields: Vec<(String, String, bool)> = Vec::new();
+        let mut fields: Vec<(String, Vec<String>, &'static str, bool)> = Vec::new();
         if !self.round.is_certified() {
             fields.push((
                 "Time left:".into(),
-                format!("{} min", self.round.time_left().as_secs() / 60),
+                vec![format!("{} min", self.round.time_left().as_secs() / 60)],
+                "",
                 true,
             ));
         } else {
             fields.push((
                 "Winner:".into(),
-                self.round
+                vec![self
+                    .round
                     .winner
                     .as_ref()
                     .map(|w| self.players.get(w).cloned())
                     .flatten()
-                    .unwrap_or_else(|| "None".into()),
+                    .unwrap_or_else(|| "None".into())],
+                "",
                 true,
             ));
         }
-        fields.push(("Status:".into(), self.round.status.to_string(), true));
-        let mut info = String::from("\u{200b}");
-        if !self.role_mention.is_empty() {
-            let _ = write!(info, "role: {}", self.role_mention);
-        }
-        if !self.vc_mention.is_empty() {
-            let _ = write!(info, "VC: {}", self.vc_mention);
-        }
-        if !self.tc_mention.is_empty() {
-            let _ = write!(info, "Text: {}", self.tc_mention);
-        }
-        fields.push(("Info:".into(), info, true));
-        fields.push(("Players:".into(), self.players.values().join(" "), true));
-        let mut results = self
+        fields.push((
+            "Status:".into(),
+            vec![self.round.status.to_string()],
+            "",
+            true,
+        ));
+        let info = vec![
+            format!("Role: {}", stringify_option(&self.role_mention)),
+            format!("VC: {}", stringify_option(&self.vc_mention)),
+            format!("Text: {}", stringify_option(&self.tc_mention)),
+        ];
+        fields.push(("Info:".into(), info, " ", true));
+        fields.push((
+            "Players:".into(),
+            self.players.values().cloned().collect(),
+            " ",
+            true,
+        ));
+        let mut results: Vec<String> = self
             .players
             .iter()
             .map(|(id, p)| {
@@ -153,23 +168,23 @@ impl GuildRound {
                     self.round.results.get(id).cloned().unwrap_or_default()
                 )
             })
-            .join(" ");
-        let _ = write!(results, " draws: {}", self.round.draws);
-        fields.push(("Results:".into(), results, true));
+            .collect();
+        results.push(format!(" draws: {}", self.round.draws));
+        fields.push(("Results:".into(), results, " ", true));
         let confirmations = self
             .players
             .iter()
             .map(|(id, p)| format!("{p}: {}", self.round.confirmations.contains(id)))
-            .join(" ");
-        fields.push(("Confirmed?:".into(), confirmations, true));
+            .collect();
+        fields.push(("Confirmed:".into(), confirmations, " ", true));
         if !self.round.drops.is_empty() {
             let drops = self
                 .round
                 .drops
                 .iter()
                 .map(|p| format!("{}", self.players.get(p).unwrap()))
-                .join(" ");
-            fields.push(("Drops:".into(), drops, true));
+                .collect();
+            fields.push(("Drops:".into(), drops, " ", true));
         }
         (title, fields)
     }

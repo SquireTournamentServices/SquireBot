@@ -45,7 +45,7 @@ impl MatchManager {
     where
         I: Iterator<Item = TrackingRound>,
     {
-        self.matches = rnds.map(|t_rnd| (t_rnd.round.id, t_rnd)).collect();
+        self.matches = rnds.map(|t_rnd| (t_rnd.round.round.id, t_rnd)).collect();
     }
 
     /// Updates match statuses for all stored matches
@@ -55,7 +55,7 @@ impl MatchManager {
         for (r_id, m) in self.matches.iter_mut() {
             m.update_message(&cache).await;
             m.send_warning(&cache).await;
-            if !m.round.is_active() {
+            if !m.round.round.is_active() {
                 drops.push(*r_id);
             }
         }
@@ -75,27 +75,27 @@ impl MatchManager {
                 TimeExtention(dur) => {
                     self.matches
                         .get_mut(&update.id)
-                        .map(|m| m.round.time_extension(dur));
+                        .map(|m| m.round.round.time_extension(dur));
                 }
                 RecordResult(result) => {
                     self.matches
                         .get_mut(&update.id)
-                        .map(|m| m.round.record_result(result));
+                        .map(|m| m.round.round.record_result(result));
                 }
                 RecordConfirmation(p_id) => {
                     self.matches
                         .get_mut(&update.id)
-                        .map(|m| m.round.confirm_round(p_id));
+                        .map(|m| m.round.round.confirm_round(p_id));
                 }
                 DropPlayer(p_id) => {
                     self.matches
                         .get_mut(&update.id)
-                        .map(|m| m.round.remove_player(p_id));
+                        .map(|m| m.round.round.remove_player(p_id));
                 }
                 MatchCancelled => {
                     self.matches
                         .get_mut(&update.id)
-                        .map(|m| m.round.kill_round());
+                        .map(|m| m.round.round.kill_round());
                 }
             }
         }

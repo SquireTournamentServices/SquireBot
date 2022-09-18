@@ -1,13 +1,10 @@
 use std::fmt::Display;
 
-pub fn stringify_option<T>(o: Option<T>) -> String
+pub fn stringify_option<T>(o: &Option<T>) -> String
 where
     T: Display,
 {
-    match o {
-        Some(v) => v.to_string(),
-        None => String::from("None"),
-    }
+    o.as_ref().map(|v| v.to_string()).unwrap_or_else(|| "None".to_string())
 }
 
 pub fn bool_from_string(s: &str) -> Option<bool> {
