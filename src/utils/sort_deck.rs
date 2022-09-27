@@ -1,8 +1,4 @@
-#![allow(dead_code)]
 use std::collections::HashSet;
-
-use itertools::Itertools;
-use serenity::builder::CreateEmbed;
 
 use squire_lib::player::Deck;
 
@@ -89,101 +85,96 @@ impl From<Deck> for TypeSortedDeck {
     }
 }
 
+fn pretty_print_cards(data: &(usize, String)) -> String {
+    format!("{} {}", data.0, data.1)
+}
+
 impl TypeSortedDeck {
-    pub fn populate_embed<'a>(&self, e: &'a mut CreateEmbed) -> &'a mut CreateEmbed {
+    pub fn embed_fields<'a>(
+        &'a self,
+    ) -> Vec<(
+        String,
+        Box<dyn Iterator<Item = String> + Send + 'a>,
+        &'static str,
+        bool,
+    )> {
+        let mut digest = Vec::with_capacity(10);
         if !self.lands.is_empty() {
-            e.field(
+            digest.push((
                 format!("Land ({}):", self.count_lands()),
-                self.lands
-                    .iter()
-                    .map(|(n, c)| format!("{n} {c}"))
-                    .join("\n"),
+                Box::new(self.lands.iter().map(pretty_print_cards)) as Box<dyn Iterator<Item = String> + Send + 'a>,
+                "\n",
                 true,
-            );
+            ));
         }
         if !self.creatures.is_empty() {
-            e.field(
+            digest.push((
                 format!("Creature ({}):", self.count_creatures()),
-                self.creatures
-                    .iter()
-                    .map(|(n, c)| format!("{n} {c}"))
-                    .join("\n"),
+                Box::new(self.creatures.iter().map(pretty_print_cards)),
+                "\n",
                 true,
-            );
+            ));
         }
         if !self.artifacts.is_empty() {
-            e.field(
+            digest.push((
                 format!("Artifacts ({}):", self.count_artifacts()),
-                self.artifacts
-                    .iter()
-                    .map(|(n, c)| format!("{n} {c}"))
-                    .join("\n"),
+                Box::new(self.artifacts.iter().map(pretty_print_cards)),
+                "\n",
                 true,
-            );
+            ));
         }
         if !self.enchantments.is_empty() {
-            e.field(
+            digest.push((
                 format!("Enchantments ({}):", self.count_enchantments()),
-                self.enchantments
-                    .iter()
-                    .map(|(n, c)| format!("{n} {c}"))
-                    .join("\n"),
+                Box::new(self.enchantments.iter().map(pretty_print_cards)),
+                "\n",
                 true,
-            );
+            ));
         }
         if !self.instants.is_empty() {
-            e.field(
+            digest.push((
                 format!("Instant ({}):", self.count_instants()),
-                self.instants
-                    .iter()
-                    .map(|(n, c)| format!("{n} {c}"))
-                    .join("\n"),
+                Box::new(self.instants.iter().map(pretty_print_cards)),
+                "\n",
                 true,
-            );
+            ));
         }
         if !self.sorceries.is_empty() {
-            e.field(
+            digest.push((
                 format!("Sorceries ({}):", self.count_sorceries()),
-                self.sorceries
-                    .iter()
-                    .map(|(n, c)| format!("{n} {c}"))
-                    .join("\n"),
+                Box::new(self.sorceries.iter().map(pretty_print_cards)),
+                "\n",
                 true,
-            );
+            ));
         }
         if !self.planewalkers.is_empty() {
-            e.field(
+            digest.push((
                 format!("Planewalkers ({}):", self.count_planeswalkers()),
-                self.planewalkers
-                    .iter()
-                    .map(|(n, c)| format!("{n} {c}"))
-                    .join("\n"),
+                Box::new(self.planewalkers.iter().map(pretty_print_cards)),
+                "\n",
                 true,
-            );
+            ));
         }
         if !self.other.is_empty() {
-            e.field(
+            digest.push((
                 format!("Others ({}):", self.count_other()),
-                self.other
-                    .iter()
-                    .map(|(n, c)| format!("{n} {c}"))
-                    .join("\n"),
+                Box::new(self.other.iter().map(pretty_print_cards)),
+                "\n",
                 true,
-            );
+            ));
         }
         if !self.sideboard.is_empty() {
-            e.field(
+            digest.push((
                 format!("Sideboard ({}):", self.count_sideboard()),
-                self.sideboard
-                    .iter()
-                    .map(|(n, c)| format!("{n} {c}"))
-                    .join("\n"),
+                Box::new(self.sideboard.iter().map(pretty_print_cards)),
+                "\n",
                 true,
-            );
+            ));
         }
-        e
+        digest
     }
-
+    
+    #[allow(dead_code)]
     pub fn count_all(&self) -> usize {
         self.count_commanders()
             + self.count_lands()
@@ -194,33 +185,53 @@ impl TypeSortedDeck {
             + self.count_sorceries()
             + self.count_sideboard()
     }
+    
+    #[allow(dead_code)]
     pub fn count_commanders(&self) -> usize {
         self.commanders.len()
     }
+    
+    #[allow(dead_code)]
     pub fn count_lands(&self) -> usize {
         self.lands.iter().map(|(n, _)| n).sum()
     }
+    
+    #[allow(dead_code)]
     pub fn count_creatures(&self) -> usize {
         self.creatures.iter().map(|(n, _)| n).sum()
     }
+    
+    #[allow(dead_code)]
     pub fn count_artifacts(&self) -> usize {
         self.artifacts.iter().map(|(n, _)| n).sum()
     }
+    
+    #[allow(dead_code)]
     pub fn count_enchantments(&self) -> usize {
         self.enchantments.iter().map(|(n, _)| n).sum()
     }
+    
+    #[allow(dead_code)]
     pub fn count_instants(&self) -> usize {
         self.instants.iter().map(|(n, _)| n).sum()
     }
+    
+    #[allow(dead_code)]
     pub fn count_sorceries(&self) -> usize {
         self.sorceries.iter().map(|(n, _)| n).sum()
     }
+    
+    #[allow(dead_code)]
     pub fn count_planeswalkers(&self) -> usize {
         self.sorceries.iter().map(|(n, _)| n).sum()
     }
+    
+    #[allow(dead_code)]
     pub fn count_other(&self) -> usize {
         self.sorceries.iter().map(|(n, _)| n).sum()
     }
+    
+    #[allow(dead_code)]
     pub fn count_sideboard(&self) -> usize {
         self.sideboard.iter().map(|(n, _)| n).sum()
     }

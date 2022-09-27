@@ -46,7 +46,7 @@ use crate::{
     },
     utils::{
         default_response::{error_to_content, op_to_content},
-        embeds::safe_embeds,
+        embeds::safe_embeds, sort_deck::TypeSortedDeck,
     },
 };
 
@@ -732,7 +732,19 @@ impl GuildTournament {
                 todo!()
             }
             ViewDecklist(p_ident, deck_name) => {
-                todo!()
+                let deck = match self.tourn.get_player_deck(&p_ident, &deck_name) {
+                    Ok(deck) => deck,
+                    Err(err) => {
+                        msg.reply(&ctx.http, error_to_content(err)).await?;
+                        return Ok(());
+                    }
+                };
+                let title = String::from("Player's deck");
+                let sorted_deck = TypeSortedDeck::from(deck);
+                let fields = sorted_deck.embed_fields();
+                let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
+                resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(title, fields)))
+                    .await?;
             }
             ViewPlayerDecks(p_ident) => {
                 todo!()
