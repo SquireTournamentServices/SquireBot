@@ -46,7 +46,7 @@ use crate::{
     },
     utils::{
         default_response::{error_to_content, op_to_content},
-        embeds::{player_embed_info, safe_embeds},
+        embeds::{player_embed_info, safe_embeds, tournament_embed_info, standings_embed_info},
         sort_deck::TypeSortedDeck,
     },
 };
@@ -743,7 +743,12 @@ impl GuildTournament {
                 .await?;
             }
             CreateStandings => {
-                todo!()
+                let standings = self.tourn.get_standings();
+                let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
+                let fields = standings_embed_info(&standings, self);
+                resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(format!("{} Standings:", self.tourn.name), fields)))
+                    .await?;
+                self.standings_message = Some(resp);
             }
             ViewDecklist(p_ident, deck_name) => {
                 let plyr_id = match self.tourn.player_reg.get_player_id(&p_ident) {
@@ -818,7 +823,11 @@ impl GuildTournament {
                     .await?;
             }
             CreateTournamentStatus => {
-                todo!()
+                let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
+                let fields = tournament_embed_info(self);
+                resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(format!("{} Status:", self.tourn.name), fields)))
+                    .await?;
+                self.standings_message = Some(resp);
             }
             RegisterPlayer(user_id) => {
                 let content = match self.tourn.apply_op(TournOp::RegisterGuest(

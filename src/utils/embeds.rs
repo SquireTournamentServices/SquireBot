@@ -4,7 +4,7 @@ use std::{
 };
 
 use serenity::{builder::CreateEmbed, prelude::Mentionable};
-use squire_lib::identifiers::PlayerId;
+use squire_lib::{identifiers::PlayerId, scoring::Standings, standard_scoring::StandardScore};
 
 use crate::model::guild_tournament::GuildTournament;
 
@@ -102,6 +102,128 @@ pub fn player_embed_info(
     digest
 }
 
+pub fn tournament_embed_info(
+    g_tourn: &GuildTournament,
+) -> Vec<(String, Vec<String>, &'static str, bool)> {
+    let mut digest = Vec::new();
+    let discord_info = vec![
+        format!("Tournament role: {}", tourn.tourn_role.id.mention()),
+        format!("Judge role: {}", tourn.judge_role.id.mention()),
+        format!(
+            "Tournament admin role: {}",
+            tourn.tourn_admin_role.mention()
+        ),
+        format!("Pairings channel: {}", tourn.pairings_channel.id.mention()),
+        format!("Matches category: {}", tourn.matches_category.id.mention()),
+    ];
+    digest.push(("Discord Info:".into(), discord_info, "\n", true));
+    let mut settings_info = vec![
+        format!("Format: {}\n", tourn.tourn.format),
+        format!(
+            "Pairing method: {}",
+            match tourn.tourn.pairing_sys.style {
+                PairingStyle::Swiss(_) => "Swiss",
+                PairingStyle::Fluid(_) => "Fluid",
+            }
+        ),
+        format!(
+            "Scoring method: {}",
+            match tourn.tourn.scoring_sys {
+                ScoringSystem::Standard(_) => "Standard",
+            }
+        ),
+        format!(
+            "Registration: {}",
+            tourn.tourn.reg_open.then(|| "Open").unwrap_or("Closed")
+        ),
+        format!("Match size: {}", tourn.tourn.pairing_sys.match_size),
+        format!(
+            "Assign table number: {}",
+            tourn
+                .tourn
+                .use_table_number
+                .then(|| "True")
+                .unwrap_or("False")
+        ),
+        format!(
+            "Require checkin: {}",
+            tourn
+                .tourn
+                .require_check_in
+                .then(|| "True")
+                .unwrap_or("False")
+        ),
+        format!(
+            "Require deck reg: {}",
+            tourn
+                .tourn
+                .require_deck_reg
+                .then(|| "True")
+                .unwrap_or("False")
+        ),
+    ];
+    if tourn.tourn.require_deck_reg {
+        settings_in.push(format!("Min deck count: {}", tourn.tourn.min_deck_count));
+        settings_in.push(format!("Max deck count: {}", tourn.tourn.max_deck_count));
+    }
+    digest.push(("Settings Info:".into(), settings_info, "\n", true));
+    let mut player_info = vec![format!(
+        "{} players are registered.",
+        tourn.tourn.player_reg.active_player_count()
+    )];
+    if tourn.tourn.require_deck_reg {
+        let min_count = tourn
+            .tourn
+            .player_reg
+            .players
+            .iter()
+            .filter(|(_, p)| p.decks.len() > tourn.tourn.min_deck_count as usize)
+            .count();
+        player_info.push(format!(
+            "{} of them have registered at least the minimum number of decks.",
+            min_count
+        ));
+        let max_count = tourn
+            .tourn
+            .player_reg
+            .players
+            .iter()
+            .filter(|(_, p)| p.decks.len() > tourn.tourn.max_deck_count as usize)
+            .count();
+        player_info.push(format!(
+            "{} of them have registered more than the maximum number of decks.",
+            max_count
+        ));
+    }
+    if tourn.tourn.require_check_in {
+        let _ = write!(
+            player_info,
+            "{} of them have checked in.",
+            tourn.tourn.player_reg.count_check_ins()
+        );
+    }
+    digest.push(("Player Info:".into(), player_info, " ", true));
+    let active_count = tourn.tourn.round_reg.active_round_count();
+    let mut match_info = vec![
+        format!(
+            "New matches will be {} minutes long.",
+            tourn.tourn.round_reg.length.as_secs() / 60
+        ),
+        format!(
+            "There are {} matches that are yet to be certified.",
+            match_count
+        ),
+    ];
+    digest.push(("Match Info:".into(), match_info, " ", true));
+    digest
+}
+
+pub fn standings_embed_info(
+    standings: Standings<StandardScore>,
+    g_tourn: &GuildTournament,
+) -> Vec<(String, Vec<String>, &'static str, bool)> {
+    todo!()
+}
 /*
 pub async fn update_standings_message(
     cache: &CacheAndHttp,
@@ -165,145 +287,5 @@ pub async fn update_standings_message(
 
 // Tournament contains the message
 pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTournament) {
-    let mut discord_info = format!("Tournament role: <@&{}>\n", tourn.tourn_role.id);
-    let _ = writeln!(discord_info, "Judge role: <@&{}>", tourn.judge_role);
-    let _ = writeln!(
-        discord_info,
-        "Tournament admin role: <@&{}>",
-        tourn.tourn_admin_role
-    );
-    let _ = writeln!(
-        discord_info,
-        "Pairings channel: <#{}>",
-        tourn.pairings_channel.id
-    );
-    let _ = writeln!(
-        discord_info,
-        "Matches category: <#{}>",
-        tourn.matches_category.id
-    );
-    let mut settings_info = format!("Format: {}\n", tourn.tourn.format);
-    let _ = writeln!(
-        settings_info,
-        "Pairing method: {}",
-        match tourn.tourn.pairing_sys.style {
-            PairingStyle::Swiss(_) => "Swiss",
-            PairingStyle::Fluid(_) => "Fluid",
-        }
-    );
-    let _ = writeln!(
-        settings_info,
-        "Scoring method: {}",
-        match tourn.tourn.scoring_sys {
-            ScoringSystem::Standard(_) => "Standard",
-        }
-    );
-    let _ = writeln!(
-        settings_info,
-        "Registration: {}",
-        if tourn.tourn.reg_open {
-            "Open"
-        } else {
-            "Closed"
-        }
-    );
-    let _ = writeln!(
-        settings_info,
-        "Match size: {}",
-        tourn.tourn.pairing_sys.match_size
-    );
-    let _ = writeln!(
-        settings_info,
-        "Assign table number: {}",
-        if tourn.tourn.use_table_number {
-            "True"
-        } else {
-            "False"
-        }
-    );
-    let _ = writeln!(
-        settings_info,
-        "Require checkin: {}",
-        if tourn.tourn.require_check_in {
-            "True"
-        } else {
-            "False"
-        }
-    );
-    let _ = writeln!(
-        settings_info,
-        "Require deck reg: {}",
-        if tourn.tourn.require_deck_reg {
-            "True"
-        } else {
-            "False"
-        }
-    );
-    if tourn.tourn.require_deck_reg {
-        let _ = writeln!(
-            settings_info,
-            "Min deck count: {}",
-            tourn.tourn.min_deck_count
-        );
-        let _ = writeln!(
-            settings_info,
-            "Max deck count: {}",
-            tourn.tourn.max_deck_count
-        );
-    }
-    let mut player_info = format!(
-        "{} players are registered.",
-        tourn.tourn.player_reg.active_player_count()
-    );
-    if tourn.tourn.require_deck_reg {
-        let player_count = tourn
-            .tourn
-            .player_reg
-            .players
-            .iter()
-            .filter(|(_, p)| p.decks.len() > tourn.tourn.min_deck_count as usize)
-            .count();
-        let _ = write!(
-            player_info,
-            "{} of them have registered the minimum number of decks.",
-            player_count
-        );
-    }
-    if tourn.tourn.require_check_in {
-        let _ = write!(
-            player_info,
-            "{} of them have checked in.",
-            tourn.tourn.player_reg.count_check_ins()
-        );
-    }
-    let mut match_info = format!(
-        "New matches will be {} minutes long.",
-        tourn.tourn.round_reg.length.as_secs() / 60
-    );
-    let match_count = tourn.tourn.round_reg.active_round_count();
-    let _ = write!(
-        match_info,
-        " There are {} matches that are yet to be certified.",
-        match_count
-    );
-    let color = match tourn.tourn.status {
-        TournamentStatus::Planned => Colour::GOLD,
-        TournamentStatus::Started => Colour::FOOYOO,
-        TournamentStatus::Frozen => Colour::ROHRKATZE_BLUE,
-        TournamentStatus::Ended | TournamentStatus::Cancelled => Colour::DARK_GREY,
-    };
-    let msg = tourn.tourn_status.as_mut().unwrap();
-    let _ = msg
-        .edit(cache, |m| {
-            m.embed(|e| {
-                e.color(color)
-                    .title(format!("{} Status:", tourn.tourn.name))
-                    .field("Discord Info:", discord_info, false)
-                    .field("Tournament Settings Info:", settings_info, false)
-                    .field("Player Info:", player_info, false)
-                    .field("Match Info:", match_info, false)
-            })
-        })
-        .await;
 }
 */
