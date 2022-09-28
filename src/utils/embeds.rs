@@ -1,9 +1,12 @@
 use std::{
     collections::HashMap,
-    fmt::{Display, Write},
+    fmt::{format, Display, Write},
 };
 
-use serenity::builder::CreateEmbed;
+use serenity::{builder::CreateEmbed, prelude::Mentionable};
+use squire_lib::identifiers::PlayerId;
+
+use crate::model::guild_tournament::GuildTournament;
 
 const FIELD_CAPACITY: usize = 1024;
 const EMBED_CAPACITY: usize = 2048;
@@ -28,6 +31,7 @@ where
     for field in fields {
         let field_cap = FIELD_CAPACITY - field.0.len();
         let delim_len = field.2.len();
+        let _ = write!(field_buffer, "\u{200b}");
         for item in field.1.into_iter().map(|i| i.to_string()) {
             if field_buffer.len() + item.len() + delim_len > field_cap {
                 safe_fields.push((field.0.clone(), field_buffer.clone(), field.3));
@@ -55,6 +59,46 @@ where
     }
     // Now, each embed has properly sized fields
     digest.push(creator);
+    digest
+}
+
+pub fn player_embed_info(
+    plyr_id: PlayerId,
+    g_tourn: &GuildTournament,
+) -> Vec<(String, Vec<String>, &'static str, bool)> {
+    let plyr = g_tourn.tourn.get_player(&plyr_id.into()).unwrap();
+    let mut digest = Vec::with_capacity(4);
+    let bio = vec![
+        format!("Name: {}", g_tourn.get_player_mention(&plyr_id).unwrap()),
+        format!(
+            "Discord ID: {}",
+            g_tourn
+                .get_user_id(&plyr_id)
+                .map(|id| id.mention().to_string())
+                .unwrap_or_else(|| "None".into())
+        ),
+        format!(
+            "Gamer Tag: {}",
+            plyr.game_name
+                .as_ref()
+                .map(|s| s.as_str())
+                .unwrap_or("None")
+        ),
+        format!("Tournament ID: {plyr_id}",),
+    ];
+    digest.push(("Bio Info:".into(), bio, "\n", true));
+    let status = vec![format!("Status: {}", plyr.status)];
+    digest.push(("Status Info:".into(), status, "\n", true));
+    let decks = plyr.deck_ordering.clone();
+    digest.push(("Deck Names:".into(), decks, "\n", true));
+    let rnds = g_tourn
+        .tourn
+        .get_player_rounds(&plyr_id.into())
+        .unwrap()
+        .into_iter()
+        .map(|rnd| format!("Round #{}: {}", rnd.match_number, rnd.status))
+        .collect();
+    digest.push(("Round Info:".into(), rnds, "\n", true));
     digest
 }
 

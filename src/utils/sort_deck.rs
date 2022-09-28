@@ -102,7 +102,8 @@ impl TypeSortedDeck {
         if !self.lands.is_empty() {
             digest.push((
                 format!("Land ({}):", self.count_lands()),
-                Box::new(self.lands.iter().map(pretty_print_cards)) as Box<dyn Iterator<Item = String> + Send + 'a>,
+                Box::new(self.lands.iter().map(pretty_print_cards))
+                    as Box<dyn Iterator<Item = String> + Send + 'a>,
                 "\n",
                 true,
             ));
@@ -173,7 +174,7 @@ impl TypeSortedDeck {
         }
         digest
     }
-    
+
     #[allow(dead_code)]
     pub fn count_all(&self) -> usize {
         self.count_commanders()
@@ -185,52 +186,52 @@ impl TypeSortedDeck {
             + self.count_sorceries()
             + self.count_sideboard()
     }
-    
+
     #[allow(dead_code)]
     pub fn count_commanders(&self) -> usize {
         self.commanders.len()
     }
-    
+
     #[allow(dead_code)]
     pub fn count_lands(&self) -> usize {
         self.lands.iter().map(|(n, _)| n).sum()
     }
-    
+
     #[allow(dead_code)]
     pub fn count_creatures(&self) -> usize {
         self.creatures.iter().map(|(n, _)| n).sum()
     }
-    
+
     #[allow(dead_code)]
     pub fn count_artifacts(&self) -> usize {
         self.artifacts.iter().map(|(n, _)| n).sum()
     }
-    
+
     #[allow(dead_code)]
     pub fn count_enchantments(&self) -> usize {
         self.enchantments.iter().map(|(n, _)| n).sum()
     }
-    
+
     #[allow(dead_code)]
     pub fn count_instants(&self) -> usize {
         self.instants.iter().map(|(n, _)| n).sum()
     }
-    
+
     #[allow(dead_code)]
     pub fn count_sorceries(&self) -> usize {
         self.sorceries.iter().map(|(n, _)| n).sum()
     }
-    
+
     #[allow(dead_code)]
     pub fn count_planeswalkers(&self) -> usize {
         self.sorceries.iter().map(|(n, _)| n).sum()
     }
-    
+
     #[allow(dead_code)]
     pub fn count_other(&self) -> usize {
         self.sorceries.iter().map(|(n, _)| n).sum()
     }
-    
+
     #[allow(dead_code)]
     pub fn count_sideboard(&self) -> usize {
         self.sideboard.iter().map(|(n, _)| n).sum()

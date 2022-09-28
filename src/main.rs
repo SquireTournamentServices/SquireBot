@@ -1,6 +1,4 @@
-//#![allow(unused_mut, unused_imports, dead_code, unused_variables)]
-
-#![deny(unused)]
+//#![deny(unused)]
 #![feature(result_flattening)]
 
 use std::{

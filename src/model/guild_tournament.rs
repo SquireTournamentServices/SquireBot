@@ -46,7 +46,8 @@ use crate::{
     },
     utils::{
         default_response::{error_to_content, op_to_content},
-        embeds::safe_embeds, sort_deck::TypeSortedDeck,
+        embeds::{safe_embeds, player_embed_info},
+        sort_deck::TypeSortedDeck,
     },
 };
 
@@ -283,8 +284,8 @@ impl GuildTournament {
         }
     }
 
-    pub fn get_user_id(&self, user: &PlayerId) -> Option<UserId> {
-        self.players.get_left(user).cloned()
+    pub fn get_user_id(&self, plyr: &PlayerId) -> Option<UserId> {
+        self.players.get_left(plyr).cloned()
     }
 
     pub fn add_player(&mut self, name: String, user: UserId) -> Result<(), TournamentError> {
@@ -397,7 +398,8 @@ impl GuildTournament {
                     id: r_id,
                     update: MatchUpdate::MatchCancelled,
                 };
-                let _ = ctx.data
+                let _ = ctx
+                    .data
                     .read()
                     .await
                     .get::<MatchUpdateSenderContainer>()
@@ -434,7 +436,8 @@ impl GuildTournament {
                             id: r_id,
                             update: MatchUpdate::RecordResult(result),
                         };
-                        let _ = ctx.data
+                        let _ = ctx
+                            .data
                             .read()
                             .await
                             .get::<MatchUpdateSenderContainer>()
@@ -473,7 +476,8 @@ impl GuildTournament {
                             id: r_id,
                             update: MatchUpdate::RecordConfirmation(p_id),
                         };
-                        let _ = ctx.data
+                        let _ = ctx
+                            .data
                             .read()
                             .await
                             .get::<MatchUpdateSenderContainer>()
@@ -513,7 +517,8 @@ impl GuildTournament {
                             id: r_id,
                             update: MatchUpdate::RecordResult(result),
                         };
-                        let _ = ctx.data
+                        let _ = ctx
+                            .data
                             .read()
                             .await
                             .get::<MatchUpdateSenderContainer>()
@@ -548,7 +553,8 @@ impl GuildTournament {
                             id: r_id,
                             update: MatchUpdate::RecordConfirmation(p_id),
                         };
-                        let _ = ctx.data
+                        let _ = ctx
+                            .data
                             .read()
                             .await
                             .get::<MatchUpdateSenderContainer>()
@@ -572,6 +578,7 @@ impl GuildTournament {
                 }
             }
             DropPlayer(p_ident) => {
+                let opt_id = self.tourn.player_reg.get_player_id(&p_ident);
                 let op = TournOp::AdminDropPlayer(*SQUIRE_ACCOUNT_ID, p_ident.clone());
                 match self.tourn.apply_op(op) {
                     Err(err) => {
@@ -580,8 +587,16 @@ impl GuildTournament {
                     Ok(_) => {
                         self.update_status().await;
                         self.update_standings().await;
-                        // Remove player data (role, etc)
-                        todo!();
+                        if let Some(u_id) = self.get_user_id(&opt_id.unwrap()) {
+                            msg
+                                .guild(ctx)
+                                .unwrap()
+                                .member(ctx, u_id)
+                                .await
+                                .unwrap()
+                                .remove_role(ctx, self.tourn_role.id)
+                                .await?;
+                        }
                     }
                 }
             }
@@ -732,6 +747,13 @@ impl GuildTournament {
                 todo!()
             }
             ViewDecklist(p_ident, deck_name) => {
+                let plyr_id = match self.tourn.player_reg.get_player_id(&p_ident) {
+                    Ok(id) => id,
+                    Err(err) => {
+                        msg.reply(&ctx.http, error_to_content(err)).await?;
+                        return Ok(());
+                    }
+                };
                 let deck = match self.tourn.get_player_deck(&p_ident, &deck_name) {
                     Ok(deck) => deck,
                     Err(err) => {
@@ -739,7 +761,7 @@ impl GuildTournament {
                         return Ok(());
                     }
                 };
-                let title = String::from("Player's deck");
+                let title = format!("{}'s deck", self.get_player_mention(&plyr_id).unwrap());
                 let sorted_deck = TypeSortedDeck::from(deck);
                 let fields = sorted_deck.embed_fields();
                 let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
@@ -747,10 +769,38 @@ impl GuildTournament {
                     .await?;
             }
             ViewPlayerDecks(p_ident) => {
-                todo!()
+                let plyr = match self.tourn.get_player(&p_ident) {
+                    Ok(plyr) => plyr,
+                    Err(err) => {
+                        msg.reply(&ctx.http, error_to_content(err)).await?;
+                        return Ok(());
+                    }
+                };
+                if plyr.decks.is_empty() {
+                    msg.reply(&ctx.http, "That player has no decks.").await?;
+                    return Ok(());
+                }
+                for (name, deck) in plyr.decks {
+                    let sorted_deck = TypeSortedDeck::from(deck);
+                    let fields = sorted_deck.embed_fields();
+                    let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
+                    resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(name, fields)))
+                        .await?;
+                }
             }
             ViewPlayerProfile(p_ident) => {
-                todo!()
+                let plyr_id = match self.tourn.player_reg.get_player_id(&p_ident) {
+                    Ok(id) => id,
+                    Err(err) => {
+                        msg.reply(&ctx.http, error_to_content(err)).await?;
+                        return Ok(());
+                    }
+                };
+                let mention = self.get_player_mention(&plyr_id).unwrap();
+                let fields = player_embed_info(plyr_id, self);
+                let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
+                resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(format!("{mention}'s Profile"), fields)))
+                    .await?;
             }
             ViewMatchStatus(r_ident) => {
                 let r_id = match self.tourn.round_reg.get_round_id(&r_ident) {
@@ -785,7 +835,14 @@ impl GuildTournament {
                     Err(err) => error_to_content(err),
                 };
                 msg.reply(&ctx.http, content).await?;
-                todo!("Still need to give player role.");
+                msg
+                    .guild(ctx)
+                    .unwrap()
+                    .member(ctx, user_id)
+                    .await
+                    .unwrap()
+                    .remove_role(ctx, self.tourn_role.id)
+                    .await?;
             }
             AdminRegisterPlayer(user_id) => {
                 let content = match self.tourn.apply_op(TournOp::RegisterGuest(
@@ -803,7 +860,14 @@ impl GuildTournament {
                     Err(err) => error_to_content(err),
                 };
                 msg.reply(&ctx.http, content).await?;
-                todo!("Still need to give player role.");
+                msg
+                    .guild(ctx)
+                    .unwrap()
+                    .member(ctx, user_id)
+                    .await
+                    .unwrap()
+                    .remove_role(ctx, self.tourn_role.id)
+                    .await?;
             }
             RegisterGuest(name) => {
                 let content = match self.tourn.apply_op(TournOp::RegisterGuest(
@@ -835,6 +899,12 @@ impl GuildTournament {
             }
         }
         todo!()
+    }
+
+    pub fn get_player_mention(&self, plyr_id: &PlayerId) -> Option<String> {
+        self.get_user_id(&plyr_id)
+            .map(|id| id.mention().to_string())
+            .or_else(|| self.guests.get_left(&plyr_id).cloned())
     }
 }
 

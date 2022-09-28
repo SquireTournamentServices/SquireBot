@@ -7,5 +7,6 @@ references/*
 AtomicCards.json
 guild_settings.json
 tournaments.json
+dead_tournaments.json
 Cargo.lock
 /target
