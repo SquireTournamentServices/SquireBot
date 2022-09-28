@@ -46,7 +46,7 @@ use crate::{
     },
     utils::{
         default_response::{error_to_content, op_to_content},
-        embeds::{safe_embeds, player_embed_info},
+        embeds::{player_embed_info, safe_embeds},
         sort_deck::TypeSortedDeck,
     },
 };
@@ -588,8 +588,7 @@ impl GuildTournament {
                         self.update_status().await;
                         self.update_standings().await;
                         if let Some(u_id) = self.get_user_id(&opt_id.unwrap()) {
-                            msg
-                                .guild(ctx)
+                            msg.guild(ctx)
                                 .unwrap()
                                 .member(ctx, u_id)
                                 .await
@@ -799,8 +798,10 @@ impl GuildTournament {
                 let mention = self.get_player_mention(&plyr_id).unwrap();
                 let fields = player_embed_info(plyr_id, self);
                 let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-                resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(format!("{mention}'s Profile"), fields)))
-                    .await?;
+                resp.edit(&ctx.http, |m| {
+                    m.add_embeds(safe_embeds(format!("{mention}'s Profile"), fields))
+                })
+                .await?;
             }
             ViewMatchStatus(r_ident) => {
                 let r_id = match self.tourn.round_reg.get_round_id(&r_ident) {
@@ -835,8 +836,7 @@ impl GuildTournament {
                     Err(err) => error_to_content(err),
                 };
                 msg.reply(&ctx.http, content).await?;
-                msg
-                    .guild(ctx)
+                msg.guild(ctx)
                     .unwrap()
                     .member(ctx, user_id)
                     .await
@@ -860,8 +860,7 @@ impl GuildTournament {
                     Err(err) => error_to_content(err),
                 };
                 msg.reply(&ctx.http, content).await?;
-                msg
-                    .guild(ctx)
+                msg.guild(ctx)
                     .unwrap()
                     .member(ctx, user_id)
                     .await

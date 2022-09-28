@@ -1,4 +1,4 @@
-use std::{time::Duration, str::FromStr};
+use std::{str::FromStr, time::Duration};
 
 use serenity::{
     framework::standard::{macros::command, Args, CommandError, CommandResult},
@@ -17,8 +17,8 @@ use crate::{
         guild_tournament::SquireTournamentSetting,
     },
     utils::{
-        default_response::error_to_content, spin_lock::spin_mut,
-        stringify::bool_from_string, id_resolver::admin_tourn_id_resolver,
+        default_response::error_to_content, id_resolver::admin_tourn_id_resolver,
+        spin_lock::spin_mut, stringify::bool_from_string,
     },
 };
 
@@ -652,15 +652,13 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     let result = args
         .single_quoted::<String>()
         .map_err(|_| "Please include a channel, either by name or mention.")
-        .and_then(|arg| {
-            match Mention::from_str(&arg).ok() {
-                Some(Mention::Channel(id)) => Ok(id),
-                Some(_) => Err("Please specify a channel, not a User, Role, or something"),
-                None => match guild.channel_id_from_name(&ctx.cache, arg) {
-                    Some(id) => Ok(id),
-                    None => Err("Please include a channel, either by name or mention.")
-                },
-            }
+        .and_then(|arg| match Mention::from_str(&arg).ok() {
+            Some(Mention::Channel(id)) => Ok(id),
+            Some(_) => Err("Please specify a channel, not a User, Role, or something"),
+            None => match guild.channel_id_from_name(&ctx.cache, arg) {
+                Some(id) => Ok(id),
+                None => Err("Please include a channel, either by name or mention."),
+            },
         });
     let response = match result {
         Err(content) => {
@@ -702,15 +700,13 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     let result = args
         .single_quoted::<String>()
         .map_err(|_| "Please include a channel, either by name or mention.")
-        .and_then(|arg| {
-            match Mention::from_str(&arg).ok() {
-                Some(Mention::Channel(id)) => Ok(id),
-                Some(_) => Err("Please specify a channel, not a User, Role, or something"),
-                None => match guild.channel_id_from_name(&ctx.cache, arg) {
-                    Some(id) => Ok(id),
-                    None => Err("Please include a channel, either by name or mention.")
-                },
-            }
+        .and_then(|arg| match Mention::from_str(&arg).ok() {
+            Some(Mention::Channel(id)) => Ok(id),
+            Some(_) => Err("Please specify a channel, not a User, Role, or something"),
+            None => match guild.channel_id_from_name(&ctx.cache, arg) {
+                Some(id) => Ok(id),
+                None => Err("Please include a channel, either by name or mention."),
+            },
         });
     let response = match result {
         Err(content) => {

@@ -22,8 +22,8 @@ use crate::{
     },
     utils::{
         default_response::subcommand_default,
-        spin_lock::spin_mut,
         id_resolver::{admin_tourn_id_resolver, user_id_resolver},
+        spin_lock::spin_mut,
     },
 };
 
@@ -530,14 +530,12 @@ async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn raw_standings(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let count = match args.single_quoted::<String>().as_ref().map(|s| s.as_str()) {
         Ok("all" | "All" | "a" | "A") => usize::max_value(),
-        res => {
-            match res.ok().and_then(|s| s.parse::<usize>().ok()) {
-                Some(n) => n,
-                None => {
-                    msg.reply(&ctx.http, r#"Please specify a max count or the word "all""#)
+        res => match res.ok().and_then(|s| s.parse::<usize>().ok()) {
+            Some(n) => n,
+            None => {
+                msg.reply(&ctx.http, r#"Please specify a max count or the word "all""#)
                     .await?;
                 return Ok(());
-                }
             }
         },
     };
