@@ -19,6 +19,7 @@ squire_lib = { path = "../SquireCore/squire_lib" }
 cycle_map = { version = "0.1.1", features = ["serde"] }
 
 serenity = { version = "0.11.2", features = ["framework", "standard_framework", "rustls_backend", "client", "gateway", "rustls_backend", "model", "utils"] }
+chrono = { version = "0.4", features = ["serde"] }
 itertools = { version = "0.10.0" }
 reqwest = { version = "0.11.10", features = ["json"] }
 lazy_static = { version = "1.4.0" }
