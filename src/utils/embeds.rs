@@ -1,10 +1,13 @@
 use std::{
     collections::HashMap,
-    fmt::{format, Display, Write},
+    fmt::{Display, Write},
 };
 
 use serenity::{builder::CreateEmbed, prelude::Mentionable};
-use squire_lib::{identifiers::PlayerId, scoring::Standings, standard_scoring::StandardScore};
+use squire_lib::{
+    identifiers::PlayerId, pairings::PairingStyle, scoring::Standings,
+    standard_scoring::StandardScore, tournament::ScoringSystem,
+};
 
 use crate::model::guild_tournament::GuildTournament;
 
@@ -107,39 +110,45 @@ pub fn tournament_embed_info(
 ) -> Vec<(String, Vec<String>, &'static str, bool)> {
     let mut digest = Vec::new();
     let discord_info = vec![
-        format!("Tournament role: {}", tourn.tourn_role.id.mention()),
-        format!("Judge role: {}", tourn.judge_role.id.mention()),
+        format!("Tournament role: {}", g_tourn.tourn_role.mention()),
+        format!("Judge role: {}", g_tourn.judge_role.mention()),
         format!(
             "Tournament admin role: {}",
-            tourn.tourn_admin_role.mention()
+            g_tourn.tourn_admin_role.mention()
         ),
-        format!("Pairings channel: {}", tourn.pairings_channel.id.mention()),
-        format!("Matches category: {}", tourn.matches_category.id.mention()),
+        format!(
+            "Pairings channel: {}",
+            g_tourn.pairings_channel.id.mention()
+        ),
+        format!(
+            "Matches category: {}",
+            g_tourn.matches_category.id.mention()
+        ),
     ];
     digest.push(("Discord Info:".into(), discord_info, "\n", true));
     let mut settings_info = vec![
-        format!("Format: {}\n", tourn.tourn.format),
+        format!("Format: {}\n", g_tourn.tourn.format),
         format!(
             "Pairing method: {}",
-            match tourn.tourn.pairing_sys.style {
+            match g_tourn.tourn.pairing_sys.style {
                 PairingStyle::Swiss(_) => "Swiss",
                 PairingStyle::Fluid(_) => "Fluid",
             }
         ),
         format!(
             "Scoring method: {}",
-            match tourn.tourn.scoring_sys {
+            match g_tourn.tourn.scoring_sys {
                 ScoringSystem::Standard(_) => "Standard",
             }
         ),
         format!(
             "Registration: {}",
-            tourn.tourn.reg_open.then(|| "Open").unwrap_or("Closed")
+            g_tourn.tourn.reg_open.then(|| "Open").unwrap_or("Closed")
         ),
-        format!("Match size: {}", tourn.tourn.pairing_sys.match_size),
+        format!("Match size: {}", g_tourn.tourn.pairing_sys.match_size),
         format!(
             "Assign table number: {}",
-            tourn
+            g_tourn
                 .tourn
                 .use_table_number
                 .then(|| "True")
@@ -147,7 +156,7 @@ pub fn tournament_embed_info(
         ),
         format!(
             "Require checkin: {}",
-            tourn
+            g_tourn
                 .tourn
                 .require_check_in
                 .then(|| "True")
@@ -155,89 +164,83 @@ pub fn tournament_embed_info(
         ),
         format!(
             "Require deck reg: {}",
-            tourn
+            g_tourn
                 .tourn
                 .require_deck_reg
                 .then(|| "True")
                 .unwrap_or("False")
         ),
     ];
-    if tourn.tourn.require_deck_reg {
-        settings_in.push(format!("Min deck count: {}", tourn.tourn.min_deck_count));
-        settings_in.push(format!("Max deck count: {}", tourn.tourn.max_deck_count));
+    if g_tourn.tourn.require_deck_reg {
+        settings_info.push(format!("Min deck count: {}", g_tourn.tourn.min_deck_count));
+        settings_info.push(format!("Max deck count: {}", g_tourn.tourn.max_deck_count));
     }
     digest.push(("Settings Info:".into(), settings_info, "\n", true));
     let mut player_info = vec![format!(
         "{} players are registered.",
-        tourn.tourn.player_reg.active_player_count()
+        g_tourn.tourn.player_reg.active_player_count()
     )];
-    if tourn.tourn.require_deck_reg {
-        let min_count = tourn
+    if g_tourn.tourn.require_deck_reg {
+        let min_count = g_tourn
             .tourn
             .player_reg
             .players
             .iter()
-            .filter(|(_, p)| p.decks.len() > tourn.tourn.min_deck_count as usize)
+            .filter(|(_, p)| p.decks.len() > g_tourn.tourn.min_deck_count as usize)
             .count();
         player_info.push(format!(
             "{} of them have registered at least the minimum number of decks.",
             min_count
         ));
-        let max_count = tourn
+        let max_count = g_tourn
             .tourn
             .player_reg
             .players
             .iter()
-            .filter(|(_, p)| p.decks.len() > tourn.tourn.max_deck_count as usize)
+            .filter(|(_, p)| p.decks.len() > g_tourn.tourn.max_deck_count as usize)
             .count();
         player_info.push(format!(
             "{} of them have registered more than the maximum number of decks.",
             max_count
         ));
     }
-    if tourn.tourn.require_check_in {
-        let _ = write!(
-            player_info,
+    if g_tourn.tourn.require_check_in {
+        player_info.push(format!(
             "{} of them have checked in.",
-            tourn.tourn.player_reg.count_check_ins()
-        );
+            g_tourn.tourn.player_reg.count_check_ins()
+        ));
     }
     digest.push(("Player Info:".into(), player_info, " ", true));
-    let active_count = tourn.tourn.round_reg.active_round_count();
-    let mut match_info = vec![
+    let completed_count = g_tourn.tourn.round_reg.rounds.values().map(|rnd| rnd.is_certified()).count();
+    let active_count = g_tourn.tourn.round_reg.active_round_count();
+    let match_info = vec![
         format!(
             "New matches will be {} minutes long.",
-            tourn.tourn.round_reg.length.as_secs() / 60
+            g_tourn.tourn.round_reg.length.as_secs() / 60
+        ),
+        format!(
+            "There are {} completed matches.",
+            completed_count
         ),
         format!(
             "There are {} matches that are yet to be certified.",
-            match_count
+            active_count
         ),
     ];
     digest.push(("Match Info:".into(), match_info, " ", true));
     digest
 }
 
-pub fn standings_embed_info(
-    standings: Standings<StandardScore>,
-    g_tourn: &GuildTournament,
-) -> Vec<(String, Vec<String>, &'static str, bool)> {
-    todo!()
-}
-/*
-pub async fn update_standings_message(
-    cache: &CacheAndHttp,
-    msg: &mut Message,
-    plyrs: &CycleMap<UserId, PlayerId>,
-    tourn: &Tournament,
+pub fn standings_embeds(
     mut standings: Standings<StandardScore>,
-) {
-    let mut embeds: Vec<CreateEmbed> = Vec::with_capacity(10);
+    g_tourn: &GuildTournament,
+) -> Vec<CreateEmbed> {
+    let mut embeds = Vec::with_capacity(10);
     let mut e = CreateEmbed(HashMap::new());
     let mut name_buffer = String::with_capacity(1024);
     let mut score_buffer = String::with_capacity(1024);
     for (i, (id, score)) in standings.scores.drain(0..).rev().enumerate() {
-        let name = format!("{}) {}", i + 1, player_name_resolver(id, plyrs, tourn));
+        let name = format!("{}) {}", i + 1, g_tourn.get_player_mention(&id).unwrap());
         let mut score_s = if score.include_match_points {
             format!("{:.2}, ", score.match_points)
         } else if score.include_game_points {
@@ -262,7 +265,7 @@ pub async fn update_standings_message(
         score_s += "\n";
         if name.len() + name_buffer.len() > 1024 || score_s.len() + score_buffer.len() > 1024 {
             e.field("Name:", name_buffer.clone(), true);
-            e.field("Points | Percent | Opp. %", score_buffer.clone(), true);
+            e.field("Points | Win % | Opp. W. %", score_buffer.clone(), true);
             embeds.push(e);
             e = CreateEmbed(HashMap::new());
             if embeds.len() == 10 {
@@ -276,16 +279,8 @@ pub async fn update_standings_message(
     }
     if embeds.len() < 10 {
         e.field("Name:", name_buffer.clone(), true);
-        e.field("Points | Percent | Opp. %", score_buffer.clone(), true);
+        e.field("Points | Win % | Opp. W. %", score_buffer.clone(), true);
         embeds.push(e);
     }
-    println!("Attaching {} embeds", embeds.len());
-    let _ = msg
-        .edit(cache, |m| m.content("\u{200b}").set_embeds(embeds))
-        .await;
+    embeds
 }
-
-// Tournament contains the message
-pub async fn update_status_message(cache: &impl CacheHttp, tourn: &mut GuildTournament) {
-}
-*/

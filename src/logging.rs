@@ -72,7 +72,7 @@ impl LogTracker {
         let mut timed_out = Vec::new();
         for (msg, timer) in self.timers.iter() {
             if (now - *timer) > self.time_to_live {
-                timed_out.push(msg);
+                timed_out.push(msg.clone());
             }
         }
         for msg in timed_out {

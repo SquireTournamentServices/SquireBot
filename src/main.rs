@@ -37,8 +37,8 @@ use cycle_map::{CycleMap, GroupMap};
 use mtgjson::mtgjson::meta::Meta;
 use squire_lib::{self, operations::TournOp, tournament::TournamentId};
 
-mod match_manager;
 mod logging;
+mod match_manager;
 mod misc_commands;
 mod model;
 mod setup_commands;
