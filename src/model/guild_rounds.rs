@@ -55,7 +55,7 @@ impl TrackingRound {
         let (title, fields) = self.embed_info();
         let _ = self
             .message
-            .edit(cache, |m| m.add_embeds(safe_embeds(title, fields)))
+            .edit(cache, |m| m.set_embeds(safe_embeds(title, fields)))
             .await;
     }
 
@@ -154,11 +154,11 @@ impl GuildRound {
             format!("VC: {}", stringify_option(&self.vc_mention)),
             format!("Text: {}", stringify_option(&self.tc_mention)),
         ];
-        fields.push(("Info:".into(), info, " ", true));
+        fields.push(("Info:".into(), info, "\n", true));
         fields.push((
             "Players:".into(),
             self.players.values().cloned().collect(),
-            " ",
+            "\n",
             true,
         ));
         let mut results: Vec<String> = self
@@ -172,13 +172,13 @@ impl GuildRound {
             })
             .collect();
         results.push(format!(" draws: {}", self.round.draws));
-        fields.push(("Results:".into(), results, " ", true));
+        fields.push(("Results:".into(), results, "\n", true));
         let confirmations = self
             .players
             .iter()
             .map(|(id, p)| format!("{p}: {}", self.round.confirmations.contains(id)))
             .collect();
-        fields.push(("Confirmed:".into(), confirmations, " ", true));
+        fields.push(("Confirmed:".into(), confirmations, "\n", true));
         if !self.round.drops.is_empty() {
             let drops = self
                 .round

@@ -348,7 +348,7 @@ impl GuildTournament {
             let standings = self.tourn.get_standings();
             let embeds = standings_embeds(standings, self);
             let msg = self.standings_message.as_mut().unwrap();
-            let _ = msg.edit(&ctx.http, |m| m.add_embeds(embeds)).await;
+            let _ = msg.edit(&ctx.http, |m| m.set_embeds(embeds)).await;
         }
     }
 
@@ -359,7 +359,7 @@ impl GuildTournament {
             let msg = self.tourn_status.as_mut().unwrap();
             let _ = msg
                 .edit(&ctx.http, |m| {
-                    m.add_embeds(safe_embeds(format!("{} Status:", self.tourn.name), fields))
+                    m.set_embeds(safe_embeds(format!("{} Status:", self.tourn.name), fields))
                 })
                 .await;
         }
@@ -488,7 +488,7 @@ impl GuildTournament {
                             .await?;
                         if let Some(gr) = self.get_guild_round(&r_id) {
                             let (title, fields) = gr.embed_info();
-                            resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(title, fields)))
+                            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
                                 .await?;
                         }
                     }
@@ -528,7 +528,7 @@ impl GuildTournament {
                             .await?;
                         if let Some(tr) = self.get_tracking_round(&r_id) {
                             let (title, fields) = tr.embed_info();
-                            resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(title, fields)))
+                            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
                                 .await?;
                         }
                         if status == RoundStatus::Certified {
@@ -575,7 +575,7 @@ impl GuildTournament {
                             .await?;
                         if let Some(tr) = self.get_tracking_round(&r_id) {
                             let (title, fields) = tr.embed_info();
-                            resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(title, fields)))
+                            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
                                 .await?;
                         }
                     }
@@ -611,7 +611,7 @@ impl GuildTournament {
                             .await?;
                         if let Some(tr) = self.get_tracking_round(&r_id) {
                             let (title, fields) = tr.embed_info();
-                            resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(title, fields)))
+                            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
                                 .await?;
                         }
                         if status == RoundStatus::Certified {
@@ -829,7 +829,7 @@ impl GuildTournament {
                 let sorted_deck = TypeSortedDeck::from(deck);
                 let fields = sorted_deck.embed_fields();
                 let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-                resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(title, fields)))
+                resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
                     .await?;
             }
             ViewPlayerDecks(p_ident) => {
@@ -848,7 +848,7 @@ impl GuildTournament {
                     let sorted_deck = TypeSortedDeck::from(deck);
                     let fields = sorted_deck.embed_fields();
                     let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-                    resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(name, fields)))
+                    resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(name, fields)))
                         .await?;
                 }
             }
@@ -864,7 +864,7 @@ impl GuildTournament {
                 let fields = player_embed_info(plyr_id, self);
                 let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
                 resp.edit(&ctx.http, |m| {
-                    m.add_embeds(safe_embeds(format!("{mention}'s Profile"), fields))
+                    m.set_embeds(safe_embeds(format!("{mention}'s Profile"), fields))
                 })
                 .await?;
             }
@@ -879,7 +879,7 @@ impl GuildTournament {
                 let gr = self.get_guild_round(&r_id).unwrap();
                 let (title, fields) = gr.embed_info();
                 let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-                resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(title, fields)))
+                resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
                     .await?;
             }
             CreateTournamentStatus => {
@@ -1011,7 +1011,7 @@ impl GuildTournament {
                         let mut resp = msg.reply(&ctx.http, "Match successfully created!!").await?;
                         if let Some(gr) = self.get_guild_round(&rnd.id) {
                             let (title, fields) = gr.embed_info();
-                            resp.edit(&ctx.http, |m| m.add_embeds(safe_embeds(title, fields)))
+                            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
                                 .await?;
                         }
                     }

@@ -17,7 +17,7 @@ use crate::{
     utils::{default_response::error_to_content, spin_lock::spin_mut},
 };
 
-use super::containers::MatchUpdateSenderContainer;
+use super::containers::{MatchUpdateSenderContainer, TournamentNameAndIDMapContainer, GuildAndTournamentIDMapContainer};
 
 #[async_trait]
 pub trait Confirmation
@@ -73,6 +73,16 @@ impl Confirmation for EndTournamentConfirmation {
         } else {
             tourn.update_status(ctx).await;
             tourn.update_standings(ctx).await;
+            data.get::<GuildAndTournamentIDMapContainer>()
+                .unwrap()
+                .write()
+                .await
+                .remove_left(&tourn.tourn.id);
+            data.get::<TournamentNameAndIDMapContainer>()
+                .unwrap()
+                .write()
+                .await
+                .remove_via_left(&tourn.tourn.name);
             let mut dead_tourns = data
                 .get::<DeadTournamentMapContainer>()
                 .unwrap()
@@ -103,6 +113,16 @@ impl Confirmation for CancelTournamentConfirmation {
         } else {
             tourn.update_status(ctx).await;
             tourn.update_standings(ctx).await;
+            data.get::<GuildAndTournamentIDMapContainer>()
+                .unwrap()
+                .write()
+                .await
+                .remove_left(&tourn.tourn.id);
+            data.get::<TournamentNameAndIDMapContainer>()
+                .unwrap()
+                .write()
+                .await
+                .remove_via_left(&tourn.tourn.name);
             let mut dead_tourns = data
                 .get::<DeadTournamentMapContainer>()
                 .unwrap()

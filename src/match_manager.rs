@@ -93,7 +93,7 @@ impl MatchManager {
                     }
                 }
                 MatchCancelled => {
-                    if let Some(m) = self.matches.get_mut(&update.id) {
+                    if let Some(mut m) = self.matches.remove(&update.id) {
                         m.round.round.kill_round();
                     }
                 }
