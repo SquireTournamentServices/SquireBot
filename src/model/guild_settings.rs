@@ -148,8 +148,6 @@ impl GuildSettings {
     }
 
     pub fn populate_embed(&self, embed: &mut CreateEmbed) {
-        let _data = String::new();
-        "Pairings Channel:\nJudge Role:\nTourn Admin Role:\nMatches Category:\nMake VC:\nMake TC:";
         let mut data = String::new();
         let _ = writeln!(
             data,

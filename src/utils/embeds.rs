@@ -14,6 +14,8 @@ use crate::model::guild_tournament::GuildTournament;
 const FIELD_CAPACITY: usize = 1024;
 const EMBED_CAPACITY: usize = 2048;
 
+pub type StringFields = Vec<(String, Vec<String>, &'static str, bool)>;
+
 /// Takes the data from an embed and divides it between multiple embed to ensure the invariants
 /// needed for an embed. Namely:
 ///  - Each field has at most 1024 characters (including title)
@@ -80,19 +82,13 @@ pub fn player_embed_info(
                 .map(|id| id.mention().to_string())
                 .unwrap_or_else(|| "None".into())
         ),
-        format!(
-            "Gamer Tag: {}",
-            plyr.game_name
-                .as_ref()
-                .map(|s| s.as_str())
-                .unwrap_or("None")
-        ),
+        format!("Gamer Tag: {}", plyr.game_name.as_deref().unwrap_or("None")),
         format!("Tournament ID: {plyr_id}",),
     ];
     digest.push(("Bio Info:".into(), bio, "\n", true));
     let status = vec![format!("Status: {}", plyr.status)];
     digest.push(("Status Info:".into(), status, "\n", true));
-    let decks = plyr.deck_ordering.clone();
+    let decks = plyr.deck_ordering;
     digest.push(("Deck Names:".into(), decks, "\n", true));
     let rnds = g_tourn
         .tourn
@@ -143,32 +139,36 @@ pub fn tournament_embed_info(
         ),
         format!(
             "Registration: {}",
-            g_tourn.tourn.reg_open.then(|| "Open").unwrap_or("Closed")
+            if g_tourn.tourn.reg_open {
+                "Open"
+            } else {
+                "Closed"
+            }
         ),
         format!("Match size: {}", g_tourn.tourn.pairing_sys.match_size),
         format!(
             "Assign table number: {}",
-            g_tourn
-                .tourn
-                .use_table_number
-                .then(|| "True")
-                .unwrap_or("False")
+            if g_tourn.tourn.use_table_number {
+                "True"
+            } else {
+                "False"
+            }
         ),
         format!(
             "Require checkin: {}",
-            g_tourn
-                .tourn
-                .require_check_in
-                .then(|| "True")
-                .unwrap_or("False")
+            if g_tourn.tourn.require_check_in {
+                "True"
+            } else {
+                "False"
+            }
         ),
         format!(
             "Require deck reg: {}",
-            g_tourn
-                .tourn
-                .require_deck_reg
-                .then(|| "True")
-                .unwrap_or("False")
+            if g_tourn.tourn.require_deck_reg {
+                "True"
+            } else {
+                "False"
+            }
         ),
     ];
     if g_tourn.tourn.require_deck_reg {
@@ -211,17 +211,20 @@ pub fn tournament_embed_info(
         ));
     }
     digest.push(("Player Info:".into(), player_info, " ", true));
-    let completed_count = g_tourn.tourn.round_reg.rounds.values().map(|rnd| rnd.is_certified()).count();
+    let completed_count = g_tourn
+        .tourn
+        .round_reg
+        .rounds
+        .values()
+        .filter(|rnd| rnd.is_certified())
+        .count();
     let active_count = g_tourn.tourn.round_reg.active_round_count();
     let match_info = vec![
         format!(
             "New matches will be {} minutes long.",
             g_tourn.tourn.round_reg.length.as_secs() / 60
         ),
-        format!(
-            "There are {} completed matches.",
-            completed_count
-        ),
+        format!("There are {} completed matches.", completed_count),
         format!(
             "There are {} matches that are yet to be certified.",
             active_count

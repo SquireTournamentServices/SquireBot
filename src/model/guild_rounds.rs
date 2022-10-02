@@ -12,7 +12,10 @@ use serde::{Deserialize, Serialize};
 
 use squire_lib::{identifiers::PlayerId, round::Round};
 
-use crate::utils::{embeds::safe_embeds, stringify::stringify_option};
+use crate::utils::{
+    embeds::{safe_embeds, StringFields},
+    stringify::stringify_option,
+};
 
 #[derive(Serialize, Deserialize, Copy, Clone, Default, Debug)]
 pub struct TimerWarnings {
@@ -48,7 +51,7 @@ pub struct TrackingRound {
 }
 
 impl TrackingRound {
-    pub async fn update_message<'a>(&'a mut self, cache: impl CacheHttp) {
+    pub async fn update_message(&mut self, cache: impl CacheHttp) {
         let (title, fields) = self.embed_info();
         let _ = self
             .message
@@ -56,7 +59,7 @@ impl TrackingRound {
             .await;
     }
 
-    pub async fn send_warning<'a>(&'a mut self, cache: impl CacheHttp) {
+    pub async fn send_warning(&mut self, cache: impl CacheHttp) {
         match self.round.round.time_left().as_secs() {
             0 => {
                 self.round.warnings.sent_last();
@@ -98,7 +101,7 @@ impl TrackingRound {
         }
     }
 
-    pub fn embed_info(&self) -> (String, Vec<(String, Vec<String>, &'static str, bool)>) {
+    pub fn embed_info(&self) -> (String, StringFields) {
         self.round.embed_info()
     }
 }
@@ -110,7 +113,7 @@ impl GuildRound {
             .unwrap_or_else(|| format!("Match #{}", self.round.match_number))
     }
 
-    pub fn embed_info(&self) -> (String, Vec<(String, Vec<String>, &'static str, bool)>) {
+    pub fn embed_info(&self) -> (String, StringFields) {
         let title = if self.use_table_number {
             format!(
                 "Match #{}: Table {}",
@@ -134,8 +137,7 @@ impl GuildRound {
                     .round
                     .winner
                     .as_ref()
-                    .map(|w| self.players.get(w).cloned())
-                    .flatten()
+                    .and_then(|w| self.players.get(w).cloned())
                     .unwrap_or_else(|| "None".into())],
                 "",
                 true,
@@ -182,7 +184,7 @@ impl GuildRound {
                 .round
                 .drops
                 .iter()
-                .map(|p| format!("{}", self.players.get(p).unwrap()))
+                .map(|p| self.players.get(p).unwrap().to_string())
                 .collect();
             fields.push(("Drops:".into(), drops, " ", true));
         }

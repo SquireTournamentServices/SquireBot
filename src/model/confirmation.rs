@@ -9,11 +9,12 @@ use squire_lib::{
 };
 
 use crate::{
+    match_manager::{MatchUpdate, MatchUpdateMessage},
     model::{
         consts::SQUIRE_ACCOUNT_ID,
         containers::{DeadTournamentMapContainer, TournamentMapContainer},
     },
-    utils::{default_response::error_to_content, spin_lock::spin_mut}, match_manager::{MatchUpdate, MatchUpdateMessage},
+    utils::{default_response::error_to_content, spin_lock::spin_mut},
 };
 
 use super::containers::MatchUpdateSenderContainer;
@@ -191,13 +192,15 @@ impl Confirmation for PairRoundConfirmation {
                 let sender = data.get::<MatchUpdateSenderContainer>().unwrap();
                 for ident in rnds {
                     let rnd = tourn.tourn.get_round(&ident).unwrap();
-                    tourn.create_round_data(ctx, &msg.guild(ctx).unwrap(), &rnd.id, rnd.match_number).await;
+                    tourn
+                        .create_round_data(ctx, &msg.guild(ctx).unwrap(), &rnd.id, rnd.match_number)
+                        .await;
                     if let Some(tr) = tourn.get_tracking_round(&rnd.id) {
                         let message = MatchUpdateMessage {
                             id: rnd.id,
                             update: MatchUpdate::NewMatch(tr),
                         };
-                        sender.send(message);
+                        let _ = sender.send(message);
                     }
                 }
                 msg.reply(

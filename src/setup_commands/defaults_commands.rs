@@ -396,9 +396,7 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
                 .await;
             let id = msg.guild_id.unwrap();
             let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
-                .tourn_settings
-                .update_setting(RequireCheckIn(b).into());
+            settings.tourn_settings.update_setting(RequireCheckIn(b));
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -435,9 +433,7 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                 .await;
             let id = msg.guild_id.unwrap();
             let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
-                .tourn_settings
-                .update_setting(RequireDeckReg(b).into());
+            settings.tourn_settings.update_setting(RequireDeckReg(b));
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")

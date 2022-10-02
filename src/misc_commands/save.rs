@@ -1,6 +1,8 @@
-use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::prelude::*;
-use serenity::prelude::*;
+use serenity::{
+    framework::standard::{macros::command, Args, CommandResult},
+    model::prelude::*,
+    prelude::*,
+};
 
 use crate::model::containers::{GuildSettingsMapContainer, TournamentMapContainer};
 
@@ -18,57 +20,27 @@ async fn save(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         .unwrap()
         .write()
         .await;
-    if let Ok(data) = serde_json::to_string(&*tourns) {
-        if let Ok(mut file) = File::create("tournaments.json") {
-            let r = write!(file, "{data}");
-            if let Err(_) = r {
-                msg.reply(
-                    &ctx.http,
-                    "Failed to write tournament data to file. **DATA NOT SAVED**.",
-                )
-                .await?;
-            } else {
-                msg.reply(&ctx.http, "Tournament data saved.").await?;
-            }
-        } else {
-            msg.reply(
-                &ctx.http,
-                "Failed to create tournament file. **DATA NOT SAVED**.",
-            )
-            .await?;
-        }
-    } else {
-        msg.reply(
-            &ctx.http,
-            "Failed to serialize tournament. **DATA NOT SAVED**.",
-        )
-        .await?;
-    }
-    if let Ok(data) = serde_json::to_string(&*settings) {
-        if let Ok(mut file) = File::create("guild_settings.json") {
-            let r = write!(file, "{data}");
-            if let Err(_) = r {
-                msg.reply(
-                    &ctx.http,
-                    "Failed to write guild settings data to file. **DATA NOT SAVED**.",
-                )
-                .await?;
-            } else {
-                msg.reply(&ctx.http, "Guild settings data saved.").await?;
-            }
-        } else {
-            msg.reply(
-                &ctx.http,
-                "Failed to create guild settings file. **DATA NOT SAVED**.",
-            )
-            .await?;
-        }
-    } else {
-        msg.reply(
-            &ctx.http,
-            "Failed to serialize guild settings. **DATA NOT SAVED**.",
-        )
-        .await?;
-    }
+    let content = match serde_json::to_string(&*tourns) {
+        Ok(data) => match File::create("tournaments.json") {
+            Ok(mut file) => match write!(file, "{data}") {
+                Ok(_) => "Tournament data saved.",
+                Err(_) => "Failed to write tournament data to file. **DATA NOT SAVED**.",
+            },
+            Err(_) => "Failed to create tournament file. **DATA NOT SAVED**.",
+        },
+        Err(_) => "Failed to serialize tournament. **DATA NOT SAVED**.",
+    };
+    msg.reply(&ctx.http, content).await?;
+    let content = match serde_json::to_string(&*settings) {
+        Ok(data) => match File::create("guild_settings.json") {
+            Ok(mut file) => match write!(file, "{data}") {
+                Ok(_) => "Guild settings data saved.",
+                Err(_) => "Failed to write guild settings data to file. **DATA NOT SAVED**.",
+            },
+            Err(_) => "Failed to create guild settings file. **DATA NOT SAVED**.",
+        },
+        Err(_) => "Failed to serialize guild settings. **DATA NOT SAVED**.",
+    };
+    msg.reply(&ctx.http, content).await?;
     Ok(())
 }

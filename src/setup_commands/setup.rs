@@ -288,15 +288,15 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         .create_role(&ctx.http, |r| r.mentionable(true).name("Setup Test"))
         .await
     {
-        test_results += &"Passed\n";
-        if let Ok(_) = r.delete(&ctx.http).await {
-            test_results += &"Passed\n";
+        test_results += "Passed\n";
+        if r.delete(&ctx.http).await.is_ok() {
+            test_results += "Passed\n";
         } else {
-            test_results += &"Failed - couldn't delete role\n";
+            test_results += "Failed - couldn't delete role\n";
         }
     } else {
-        test_results += &"Failed - couldn't create role\n";
-        test_results += &"Omitted - couldn't create role\n";
+        test_results += "Failed - couldn't create role\n";
+        test_results += "Omitted - couldn't create role\n";
     }
 
     let mut response = msg.reply(&ctx.http, "\u{200b}").await?;

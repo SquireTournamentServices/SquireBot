@@ -73,29 +73,29 @@ impl MatchManager {
                     self.matches.insert(update.id, mtch);
                 }
                 TimeExtention(dur) => {
-                    self.matches
-                        .get_mut(&update.id)
-                        .map(|m| m.round.round.time_extension(dur));
+                    if let Some(m) = self.matches.get_mut(&update.id) {
+                        m.round.round.time_extension(dur);
+                    }
                 }
                 RecordResult(result) => {
-                    self.matches
-                        .get_mut(&update.id)
-                        .map(|m| m.round.round.record_result(result));
+                    if let Some(m) = self.matches.get_mut(&update.id) {
+                        let _ = m.round.round.record_result(result);
+                    }
                 }
                 RecordConfirmation(p_id) => {
-                    self.matches
-                        .get_mut(&update.id)
-                        .map(|m| m.round.round.confirm_round(p_id));
+                    if let Some(m) = self.matches.get_mut(&update.id) {
+                        let _ = m.round.round.confirm_round(p_id);
+                    }
                 }
                 DropPlayer(p_id) => {
-                    self.matches
-                        .get_mut(&update.id)
-                        .map(|m| m.round.round.remove_player(p_id));
+                    if let Some(m) = self.matches.get_mut(&update.id) {
+                        m.round.round.remove_player(p_id);
+                    }
                 }
                 MatchCancelled => {
-                    self.matches
-                        .get_mut(&update.id)
-                        .map(|m| m.round.round.kill_round());
+                    if let Some(m) = self.matches.get_mut(&update.id) {
+                        m.round.round.kill_round();
+                    }
                 }
             }
         }

@@ -127,22 +127,22 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let tourn = settings
         .create_tournament(tourn_role.clone(), preset, name.clone())
         .unwrap();
-    let tourn_id = tourn.tourn.id.clone();
+    let tourn_id = tourn.tourn.id;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    all_tourns.insert(tourn_id.clone(), tourn);
+    all_tourns.insert(tourn_id, tourn);
     let mut name_and_id = data
         .get::<TournamentNameAndIDMapContainer>()
         .unwrap()
         .write()
         .await;
-    name_and_id.insert(name, tourn_id.clone());
+    name_and_id.insert(name, tourn_id);
     let mut id_map = data
         .get::<GuildAndTournamentIDMapContainer>()
         .unwrap()
         .write()
         .await;
     if !id_map.contains_right(&guild.id) {
-        id_map.insert_right(guild.id.clone());
+        id_map.insert_right(guild.id);
     }
     id_map.insert_left(tourn_id, &guild.id);
     msg.reply(&ctx.http, "Tournament successfully created!")

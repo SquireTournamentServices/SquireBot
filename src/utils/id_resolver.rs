@@ -60,7 +60,7 @@ pub async fn player_tourn_resolver(
         let tourn = spin(all_tourns, id).await.unwrap();
         if tourn.players.contains_left(&msg.author.id) {
             found_mult = opt_tourn_id.is_some();
-            opt_tourn_id = Some(id.clone());
+            opt_tourn_id = Some(*id);
             if tourn.tourn.name == tourn_name {
                 break;
             }

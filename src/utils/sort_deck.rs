@@ -90,6 +90,7 @@ fn pretty_print_cards(data: &(usize, String)) -> String {
 }
 
 impl TypeSortedDeck {
+    #[allow(clippy::type_complexity)]
     pub fn embed_fields<'a>(
         &'a self,
     ) -> Vec<(

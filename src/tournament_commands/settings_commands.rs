@@ -39,7 +39,7 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
         Ok(s) => s,
     };
-    if raw_format.len() == 0 {
+    if raw_format.is_empty() {
         msg.reply(&ctx.http, "Please include the name of a format.")
             .await?;
         return Ok(());

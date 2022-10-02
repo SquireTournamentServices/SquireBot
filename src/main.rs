@@ -30,7 +30,6 @@ use serenity::{
 };
 
 use dashmap::{try_result::TryResult, DashMap};
-use serde_json;
 use tokio::{sync::mpsc::unbounded_channel, time::Instant};
 
 use cycle_map::{CycleMap, GroupMap};
@@ -258,21 +257,15 @@ impl EventHandler for Handler {
                 }
                 _ => {
                     // Makes sure that the tournament admin and judge roles aren't renamed.
-                    match settings.judge_role {
-                        Some(id) => {
-                            if new.id == id {
-                                settings.judge_role = None;
-                            }
+                    if let Some(id) = settings.judge_role {
+                        if new.id == id {
+                            settings.judge_role = None;
                         }
-                        None => {}
                     }
-                    match settings.tourn_admin_role {
-                        Some(id) => {
-                            if new.id == id {
-                                settings.tourn_admin_role = None;
-                            }
+                    if let Some(id) = settings.tourn_admin_role {
+                        if new.id == id {
+                            settings.tourn_admin_role = None;
                         }
-                        None => {}
                     }
                 }
             }
@@ -295,21 +288,15 @@ impl EventHandler for Handler {
             .read()
             .await;
         if let Some(mut settings) = spin_mut(&all_settings, &guild_id).await {
-            match settings.judge_role {
-                Some(id) => {
-                    if id == removed_role {
-                        settings.judge_role = Some(id);
-                    }
+            if let Some(id) = settings.judge_role {
+                if id == removed_role {
+                    settings.judge_role = Some(id);
                 }
-                None => {}
             }
-            match settings.tourn_admin_role {
-                Some(id) => {
-                    if id == removed_role {
-                        settings.tourn_admin_role = Some(id);
-                    }
+            if let Some(id) = settings.tourn_admin_role {
+                if id == removed_role {
+                    settings.tourn_admin_role = Some(id);
                 }
-                None => {}
             }
         };
         println!("Handled role delete");
@@ -332,7 +319,7 @@ impl EventHandler for Handler {
         let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
         if let Some(iter) = ids.get_left_iter(&guild_id) {
             for t_id in iter {
-                let mut tourn = spin_mut(&all_tourns, &t_id).await.unwrap();
+                let mut tourn = spin_mut(&all_tourns, t_id).await.unwrap();
                 if let Some(plyr_id) = tourn.get_player_id(&user.id) {
                     let _ = tourn.tourn.apply_op(TournOp::DropPlayer(plyr_id.into()));
                 }
@@ -425,7 +412,7 @@ async fn main() {
         .union(GatewayIntents::MESSAGE_CONTENT)
         .union(GatewayIntents::GUILD_MESSAGES);
 
-    let mut client = Client::builder(&token, intents)
+    let mut client = Client::builder(token, intents)
         .event_handler(Handler)
         .framework(framework)
         .await
@@ -453,17 +440,12 @@ async fn main() {
         let (match_send, match_rec) = unbounded_channel();
         data.insert::<MatchUpdateSenderContainer>(Arc::new(match_send));
         let mut match_manager = MatchManager::new(match_rec);
-        match_manager.populate(
-            all_tournaments
-                .iter()
-                .map(|t| {
-                    t.guild_rounds
-                        .keys()
-                        .filter_map(|r| t.get_tracking_round(r))
-                        .collect::<Vec<_>>()
-                })
-                .flatten(),
-        );
+        match_manager.populate(all_tournaments.iter().flat_map(|t| {
+            t.guild_rounds
+                .keys()
+                .filter_map(|r| t.get_tracking_round(r))
+                .collect::<Vec<_>>()
+        }));
 
         let all_tournaments = RwLock::new(all_tournaments);
 
@@ -471,13 +453,13 @@ async fn main() {
             .read()
             .await
             .iter()
-            .map(|t| (t.tourn.name.clone(), t.tourn.id.clone()))
+            .map(|t| (t.tourn.name.clone(), t.tourn.id))
             .collect();
         let guild_and_tourn_id_map: GroupMap<TournamentId, GuildId> = all_tournaments
             .read()
             .await
             .iter()
-            .map(|t| (t.tourn.id.clone(), t.guild_id))
+            .map(|t| (t.tourn.id, t.guild_id))
             .collect();
 
         // Insert the main TournamentID -> Tournament map
@@ -549,11 +531,8 @@ async fn main() {
 
         let dead_tournaments: HashMap<TournamentId, GuildTournament> =
             read_to_string("./dead_tournaments.json")
-                .and_then(|data| {
-                    Ok(
-                        serde_json::from_str(data.as_str())
-                            .expect("Malformed dead tournament data"),
-                    )
+                .map(|data| {
+                    serde_json::from_str(data.as_str()).expect("Malformed dead tournament data")
                 })
                 .unwrap_or_default();
         let dead_tourns = Arc::new(RwLock::new(dead_tournaments));

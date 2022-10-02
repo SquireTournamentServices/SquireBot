@@ -45,7 +45,7 @@ impl LogTracker {
                 LogAction::Start(..) => {
                     let mut actions = Vec::with_capacity(MAX_LOG_ACTION);
                     actions.push(action);
-                    self.timers.insert(msg.clone(), Utc::now());
+                    self.timers.insert(msg, Utc::now());
                     self.active.insert(msg, actions);
                 }
                 LogAction::End(..) => {
@@ -59,9 +59,9 @@ impl LogTracker {
                     }
                 }
                 _ => {
-                    self.active
-                        .get_mut(&msg)
-                        .map(|actions| actions.push(action));
+                    if let Some(actions) = self.active.get_mut(&msg) {
+                        actions.push(action);
+                    }
                 }
             }
         }
@@ -72,7 +72,7 @@ impl LogTracker {
         let mut timed_out = Vec::new();
         for (msg, timer) in self.timers.iter() {
             if (now - *timer) > self.time_to_live {
-                timed_out.push(msg.clone());
+                timed_out.push(*msg);
             }
         }
         for msg in timed_out {

@@ -289,7 +289,7 @@ where
     let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     match tourn.players.get_right(&msg.author.id) {
         Some(id) => {
-            let id = id.clone().into();
+            let id = *id;
             tourn.take_action(ctx, msg, f(id)).await?;
         }
         None => {

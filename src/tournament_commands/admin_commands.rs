@@ -102,8 +102,8 @@ async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> Command
         }
     };
     let tourn_name = args.rest().trim().to_string();
-    admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, p| {
-        Operation(TournOp::AdminConfirmResult(admin.into(), r_ident, p.into()))
+    admin_command(ctx, msg, raw_user_id, tourn_name, move |_, p| {
+        AdminConfirmResult(r_ident, p.into())
     })
     .await
 }
@@ -393,10 +393,7 @@ async fn cut(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        Operation(TournOp::Cut(admin.into(), len))
-    })
-    .await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| Cut(len)).await
 }
 
 #[command("end")]
@@ -430,7 +427,7 @@ async fn cancel(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn freeze(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        Operation(TournOp::Freeze(admin.into()))
+        Operation(TournOp::Freeze(admin))
     })
     .await
 }
@@ -444,7 +441,7 @@ async fn freeze(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn thaw(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        Operation(TournOp::Thaw(admin.into()))
+        Operation(TournOp::Thaw(admin))
     })
     .await
 }
@@ -488,8 +485,12 @@ async fn pair(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[description("Prints out a list of all players.")]
 async fn view_players(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| ViewAllPlayers).await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| {
+        GuildTournamentAction::ViewAllPlayers
+    })
+    .await
 }
+
 #[command("prune")]
 #[only_in(guild)]
 #[sub_commands(players, decks)]
@@ -560,7 +561,7 @@ async fn registration(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     };
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        Operation(TournOp::UpdateReg(admin.into(), reg_status))
+        Operation(TournOp::UpdateReg(admin, reg_status))
     })
     .await
 }
@@ -604,7 +605,7 @@ async fn standings(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn start(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        Operation(TournOp::Start(admin.into()))
+        Operation(TournOp::Start(admin))
     })
     .await
 }
@@ -648,8 +649,8 @@ async fn time_extension(ctx: &Context, msg: &Message, mut args: Args) -> Command
         }
     };
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        Operation(TournOp::TimeExtension(admin.into(), round_number, ext))
+    admin_command_without_player(ctx, msg, tourn_name, move |_| {
+        TimeExtension(round_number, ext)
     })
     .await
 }
@@ -723,7 +724,7 @@ where
     let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
     let plyr_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
         Some(user_id) => match tourn.players.get_right(&user_id) {
-            Some(id) => id.clone().into(),
+            Some(id) => *id,
             None => {
                 msg.reply(
                     &ctx.http,
@@ -734,7 +735,7 @@ where
             }
         },
         None => match tourn.guests.get_right(&raw_user_id) {
-            Some(id) => id.clone().into(),
+            Some(id) => *id,
             None => {
                 msg.reply(
                         &ctx.http,

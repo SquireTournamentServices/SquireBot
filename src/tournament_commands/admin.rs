@@ -36,7 +36,8 @@ use super::admin_commands::*;
     standings,
     start,
     status,
-    time_extension
+    time_extension,
+    view_players
 )]
 #[usage("<option>")]
 #[allowed_roles("Tournament Admin")]
