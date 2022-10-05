@@ -14,7 +14,7 @@ use crate::{
         },
         guild_tournament::GuildTournamentAction::{self, *},
     },
-    utils::{id_resolver::player_tourn_resolver, spin_lock::spin_mut},
+    utils::{id_resolver::{player_tourn_resolver, tourn_id_resolver}, spin_lock::spin_mut},
 };
 
 #[command("add-deck")]
@@ -244,22 +244,27 @@ async fn register(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
+    let name_and_id = data
+        .get::<TournamentNameAndIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
     // Resolve the tournament id
-    let tourn_id = match player_tourn_resolver(
+    let tourn_id = match tourn_id_resolver(
         ctx,
         msg,
-        tourn_name,
-        &all_tourns,
-        ids.get_left_iter(&msg.guild_id.unwrap()).unwrap(),
+        &tourn_name,
+        &name_and_id,
+        ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned(),
     )
-    .await?
+    .await
     {
         Some(id) => id,
         None => {
             return Ok(());
         }
     };
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     spin_mut(&all_tourns, &tourn_id)
         .await
         .unwrap()

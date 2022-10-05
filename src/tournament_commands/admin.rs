@@ -24,7 +24,6 @@ use super::admin_commands::*;
     give_bye,
     match_result,
     match_status,
-    players,
     pair,
     profile,
     prune,
