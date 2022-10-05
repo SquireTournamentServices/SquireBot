@@ -238,10 +238,38 @@ async fn unready(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[description("Register for a tournament.")]
 async fn register(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
-    player_command(ctx, msg, tourn_name, |_| {
-        GuildTournamentAction::RegisterPlayer(msg.author.id)
-    })
-    .await
+    let data = ctx.data.read().await;
+    let ids = data
+        .get::<GuildAndTournamentIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
+    // Resolve the tournament id
+    let tourn_id = match player_tourn_resolver(
+        ctx,
+        msg,
+        tourn_name,
+        &all_tourns,
+        ids.get_left_iter(&msg.guild_id.unwrap()).unwrap(),
+    )
+    .await?
+    {
+        Some(id) => id,
+        None => {
+            return Ok(());
+        }
+    };
+    spin_mut(&all_tourns, &tourn_id)
+        .await
+        .unwrap()
+        .take_action(
+            ctx,
+            msg,
+            GuildTournamentAction::RegisterPlayer(msg.author.id),
+        )
+        .await?;
+    Ok(())
 }
 
 #[command("remove-deck")]
