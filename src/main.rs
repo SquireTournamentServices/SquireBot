@@ -1,5 +1,5 @@
 //#![deny(unused)]
-#![feature(result_flattening)]
+//#![feature(result_flattening)]
 
 use std::{
     collections::{HashMap, HashSet},
