@@ -14,7 +14,10 @@ use crate::{
         },
         guild_tournament::GuildTournamentAction::{self, *},
     },
-    utils::{id_resolver::{player_tourn_resolver, tourn_id_resolver}, spin_lock::spin_mut},
+    utils::{
+        id_resolver::{player_tourn_resolver, tourn_id_resolver},
+        spin_lock::spin_mut,
+    },
 };
 
 #[command("add-deck")]

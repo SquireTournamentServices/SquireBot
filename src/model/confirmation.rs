@@ -17,7 +17,9 @@ use crate::{
     utils::{default_response::error_to_content, spin_lock::spin_mut},
 };
 
-use super::containers::{MatchUpdateSenderContainer, TournamentNameAndIDMapContainer, GuildAndTournamentIDMapContainer};
+use super::containers::{
+    GuildAndTournamentIDMapContainer, MatchUpdateSenderContainer, TournamentNameAndIDMapContainer,
+};
 
 #[async_trait]
 pub trait Confirmation

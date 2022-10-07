@@ -3,7 +3,7 @@ use serenity::model::prelude::*;
 use serenity::prelude::*;
 use serenity::utils::Color;
 
-static USER_FEATURE_URL: &str = "https://github.com/MonarchDevelopment/SquireBot/issues/new?assignees=&labels=feature%2C+review&template=feature_request.md&title=%5BBug%5D%3A+";
+static USER_FEATURE_URL: &str = "https://github.com/MonarchDevelopment/SquireBot/issues/new?assignees=&labels=feature%2C+review&template=feature_request.md&title=%5BFeat%5D%3A+";
 static DEV_SERVER_FEATURE_URL: &str = "https://discord.gg/P5msA3Cu8Y";
 
 #[command("feature")]
