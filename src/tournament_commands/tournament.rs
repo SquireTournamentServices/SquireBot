@@ -90,6 +90,16 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             .await?;
         return Ok(());
     }
+    let mut name_and_id = data
+        .get::<TournamentNameAndIDMapContainer>()
+        .unwrap()
+        .write()
+        .await;
+    if let Some(name) = data.contains_left(name) {
+        msg.reply(&ctx.http, "There is already a tournament with that name. Please pick a different name.")
+            .await?;
+        return Ok(());
+    }
     // Get the settings data
     let data = ctx.data.read().await;
     let all_settings = data

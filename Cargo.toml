@@ -11,9 +11,9 @@ deck_sites = ["mtgjson/deck_sites"]
 
 [dependencies]
 # "In-house" deps
-mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev="864d71022fd285defb371626e06d6de7c7119f45", default-features = false }
 #mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk" }
 #mtgjson = { path = "../mtgjson-rust-sdk", features = ["deck_sites"] }
+mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev="864d71022fd285defb371626e06d6de7c7119f45", default-features = false }
 #squire_lib = { git = "https://github.com/MonarchDevelopment/SquireCore.git", branch = "main" }
 squire_lib = { path = "../SquireCore/squire_lib" }
 cycle_map = { version = "0.1.1", features = ["serde"] }
@@ -32,3 +32,5 @@ dashmap = { version = "5.0", features = ["serde", "rayon"] }
 rand = { version = "0.8" }
 tempfile = { version = "3.3.0" }
 uuid = { version = "1.1", features = ["serde", "v4"] }
+#mongodb = { version = "2.3.1" }
+#futures = { version = "0.3" }

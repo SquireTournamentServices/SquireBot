@@ -420,6 +420,23 @@ async fn main() {
 
     {
         let mut data = client.data.write().await;
+        
+        /*
+        let db_uri = env_vars
+            .get("MONGO_DB_URL")
+            .expect("Env file does not contain a `MONGO_DB_URL`");
+        let client = mongodb::Client::with_uri_str(db_uri).await.expect("Could not connect to mongodb");
+        let tourns = client.database("Tournaments");
+        let settings = client.database("Settings");
+        
+        let live_tourn_coll = tourns.collection::<GuildTournament>("Live Tournaments");
+        let dead_tourn_coll = tourns.collection::<GuildTournament>("Dead Tournaments");
+        let guild_settings_coll = settings.collection::<GuildSettings>("Guild Settings");
+        
+        data.insert::<TournamentCollectionContainer>(Arc::new(live_tourn_coll.clone()));
+        data.insert::<DeadTournamentCollectionContainer>(Arc::new(dead_tourn_coll.clone()));
+        data.insert::<SettingsCollectionContainer>(Arc::new(guild_settings_coll.clone()));
+        */
 
         // Construct the default settings for a guild, stored in the json file.
         let all_guild_settings: DashMap<GuildId, GuildSettings> = serde_json::from_str(

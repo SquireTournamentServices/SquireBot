@@ -6,9 +6,11 @@ use serenity::{
     prelude::*,
 };
 
+//use mongodb::Collection;
+
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::model::atomics_collection::AtomicCardCollection;
-use squire_lib::{round::RoundId, tournament::TournamentId};
+use squire_lib::{round::RoundId, tournament::{TournamentId, Tournament}};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::match_manager::MatchUpdateMessage;
@@ -61,6 +63,23 @@ pub struct DeadTournamentMapContainer;
 impl TypeMapKey for DeadTournamentMapContainer {
     type Value = Arc<RwLock<HashMap<TournamentId, GuildTournament>>>;
 }
+
+/*
+pub struct TournamentCollectionContainer;
+impl TypeMapKey for TournamentCollectionContainer {
+    type Value = Arc<Collection<Tournament>>;
+}
+
+pub struct DeadTournamentCollectionContainer;
+impl TypeMapKey for DeadTournamentCollectionContainer {
+    type Value = Arc<Collection<Tournament>>;
+}
+
+pub struct SettingsCollectionContainer;
+impl TypeMapKey for SettingsCollectionContainer {
+    type Value = Arc<Collection<GuildSettings>>;
+}
+*/
 
 //pub struct MisfortuneMapContainer;
 //impl TypeMapKey for MisfortuneMapContainer {
