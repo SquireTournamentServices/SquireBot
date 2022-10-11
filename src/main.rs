@@ -7,7 +7,8 @@ use std::{
     io::Write,
     path::Path,
     sync::Arc,
-    time::Duration,
+    time,
+    thread,
 };
 
 use serenity::{
@@ -223,7 +224,7 @@ impl EventHandler for Handler {
                     break;
                 }
                 TryResult::Locked => {
-                    let mut sleep = tokio::time::interval(Duration::from_millis(10));
+                    let mut sleep = tokio::time::interval(time::Duration::from_millis(10));
                     sleep.tick().await;
                     sleep.tick().await;
                 }
@@ -487,7 +488,7 @@ async fn main() {
         // Match embed and timer notification updater
         tokio::spawn(async move {
             let cache = cache_ref;
-            let loop_length = Duration::from_secs(30);
+            let loop_length = time::Duration::from_secs(30);
             loop {
                 let timer = Instant::now();
                 match_manager.update_matches(&cache).await;
@@ -533,7 +534,7 @@ async fn main() {
             let mut meta = meta;
             let cards = other_card_ref;
             let path = Path::new("./AtomicCards.json");
-            let mut interval = tokio::time::interval(Duration::from_secs(1800));
+            let mut interval = tokio::time::interval(time::Duration::from_secs(1800));
             interval.tick().await;
             loop {
                 if let Some((m, coll)) = build_collection(&meta, path).await {
@@ -561,7 +562,7 @@ async fn main() {
             let tourns = tourns_ref;
             let dead_tourns = dead_tourns_ref;
             let settings = settings_ref;
-            let mut interval = tokio::time::interval(Duration::from_secs(900));
+            let mut interval = tokio::time::interval(time::Duration::from_secs(900));
             loop {
                 interval.tick().await;
                 let tourns_lock = tourns.write().await;
@@ -586,7 +587,16 @@ async fn main() {
         });
     }
 
-    if let Err(why) = client.start().await {
-        println!("Client error: {:?}", why);
+    let max_retries = 10;
+    let mut retry_count = 0;
+    while let Err(why) = client.start().await {
+        println!("Failed to start client. Reason: {:?}", why);
+        retry_count += 1;
+        if retry_count == max_retries {
+            println!("Client started failed {max_retries} times. Aborting");
+            return;
+        }
+        // Sleep for 16 milliseconds, then 32, then 64, and so on
+        thread::sleep(time::Duration::from_millis(0b1000 << retry_count));
     }
 }
