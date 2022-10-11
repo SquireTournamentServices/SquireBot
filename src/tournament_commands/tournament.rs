@@ -90,18 +90,18 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             .await?;
         return Ok(());
     }
+    let data = ctx.data.read().await;
     let mut name_and_id = data
         .get::<TournamentNameAndIDMapContainer>()
         .unwrap()
         .write()
         .await;
-    if let Some(name) = data.contains_left(name) {
+    if name_and_id.contains_left(&name) {
         msg.reply(&ctx.http, "There is already a tournament with that name. Please pick a different name.")
             .await?;
         return Ok(());
     }
     // Get the settings data
-    let data = ctx.data.read().await;
     let all_settings = data
         .get::<GuildSettingsMapContainer>()
         .unwrap()
@@ -140,11 +140,6 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let tourn_id = tourn.tourn.id;
     let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
     all_tourns.insert(tourn_id, tourn);
-    let mut name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .write()
-        .await;
     name_and_id.insert(name, tourn_id);
     let mut id_map = data
         .get::<GuildAndTournamentIDMapContainer>()
