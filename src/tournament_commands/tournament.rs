@@ -97,8 +97,11 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .write()
         .await;
     if name_and_id.contains_left(&name) {
-        msg.reply(&ctx.http, "There is already a tournament with that name. Please pick a different name.")
-            .await?;
+        msg.reply(
+            &ctx.http,
+            "There is already a tournament with that name. Please pick a different name.",
+        )
+        .await?;
         return Ok(());
     }
     // Get the settings data

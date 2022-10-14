@@ -359,7 +359,8 @@ async fn my_help(
 
 #[hook]
 async fn before_command(ctx: &Context, msg: &Message, command_name: &str) -> bool {
-    let _ = ctx.data
+    let _ = ctx
+        .data
         .read()
         .await
         .get::<LogActionSenderContainer>()

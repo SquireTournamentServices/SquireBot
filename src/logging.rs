@@ -199,9 +199,9 @@ fn panic_report_fields(
 ) -> Vec<(String, Vec<String>, &'static str, bool)> {
     let basics = if let Some(LogAction::Start(name, time)) = log.log.first() {
         vec![
-        format!("Command: `{name}`"),
-        format!("Time of Panic: {time}"),
-    ]
+            format!("Command: `{name}`"),
+            format!("Time of Panic: {time}"),
+        ]
     } else {
         vec![]
     };
