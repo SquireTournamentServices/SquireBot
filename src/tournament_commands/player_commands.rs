@@ -43,12 +43,20 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     let data = ctx.data.read().await;
     let card_coll = data.get::<CardCollectionContainer>().unwrap().read().await;
     match card_coll.import_deck(raw_deck.clone()).await {
-        Some(deck) => {
-            player_command(ctx, msg, tourn_name, move |p| {
-                Operation(TournOp::AddDeck(p.into(), deck_name, deck))
-            })
-            .await
-        }
+        Some(deck) => match msg.guild_id {
+            Some(_) => {
+                player_command(ctx, msg, tourn_name, move |p| {
+                    Operation(TournOp::AddDeck(p.into(), deck_name, deck))
+                })
+                .await
+            }
+            None => {
+                dm_command(ctx, msg, tourn_name, move |p| {
+                    Operation(TournOp::AddDeck(p.into(), deck_name, deck))
+                })
+                .await
+            }
+        },
         None => {
             msg.reply(&ctx.http, "Unable to create a deck from this.")
                 .await?;
@@ -73,10 +81,20 @@ async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     match args.single_quoted::<String>() {
         Ok(deck_name) => {
             let tourn_name = args.rest().trim().to_string();
-            player_command(ctx, msg, tourn_name, move |p| {
-                ViewDecklist(p.into(), deck_name)
-            })
-            .await
+            match msg.guild_id {
+                Some(_) => {
+                    player_command(ctx, msg, tourn_name, move |p| {
+                        ViewDecklist(p.into(), deck_name)
+                    })
+                    .await
+                }
+                None => {
+                    dm_command(ctx, msg, tourn_name, move |p| {
+                        ViewDecklist(p.into(), deck_name)
+                    })
+                    .await
+                }
+            }
         }
         Err(_) => {
             msg.reply(&ctx.http, "Please include a deck name.").await?;
@@ -90,7 +108,10 @@ async fn decklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 #[description("Prints out a summary of your decks.")]
 async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
-    player_command(ctx, msg, tourn_name, |p| ViewPlayerDecks(p.into())).await
+    match msg.guild_id {
+        Some(_) => player_command(ctx, msg, tourn_name, |p| ViewPlayerDecks(p.into())).await,
+        None => dm_command(ctx, msg, tourn_name, |p| ViewPlayerDecks(p.into())).await,
+    }
 }
 
 #[command("profile")]
@@ -98,7 +119,10 @@ async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[description("See your current status in the tournament.")]
 async fn profile(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
-    player_command(ctx, msg, tourn_name, |p| ViewPlayerProfile(p.into())).await
+    match msg.guild_id {
+        Some(_) => player_command(ctx, msg, tourn_name, |p| ViewPlayerProfile(p.into())).await,
+        None => dm_command(ctx, msg, tourn_name, |p| ViewPlayerProfile(p.into())).await,
+    }
 }
 
 #[command("drop")]
@@ -113,6 +137,7 @@ async fn drop(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     .await
 }
 
+// TODO: Panics if no tournaments
 #[command("list")]
 #[only_in(guild)]
 #[description("Lists out all tournament in the server.")]
@@ -189,17 +214,26 @@ async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 }
 
 #[command("name")]
-#[only_in(guild)]
 #[usage("[tournament name]")]
 #[description("Adjust your name in the tournament.")]
 async fn name(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     match args.single_quoted::<String>() {
         Ok(gamer_tag) => {
             let tourn_name = args.rest().trim().to_string();
-            player_command(ctx, msg, tourn_name, move |p| {
-                Operation(TournOp::SetGamerTag(p.into(), gamer_tag))
-            })
-            .await
+            match msg.guild_id {
+                Some(_) => {
+                    player_command(ctx, msg, tourn_name, move |p| {
+                        Operation(TournOp::SetGamerTag(p.into(), gamer_tag))
+                    })
+                    .await
+                }
+                None => {
+                    dm_command(ctx, msg, tourn_name, move |p| {
+                        Operation(TournOp::SetGamerTag(p.into(), gamer_tag))
+                    })
+                    .await
+                }
+            }
         }
         Err(_) => {
             msg.reply(&ctx.http, "Please include your gamer tag.")
@@ -281,13 +315,15 @@ async fn register(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command("remove-deck")]
-#[only_in(guild)]
 #[usage("<deck name>, [tournament name]")]
 #[example("'SomeDeck'")]
 #[description("Removes one of your decks.")]
 async fn remove_deck(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
-    player_command(ctx, msg, tourn_name, |p| DropPlayer(p.into())).await
+    match msg.guild_id {
+        Some(_) => player_command(ctx, msg, tourn_name, |p| DropPlayer(p.into())).await,
+        None => dm_command(ctx, msg, tourn_name, |p| DropPlayer(p.into())).await,
+    }
 }
 
 /// Handles 90% of a player command what performs an action
@@ -327,6 +363,45 @@ where
         Some(id) => {
             let id = *id;
             tourn.take_action(ctx, msg, f(id)).await?;
+        }
+        None => {
+            msg.reply(&ctx.http, "You are not registered for that tournament.")
+                .await?;
+        }
+    }
+    Ok(())
+}
+
+/// Handles player commands that are send via DMs
+pub async fn dm_command<F>(ctx: &Context, msg: &Message, tourn_name: String, f: F) -> CommandResult
+where
+    F: FnOnce(PlayerId) -> GuildTournamentAction,
+{
+    let data = ctx.data.read().await;
+    let name_and_id = data
+        .get::<TournamentNameAndIDMapContainer>()
+        .unwrap()
+        .read()
+        .await;
+    // Resolve the tournament id
+    let tourn_id = match name_and_id.get_right(&tourn_name) {
+        Some(id) => id,
+        None => {
+            msg.reply(
+                &ctx.http,
+                "There is no tournament with that name. Double check your spelling.",
+            )
+            .await?;
+            return Ok(());
+        }
+    };
+    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
+    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
+    match tourn.players.get_right(&msg.author.id) {
+        Some(id) => {
+            let id = *id;
+            tourn.take_action(ctx, msg, f(id)).await?;
+            println!("Finished command");
         }
         None => {
             msg.reply(&ctx.http, "You are not registered for that tournament.")

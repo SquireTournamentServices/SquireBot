@@ -371,6 +371,7 @@ async fn after_command(
     command_name: &str,
     command_result: CommandResult,
 ) {
+    println!("Entering exit handler...");
     let data = ctx.data.read().await;
     let sender = data.get::<LogActionSenderContainer>().unwrap();
     match command_result {

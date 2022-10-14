@@ -375,28 +375,217 @@ impl GuildTournament {
     ) -> CommandResult {
         use GuildTournamentAction::*;
         match action {
-            DeckCheck(r_ident) => match self.tourn.get_round(&r_ident) {
-                Ok(rnd) => {
-                    for plyr in rnd.players.iter().filter(|p| !rnd.drops.contains(p)) {
-                        let player = self.tourn.get_player(&(*plyr).into()).unwrap();
-                        for deck in player.decks.values() {
-                            let title =
-                                format!("{}'s deck:", self.get_player_mention(&plyr).unwrap());
-                            let sorted_deck = TypeSortedDeck::from(deck.clone());
-                            let fields = sorted_deck.embed_fields();
-                            let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-                            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
-                                .await?;
-                        }
-                    }
-                }
-                Err(err) => {
-                    msg.reply(&ctx.http, error_to_content(err)).await?;
-                }
-            },
-            DeckDump(count) => {
-                let standings = self.tourn.get_standings();
-                for plyr in standings.scores.iter().take(count).map(|(p, _)| p) {
+            DeckCheck(r_ident) => self.deck_check(ctx, msg, r_ident).await,
+            DeckDump(count) => self.deck_dump(ctx, msg, count).await,
+            TimeExtension(rnd, dur) => self.time_extension(ctx, msg, rnd, dur).await,
+            Cut(len) => self.cut(ctx, msg, len).await,
+            PairRound => self.pair_round(ctx, msg).await,
+            RemoveMatch(r_ident) => self.remove_match(ctx, msg, r_ident).await,
+            RecordResult(p_ident, result) => self.record_result(ctx, msg, p_ident, result).await,
+            ConfirmResult(p_ident) => self.confirm_result(ctx, msg, p_ident).await,
+            AdminRecordResult(r_ident, result) => {
+                self.admin_record_result(ctx, msg, r_ident, result).await
+            }
+            AdminConfirmResult(r_ident, p_ident) => {
+                self.admin_confirm_result(ctx, msg, r_ident, p_ident).await
+            }
+            DropPlayer(p_ident) => self.drop_player(ctx, msg, p_ident).await,
+            PruneDecks => self.prune_decks(ctx, msg).await,
+            PrunePlayers => self.prune_players(ctx, msg).await,
+            End => self.action_end(ctx, msg).await,
+            Cancel => self.action_cancel(ctx, msg).await,
+            GiveBye(p_ident) => self.give_bye(ctx, msg, p_ident).await,
+            GetRawStandings(count) => self.get_raw_standings(ctx, msg, count).await,
+            ViewAllPlayers => self.view_all_players(ctx, msg).await,
+            CreateStandings => self.create_standings(ctx, msg).await,
+            ViewDecklist(p_ident, deck_name) => {
+                self.view_decklist(ctx, msg, p_ident, deck_name).await
+            }
+            ViewPlayerDecks(p_ident) => self.view_player_decks(ctx, msg, p_ident).await,
+            ViewPlayerProfile(p_ident) => self.view_player_profile(ctx, msg, p_ident).await,
+            ViewMatchStatus(r_ident) => self.view_match_status(ctx, msg, r_ident).await,
+            CreateTournamentStatus => self.create_tournament_status(ctx, msg).await,
+            RegisterPlayer(user_id) => self.register_player(ctx, msg, user_id).await,
+            AdminRegisterPlayer(user_id) => self.admin_register_player(ctx, msg, user_id).await,
+            RegisterGuest(name) => self.register_guest(ctx, msg, name).await,
+            CreateMatch(raw_plyrs) => self.create_match(ctx, msg, raw_plyrs).await,
+            Operation(op) => self.general_operation(ctx, msg, op).await,
+        }
+    }
+
+    async fn get_raw_standings(&self, ctx: &Context, msg: &Message, count: usize) -> CommandResult {
+        let standings = self.tourn.get_standings();
+        let mut output = tempfile().unwrap();
+        for (i, (id, _)) in standings.scores.iter().enumerate().take(count) {
+            let _ = writeln!(output, "{i}) {}", self.resolve_player_name(id).unwrap());
+        }
+        let to_send = tokio::fs::File::from_std(output);
+        match msg.channel(&ctx.http).await? {
+            Channel::Guild(c) => {
+                c.send_message(&ctx.http, |m| {
+                    m.content("Here you go!!").files(
+                        [AttachmentType::File {
+                            file: &to_send,
+                            filename: String::from("standings.txt"),
+                        }]
+                        .into_iter(),
+                    )
+                })
+                .await?;
+            }
+            _ => {
+                unreachable!("How did you get here?");
+            }
+        }
+        Ok(())
+    }
+
+    async fn view_decklist(
+        &self,
+        ctx: &Context,
+        msg: &Message,
+        p_ident: PlayerIdentifier,
+        deck_name: String,
+    ) -> CommandResult {
+        let plyr_id = match self.tourn.player_reg.get_player_id(&p_ident) {
+            Ok(id) => id,
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
+                return Ok(());
+            }
+        };
+        let deck = match self.tourn.get_player_deck(&p_ident, &deck_name) {
+            Ok(deck) => deck,
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
+                return Ok(());
+            }
+        };
+        let title = format!("{}'s deck", self.get_player_mention(&plyr_id).unwrap());
+        let sorted_deck = TypeSortedDeck::from(deck);
+        let fields = sorted_deck.embed_fields();
+        let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
+        resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
+            .await?;
+        Ok(())
+    }
+
+    async fn view_player_decks(
+        &self,
+        ctx: &Context,
+        msg: &Message,
+        p_ident: PlayerIdentifier,
+    ) -> CommandResult {
+        let plyr = match self.tourn.get_player(&p_ident) {
+            Ok(plyr) => plyr,
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
+                return Ok(());
+            }
+        };
+        if plyr.decks.is_empty() {
+            msg.reply(&ctx.http, "That player has no decks.").await?;
+            return Ok(());
+        }
+        for (name, deck) in plyr.decks {
+            let sorted_deck = TypeSortedDeck::from(deck);
+            let fields = sorted_deck.embed_fields();
+            let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
+            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(name, fields)))
+                .await?;
+        }
+        Ok(())
+    }
+
+    async fn view_player_profile(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        p_ident: PlayerIdentifier,
+    ) -> CommandResult {
+        let plyr_id = match self.tourn.player_reg.get_player_id(&p_ident) {
+            Ok(id) => id,
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
+                return Ok(());
+            }
+        };
+        let mention = self.get_player_mention(&plyr_id).unwrap();
+        let fields = player_embed_info(plyr_id, self);
+        let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
+        resp.edit(&ctx.http, |m| {
+            m.set_embeds(safe_embeds(format!("{mention}'s Profile"), fields))
+        })
+        .await?;
+        println!("Sent message");
+        Ok(())
+    }
+
+    async fn view_all_players(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
+        let mut resp = msg.reply(&ctx.http, "Here are all the players!!").await?;
+        let players: GroupMap<String, PlayerStatus> = self
+            .tourn
+            .player_reg
+            .players
+            .iter()
+            .map(|(id, plyr)| (self.resolve_player_name(id).unwrap(), plyr.status))
+            .collect();
+        resp.edit(&ctx.http, |m| {
+            m.embed(|e| {
+                e.fields(players.iter_right().map(|s| {
+                    let mut iter = players.get_left_iter(s).unwrap();
+                    (format!("{s}: {}", iter.len()), iter.join(" "), true)
+                }))
+            })
+        })
+        .await?;
+        Ok(())
+    }
+
+    async fn create_standings(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
+        let resp = msg.reply(&ctx.http, "\u{200b}").await?;
+        self.standings_message = Some(resp);
+        self.update_standings(ctx).await;
+        Ok(())
+    }
+
+    async fn create_tournament_status(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
+        let resp = msg.reply(&ctx.http, "\u{200b}").await?;
+        self.tourn_status = Some(resp);
+        self.update_status(ctx).await;
+        Ok(())
+    }
+
+    async fn view_match_status(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        r_ident: RoundIdentifier,
+    ) -> CommandResult {
+        let r_id = match self.tourn.round_reg.get_round_id(&r_ident) {
+            Ok(id) => id,
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
+                return Ok(());
+            }
+        };
+        let gr = self.get_guild_round(&r_id).unwrap();
+        let (title, fields) = gr.embed_info();
+        let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
+        resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
+            .await?;
+        Ok(())
+    }
+
+    async fn deck_check(
+        &self,
+        ctx: &Context,
+        msg: &Message,
+        r_ident: RoundIdentifier,
+    ) -> CommandResult {
+        match self.tourn.get_round(&r_ident) {
+            Ok(rnd) => {
+                for plyr in rnd.players.iter().filter(|p| !rnd.drops.contains(p)) {
                     let player = self.tourn.get_player(&(*plyr).into()).unwrap();
                     for deck in player.decks.values() {
                         let title = format!("{}'s deck:", self.get_player_mention(&plyr).unwrap());
@@ -408,67 +597,199 @@ impl GuildTournament {
                     }
                 }
             }
-            TimeExtension(rnd, dur) => {
-                let opt_id = self.tourn.round_reg.get_round_id(&rnd);
-                let content = match self.tourn.apply_op(TournOp::TimeExtension(
-                    (*SQUIRE_ACCOUNT_ID).into(),
-                    rnd,
-                    dur,
-                )) {
-                    Err(err) => error_to_content(err),
-                    Ok(_) => {
-                        let _ = ctx
-                            .data
-                            .read()
-                            .await
-                            .get::<MatchUpdateSenderContainer>()
-                            .unwrap()
-                            .send(MatchUpdateMessage {
-                                id: opt_id.unwrap(),
-                                update: MatchUpdate::TimeExtention(dur),
-                            });
-                        "Match successfully removed."
-                    }
-                };
-                msg.reply(&ctx.http, content).await?;
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
             }
-            Cut(len) => {
-                let confirm = CutToTopConfirmation {
-                    tourn_id: self.tourn.id,
-                    len,
-                };
-                ctx.data
-                    .read()
-                    .await
-                    .get::<ConfirmationsContainer>()
+        };
+        Ok(())
+    }
+
+    async fn deck_dump(&mut self, ctx: &Context, msg: &Message, count: usize) -> CommandResult {
+        let standings = self.tourn.get_standings();
+        for plyr in standings.scores.iter().take(count).map(|(p, _)| p) {
+            let player = self.tourn.get_player(&(*plyr).into()).unwrap();
+            for deck in player.decks.values() {
+                let title = format!("{}'s deck:", self.get_player_mention(&plyr).unwrap());
+                let sorted_deck = TypeSortedDeck::from(deck.clone());
+                let fields = sorted_deck.embed_fields();
+                let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
+                resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
+                    .await?;
+            }
+        }
+        Ok(())
+    }
+
+    async fn remove_match(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        r_ident: RoundIdentifier,
+    ) -> CommandResult {
+        let r_id = match self.tourn.round_reg.get_round_id(&r_ident) {
+            Ok(id) => id,
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
+                return Ok(());
+            }
+        };
+        let update = MatchUpdateMessage {
+            id: r_id,
+            update: MatchUpdate::MatchCancelled,
+        };
+        let _ = ctx
+            .data
+            .read()
+            .await
+            .get::<MatchUpdateSenderContainer>()
+            .unwrap()
+            .send(update);
+        self.clear_round_data(&r_id, &ctx.http).await;
+        let content = match self
+            .tourn
+            .apply_op(TournOp::RemoveRound(*SQUIRE_ACCOUNT_ID, r_id.into()))
+        {
+            Ok(_) => "Match successfully removed.",
+            Err(err) => error_to_content(err),
+        };
+        msg.reply(&ctx.http, content).await?;
+        self.update_status(ctx).await;
+        self.update_standings(ctx).await;
+        Ok(())
+    }
+
+    async fn prune_players(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
+        let confirm = PrunePlayersConfirmation {
+            tourn_id: self.tourn.id,
+        };
+        ctx.data
+            .read()
+            .await
+            .get::<ConfirmationsContainer>()
+            .unwrap()
+            .insert(msg.author.id, Box::new(confirm));
+        let min = self.tourn.min_deck_count;
+        let (decks, checkin) = self.tourn.count_to_prune_players();
+        let content = match (self.tourn.require_deck_reg, self.tourn.require_check_in) {
+            (true, true) => {
+                format!("You are about to prune {decks} players because they didn't register at least {min} decks and {checkin} players because they didn't check in. Are you sure you want to? (!yes or !no)")
+            },
+            (true, false) => {
+                format!("You are about to prune {decks} players because they didn't register at least {min} decks. Are you sure you want to? (!yes or !no)")
+            },
+            (false, true) => {
+                format!("You are about to prune {checkin} players because they didn't check in. Are you sure you want to? (!yes or !no)")
+            },
+            (false, false) => {
+                "That tournament doesn't require deck registration nor player check in, so pruning players will do nothing.".to_string()
+            },
+        };
+        msg.reply(
+            &ctx.http,
+            format!("{content} Are you sure you want to? (!yes or !no)"),
+        )
+        .await?;
+        Ok(())
+    }
+
+    async fn prune_decks(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
+        let confirm = PruneDecksConfirmation {
+            tourn_id: self.tourn.id,
+        };
+        ctx.data
+            .read()
+            .await
+            .get::<ConfirmationsContainer>()
+            .unwrap()
+            .insert(msg.author.id, Box::new(confirm));
+        let content = if self.tourn.require_deck_reg {
+            let max = self.tourn.max_deck_count;
+            format!("Prune players' decks. After this, every player will have at most {max} decks. Are you sure you want to? (!yes or !no)")
+        } else {
+            "That tournament doesn't require deck registration. Pruning will do nothing."
+                .to_string()
+        };
+        msg.reply(&ctx.http, content).await?;
+        Ok(())
+    }
+
+    async fn action_end(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
+        let confirm = EndTournamentConfirmation {
+            tourn_id: self.tourn.id,
+        };
+        ctx.data
+            .read()
+            .await
+            .get::<ConfirmationsContainer>()
+            .unwrap()
+            .insert(msg.author.id, Box::new(confirm));
+        msg.reply(
+            &ctx.http,
+            "You are about to end the tournament. Are you sure you want to? (!yes or !no)"
+                .to_string(),
+        )
+        .await?;
+        Ok(())
+    }
+
+    async fn action_cancel(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
+        let confirm = CancelTournamentConfirmation {
+            tourn_id: self.tourn.id,
+        };
+        ctx.data
+            .read()
+            .await
+            .get::<ConfirmationsContainer>()
+            .unwrap()
+            .insert(msg.author.id, Box::new(confirm));
+        msg.reply(
+            &ctx.http,
+            "You are about to cancel the tournament. Are you sure you want to? (!yes or !no)"
+                .to_string(),
+        )
+        .await?;
+        Ok(())
+    }
+
+    async fn cut(&mut self, ctx: &Context, msg: &Message, len: usize) -> CommandResult {
+        let confirm = CutToTopConfirmation {
+            tourn_id: self.tourn.id,
+            len,
+        };
+        ctx.data
+            .read()
+            .await
+            .get::<ConfirmationsContainer>()
+            .unwrap()
+            .insert(msg.author.id, Box::new(confirm));
+        msg.reply(&ctx.http, format!("You are about to cut the tournament to the top {len} players. Are you sure you want to? (!yes or !no)")).await?;
+        Ok(())
+    }
+
+    async fn record_result(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        p_ident: PlayerIdentifier,
+        result: RoundResult,
+    ) -> CommandResult {
+        let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
+        let op = TournOp::RecordResult(p_ident, result.clone());
+        match self.tourn.apply_op(op) {
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
+            }
+            Ok(_) => {
+                let p_id = opt_p_id.unwrap();
+                let r_id = self
+                    .tourn
+                    .round_reg
+                    .get_player_active_round(&p_id)
                     .unwrap()
-                    .insert(msg.author.id, Box::new(confirm));
-                msg.reply(&ctx.http, format!("You are about to cut the tournament to the top {len} players. Are you sure you want to? (!yes or !no)")).await?;
-            }
-            PairRound => {
-                let confirm = PairRoundConfirmation {
-                    tourn_id: self.tourn.id,
-                };
-                ctx.data
-                    .read()
-                    .await
-                    .get::<ConfirmationsContainer>()
-                    .unwrap()
-                    .insert(msg.author.id, Box::new(confirm));
-                msg.reply(&ctx.http, "You are about to pair the next round of the tournament. Are you sure you want to? (!yes or !no)").await?;
-                self.update_status(ctx).await;
-            }
-            RemoveMatch(r_ident) => {
-                let r_id = match self.tourn.round_reg.get_round_id(&r_ident) {
-                    Ok(id) => id,
-                    Err(err) => {
-                        msg.reply(&ctx.http, error_to_content(err)).await?;
-                        return Ok(());
-                    }
-                };
+                    .id;
                 let update = MatchUpdateMessage {
                     id: r_id,
-                    update: MatchUpdate::MatchCancelled,
+                    update: MatchUpdate::RecordResult(result),
                 };
                 let _ = ctx
                     .data
@@ -477,597 +798,459 @@ impl GuildTournament {
                     .get::<MatchUpdateSenderContainer>()
                     .unwrap()
                     .send(update);
-                self.clear_round_data(&r_id, &ctx.http).await;
-                let content = match self
-                    .tourn
-                    .apply_op(TournOp::RemoveRound(*SQUIRE_ACCOUNT_ID, r_id.into()))
-                {
-                    Ok(_) => "Match successfully removed.",
-                    Err(err) => error_to_content(err),
-                };
-                msg.reply(&ctx.http, content).await?;
-                self.update_status(ctx).await;
-                self.update_standings(ctx).await;
-            }
-            RecordResult(p_ident, result) => {
-                let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
-                let op = TournOp::RecordResult(p_ident, result.clone());
-                match self.tourn.apply_op(op) {
-                    Err(err) => {
-                        msg.reply(&ctx.http, error_to_content(err)).await?;
-                    }
-                    Ok(_) => {
-                        let p_id = opt_p_id.unwrap();
-                        let r_id = self
-                            .tourn
-                            .round_reg
-                            .get_player_active_round(&p_id)
-                            .unwrap()
-                            .id;
-                        let update = MatchUpdateMessage {
-                            id: r_id,
-                            update: MatchUpdate::RecordResult(result),
-                        };
-                        let _ = ctx
-                            .data
-                            .read()
-                            .await
-                            .get::<MatchUpdateSenderContainer>()
-                            .unwrap()
-                            .send(update);
-                        let mut resp = msg
-                            .reply(
-                                &ctx.http,
-                                "Result recorded!! The current status of our round is:",
-                            )
-                            .await?;
-                        if let Some(gr) = self.get_guild_round(&r_id) {
-                            let (title, fields) = gr.embed_info();
-                            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
-                                .await?;
-                        }
-                    }
-                }
-            }
-            ConfirmResult(p_ident) => {
-                let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
-                let op = TournOp::ConfirmResult(p_ident);
-                match self.tourn.apply_op(op) {
-                    Err(err) => {
-                        msg.reply(&ctx.http, error_to_content(err)).await?;
-                    }
-                    Ok(OpData::ConfirmResult(_, status)) => {
-                        let p_id = opt_p_id.unwrap();
-                        let r_id = self
-                            .tourn
-                            .round_reg
-                            .get_player_active_round(&p_id)
-                            .unwrap()
-                            .id;
-                        let update = MatchUpdateMessage {
-                            id: r_id,
-                            update: MatchUpdate::RecordConfirmation(p_id),
-                        };
-                        let _ = ctx
-                            .data
-                            .read()
-                            .await
-                            .get::<MatchUpdateSenderContainer>()
-                            .unwrap()
-                            .send(update);
-                        let mut resp = msg
-                            .reply(
-                                &ctx.http,
-                                "Confirmation recorded!! The current status of our round is:",
-                            )
-                            .await?;
-                        if let Some(tr) = self.get_tracking_round(&r_id) {
-                            let (title, fields) = tr.embed_info();
-                            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
-                                .await?;
-                        }
-                        if status == RoundStatus::Certified {
-                            self.update_status(ctx).await;
-                            self.update_standings(ctx).await;
-                        }
-                    }
-                    _ => {
-                        unreachable!(
-                            "Recording the result of a round returns and `Err` or `Ok(OpData::ConfirmResult)`)"
-                        );
-                    }
-                }
-            }
-            AdminRecordResult(r_ident, result) => {
-                let opt_r_id = self.tourn.round_reg.get_round_id(&r_ident);
-                let op = TournOp::AdminRecordResult(
-                    (*SQUIRE_ACCOUNT_ID).into(),
-                    r_ident,
-                    result.clone(),
-                );
-                match self.tourn.apply_op(op) {
-                    Err(err) => {
-                        msg.reply(&ctx.http, error_to_content(err)).await?;
-                    }
-                    Ok(_) => {
-                        let r_id = opt_r_id.unwrap();
-                        let update = MatchUpdateMessage {
-                            id: r_id,
-                            update: MatchUpdate::RecordResult(result),
-                        };
-                        let _ = ctx
-                            .data
-                            .read()
-                            .await
-                            .get::<MatchUpdateSenderContainer>()
-                            .unwrap()
-                            .send(update);
-                        let mut resp = msg
-                            .reply(
-                                &ctx.http,
-                                "Result recorded!! The current status of the round is:",
-                            )
-                            .await?;
-                        if let Some(tr) = self.get_tracking_round(&r_id) {
-                            let (title, fields) = tr.embed_info();
-                            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
-                                .await?;
-                        }
-                    }
-                }
-            }
-            AdminConfirmResult(r_ident, p_ident) => {
-                let opt_r_id = self.tourn.round_reg.get_round_id(&r_ident);
-                let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
-                let op = TournOp::AdminConfirmResult((*SQUIRE_ACCOUNT_ID).into(), r_ident, p_ident);
-                match self.tourn.apply_op(op) {
-                    Err(err) => {
-                        msg.reply(&ctx.http, error_to_content(err)).await?;
-                    }
-                    Ok(OpData::ConfirmResult(_, status)) => {
-                        let p_id = opt_p_id.unwrap();
-                        let r_id = opt_r_id.unwrap();
-                        let update = MatchUpdateMessage {
-                            id: r_id,
-                            update: MatchUpdate::RecordConfirmation(p_id),
-                        };
-                        let _ = ctx
-                            .data
-                            .read()
-                            .await
-                            .get::<MatchUpdateSenderContainer>()
-                            .unwrap()
-                            .send(update);
-                        let mut resp = msg
-                            .reply(
-                                &ctx.http,
-                                "Result recorded!! The current status of the round is:",
-                            )
-                            .await?;
-                        if let Some(tr) = self.get_tracking_round(&r_id) {
-                            let (title, fields) = tr.embed_info();
-                            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
-                                .await?;
-                        }
-                        if status == RoundStatus::Certified {
-                            self.update_status(ctx).await;
-                            self.update_standings(ctx).await;
-                        }
-                    }
-                    _ => {
-                        unreachable!(
-                            "Recording the result of a round returns and `Err` or `Ok(OpData::ConfirmResult)`)"
-                        );
-                    }
-                }
-            }
-            DropPlayer(p_ident) => {
-                let opt_id = self.tourn.player_reg.get_player_id(&p_ident);
-                let op = TournOp::AdminDropPlayer(*SQUIRE_ACCOUNT_ID, p_ident.clone());
-                match self.tourn.apply_op(op) {
-                    Err(err) => {
-                        msg.reply(&ctx.http, error_to_content(err)).await?;
-                    }
-                    Ok(_) => {
-                        let id = self.tourn.player_reg.get_player_id(&p_ident).unwrap();
-                        let data = ctx.data.read().await;
-                        let sender = data.get::<MatchUpdateSenderContainer>().unwrap();
-                        for rnd in self.tourn.get_player_rounds(&p_ident).unwrap() {
-                            let _ = sender.send(MatchUpdateMessage {
-                                id: rnd.id,
-                                update: MatchUpdate::DropPlayer(id),
-                            });
-                        }
-                        self.update_status(ctx).await;
-                        self.update_standings(ctx).await;
-                        if let Some(u_id) = self.get_user_id(&opt_id.unwrap()) {
-                            msg.guild(ctx)
-                                .unwrap()
-                                .member(ctx, u_id)
-                                .await
-                                .unwrap()
-                                .remove_role(ctx, self.tourn_role.id)
-                                .await?;
-                        }
-                    }
-                }
-            }
-            PruneDecks => {
-                let confirm = PruneDecksConfirmation {
-                    tourn_id: self.tourn.id,
-                };
-                ctx.data
-                    .read()
-                    .await
-                    .get::<ConfirmationsContainer>()
-                    .unwrap()
-                    .insert(msg.author.id, Box::new(confirm));
-                let content = if self.tourn.require_deck_reg {
-                    let max = self.tourn.max_deck_count;
-                    format!("Prune players' decks. After this, every player will have at most {max} decks. Are you sure you want to? (!yes or !no)")
-                } else {
-                    "That tournament doesn't require deck registration. Pruning will do nothing."
-                        .to_string()
-                };
-                msg.reply(&ctx.http, content).await?;
-            }
-            PrunePlayers => {
-                let confirm = PrunePlayersConfirmation {
-                    tourn_id: self.tourn.id,
-                };
-                ctx.data
-                    .read()
-                    .await
-                    .get::<ConfirmationsContainer>()
-                    .unwrap()
-                    .insert(msg.author.id, Box::new(confirm));
-                let min = self.tourn.min_deck_count;
-                let (decks, checkin) = self.tourn.count_to_prune_players();
-                let content = match (self.tourn.require_deck_reg, self.tourn.require_check_in) {
-                    (true, true) => {
-                        format!("You are about to prune {decks} players because they didn't register at least {min} decks and {checkin} players because they didn't check in. Are you sure you want to? (!yes or !no)")
-                    },
-                    (true, false) => {
-                        format!("You are about to prune {decks} players because they didn't register at least {min} decks. Are you sure you want to? (!yes or !no)")
-                    },
-                    (false, true) => {
-                        format!("You are about to prune {checkin} players because they didn't check in. Are you sure you want to? (!yes or !no)")
-                    },
-                    (false, false) => {
-                        "That tournament doesn't require deck registration nor player check in, so pruning players will do nothing.".to_string()
-                    },
-                };
-                msg.reply(
-                    &ctx.http,
-                    format!("{content} Are you sure you want to? (!yes or !no)"),
-                )
-                .await?;
-            }
-            End => {
-                let confirm = EndTournamentConfirmation {
-                    tourn_id: self.tourn.id,
-                };
-                ctx.data
-                    .read()
-                    .await
-                    .get::<ConfirmationsContainer>()
-                    .unwrap()
-                    .insert(msg.author.id, Box::new(confirm));
-                msg.reply(
-                    &ctx.http,
-                    "You are about to end the tournament. Are you sure you want to? (!yes or !no)"
-                        .to_string(),
-                )
-                .await?;
-            }
-            Cancel => {
-                let confirm = CancelTournamentConfirmation {
-                    tourn_id: self.tourn.id,
-                };
-                ctx.data
-                    .read()
-                    .await
-                    .get::<ConfirmationsContainer>()
-                    .unwrap()
-                    .insert(msg.author.id, Box::new(confirm));
-                msg.reply(&ctx.http, "You are about to cancel the tournament. Are you sure you want to? (!yes or !no)".to_string()).await?;
-            }
-            GiveBye(p_ident) => {
-                let opt_id = self.tourn.player_reg.get_player_id(&p_ident);
-                let op = TournOp::GiveBye(*SQUIRE_ACCOUNT_ID, p_ident);
-                match self.tourn.apply_op(op) {
-                    Err(err) => {
-                        msg.reply(&ctx.http, error_to_content(err)).await?;
-                    }
-                    Ok(_) => {
-                        self.update_status(ctx).await;
-                        self.update_standings(ctx).await;
-                        let id = opt_id.unwrap();
-                        let mention = self
-                            .players
-                            .get_left(&id)
-                            .map(|id| id.mention().to_string())
-                            .unwrap_or_else(|| self.guests.get_left(&id).unwrap().clone());
-                        self.pairings_channel
-                            .send_message(&ctx.http, |m| {
-                                m.content(format!("{mention}, you have been given a bye!"))
-                            })
-                            .await?;
-                    }
-                }
-            }
-            GetRawStandings(count) => {
-                let standings = self.tourn.get_standings();
-                let mut output = tempfile().unwrap();
-                for (i, (id, _)) in standings.scores.iter().enumerate().take(count) {
-                    let _ = writeln!(output, "{i}) {}", self.resolve_player_name(id).unwrap());
-                }
-                let to_send = tokio::fs::File::from_std(output);
-                match msg.channel(&ctx.http).await? {
-                    Channel::Guild(c) => {
-                        c.send_message(&ctx.http, |m| {
-                            m.content("Here you go!!").files(
-                                [AttachmentType::File {
-                                    file: &to_send,
-                                    filename: String::from("standings.txt"),
-                                }]
-                                .into_iter(),
-                            )
-                        })
-                        .await?;
-                    }
-                    _ => {
-                        unreachable!("How did you get here?");
-                    }
-                }
-            }
-            ViewAllPlayers => {
-                let mut resp = msg.reply(&ctx.http, "Here are all the players!!").await?;
-                let players: GroupMap<String, PlayerStatus> = self
-                    .tourn
-                    .player_reg
-                    .players
-                    .iter()
-                    .map(|(id, plyr)| (self.resolve_player_name(id).unwrap(), plyr.status))
-                    .collect();
-                resp.edit(&ctx.http, |m| {
-                    m.embed(|e| {
-                        e.fields(players.iter_right().map(|s| {
-                            let mut iter = players.get_left_iter(s).unwrap();
-                            (format!("{s}: {}", iter.len()), iter.join(" "), true)
-                        }))
-                    })
-                })
-                .await?;
-            }
-            CreateStandings => {
-                let resp = msg.reply(&ctx.http, "\u{200b}").await?;
-                self.standings_message = Some(resp);
-                self.update_standings(ctx).await;
-            }
-            ViewDecklist(p_ident, deck_name) => {
-                let plyr_id = match self.tourn.player_reg.get_player_id(&p_ident) {
-                    Ok(id) => id,
-                    Err(err) => {
-                        msg.reply(&ctx.http, error_to_content(err)).await?;
-                        return Ok(());
-                    }
-                };
-                let deck = match self.tourn.get_player_deck(&p_ident, &deck_name) {
-                    Ok(deck) => deck,
-                    Err(err) => {
-                        msg.reply(&ctx.http, error_to_content(err)).await?;
-                        return Ok(());
-                    }
-                };
-                let title = format!("{}'s deck", self.get_player_mention(&plyr_id).unwrap());
-                let sorted_deck = TypeSortedDeck::from(deck);
-                let fields = sorted_deck.embed_fields();
-                let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-                resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
+                let mut resp = msg
+                    .reply(
+                        &ctx.http,
+                        "Result recorded!! The current status of our round is:",
+                    )
                     .await?;
-            }
-            ViewPlayerDecks(p_ident) => {
-                let plyr = match self.tourn.get_player(&p_ident) {
-                    Ok(plyr) => plyr,
-                    Err(err) => {
-                        msg.reply(&ctx.http, error_to_content(err)).await?;
-                        return Ok(());
-                    }
-                };
-                if plyr.decks.is_empty() {
-                    msg.reply(&ctx.http, "That player has no decks.").await?;
-                    return Ok(());
-                }
-                for (name, deck) in plyr.decks {
-                    let sorted_deck = TypeSortedDeck::from(deck);
-                    let fields = sorted_deck.embed_fields();
-                    let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-                    resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(name, fields)))
+                if let Some(gr) = self.get_guild_round(&r_id) {
+                    let (title, fields) = gr.embed_info();
+                    resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
                         .await?;
                 }
-            }
-            ViewPlayerProfile(p_ident) => {
-                let plyr_id = match self.tourn.player_reg.get_player_id(&p_ident) {
-                    Ok(id) => id,
-                    Err(err) => {
-                        msg.reply(&ctx.http, error_to_content(err)).await?;
-                        return Ok(());
-                    }
-                };
-                let mention = self.get_player_mention(&plyr_id).unwrap();
-                let fields = player_embed_info(plyr_id, self);
-                let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-                resp.edit(&ctx.http, |m| {
-                    m.set_embeds(safe_embeds(format!("{mention}'s Profile"), fields))
-                })
-                .await?;
-            }
-            ViewMatchStatus(r_ident) => {
-                let r_id = match self.tourn.round_reg.get_round_id(&r_ident) {
-                    Ok(id) => id,
-                    Err(err) => {
-                        msg.reply(&ctx.http, error_to_content(err)).await?;
-                        return Ok(());
-                    }
-                };
-                let gr = self.get_guild_round(&r_id).unwrap();
-                let (title, fields) = gr.embed_info();
-                let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-                resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
-                    .await?;
-            }
-            CreateTournamentStatus => {
-                let resp = msg.reply(&ctx.http, "\u{200b}").await?;
-                self.tourn_status = Some(resp);
-                self.update_status(ctx).await;
-            }
-            RegisterPlayer(user_id) => {
-                let content = match self.tourn.apply_op(TournOp::RegisterGuest(
-                    (*SQUIRE_ACCOUNT_ID).into(),
-                    user_id.to_string(),
-                )) {
-                    Ok(id) => {
-                        if let OpData::RegisterPlayer(ident) = id {
-                            let id = self.tourn.player_reg.get_player_id(&ident).unwrap();
-                            self.players.insert(user_id, id);
-                        }
-                        self.update_status(ctx).await;
-                        "You have been successfully registered!!"
-                    }
-                    Err(err) => error_to_content(err),
-                };
-                msg.reply(&ctx.http, content).await?;
-                msg.guild(ctx)
-                    .unwrap()
-                    .member(ctx, user_id)
-                    .await
-                    .unwrap()
-                    .remove_role(ctx, self.tourn_role.id)
-                    .await?;
-            }
-            AdminRegisterPlayer(user_id) => {
-                let content = match self.tourn.apply_op(TournOp::RegisterGuest(
-                    (*SQUIRE_ACCOUNT_ID).into(),
-                    user_id.to_string(),
-                )) {
-                    Ok(id) => {
-                        if let OpData::RegisterPlayer(ident) = id {
-                            let id = self.tourn.player_reg.get_player_id(&ident).unwrap();
-                            self.players.insert(user_id, id);
-                        }
-                        self.update_status(ctx).await;
-                        "Player successfully registered!!"
-                    }
-                    Err(err) => error_to_content(err),
-                };
-                msg.reply(&ctx.http, content).await?;
-                msg.guild(ctx)
-                    .unwrap()
-                    .member(ctx, user_id)
-                    .await
-                    .unwrap()
-                    .remove_role(ctx, self.tourn_role.id)
-                    .await?;
-            }
-            RegisterGuest(name) => {
-                let content = match self.tourn.apply_op(TournOp::RegisterGuest(
-                    (*SQUIRE_ACCOUNT_ID).into(),
-                    name.clone(),
-                )) {
-                    Ok(id) => {
-                        if let OpData::RegisterPlayer(ident) = id {
-                            let id = self.tourn.player_reg.get_player_id(&ident).unwrap();
-                            self.guests.insert(name, id);
-                        }
-                        self.update_status(ctx).await;
-                        "Guest successfully registered!!"
-                    }
-                    Err(err) => error_to_content(err),
-                };
-                msg.reply(&ctx.http, content).await?;
-            }
-            CreateMatch(mut raw_plyrs) => {
-                // If the last "player" has the same name as the tournament, we ignore it.
-                if raw_plyrs
-                    .last()
-                    .map(|name| &self.tourn.name == name)
-                    .unwrap_or_default()
-                {
-                    raw_plyrs.pop();
-                }
-                let mut plyr_ids = Vec::with_capacity(raw_plyrs.len());
-                for name in raw_plyrs {
-                    match user_id_resolver(ctx, msg, &name)
-                        .await
-                        .and_then(|id| self.players.get_right(&id))
-                        .or_else(|| self.guests.get_right(&name))
-                    {
-                        Some(id) => {
-                            plyr_ids.push((*id).into());
-                        }
-                        None => {
-                            msg.reply(
-                                &ctx.http,
-                                format!("'{name}' is not registered for that tournament."),
-                            )
-                            .await?;
-                            return Ok(());
-                        }
-                    }
-                }
-                match self
-                    .tourn
-                    .apply_op(TournOp::CreateRound(*SQUIRE_ACCOUNT_ID, plyr_ids))
-                {
-                    Ok(OpData::CreateRound(rnd_ident)) => {
-                        let rnd = self.tourn.get_round(&rnd_ident).unwrap();
-                        self.create_round_data(
-                            &ctx,
-                            &msg.guild(ctx).unwrap(),
-                            &rnd.id,
-                            rnd.match_number,
-                        )
-                        .await;
-                        if let Some(tr) = self.get_tracking_round(&rnd.id) {
-                            let message = MatchUpdateMessage {
-                                id: rnd.id,
-                                update: MatchUpdate::NewMatch(tr),
-                            };
-                            let _ = ctx
-                                .data
-                                .read()
-                                .await
-                                .get::<MatchUpdateSenderContainer>()
-                                .unwrap()
-                                .send(message);
-                        }
-                        self.update_status(ctx).await;
-                        let mut resp = msg.reply(&ctx.http, "Match successfully created!!").await?;
-                        if let Some(gr) = self.get_guild_round(&rnd.id) {
-                            let (title, fields) = gr.embed_info();
-                            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
-                                .await?;
-                        }
-                    }
-                    Err(err) => {
-                        msg.reply(&ctx.http, error_to_content(err)).await?;
-                    }
-                    _ => {
-                        unreachable!(
-                            "Creating a round returns and `Err` or `Ok(OpData::CreateRound)`)"
-                        );
-                    }
-                }
-            }
-            Operation(op) => {
-                let mut content = op_to_content(&op);
-                if let Err(err) = self.tourn.apply_op(op) {
-                    content = error_to_content(err);
-                };
-                let _ = msg.reply(&ctx.http, content).await;
             }
         }
+        Ok(())
+    }
+
+    async fn confirm_result(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        p_ident: PlayerIdentifier,
+    ) -> CommandResult {
+        let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
+        let op = TournOp::ConfirmResult(p_ident);
+        match self.tourn.apply_op(op) {
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
+            }
+            Ok(OpData::ConfirmResult(_, status)) => {
+                let p_id = opt_p_id.unwrap();
+                let r_id = self
+                    .tourn
+                    .round_reg
+                    .get_player_active_round(&p_id)
+                    .unwrap()
+                    .id;
+                let update = MatchUpdateMessage {
+                    id: r_id,
+                    update: MatchUpdate::RecordConfirmation(p_id),
+                };
+                let _ = ctx
+                    .data
+                    .read()
+                    .await
+                    .get::<MatchUpdateSenderContainer>()
+                    .unwrap()
+                    .send(update);
+                let mut resp = msg
+                    .reply(
+                        &ctx.http,
+                        "Confirmation recorded!! The current status of our round is:",
+                    )
+                    .await?;
+                if let Some(tr) = self.get_tracking_round(&r_id) {
+                    let (title, fields) = tr.embed_info();
+                    resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
+                        .await?;
+                }
+                if status == RoundStatus::Certified {
+                    self.update_status(ctx).await;
+                    self.update_standings(ctx).await;
+                }
+            }
+            _ => {
+                unreachable!(
+                    "Recording the result of a round returns and `Err` or `Ok(OpData::ConfirmResult)`)"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    async fn admin_record_result(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        r_ident: RoundIdentifier,
+        result: RoundResult,
+    ) -> CommandResult {
+        let opt_r_id = self.tourn.round_reg.get_round_id(&r_ident);
+        let op = TournOp::AdminRecordResult((*SQUIRE_ACCOUNT_ID).into(), r_ident, result.clone());
+        match self.tourn.apply_op(op) {
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
+            }
+            Ok(_) => {
+                let r_id = opt_r_id.unwrap();
+                let update = MatchUpdateMessage {
+                    id: r_id,
+                    update: MatchUpdate::RecordResult(result),
+                };
+                let _ = ctx
+                    .data
+                    .read()
+                    .await
+                    .get::<MatchUpdateSenderContainer>()
+                    .unwrap()
+                    .send(update);
+                let mut resp = msg
+                    .reply(
+                        &ctx.http,
+                        "Result recorded!! The current status of the round is:",
+                    )
+                    .await?;
+                if let Some(tr) = self.get_tracking_round(&r_id) {
+                    let (title, fields) = tr.embed_info();
+                    resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
+                        .await?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn admin_confirm_result(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        r_ident: RoundIdentifier,
+        p_ident: PlayerIdentifier,
+    ) -> CommandResult {
+        let opt_r_id = self.tourn.round_reg.get_round_id(&r_ident);
+        let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
+        let op = TournOp::AdminConfirmResult((*SQUIRE_ACCOUNT_ID).into(), r_ident, p_ident);
+        match self.tourn.apply_op(op) {
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
+            }
+            Ok(OpData::ConfirmResult(_, status)) => {
+                let p_id = opt_p_id.unwrap();
+                let r_id = opt_r_id.unwrap();
+                let update = MatchUpdateMessage {
+                    id: r_id,
+                    update: MatchUpdate::RecordConfirmation(p_id),
+                };
+                let _ = ctx
+                    .data
+                    .read()
+                    .await
+                    .get::<MatchUpdateSenderContainer>()
+                    .unwrap()
+                    .send(update);
+                let mut resp = msg
+                    .reply(
+                        &ctx.http,
+                        "Result recorded!! The current status of the round is:",
+                    )
+                    .await?;
+                if let Some(tr) = self.get_tracking_round(&r_id) {
+                    let (title, fields) = tr.embed_info();
+                    resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
+                        .await?;
+                }
+                if status == RoundStatus::Certified {
+                    self.update_status(ctx).await;
+                    self.update_standings(ctx).await;
+                }
+            }
+            _ => {
+                unreachable!(
+                    "Recording the result of a round returns and `Err` or `Ok(OpData::ConfirmResult)`)"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    async fn give_bye(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        p_ident: PlayerIdentifier,
+    ) -> CommandResult {
+        let opt_id = self.tourn.player_reg.get_player_id(&p_ident);
+        let op = TournOp::GiveBye(*SQUIRE_ACCOUNT_ID, p_ident);
+        match self.tourn.apply_op(op) {
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
+            }
+            Ok(_) => {
+                self.update_status(ctx).await;
+                self.update_standings(ctx).await;
+                let id = opt_id.unwrap();
+                let mention = self
+                    .players
+                    .get_left(&id)
+                    .map(|id| id.mention().to_string())
+                    .unwrap_or_else(|| self.guests.get_left(&id).unwrap().clone());
+                self.pairings_channel
+                    .send_message(&ctx.http, |m| {
+                        m.content(format!("{mention}, you have been given a bye!"))
+                    })
+                    .await?;
+            }
+        }
+        Ok(())
+    }
+
+    async fn register_player(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        user_id: UserId,
+    ) -> CommandResult {
+        let content = match self.tourn.apply_op(TournOp::RegisterGuest(
+            (*SQUIRE_ACCOUNT_ID).into(),
+            user_id.to_string(),
+        )) {
+            Ok(id) => {
+                if let OpData::RegisterPlayer(ident) = id {
+                    let id = self.tourn.player_reg.get_player_id(&ident).unwrap();
+                    self.players.insert(user_id, id);
+                }
+                self.update_status(ctx).await;
+                "You have been successfully registered!!"
+            }
+            Err(err) => error_to_content(err),
+        };
+        msg.reply(&ctx.http, content).await?;
+        msg.guild(ctx)
+            .unwrap()
+            .member(ctx, user_id)
+            .await
+            .unwrap()
+            .remove_role(ctx, self.tourn_role.id)
+            .await?;
+        Ok(())
+    }
+
+    async fn admin_register_player(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        user_id: UserId,
+    ) -> CommandResult {
+        let content = match self.tourn.apply_op(TournOp::RegisterGuest(
+            (*SQUIRE_ACCOUNT_ID).into(),
+            user_id.to_string(),
+        )) {
+            Ok(id) => {
+                if let OpData::RegisterPlayer(ident) = id {
+                    let id = self.tourn.player_reg.get_player_id(&ident).unwrap();
+                    self.players.insert(user_id, id);
+                }
+                self.update_status(ctx).await;
+                "Player successfully registered!!"
+            }
+            Err(err) => error_to_content(err),
+        };
+        msg.reply(&ctx.http, content).await?;
+        msg.guild(ctx)
+            .unwrap()
+            .member(ctx, user_id)
+            .await
+            .unwrap()
+            .remove_role(ctx, self.tourn_role.id)
+            .await?;
+        Ok(())
+    }
+
+    async fn register_guest(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        name: String,
+    ) -> CommandResult {
+        let content = match self.tourn.apply_op(TournOp::RegisterGuest(
+            (*SQUIRE_ACCOUNT_ID).into(),
+            name.clone(),
+        )) {
+            Ok(id) => {
+                if let OpData::RegisterPlayer(ident) = id {
+                    let id = self.tourn.player_reg.get_player_id(&ident).unwrap();
+                    self.guests.insert(name, id);
+                }
+                self.update_status(ctx).await;
+                "Guest successfully registered!!"
+            }
+            Err(err) => error_to_content(err),
+        };
+        msg.reply(&ctx.http, content).await?;
+        Ok(())
+    }
+
+    async fn drop_player(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        p_ident: PlayerIdentifier,
+    ) -> CommandResult {
+        let opt_id = self.tourn.player_reg.get_player_id(&p_ident);
+        let op = TournOp::AdminDropPlayer(*SQUIRE_ACCOUNT_ID, p_ident.clone());
+        match self.tourn.apply_op(op) {
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
+            }
+            Ok(_) => {
+                let id = self.tourn.player_reg.get_player_id(&p_ident).unwrap();
+                let data = ctx.data.read().await;
+                let sender = data.get::<MatchUpdateSenderContainer>().unwrap();
+                for rnd in self.tourn.get_player_rounds(&p_ident).unwrap() {
+                    let _ = sender.send(MatchUpdateMessage {
+                        id: rnd.id,
+                        update: MatchUpdate::DropPlayer(id),
+                    });
+                }
+                self.update_status(ctx).await;
+                self.update_standings(ctx).await;
+                if let Some(u_id) = self.get_user_id(&opt_id.unwrap()) {
+                    msg.guild(ctx)
+                        .unwrap()
+                        .member(ctx, u_id)
+                        .await
+                        .unwrap()
+                        .remove_role(ctx, self.tourn_role.id)
+                        .await?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn create_match(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        mut raw_plyrs: Vec<String>,
+    ) -> CommandResult {
+        // If the last "player" has the same name as the tournament, we ignore it.
+        if raw_plyrs
+            .last()
+            .map(|name| &self.tourn.name == name)
+            .unwrap_or_default()
+        {
+            raw_plyrs.pop();
+        }
+        let mut plyr_ids = Vec::with_capacity(raw_plyrs.len());
+        for name in raw_plyrs {
+            match user_id_resolver(ctx, msg, &name)
+                .await
+                .and_then(|id| self.players.get_right(&id))
+                .or_else(|| self.guests.get_right(&name))
+            {
+                Some(id) => {
+                    plyr_ids.push((*id).into());
+                }
+                None => {
+                    msg.reply(
+                        &ctx.http,
+                        format!("'{name}' is not registered for that tournament."),
+                    )
+                    .await?;
+                    return Ok(());
+                }
+            }
+        }
+        match self
+            .tourn
+            .apply_op(TournOp::CreateRound(*SQUIRE_ACCOUNT_ID, plyr_ids))
+        {
+            Ok(OpData::CreateRound(rnd_ident)) => {
+                let rnd = self.tourn.get_round(&rnd_ident).unwrap();
+                self.create_round_data(&ctx, &msg.guild(ctx).unwrap(), &rnd.id, rnd.match_number)
+                    .await;
+                if let Some(tr) = self.get_tracking_round(&rnd.id) {
+                    let message = MatchUpdateMessage {
+                        id: rnd.id,
+                        update: MatchUpdate::NewMatch(tr),
+                    };
+                    let _ = ctx
+                        .data
+                        .read()
+                        .await
+                        .get::<MatchUpdateSenderContainer>()
+                        .unwrap()
+                        .send(message);
+                }
+                self.update_status(ctx).await;
+                let mut resp = msg.reply(&ctx.http, "Match successfully created!!").await?;
+                if let Some(gr) = self.get_guild_round(&rnd.id) {
+                    let (title, fields) = gr.embed_info();
+                    resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
+                        .await?;
+                }
+            }
+            Err(err) => {
+                msg.reply(&ctx.http, error_to_content(err)).await?;
+            }
+            _ => {
+                unreachable!("Creating a round returns and `Err` or `Ok(OpData::CreateRound)`)");
+            }
+        }
+        Ok(())
+    }
+
+    async fn pair_round(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
+        let confirm = PairRoundConfirmation {
+            tourn_id: self.tourn.id,
+        };
+        ctx.data
+            .read()
+            .await
+            .get::<ConfirmationsContainer>()
+            .unwrap()
+            .insert(msg.author.id, Box::new(confirm));
+        msg.reply(&ctx.http, "You are about to pair the next round of the tournament. Are you sure you want to? (!yes or !no)").await?;
+        self.update_status(ctx).await;
+        Ok(())
+    }
+
+    async fn time_extension(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        rnd: RoundIdentifier,
+        dur: Duration,
+    ) -> CommandResult {
+        let opt_id = self.tourn.round_reg.get_round_id(&rnd);
+        let content = match self.tourn.apply_op(TournOp::TimeExtension(
+            (*SQUIRE_ACCOUNT_ID).into(),
+            rnd,
+            dur,
+        )) {
+            Err(err) => error_to_content(err),
+            Ok(_) => {
+                let _ = ctx
+                    .data
+                    .read()
+                    .await
+                    .get::<MatchUpdateSenderContainer>()
+                    .unwrap()
+                    .send(MatchUpdateMessage {
+                        id: opt_id.unwrap(),
+                        update: MatchUpdate::TimeExtention(dur),
+                    });
+                "Match successfully removed."
+            }
+        };
+        msg.reply(&ctx.http, content).await?;
+        Ok(())
+    }
+
+    async fn general_operation(
+        &mut self,
+        ctx: &Context,
+        msg: &Message,
+        op: TournOp,
+    ) -> CommandResult {
+        let mut content = op_to_content(&op);
+        if let Err(err) = self.tourn.apply_op(op) {
+            content = error_to_content(err);
+        };
+        msg.reply(&ctx.http, content).await?;
         Ok(())
     }
 
