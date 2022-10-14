@@ -12,7 +12,6 @@ use std::{
 
 use chrono::{Duration, NaiveTime, Utc};
 use logging::LogAction;
-use once_cell::sync::OnceCell;
 use serenity::{
     async_trait,
     framework::standard::{
@@ -26,17 +25,14 @@ use serenity::{
         gateway::GatewayIntents,
         gateway::Ready,
         guild::{Guild, Member, Role},
-        id::{GuildId, MessageId, RoleId, UserId},
+        id::{GuildId, RoleId, UserId},
         user::User,
     },
     prelude::*,
 };
 
 use dashmap::{try_result::TryResult, DashMap};
-use tokio::{
-    sync::mpsc::{unbounded_channel, UnboundedSender},
-    time::Instant,
-};
+use tokio::{sync::mpsc::unbounded_channel, time::Instant};
 
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::mtgjson::meta::Meta;
@@ -64,8 +60,6 @@ use crate::{
     tournament_commands::tournament::TOURNAMENTCOMMANDS_GROUP,
     utils::{card_collection::build_collection, spin_lock::spin_mut},
 };
-
-const LOG_ACTION_SENDER: OnceCell<UnboundedSender<(MessageId, LogAction)>> = OnceCell::new();
 
 struct Handler;
 
@@ -372,24 +366,20 @@ async fn before_command(ctx: &Context, msg: &Message, command_name: &str) -> boo
 
 #[hook]
 async fn after_command(
-    _ctx: &Context,
+    ctx: &Context,
     msg: &Message,
     command_name: &str,
     command_result: CommandResult,
 ) {
+    let data = ctx.data.read().await;
+    let sender = data.get::<LogActionSenderContainer>().unwrap();
     match command_result {
         Ok(()) => {
-            let _ = LOG_ACTION_SENDER
-                .get()
-                .expect("Could not get sender")
-                .send((msg.id, LogAction::End(true, Utc::now())));
+            let _ = sender.send((msg.id, LogAction::End(true, Utc::now())));
             println!("Success on command: {command_name}");
         }
         Err(why) => {
-            let _ = LOG_ACTION_SENDER
-                .get()
-                .expect("Could not get sender")
-                .send((msg.id, LogAction::End(false, Utc::now())));
+            let _ = sender.send((msg.id, LogAction::End(false, Utc::now())));
             println!("Error on command: {command_name} with error {:?}", why);
         }
     }
@@ -423,7 +413,6 @@ async fn main() {
     };
 
     let (sender, receiver) = unbounded_channel();
-    LOG_ACTION_SENDER.set(sender.clone()).unwrap();
 
     let framework = StandardFramework::new()
         .configure(|c| {
