@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use dashmap::DashMap;
 use serenity::{
-    model::id::{GuildId, UserId},
+    model::id::{GuildId, MessageId, UserId},
     prelude::*,
 };
 
@@ -10,10 +10,10 @@ use serenity::{
 
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::model::atomics_collection::AtomicCardCollection;
-use squire_lib::{round::RoundId, tournament::{TournamentId, Tournament}};
+use squire_lib::{round::RoundId, tournament::TournamentId};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::match_manager::MatchUpdateMessage;
+use crate::{logging::LogAction, match_manager::MatchUpdateMessage};
 
 use super::{
     confirmation::Confirmation, guild_settings::GuildSettings, guild_tournament::GuildTournament,
@@ -52,6 +52,11 @@ impl TypeMapKey for CardCollectionContainer {
 pub struct MatchUpdateSenderContainer;
 impl TypeMapKey for MatchUpdateSenderContainer {
     type Value = Arc<UnboundedSender<MatchUpdateMessage>>;
+}
+
+pub struct LogActionSenderContainer;
+impl TypeMapKey for LogActionSenderContainer {
+    type Value = Arc<UnboundedSender<(MessageId, LogAction)>>;
 }
 
 pub struct MisfortuneUserMapContainer;

@@ -32,5 +32,6 @@ dashmap = { version = "5.0", features = ["serde", "rayon"] }
 rand = { version = "0.8" }
 tempfile = { version = "3.3.0" }
 uuid = { version = "1.1", features = ["serde", "v4"] }
+once_cell = { version = "1.8.0" }
 #mongodb = { version = "2.3.1" }
 #futures = { version = "0.3" }

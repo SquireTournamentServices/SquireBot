@@ -7,10 +7,12 @@ use std::{
     io::Write,
     path::Path,
     sync::Arc,
-    time,
-    thread,
+    thread, time,
 };
 
+use chrono::{Duration, NaiveTime, Utc};
+use logging::LogAction;
+use once_cell::sync::OnceCell;
 use serenity::{
     async_trait,
     framework::standard::{
@@ -24,19 +26,23 @@ use serenity::{
         gateway::GatewayIntents,
         gateway::Ready,
         guild::{Guild, Member, Role},
-        id::{GuildId, RoleId, UserId},
+        id::{GuildId, MessageId, RoleId, UserId},
         user::User,
     },
     prelude::*,
 };
 
 use dashmap::{try_result::TryResult, DashMap};
-use tokio::{sync::mpsc::unbounded_channel, time::Instant};
+use tokio::{
+    sync::mpsc::{unbounded_channel, UnboundedSender},
+    time::Instant,
+};
 
 use cycle_map::{CycleMap, GroupMap};
 use mtgjson::mtgjson::meta::Meta;
 use squire_lib::{self, operations::TournOp, tournament::TournamentId};
 
+mod env;
 mod logging;
 mod match_manager;
 mod misc_commands;
@@ -46,6 +52,8 @@ mod tournament_commands;
 mod utils;
 
 use crate::{
+    env::*,
+    logging::LogTracker,
     match_manager::MatchManager,
     misc_commands::group::MISCCOMMANDS_GROUP,
     model::{
@@ -56,6 +64,8 @@ use crate::{
     tournament_commands::tournament::TOURNAMENTCOMMANDS_GROUP,
     utils::{card_collection::build_collection, spin_lock::spin_mut},
 };
+
+const LOG_ACTION_SENDER: OnceCell<UnboundedSender<(MessageId, LogAction)>> = OnceCell::new();
 
 struct Handler;
 
@@ -348,7 +358,13 @@ async fn my_help(
 }
 
 #[hook]
-async fn before_command(_ctx: &Context, _msg: &Message, command_name: &str) -> bool {
+async fn before_command(ctx: &Context, msg: &Message, command_name: &str) -> bool {
+    let _ = ctx.data
+        .read()
+        .await
+        .get::<LogActionSenderContainer>()
+        .unwrap()
+        .send((msg.id, LogAction::Start(msg.content.clone(), Utc::now())));
     println!("Processing command: {command_name}");
     true
 }
@@ -356,13 +372,25 @@ async fn before_command(_ctx: &Context, _msg: &Message, command_name: &str) -> b
 #[hook]
 async fn after_command(
     _ctx: &Context,
-    _msg: &Message,
+    msg: &Message,
     command_name: &str,
     command_result: CommandResult,
 ) {
     match command_result {
-        Ok(()) => println!("Success on command: {command_name}"),
-        Err(why) => println!("Error on command: {command_name} with error {:?}", why),
+        Ok(()) => {
+            let _ = LOG_ACTION_SENDER
+                .get()
+                .expect("Could not get sender")
+                .send((msg.id, LogAction::End(true, Utc::now())));
+            println!("Success on command: {command_name}");
+        }
+        Err(why) => {
+            let _ = LOG_ACTION_SENDER
+                .get()
+                .expect("Could not get sender")
+                .send((msg.id, LogAction::End(false, Utc::now())));
+            println!("Error on command: {command_name} with error {:?}", why);
+        }
     }
 }
 
@@ -371,7 +399,7 @@ async fn main() {
     // Configure the client with your Discord bot token in the environment.
     let env_vars: HashMap<String, String> = dotenv::vars().collect();
     let token = env_vars
-        .get("TESTING_TOKEN")
+        .get(TOKEN)
         .expect("Expected a token in the environment");
 
     let http = Http::new(token);
@@ -392,6 +420,9 @@ async fn main() {
         }
         Err(why) => panic!("Could not access application info: {:?}", why),
     };
+
+    let (sender, receiver) = unbounded_channel();
+    LOG_ACTION_SENDER.set(sender.clone()).unwrap();
 
     let framework = StandardFramework::new()
         .configure(|c| {
@@ -421,19 +452,21 @@ async fn main() {
 
     {
         let mut data = client.data.write().await;
-        
+
+        data.insert::<LogActionSenderContainer>(Arc::new(sender));
+
         /*
         let db_uri = env_vars
-            .get("MONGO_DB_URL")
+            .get(MONGO_DB_URL)
             .expect("Env file does not contain a `MONGO_DB_URL`");
         let client = mongodb::Client::with_uri_str(db_uri).await.expect("Could not connect to mongodb");
         let tourns = client.database("Tournaments");
         let settings = client.database("Settings");
-        
+
         let live_tourn_coll = tourns.collection::<GuildTournament>("Live Tournaments");
         let dead_tourn_coll = tourns.collection::<GuildTournament>("Dead Tournaments");
         let guild_settings_coll = settings.collection::<GuildSettings>("Guild Settings");
-        
+
         data.insert::<TournamentCollectionContainer>(Arc::new(live_tourn_coll.clone()));
         data.insert::<DeadTournamentCollectionContainer>(Arc::new(dead_tourn_coll.clone()));
         data.insert::<SettingsCollectionContainer>(Arc::new(guild_settings_coll.clone()));
@@ -485,6 +518,7 @@ async fn main() {
         let tourns_ref = ref_main.clone();
         let cache_ref = client.cache_and_http.clone();
         data.insert::<TournamentMapContainer>(ref_main);
+
         // Match embed and timer notification updater
         tokio::spawn(async move {
             let cache = cache_ref;
@@ -586,6 +620,58 @@ async fn main() {
             }
         });
     }
+
+    let issue_channel = match client
+        .cache_and_http
+        .http
+        .get_channel(env_vars.get(ISSUE_CHANNEL_ID).unwrap().parse().unwrap())
+        .await
+        .unwrap()
+    {
+        Channel::Guild(channel) => channel,
+        _ => {
+            eprintln!("The given issue channel id was not a guild channel. Exiting");
+            return;
+        }
+    };
+    let telemetry_channel = match client
+        .cache_and_http
+        .http
+        .get_channel(env_vars.get(TELEMETRY_CHANNEL_ID).unwrap().parse().unwrap())
+        .await
+        .unwrap()
+    {
+        Channel::Guild(channel) => channel,
+        _ => {
+            eprintln!("The given telemetry channel id was not a guild channel. Exiting");
+            return;
+        }
+    };
+
+    let mut logger = LogTracker::new(telemetry_channel, issue_channel, receiver);
+    let cache = client.cache_and_http.clone();
+
+    // Logger
+    tokio::spawn(async move {
+        let loop_length = time::Duration::from_secs(5);
+        let tomorrow = Utc::now().date_naive() + Duration::hours(24);
+        let midnight = NaiveTime::from_hms(0, 0, 0);
+        let mut report_time = tomorrow.and_time(midnight).and_local_timezone(Utc).unwrap();
+        loop {
+            let timer = Instant::now();
+            let issues = logger.process();
+            logger.report_issues(&cache, issues).await;
+            if Utc::now() > report_time {
+                report_time += Duration::hours(24);
+                logger.report_telemetry(&cache).await;
+            }
+            if timer.elapsed() < loop_length {
+                let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
+                sleep.tick().await;
+                sleep.tick().await;
+            }
+        }
+    });
 
     let max_retries = 10;
     let mut retry_count = 0;
