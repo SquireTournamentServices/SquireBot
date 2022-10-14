@@ -72,6 +72,8 @@ pub enum GuildTournamentAction {
     CreateStandings,
     CreateTournamentStatus,
     ViewMatchStatus(RoundIdentifier),
+    DeckCheck(RoundIdentifier),
+    DeckDump(usize),
     // Wrappers for tournament operations
     RemoveMatch(RoundIdentifier),
     PrunePlayers,
@@ -373,6 +375,39 @@ impl GuildTournament {
     ) -> CommandResult {
         use GuildTournamentAction::*;
         match action {
+            DeckCheck(r_ident) => match self.tourn.get_round(&r_ident) {
+                Ok(rnd) => {
+                    for plyr in rnd.players.iter().filter(|p| !rnd.drops.contains(p)) {
+                        let player = self.tourn.get_player(&(*plyr).into()).unwrap();
+                        for deck in player.decks.values() {
+                            let title =
+                                format!("{}'s deck:", self.get_player_mention(&plyr).unwrap());
+                            let sorted_deck = TypeSortedDeck::from(deck.clone());
+                            let fields = sorted_deck.embed_fields();
+                            let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
+                            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
+                                .await?;
+                        }
+                    }
+                }
+                Err(err) => {
+                    msg.reply(&ctx.http, error_to_content(err)).await?;
+                }
+            },
+            DeckDump(count) => {
+                let standings = self.tourn.get_standings();
+                for plyr in standings.scores.iter().take(count).map(|(p, _)| p) {
+                    let player = self.tourn.get_player(&(*plyr).into()).unwrap();
+                    for deck in player.decks.values() {
+                        let title = format!("{}'s deck:", self.get_player_mention(&plyr).unwrap());
+                        let sorted_deck = TypeSortedDeck::from(deck.clone());
+                        let fields = sorted_deck.embed_fields();
+                        let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
+                        resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
+                            .await?;
+                    }
+                }
+            }
             TimeExtension(rnd, dur) => {
                 let opt_id = self.tourn.round_reg.get_round_id(&rnd);
                 let content = match self.tourn.apply_op(TournOp::TimeExtension(

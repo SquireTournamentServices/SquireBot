@@ -655,7 +655,6 @@ async fn time_extension(ctx: &Context, msg: &Message, mut args: Args) -> Command
     .await
 }
 
-// Other
 #[command("create-match")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]
@@ -671,6 +670,50 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         .collect();
     let tourn_name: String = raw_players.last().cloned().unwrap_or_default();
     admin_command_without_player(ctx, msg, tourn_name, move |_| CreateMatch(raw_players)).await
+}
+
+#[command("deck-check")]
+#[only_in(guild)]
+#[allowed_roles("Tournament Admin", "Judge")]
+#[usage("<match number>, [tournament name]")]
+#[example("10")]
+#[description("Prints out all decks from all players in a match.")]
+async fn deck_check(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let round_number = match args.single::<u64>() {
+        Ok(n) => RoundIdentifier::Number(n),
+        Err(_) => {
+            msg.reply(
+                &ctx.http,
+                "The first argument must be a proper match number.",
+            )
+            .await?;
+            return Ok(());
+        }
+    };
+    let tourn_name = args.rest().trim().to_string();
+    admin_command_without_player(ctx, msg, tourn_name, move |_| DeckCheck(round_number)).await
+}
+
+#[command("deck-dump")]
+#[only_in(guild)]
+#[allowed_roles("Tournament Admin")]
+#[usage("<count>, [tournament name]")]
+#[example("10")]
+#[description("Prints out all decks from all top N players.")]
+async fn deck_dump(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let count = match args.single::<usize>() {
+        Ok(n) => n,
+        Err(_) => {
+            msg.reply(
+                &ctx.http,
+                "The first argument must be a proper whole number.",
+            )
+            .await?;
+            return Ok(());
+        }
+    };
+    let tourn_name = args.rest().trim().to_string();
+    admin_command_without_player(ctx, msg, tourn_name, move |_| DeckDump(count)).await
 }
 
 async fn get_raw_user_id(
