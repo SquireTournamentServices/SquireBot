@@ -142,7 +142,7 @@ impl LogTracker {
             format!("Total requests: {total}"),
             format!(
                 "Percent success: {:.2}%",
-                (self.successes.len() as f64) / (total as f64) * 100
+                (self.successes.len() as f64) / (total as f64) * 100.0
             ),
         ];
         fields.push(("Overview".into(), overview, "\n", true));

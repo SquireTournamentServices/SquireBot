@@ -1,10 +1,11 @@
-use std::{collections::HashMap, io::Write, time::Duration};
+use std::{collections::HashMap, error::Error, io::Write, time::Duration};
 
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use tempfile::tempfile;
 
 use serenity::{
+    builder::CreateEmbed,
     framework::standard::CommandResult,
     http::{CacheHttp, Http},
     model::channel::ChannelCategory,
@@ -42,6 +43,7 @@ use crate::{
         consts::SQUIRE_ACCOUNT_ID,
         containers::{ConfirmationsContainer, MatchUpdateSenderContainer},
         guild_rounds::{GuildRound, GuildRoundData, TimerWarnings, TrackingRound},
+        MessageContent,
     },
     utils::{
         default_response::{error_to_content, op_to_content},
@@ -62,15 +64,15 @@ pub enum SquireTournamentSetting {
 }
 
 #[allow(clippy::large_enum_variant)]
-pub enum GuildTournamentAction {
+pub enum GuildTournamentAction<'a> {
     // Actions to query information
     GetRawStandings(usize),
     ViewDecklist(PlayerIdentifier, String),
     ViewPlayerDecks(PlayerIdentifier),
     ViewPlayerProfile(PlayerIdentifier),
     ViewAllPlayers,
-    CreateStandings,
-    CreateTournamentStatus,
+    CreateStandings(&'a mut GuildChannel),
+    CreateTournamentStatus(&'a mut GuildChannel),
     ViewMatchStatus(RoundIdentifier),
     DeckCheck(RoundIdentifier),
     DeckDump(usize),
@@ -369,160 +371,137 @@ impl GuildTournament {
 
     pub async fn take_action(
         &mut self,
+        action: GuildTournamentAction<'_>,
         ctx: &Context,
-        msg: &Message,
-        action: GuildTournamentAction,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         use GuildTournamentAction::*;
         match action {
-            DeckCheck(r_ident) => self.deck_check(ctx, msg, r_ident).await,
-            DeckDump(count) => self.deck_dump(ctx, msg, count).await,
-            TimeExtension(rnd, dur) => self.time_extension(ctx, msg, rnd, dur).await,
-            Cut(len) => self.cut(ctx, msg, len).await,
-            PairRound => self.pair_round(ctx, msg).await,
-            RemoveMatch(r_ident) => self.remove_match(ctx, msg, r_ident).await,
-            RecordResult(p_ident, result) => self.record_result(ctx, msg, p_ident, result).await,
-            ConfirmResult(p_ident) => self.confirm_result(ctx, msg, p_ident).await,
-            AdminRecordResult(r_ident, result) => {
-                self.admin_record_result(ctx, msg, r_ident, result).await
-            }
+            DeckCheck(r_ident) => self.deck_check(r_ident).await,
+            DeckDump(count) => self.deck_dump(count).await,
+            TimeExtension(rnd, dur) => self.time_extension(rnd, dur).await,
+            Cut(len) => self.cut(ctx, len).await,
+            PairRound => self.pair_round().await,
+            RemoveMatch(r_ident) => self.remove_match(r_ident, ctx).await,
+            RecordResult(p_ident, result) => self.record_result(p_ident, result).await,
+            ConfirmResult(p_ident) => self.confirm_result(p_ident).await,
+            AdminRecordResult(r_ident, result) => self.admin_record_result(r_ident, result).await,
             AdminConfirmResult(r_ident, p_ident) => {
-                self.admin_confirm_result(ctx, msg, r_ident, p_ident).await
+                self.admin_confirm_result(r_ident, p_ident).await
             }
-            DropPlayer(p_ident) => self.drop_player(ctx, msg, p_ident).await,
-            PruneDecks => self.prune_decks(ctx, msg).await,
-            PrunePlayers => self.prune_players(ctx, msg).await,
-            End => self.action_end(ctx, msg).await,
-            Cancel => self.action_cancel(ctx, msg).await,
-            GiveBye(p_ident) => self.give_bye(ctx, msg, p_ident).await,
-            GetRawStandings(count) => self.get_raw_standings(ctx, msg, count).await,
-            ViewAllPlayers => self.view_all_players(ctx, msg).await,
-            CreateStandings => self.create_standings(ctx, msg).await,
-            ViewDecklist(p_ident, deck_name) => {
-                self.view_decklist(ctx, msg, p_ident, deck_name).await
-            }
-            ViewPlayerDecks(p_ident) => self.view_player_decks(ctx, msg, p_ident).await,
-            ViewPlayerProfile(p_ident) => self.view_player_profile(ctx, msg, p_ident).await,
-            ViewMatchStatus(r_ident) => self.view_match_status(ctx, msg, r_ident).await,
-            CreateTournamentStatus => self.create_tournament_status(ctx, msg).await,
-            RegisterPlayer(user_id) => self.register_player(ctx, msg, user_id).await,
-            AdminRegisterPlayer(user_id) => self.admin_register_player(ctx, msg, user_id).await,
-            RegisterGuest(name) => self.register_guest(ctx, msg, name).await,
-            CreateMatch(raw_plyrs) => self.create_match(ctx, msg, raw_plyrs).await,
-            Operation(op) => self.general_operation(ctx, msg, op).await,
+            DropPlayer(p_ident) => self.drop_player(p_ident).await,
+            PruneDecks => self.prune_decks(ctx).await,
+            PrunePlayers => self.prune_players(ctx).await,
+            End => self.action_end(ctx).await,
+            Cancel => self.action_cancel(ctx).await,
+            GiveBye(p_ident) => self.give_bye(ctx, p_ident).await,
+            GetRawStandings(count) => self.get_raw_standings(count).await,
+            ViewAllPlayers => self.view_all_players().await,
+            CreateStandings(channel) => self.create_standings(ctx, channel).await,
+            CreateTournamentStatus(channel) => self.create_tournament_status(ctx, channel).await,
+            ViewDecklist(p_ident, deck_name) => self.view_decklist(p_ident, deck_name).await,
+            ViewPlayerDecks(p_ident) => self.view_player_decks(p_ident).await,
+            ViewPlayerProfile(p_ident) => self.view_player_profile(p_ident).await,
+            ViewMatchStatus(r_ident) => self.view_match_status(r_ident).await,
+            RegisterPlayer(user_id) => self.register_player(user_id).await,
+            AdminRegisterPlayer(user_id) => self.admin_register_player(user_id).await,
+            RegisterGuest(name) => self.register_guest(name).await,
+            CreateMatch(raw_plyrs) => self.create_match(raw_plyrs).await,
+            Operation(op) => self.general_operation(op).await,
         }
     }
 
-    async fn get_raw_standings(&self, ctx: &Context, msg: &Message, count: usize) -> CommandResult {
+    async fn get_raw_standings(
+        &self,
+        count: usize,
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let standings = self.tourn.get_standings();
         let mut output = tempfile().unwrap();
         for (i, (id, _)) in standings.scores.iter().enumerate().take(count) {
             let _ = writeln!(output, "{i}) {}", self.resolve_player_name(id).unwrap());
         }
-        let to_send = tokio::fs::File::from_std(output);
-        match msg.channel(&ctx.http).await? {
-            Channel::Guild(c) => {
-                c.send_message(&ctx.http, |m| {
-                    m.content("Here you go!!").files(
-                        [AttachmentType::File {
-                            file: &to_send,
-                            filename: String::from("standings.txt"),
-                        }]
-                        .into_iter(),
-                    )
-                })
-                .await?;
-            }
-            _ => {
-                unreachable!("How did you get here?");
-            }
-        }
-        Ok(())
+        let mut digest = MessageContent::empty();
+        digest.with_text("Here you go!!".into());
+        digest.with_attachment("standings.txt".into(), tokio::fs::File::from_std(output));
+        Ok(digest)
     }
 
     async fn view_decklist(
         &self,
-        ctx: &Context,
-        msg: &Message,
         p_ident: PlayerIdentifier,
         deck_name: String,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let plyr_id = match self.tourn.player_reg.get_player_id(&p_ident) {
             Ok(id) => id,
             Err(err) => {
-                msg.reply(&ctx.http, error_to_content(err)).await?;
-                return Ok(());
+                digest.with_text(error_to_content(err).into());
+                return Ok(digest);
             }
         };
         let deck = match self.tourn.get_player_deck(&p_ident, &deck_name) {
             Ok(deck) => deck,
             Err(err) => {
-                msg.reply(&ctx.http, error_to_content(err)).await?;
-                return Ok(());
+                digest.with_text(error_to_content(err).into());
+                return Ok(digest);
             }
         };
         let title = format!("{}'s deck", self.get_player_mention(&plyr_id).unwrap());
         let sorted_deck = TypeSortedDeck::from(deck);
         let fields = sorted_deck.embed_fields();
-        let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-        resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
-            .await?;
-        Ok(())
+        digest.with_text("Here you go!".into());
+        digest.with_embeds(safe_embeds(title, fields));
+        Ok(digest)
     }
 
     async fn view_player_decks(
         &self,
-        ctx: &Context,
-        msg: &Message,
         p_ident: PlayerIdentifier,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let plyr = match self.tourn.get_player(&p_ident) {
             Ok(plyr) => plyr,
             Err(err) => {
-                msg.reply(&ctx.http, error_to_content(err)).await?;
-                return Ok(());
+                digest.with_text(error_to_content(err).into());
+                return Ok(digest);
             }
         };
         if plyr.decks.is_empty() {
-            msg.reply(&ctx.http, "That player has no decks.").await?;
-            return Ok(());
+            digest.with_text("That player has no decks.".into());
+            return Ok(digest);
         }
+        let mut embeds = Vec::with_capacity(plyr.decks.len());
         for (name, deck) in plyr.decks {
             let sorted_deck = TypeSortedDeck::from(deck);
             let fields = sorted_deck.embed_fields();
-            let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-            resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(name, fields)))
-                .await?;
+            embeds.extend(safe_embeds(name, fields));
         }
-        Ok(())
+        digest.with_text("Here you go!!".into());
+        digest.with_embeds(embeds);
+        Ok(digest)
     }
 
     async fn view_player_profile(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         p_ident: PlayerIdentifier,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let plyr_id = match self.tourn.player_reg.get_player_id(&p_ident) {
             Ok(id) => id,
             Err(err) => {
-                msg.reply(&ctx.http, error_to_content(err)).await?;
-                return Ok(());
+                digest.with_text(error_to_content(err).into());
+                return Ok(digest);
             }
         };
         let mention = self.get_player_mention(&plyr_id).unwrap();
         let fields = player_embed_info(plyr_id, self);
-        let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-        resp.edit(&ctx.http, |m| {
-            m.set_embeds(safe_embeds(format!("{mention}'s Profile"), fields))
-        })
-        .await?;
-        println!("Sent message");
-        Ok(())
+        digest.with_text("Here you go!!".into());
+        digest.with_embeds(safe_embeds(format!("{mention}'s Profile"), fields));
+        Ok(digest)
     }
 
-    async fn view_all_players(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
-        let mut resp = msg.reply(&ctx.http, "Here are all the players!!").await?;
+    async fn view_all_players(&mut self) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
+        digest.with_text("Here are all the players!!".into());
         let players: GroupMap<String, PlayerStatus> = self
             .tourn
             .player_reg
@@ -530,107 +509,123 @@ impl GuildTournament {
             .iter()
             .map(|(id, plyr)| (self.resolve_player_name(id).unwrap(), plyr.status))
             .collect();
-        resp.edit(&ctx.http, |m| {
-            m.embed(|e| {
-                e.fields(players.iter_right().map(|s| {
-                    let mut iter = players.get_left_iter(s).unwrap();
-                    (format!("{s}: {}", iter.len()), iter.join(" "), true)
-                }))
-            })
-        })
-        .await?;
-        Ok(())
+        let mut embed = CreateEmbed(HashMap::new());
+        embed.fields(players.iter_right().map(|s| {
+            let mut iter = players.get_left_iter(s).unwrap();
+            (format!("{s}: {}", iter.len()), iter.join(" "), true)
+        }));
+        digest.with_embeds(vec![embed]);
+        Ok(digest)
     }
 
-    async fn create_standings(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
-        let resp = msg.reply(&ctx.http, "\u{200b}").await?;
+    async fn create_standings(
+        &mut self,
+        ctx: &Context,
+        channel: &mut GuildChannel,
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let resp = channel
+            .send_message(&ctx.http, |m| m.content("\u{200b}"))
+            .await?;
         self.standings_message = Some(resp);
         self.update_standings(ctx).await;
-        Ok(())
+        let mut digest = MessageContent::empty();
+        digest.with_text("Standings message created!!".into());
+        Ok(digest)
     }
 
-    async fn create_tournament_status(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
-        let resp = msg.reply(&ctx.http, "\u{200b}").await?;
+    async fn create_tournament_status(
+        &mut self,
+        ctx: &Context,
+        channel: &mut GuildChannel,
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
+        let resp = channel
+            .send_message(&ctx.http, |m| m.content("\u{200b}"))
+            .await?;
         self.tourn_status = Some(resp);
         self.update_status(ctx).await;
-        Ok(())
+        digest.with_text("Tournament status message created!!".into());
+        Ok(digest)
     }
 
     async fn view_match_status(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         r_ident: RoundIdentifier,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let r_id = match self.tourn.round_reg.get_round_id(&r_ident) {
             Ok(id) => id,
             Err(err) => {
-                msg.reply(&ctx.http, error_to_content(err)).await?;
-                return Ok(());
+                digest.with_text(error_to_content(err).into());
+                return Ok(digest);
             }
         };
         let gr = self.get_guild_round(&r_id).unwrap();
         let (title, fields) = gr.embed_info();
-        let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-        resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
-            .await?;
-        Ok(())
+        digest.with_text("Here you go!".into());
+        digest.with_embeds(safe_embeds(title, fields));
+        Ok(digest)
     }
 
     async fn deck_check(
         &self,
-        ctx: &Context,
-        msg: &Message,
         r_ident: RoundIdentifier,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         match self.tourn.get_round(&r_ident) {
             Ok(rnd) => {
+                let mut embeds = Vec::with_capacity(rnd.players.len());
                 for plyr in rnd.players.iter().filter(|p| !rnd.drops.contains(p)) {
                     let player = self.tourn.get_player(&(*plyr).into()).unwrap();
                     for deck in player.decks.values() {
                         let title = format!("{}'s deck:", self.get_player_mention(&plyr).unwrap());
                         let sorted_deck = TypeSortedDeck::from(deck.clone());
                         let fields = sorted_deck.embed_fields();
-                        let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-                        resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
-                            .await?;
+                        embeds.extend_from_slice(&safe_embeds(title, fields));
                     }
                 }
+                digest.with_text("Here you go!".into());
+                digest.with_embeds(embeds);
             }
             Err(err) => {
-                msg.reply(&ctx.http, error_to_content(err)).await?;
+                digest.with_text(error_to_content(err).into());
             }
-        };
-        Ok(())
+        }
+        Ok(digest)
     }
 
-    async fn deck_dump(&mut self, ctx: &Context, msg: &Message, count: usize) -> CommandResult {
+    async fn deck_dump(
+        &mut self,
+        count: usize,
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
+        digest.with_text("Here you go!!".into());
         let standings = self.tourn.get_standings();
+        let mut embeds = Vec::with_capacity(count);
         for plyr in standings.scores.iter().take(count).map(|(p, _)| p) {
             let player = self.tourn.get_player(&(*plyr).into()).unwrap();
             for deck in player.decks.values() {
                 let title = format!("{}'s deck:", self.get_player_mention(&plyr).unwrap());
                 let sorted_deck = TypeSortedDeck::from(deck.clone());
                 let fields = sorted_deck.embed_fields();
-                let mut resp = msg.reply(&ctx.http, "Here you go!").await?;
-                resp.edit(&ctx.http, |m| m.set_embeds(safe_embeds(title, fields)))
-                    .await?;
+                embeds.extend_from_slice(&safe_embeds(title, fields));
             }
         }
-        Ok(())
+        digest.with_embeds(embeds);
+        Ok(digest)
     }
 
     async fn remove_match(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         r_ident: RoundIdentifier,
-    ) -> CommandResult {
+        ctx: &Context,
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let r_id = match self.tourn.round_reg.get_round_id(&r_ident) {
             Ok(id) => id,
             Err(err) => {
-                msg.reply(&ctx.http, error_to_content(err)).await?;
-                return Ok(());
+                digest.with_text(error_to_content(err).into());
+                return Ok(digest);
             }
         };
         let update = MatchUpdateMessage {
@@ -652,13 +647,14 @@ impl GuildTournament {
             Ok(_) => "Match successfully removed.",
             Err(err) => error_to_content(err),
         };
-        msg.reply(&ctx.http, content).await?;
+        digest.with_text(content.into());
         self.update_status(ctx).await;
         self.update_standings(ctx).await;
-        Ok(())
+        Ok(digest)
     }
 
-    async fn prune_players(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
+    async fn prune_players(&mut self) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let confirm = PrunePlayersConfirmation {
             tourn_id: self.tourn.id,
         };
@@ -692,7 +688,8 @@ impl GuildTournament {
         Ok(())
     }
 
-    async fn prune_decks(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
+    async fn prune_decks(&mut self) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let confirm = PruneDecksConfirmation {
             tourn_id: self.tourn.id,
         };
@@ -713,7 +710,8 @@ impl GuildTournament {
         Ok(())
     }
 
-    async fn action_end(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
+    async fn action_end(&mut self) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let confirm = EndTournamentConfirmation {
             tourn_id: self.tourn.id,
         };
@@ -732,7 +730,8 @@ impl GuildTournament {
         Ok(())
     }
 
-    async fn action_cancel(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
+    async fn action_cancel(&mut self) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let confirm = CancelTournamentConfirmation {
             tourn_id: self.tourn.id,
         };
@@ -751,7 +750,8 @@ impl GuildTournament {
         Ok(())
     }
 
-    async fn cut(&mut self, ctx: &Context, msg: &Message, len: usize) -> CommandResult {
+    async fn cut(&mut self, len: usize) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let confirm = CutToTopConfirmation {
             tourn_id: self.tourn.id,
             len,
@@ -768,11 +768,10 @@ impl GuildTournament {
 
     async fn record_result(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         p_ident: PlayerIdentifier,
         result: RoundResult,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
         let op = TournOp::RecordResult(p_ident, result.clone());
         match self.tourn.apply_op(op) {
@@ -816,10 +815,9 @@ impl GuildTournament {
 
     async fn confirm_result(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         p_ident: PlayerIdentifier,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
         let op = TournOp::ConfirmResult(p_ident);
         match self.tourn.apply_op(op) {
@@ -872,11 +870,10 @@ impl GuildTournament {
 
     async fn admin_record_result(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         r_ident: RoundIdentifier,
         result: RoundResult,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let opt_r_id = self.tourn.round_reg.get_round_id(&r_ident);
         let op = TournOp::AdminRecordResult((*SQUIRE_ACCOUNT_ID).into(), r_ident, result.clone());
         match self.tourn.apply_op(op) {
@@ -914,11 +911,10 @@ impl GuildTournament {
 
     async fn admin_confirm_result(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         r_ident: RoundIdentifier,
         p_ident: PlayerIdentifier,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let opt_r_id = self.tourn.round_reg.get_round_id(&r_ident);
         let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
         let op = TournOp::AdminConfirmResult((*SQUIRE_ACCOUNT_ID).into(), r_ident, p_ident);
@@ -967,10 +963,9 @@ impl GuildTournament {
 
     async fn give_bye(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         p_ident: PlayerIdentifier,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let opt_id = self.tourn.player_reg.get_player_id(&p_ident);
         let op = TournOp::GiveBye(*SQUIRE_ACCOUNT_ID, p_ident);
         match self.tourn.apply_op(op) {
@@ -998,10 +993,9 @@ impl GuildTournament {
 
     async fn register_player(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         user_id: UserId,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let content = match self.tourn.apply_op(TournOp::RegisterGuest(
             (*SQUIRE_ACCOUNT_ID).into(),
             user_id.to_string(),
@@ -1029,10 +1023,9 @@ impl GuildTournament {
 
     async fn admin_register_player(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         user_id: UserId,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let content = match self.tourn.apply_op(TournOp::RegisterGuest(
             (*SQUIRE_ACCOUNT_ID).into(),
             user_id.to_string(),
@@ -1060,10 +1053,9 @@ impl GuildTournament {
 
     async fn register_guest(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         name: String,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let content = match self.tourn.apply_op(TournOp::RegisterGuest(
             (*SQUIRE_ACCOUNT_ID).into(),
             name.clone(),
@@ -1084,10 +1076,9 @@ impl GuildTournament {
 
     async fn drop_player(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         p_ident: PlayerIdentifier,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let opt_id = self.tourn.player_reg.get_player_id(&p_ident);
         let op = TournOp::AdminDropPlayer(*SQUIRE_ACCOUNT_ID, p_ident.clone());
         match self.tourn.apply_op(op) {
@@ -1122,10 +1113,9 @@ impl GuildTournament {
 
     async fn create_match(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         mut raw_plyrs: Vec<String>,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         // If the last "player" has the same name as the tournament, we ignore it.
         if raw_plyrs
             .last()
@@ -1193,7 +1183,8 @@ impl GuildTournament {
         Ok(())
     }
 
-    async fn pair_round(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
+    async fn pair_round(&mut self) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let confirm = PairRoundConfirmation {
             tourn_id: self.tourn.id,
         };
@@ -1210,11 +1201,10 @@ impl GuildTournament {
 
     async fn time_extension(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         rnd: RoundIdentifier,
         dur: Duration,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let opt_id = self.tourn.round_reg.get_round_id(&rnd);
         let content = match self.tourn.apply_op(TournOp::TimeExtension(
             (*SQUIRE_ACCOUNT_ID).into(),
@@ -1242,10 +1232,9 @@ impl GuildTournament {
 
     async fn general_operation(
         &mut self,
-        ctx: &Context,
-        msg: &Message,
         op: TournOp,
-    ) -> CommandResult {
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
         let mut content = op_to_content(&op);
         if let Err(err) = self.tourn.apply_op(op) {
             content = error_to_content(err);
