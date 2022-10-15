@@ -371,7 +371,6 @@ async fn after_command(
     command_name: &str,
     command_result: CommandResult,
 ) {
-    println!("Entering exit handler...");
     let data = ctx.data.read().await;
     let sender = data.get::<LogActionSenderContainer>().unwrap();
     match command_result {
@@ -518,10 +517,6 @@ async fn main() {
                 let timer = Instant::now();
                 match_manager.update_matches(&cache).await;
                 if timer.elapsed() < loop_length {
-                    println!(
-                        "Match message updater sleeping for {:?}",
-                        loop_length - timer.elapsed()
-                    );
                     let mut sleep = tokio::time::interval(loop_length - timer.elapsed());
                     sleep.tick().await;
                     sleep.tick().await;

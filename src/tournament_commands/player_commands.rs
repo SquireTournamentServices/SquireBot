@@ -401,7 +401,6 @@ where
         Some(id) => {
             let id = *id;
             tourn.take_action(ctx, msg, f(id)).await?;
-            println!("Finished command");
         }
         None => {
             msg.reply(&ctx.http, "You are not registered for that tournament.")

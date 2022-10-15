@@ -142,7 +142,7 @@ impl LogTracker {
             format!("Total requests: {total}"),
             format!(
                 "Percent success: {:.2}%",
-                (self.successes.len() as f64) / (total as f64)
+                (self.successes.len() as f64) / (total as f64) * 100
             ),
         ];
         fields.push(("Overview".into(), overview, "\n", true));
@@ -153,7 +153,7 @@ impl LogTracker {
         let mut delays = vec![
             format!(
                 "Requests that took {} seconds to process: {length}",
-                self.time_to_live
+                self.time_to_live.num_seconds()
             ),
             format!("P50: {} seconds", p_stats.0),
             format!("P75: {} seconds", p_stats.1),
