@@ -1,8 +1,12 @@
-use std::time::Duration;
+use std::{str::FromStr, sync::Arc, time::Duration};
 
 use serenity::{
     framework::standard::{macros::command, Args, CommandError, CommandResult},
-    model::prelude::Message,
+    model::{
+        channel::{Channel, ChannelType},
+        mention::Mention,
+        prelude::Message,
+    },
     prelude::Context,
 };
 
@@ -203,7 +207,8 @@ async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         }
         Ok(s) => s,
     };
-    let user_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
+    let gld = msg.guild(&ctx.cache).unwrap();
+    let user_id = match user_id_resolver(&raw_user_id, &gld).await {
         Some(id) => id,
         None => {
             msg.reply(&ctx.http, "That person could not be found.")
@@ -393,7 +398,7 @@ async fn cut(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| Cut(len)).await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| Cut(msg.author.id, len)).await
 }
 
 #[command("end")]
@@ -404,7 +409,7 @@ async fn cut(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[description("Ends a tournament.")]
 async fn end(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| End).await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| End(msg.author.id)).await
 }
 
 #[command("cancel")]
@@ -415,7 +420,7 @@ async fn end(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[description("Cancels a tournament.")]
 async fn cancel(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| Cancel).await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| Cancel(msg.author.id)).await
 }
 
 #[command("freeze")]
@@ -475,7 +480,7 @@ async fn match_status(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[description("Pairs the next round of matches.")]
 async fn pair(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| PairRound).await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| PairRound(msg.author.id)).await
 }
 
 #[command("view-players")]
@@ -510,7 +515,7 @@ async fn prune(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[description("Removes players that aren't fully registered.")]
 async fn players(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| PrunePlayers).await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| PrunePlayers(msg.author.id)).await
 }
 
 #[command("decks")]
@@ -520,7 +525,7 @@ async fn players(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[description("Removes decks from players that have them in excess.")]
 async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| PruneDecks).await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| PruneDecks(msg.author.id)).await
 }
 #[command("raw-standings")]
 #[only_in(guild)]
@@ -592,9 +597,43 @@ async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[allowed_roles("Tournament Admin", "Judge")]
 #[usage("[tournament name]")]
 #[description("Creates an auto-updating standings message.")]
-async fn standings(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| CreateStandings).await
+async fn standings(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let guild = msg.guild(&ctx.cache).unwrap();
+    let result = args
+        .single_quoted::<String>()
+        .map_err(|_| "Please include a channel, either by name or mention.")
+        .and_then(|arg| match Mention::from_str(&arg).ok() {
+            Some(Mention::Channel(id)) => Ok(id),
+            Some(_) => Err("Please specify a channel, not a User, Role, or something"),
+            None => match guild.channel_id_from_name(&ctx.cache, arg) {
+                Some(id) => Ok(id),
+                None => Err("Please include a channel, either by name or mention."),
+            },
+        });
+    let response = match result {
+        Err(content) => {
+            msg.reply(&ctx.http, content).await?;
+            None
+        }
+        Ok(c_id) => match ctx.cache.channel(&c_id) {
+            Some(channel) => match channel {
+                Channel::Guild(c) if c.kind == ChannelType::Text => {
+                    let tourn_name = args.rest().trim().to_string();
+                    admin_command_without_player(ctx, msg, tourn_name, move |_| {
+                        CreateStandings(Arc::new(c))
+                    })
+                    .await?;
+                    None
+                }
+                _ => Some("Please specify a text channel."),
+            },
+            None => Some("Please specify an active channel in this guild."),
+        },
+    };
+    if let Some(content) = response {
+        msg.reply(&ctx.http, content).await?;
+    }
+    Ok(())
 }
 
 #[command("start")]
@@ -615,9 +654,43 @@ async fn start(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[allowed_roles("Tournament Admin")]
 #[usage("[tournament name]")]
 #[description("Creates an auto-updating status containing all information about the tournament.")]
-async fn status(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| CreateTournamentStatus).await
+async fn status(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let guild = msg.guild(&ctx.cache).unwrap();
+    let result = args
+        .single_quoted::<String>()
+        .map_err(|_| "Please include a channel, either by name or mention.")
+        .and_then(|arg| match Mention::from_str(&arg).ok() {
+            Some(Mention::Channel(id)) => Ok(id),
+            Some(_) => Err("Please specify a channel, not a User, Role, or something"),
+            None => match guild.channel_id_from_name(&ctx.cache, arg) {
+                Some(id) => Ok(id),
+                None => Err("Please include a channel, either by name or mention."),
+            },
+        });
+    let response = match result {
+        Err(content) => {
+            msg.reply(&ctx.http, content).await?;
+            None
+        }
+        Ok(c_id) => match ctx.cache.channel(&c_id) {
+            Some(channel) => match channel {
+                Channel::Guild(c) if c.kind == ChannelType::Text => {
+                    let tourn_name = args.rest().trim().to_string();
+                    admin_command_without_player(ctx, msg, tourn_name, move |_| {
+                        CreateTournamentStatus(Arc::new(c))
+                    })
+                    .await?;
+                    None
+                }
+                _ => Some("Please specify a text channel."),
+            },
+            None => Some("Please specify an active channel in this guild."),
+        },
+    };
+    if let Some(content) = response {
+        msg.reply(&ctx.http, content).await?;
+    }
+    Ok(())
 }
 #[command("time-extension")]
 #[only_in(guild)]
@@ -734,7 +807,7 @@ async fn get_raw_user_id(
     }
 }
 
-async fn admin_command<F>(
+async fn admin_command<'a, F>(
     ctx: &Context,
     msg: &Message,
     raw_user_id: String,
@@ -765,7 +838,8 @@ where
         }
     };
     let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    let plyr_id = match user_id_resolver(ctx, msg, &raw_user_id).await {
+    let gld = msg.guild(&ctx.cache).unwrap();
+    let plyr_id = match user_id_resolver(&raw_user_id, &gld).await {
         Some(user_id) => match tourn.players.get_right(&user_id) {
             Some(id) => *id,
             None => {
@@ -789,13 +863,12 @@ where
             }
         },
     };
-    tourn
-        .take_action(ctx, msg, f(*SQUIRE_ACCOUNT_ID, plyr_id))
+    let content = tourn
+        .take_action(ctx, f(*SQUIRE_ACCOUNT_ID, plyr_id))
         .await?;
-    Ok(())
+    content.message_reply(ctx, msg).await
 }
-
-async fn admin_command_without_player<F>(
+async fn admin_command_without_player<'a, F>(
     ctx: &Context,
     msg: &Message,
     tourn_name: String,
@@ -825,6 +898,6 @@ where
         }
     };
     let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    tourn.take_action(ctx, msg, f(*SQUIRE_ACCOUNT_ID)).await?;
-    Ok(())
+    let content = tourn.take_action(ctx, f(*SQUIRE_ACCOUNT_ID)).await?;
+    content.message_reply(ctx, msg).await
 }

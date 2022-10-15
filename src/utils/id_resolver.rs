@@ -3,7 +3,7 @@ use std::str::FromStr;
 use dashmap::DashMap;
 use serenity::{
     framework::standard::{macros::hook, CommandError},
-    model::{channel::Message, id::UserId, mention::Mention},
+    model::{channel::Message, guild::Guild, id::UserId, mention::Mention},
     prelude::Context,
 };
 
@@ -22,7 +22,7 @@ use crate::{model::guild_tournament::GuildTournament, utils::spin_lock::spin};
 ///  - The given ident is assumed to be a part of a user's nickname
 ///  - The given ident is assumed to be a part of the user's user name.
 ///  - The given ident is assumed to be invalid.
-pub async fn user_id_resolver(ctx: &Context, msg: &Message, ident: &str) -> Option<UserId> {
+pub async fn user_id_resolver(ident: &str, guild: &Guild) -> Option<UserId> {
     if let Ok(id) = ident.parse::<u64>() {
         Some(UserId(id))
     } else {
@@ -32,12 +32,11 @@ pub async fn user_id_resolver(ctx: &Context, msg: &Message, ident: &str) -> Opti
                 _ => None,
             };
         }
-        let gld = msg.guild(&ctx.cache).unwrap();
-        let by_nickname = gld.members_nick_containing(ident, false, false).await;
+        let by_nickname = guild.members_nick_containing(ident, false, false).await;
         if by_nickname.len() == 1 {
             return Some(by_nickname[0].0.user.id);
         }
-        let by_username = gld.members_username_containing(ident, false, false).await;
+        let by_username = guild.members_username_containing(ident, false, false).await;
         if by_username.len() == 1 {
             Some(by_username[0].0.user.id)
         } else {

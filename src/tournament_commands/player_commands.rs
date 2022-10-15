@@ -302,16 +302,12 @@ async fn register(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
     let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    spin_mut(&all_tourns, &tourn_id)
+    let content = spin_mut(&all_tourns, &tourn_id)
         .await
         .unwrap()
-        .take_action(
-            ctx,
-            msg,
-            GuildTournamentAction::RegisterPlayer(msg.author.id),
-        )
+        .take_action(ctx, GuildTournamentAction::RegisterPlayer(msg.author.id))
         .await?;
-    Ok(())
+    content.message_reply(ctx, msg).await
 }
 
 #[command("remove-deck")]
@@ -327,7 +323,7 @@ async fn remove_deck(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 }
 
 /// Handles 90% of a player command what performs an action
-pub async fn player_command<F>(
+pub async fn player_command<'a, F>(
     ctx: &Context,
     msg: &Message,
     tourn_name: String,
@@ -362,7 +358,8 @@ where
     match tourn.players.get_right(&msg.author.id) {
         Some(id) => {
             let id = *id;
-            tourn.take_action(ctx, msg, f(id)).await?;
+            let content = tourn.take_action(ctx, f(id)).await?;
+            content.message_reply(ctx, msg).await?;
         }
         None => {
             msg.reply(&ctx.http, "You are not registered for that tournament.")
@@ -373,7 +370,12 @@ where
 }
 
 /// Handles player commands that are send via DMs
-pub async fn dm_command<F>(ctx: &Context, msg: &Message, tourn_name: String, f: F) -> CommandResult
+pub async fn dm_command<'a, F>(
+    ctx: &Context,
+    msg: &Message,
+    tourn_name: String,
+    f: F,
+) -> CommandResult
 where
     F: FnOnce(PlayerId) -> GuildTournamentAction,
 {
@@ -400,7 +402,8 @@ where
     match tourn.players.get_right(&msg.author.id) {
         Some(id) => {
             let id = *id;
-            tourn.take_action(ctx, msg, f(id)).await?;
+            let content = tourn.take_action(ctx, f(id)).await?;
+            content.message_reply(ctx, msg).await?;
         }
         None => {
             msg.reply(&ctx.http, "You are not registered for that tournament.")
