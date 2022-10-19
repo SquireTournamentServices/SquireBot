@@ -26,9 +26,9 @@ use serenity::{
         gateway::Ready,
         guild::{Guild, Member, Role},
         id::{GuildId, RoleId, UserId},
-        user::User,
+        user::User, prelude::{command::{CommandOptionType, Command}, interaction::{Interaction, InteractionResponseType}},
     },
-    prelude::*,
+    prelude::*, builder::CreateApplicationCommand,
 };
 
 use dashmap::{try_result::TryResult, DashMap};
@@ -61,12 +61,63 @@ use crate::{
     utils::{card_collection::build_collection, spin_lock::spin_mut},
 };
 
+
+pub fn register_sub_command(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
+    command.name("subcommand").description("Test subcommand").create_option(
+        |option| {
+            option
+        },
+    )
+}
+
+pub fn register_base_command(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
+    command.name("base-command").description("Test base command").create_option(
+        |option| {
+            option
+                .name("subcommand-a")
+                .description("A subcommand")
+                .kind(CommandOptionType::SubCommandGroup)
+                .create_sub_option(|option|
+                    option
+                        .name("sub-subcommand-a")
+                        .description("A subcommand")
+                        .kind(CommandOptionType::SubCommandGroup)
+                        .create_sub_option(|option|
+                            option
+                                .name("sub-sub-subcommand-a")
+                                .description("A subcommand")
+                                .kind(CommandOptionType::SubCommandGroup)
+                        )
+                )
+        },
+    )
+}
+
 struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, _: Context, ready: Ready) {
+    async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
+        
+        Command::create_global_application_command(&ctx.http, |command| register_base_command(command)).await.unwrap();
+    }
+    
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        if let Interaction::ApplicationCommand(command) = interaction {
+            println!("{}", command.application_id);
+
+            if let Err(why) = command
+                .create_interaction_response(&ctx.http, |response| {
+                    response
+                        .kind(InteractionResponseType::ChannelMessageWithSource)
+                        .interaction_response_data(|message| message.content("Testing..."))
+                })
+                .await
+            {
+                println!("Cannot respond to slash command: {}", why);
+            }
+        }
     }
 
     async fn guild_create(&self, ctx: Context, guild: Guild, _: bool) {
@@ -77,15 +128,16 @@ impl EventHandler for Handler {
             .unwrap()
             .read()
             .await;
-        if let Some(mut settings) = spin_mut(&all_settings, &guild.id).await {
-            settings.update(&guild);
-        } else {
-            let settings = GuildSettings::from_existing(&guild);
-            println!("{:#?}", settings);
-            all_settings.insert(guild.id, settings);
-        }
-        drop(all_settings);
-        drop(data);
+        match spin_mut(&all_settings, &guild.id).await {
+            Some(mut settings) => {
+                settings.update(&guild);
+            }
+            None => {
+                let settings = GuildSettings::from_existing(&guild);
+                println!("{:#?}", settings);
+                all_settings.insert(guild.id, settings);
+            }
+        };
     }
 
     async fn category_create(&self, ctx: Context, new: &ChannelCategory) {
