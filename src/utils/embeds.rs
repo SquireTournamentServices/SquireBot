@@ -123,7 +123,7 @@ pub fn tournament_embed_info(
     ];
     digest.push(("Discord Info:".into(), discord_info, "\n", true));
     let mut settings_info = vec![
-        format!("Format: {}\n", g_tourn.tourn.format),
+        format!("Format: {}", g_tourn.tourn.format),
         format!(
             "Pairing method: {}",
             match g_tourn.tourn.pairing_sys.style {
@@ -278,7 +278,9 @@ pub fn standings_embeds(
             score_buffer.clear();
         }
         name_buffer += &name;
+        name_buffer += "\n";
         score_buffer += &score_s;
+        score_buffer += "\n";
     }
     if embeds.len() < 10 {
         e.field("Name:", name_buffer.clone(), true);

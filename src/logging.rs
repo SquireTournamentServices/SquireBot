@@ -19,6 +19,7 @@ pub const DEFAULT_TIME_TO_LIVE_SECS: u64 = 10;
 
 pub enum LogAction {
     Start(String, DateTime<Utc>),
+    Info(&'static str),
     CouldFail(&'static str),
     CouldPanic(&'static str),
     TakingLock(&'static str),
@@ -138,6 +139,7 @@ impl LogTracker {
             self.successes.len() + self.delays.len() + self.failures.len() + self.panics.len();
 
         // Overview calculations
+        self.successes.clear();
         let mut overview = vec![
             format!("Total requests: {total}"),
             format!(
@@ -155,11 +157,11 @@ impl LogTracker {
                 "Requests that took {} seconds to process: {length}",
                 self.time_to_live.num_seconds()
             ),
-            format!("P50: {} seconds", p_stats.0),
-            format!("P75: {} seconds", p_stats.1),
-            format!("P90: {} seconds", p_stats.2),
-            format!("P99: {} seconds", p_stats.3),
-            format!("P100: {} seconds", p_stats.4),
+            format!("P50: {} msec", p_stats.0),
+            format!("P75: {} msec", p_stats.1),
+            format!("P90: {} msec", p_stats.2),
+            format!("P99: {} msec", p_stats.3),
+            format!("P100: {} msec", p_stats.4),
         ];
         fields.push(("Delays:".into(), delays, "\n", true));
 
@@ -168,18 +170,18 @@ impl LogTracker {
         let p_stats = calculate_p_stats(self.failures.drain().map(|(_, dur)| dur).collect());
         let mut failures = vec![
             format!("Requests that returned an error: {length}"),
-            format!("P50: {} seconds", p_stats.0),
-            format!("P75: {} seconds", p_stats.1),
-            format!("P90: {} seconds", p_stats.2),
-            format!("P99: {} seconds", p_stats.3),
-            format!("P100: {} seconds", p_stats.4),
+            format!("P50: {} msec", p_stats.0),
+            format!("P75: {} msec", p_stats.1),
+            format!("P90: {} msec", p_stats.2),
+            format!("P99: {} msec", p_stats.3),
+            format!("P100: {} msec", p_stats.4),
         ];
         fields.push(("Failures:".into(), failures, "\n", true));
 
         // Panics calculations
         let length = self.panics.len();
         self.panics.clear();
-        let mut panics = vec![format!("Requests that panicked: {}", self.panics.len())];
+        let mut panics = vec![format!("Requests that panicked: {length}")];
         fields.push(("Panics:".into(), panics, "\n", true));
         let _ = self
             .telemetry_channel
@@ -226,11 +228,11 @@ fn calculate_p_stats(mut vals: Vec<Duration>) -> (i64, i64, i64, i64, i64) {
     let p_90_index = 9 * vals.len() / 10;
     let p_99_index = 99 * vals.len() / 100;
     (
-        vals[p_50_index].num_seconds(),
-        vals[p_75_index].num_seconds(),
-        vals[p_90_index].num_seconds(),
-        vals[p_99_index].num_seconds(),
-        vals.last().unwrap().num_seconds(),
+        vals[p_50_index].num_milliseconds(),
+        vals[p_75_index].num_milliseconds(),
+        vals[p_90_index].num_milliseconds(),
+        vals[p_99_index].num_milliseconds(),
+        vals.last().unwrap().num_milliseconds(),
     )
 }
 
@@ -259,6 +261,9 @@ impl Display for LogAction {
         match self {
             Start(name, time) => {
                 write!(f, "Starting `{name}` at {time}")
+            }
+            Info(info) => {
+                write!(f, "Info `{info}`")
             }
             CouldFail(action) => {
                 write!(f, "Could fail at {action}")

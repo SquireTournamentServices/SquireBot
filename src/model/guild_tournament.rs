@@ -220,19 +220,30 @@ impl GuildTournament {
 
     pub async fn create_round_data(
         &mut self,
-        cache: &impl CacheHttp,
+        cache: &(impl CacheHttp + AsRef<Http>),
         gld: &Guild,
         rnd: &RoundId,
         number: u64,
     ) {
         let mut g_rnd = GuildRoundData::default();
         let mut mention = format!("Match #{number}");
+        let round = self.tourn.get_round(&(*rnd).into()).unwrap();
+        if round.is_certified() {
+            return ();
+        }
         if let Ok(role) = gld
             .create_role(cache, |r| {
                 r.mentionable(true).name(format!("Match {}", number))
             })
             .await
         {
+            for p_id in round.players {
+                if let Some(u_id) = self.players.get_left(&p_id) {
+                    if let Ok(mut member) = gld.member(cache, u_id).await {
+                        let _ = member.add_role(cache, role.id).await;
+                    }
+                }
+            }
             mention = role.mention().to_string();
             let mut allowed_perms = Permissions::VIEW_CHANNEL;
             allowed_perms.insert(Permissions::CONNECT);

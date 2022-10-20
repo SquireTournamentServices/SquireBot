@@ -14,11 +14,11 @@ use crate::{
         consts::SQUIRE_ACCOUNT_ID,
         containers::{DeadTournamentMapContainer, TournamentMapContainer},
     },
-    utils::{default_response::error_to_content, spin_lock::spin_mut},
+    utils::{default_response::error_to_content, spin_lock::spin_mut}, logging::LogAction,
 };
 
 use super::containers::{
-    GuildAndTournamentIDMapContainer, MatchUpdateSenderContainer, TournamentNameAndIDMapContainer,
+    GuildAndTournamentIDMapContainer, MatchUpdateSenderContainer, TournamentNameAndIDMapContainer, LogActionSenderContainer,
 };
 
 #[async_trait]
@@ -38,6 +38,8 @@ pub struct CutToTopConfirmation {
 impl Confirmation for CutToTopConfirmation {
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
         let data = ctx.data.read().await;
+        let logger = data.get::<LogActionSenderContainer>().unwrap();
+        let _ = logger.send((msg.id, LogAction::Info("Cutting to top N")));
         let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
         let mut tourn = spin_mut(&all_tourns, &self.tourn_id).await.unwrap();
         if let Err(err) = tourn
@@ -66,6 +68,8 @@ pub struct EndTournamentConfirmation {
 impl Confirmation for EndTournamentConfirmation {
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
         let data = ctx.data.read().await;
+        let logger = data.get::<LogActionSenderContainer>().unwrap();
+        let _ = logger.send((msg.id, LogAction::Info("Ending tournament")));
         let all_tourns = data.get::<TournamentMapContainer>().unwrap().write().await;
         let (_, mut tourn) = all_tourns
             .remove(&self.tourn_id)
@@ -106,6 +110,8 @@ pub struct CancelTournamentConfirmation {
 impl Confirmation for CancelTournamentConfirmation {
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
         let data = ctx.data.read().await;
+        let logger = data.get::<LogActionSenderContainer>().unwrap();
+        let _ = logger.send((msg.id, LogAction::Info("Cancelling tournament")));
         let all_tourns = data.get::<TournamentMapContainer>().unwrap().write().await;
         let (_, mut tourn) = all_tourns
             .remove(&self.tourn_id)
@@ -146,6 +152,8 @@ pub struct PrunePlayersConfirmation {
 impl Confirmation for PrunePlayersConfirmation {
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
         let data = ctx.data.read().await;
+        let logger = data.get::<LogActionSenderContainer>().unwrap();
+        let _ = logger.send((msg.id, LogAction::Info("Pruning players")));
         let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
         let mut tourn = spin_mut(&all_tourns, &self.tourn_id).await.unwrap();
         if let Err(err) = tourn
@@ -174,6 +182,8 @@ pub struct PruneDecksConfirmation {
 impl Confirmation for PruneDecksConfirmation {
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
         let data = ctx.data.read().await;
+        let logger = data.get::<LogActionSenderContainer>().unwrap();
+        let _ = logger.send((msg.id, LogAction::Info("Pruning decks")));
         let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
         let mut tourn = spin_mut(&all_tourns, &self.tourn_id).await.unwrap();
         if let Err(err) = tourn
@@ -204,6 +214,8 @@ pub struct PairRoundConfirmation {
 impl Confirmation for PairRoundConfirmation {
     async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
         let data = ctx.data.read().await;
+        let logger = data.get::<LogActionSenderContainer>().unwrap();
+        let _ = logger.send((msg.id, LogAction::Info("Pairing next round")));
         let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
         let mut tourn = spin_mut(&all_tourns, &self.tourn_id).await.unwrap();
         match tourn.tourn.apply_op(TournOp::PairRound(*SQUIRE_ACCOUNT_ID)) {
@@ -230,9 +242,9 @@ impl Confirmation for PairRoundConfirmation {
                     "Players have now been paired for the next round!!",
                 )
                 .await?;
-                todo!()
             }
             _ => {
+                let _ = logger.send((msg.id, LogAction::CouldPanic("Reached unreachable branch!!")));
                 unreachable!("Pairing a new round returns and `Err` or `Ok(OpData::Pair)`)");
             }
         }

@@ -77,18 +77,6 @@ pub fn register_base_command(command: &mut CreateApplicationCommand) -> &mut Cre
                 .name("subcommand-a")
                 .description("A subcommand")
                 .kind(CommandOptionType::SubCommandGroup)
-                .create_sub_option(|option|
-                    option
-                        .name("sub-subcommand-a")
-                        .description("A subcommand")
-                        .kind(CommandOptionType::SubCommandGroup)
-                        .create_sub_option(|option|
-                            option
-                                .name("sub-sub-subcommand-a")
-                                .description("A subcommand")
-                                .kind(CommandOptionType::SubCommandGroup)
-                        )
-                )
         },
     )
 }

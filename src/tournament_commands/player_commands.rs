@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::prelude::Message,
@@ -159,7 +160,7 @@ async fn list(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         None => "There are no tournaments being held in this server.".into(),
         Some(id_iter) => id_iter
             .map(|tourn| name_and_id.get_left(&tourn).unwrap().as_str())
-            .collect(),
+            .join("\n"),
     };
     msg.reply(&ctx.http, response).await?;
     Ok(())
