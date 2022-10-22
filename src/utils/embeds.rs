@@ -265,7 +265,6 @@ pub fn standings_embeds(
         } else {
             "".to_string()
         };
-        score_s += "\n";
         if name.len() + name_buffer.len() > 1024 || score_s.len() + score_buffer.len() > 1024 {
             e.field("Name:", name_buffer.clone(), true);
             e.field("Points | Win % | Opp. W. %", score_buffer.clone(), true);

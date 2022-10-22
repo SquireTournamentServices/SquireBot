@@ -183,7 +183,7 @@ impl GuildTournament {
 
     pub fn get_guild_round(&self, r_id: &RoundId) -> Option<GuildRound> {
         let round = self.tourn.get_round(&(*r_id).into()).ok()?;
-        let g_rnd = self.guild_rounds.get(r_id).cloned()?;
+        let g_rnd = self.guild_rounds.get(r_id).cloned();
         let players = round
             .players
             .iter()
@@ -195,9 +195,18 @@ impl GuildTournament {
                     .map(|s| (*p, s))
             })
             .collect();
-        let vc_mention = g_rnd.vc.map(|vc| vc.mention().to_string());
-        let tc_mention = g_rnd.tc.map(|tc| tc.mention().to_string());
-        let role_mention = g_rnd.role.map(|role| role.mention().to_string());
+        let vc_mention = g_rnd
+            .as_ref()
+            .map(|gr| gr.vc.as_ref().map(|vc| vc.mention().to_string()))
+            .flatten();
+        let tc_mention = g_rnd
+            .as_ref()
+            .map(|gr| gr.tc.as_ref().map(|tc| tc.mention().to_string()))
+            .flatten();
+        let role_mention = g_rnd
+            .as_ref()
+            .map(|gr| gr.role.as_ref().map(|role| role.mention().to_string()))
+            .flatten();
         Some(GuildRound {
             round,
             players,
@@ -228,7 +237,19 @@ impl GuildTournament {
         let mut g_rnd = GuildRoundData::default();
         let mut mention = format!("Match #{number}");
         let round = self.tourn.get_round(&(*rnd).into()).unwrap();
-        if round.is_certified() {
+        if round.is_bye() {
+            let gr = GuildRoundData {
+                message: None,
+                vc: None,
+                tc: None,
+                role: None,
+                warnings: TimerWarnings {
+                    five_min: true,
+                    one_min: true,
+                    time_up: true,
+                },
+            };
+            self.guild_rounds.insert(*rnd, gr);
             return ();
         }
         if let Ok(role) = gld
