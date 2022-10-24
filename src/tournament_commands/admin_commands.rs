@@ -63,6 +63,7 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     let tourn_name = args.rest().trim().to_string();
     let data = ctx.data.read().await;
     let card_coll = data.get::<CardCollectionContainer>().unwrap().read().await;
+    let _ = logger.send((msg.id, LogAction::CouldPanic("getting card collection")));
     match card_coll.import_deck(raw_deck.clone()).await {
         Some(deck) => {
             admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, p| {

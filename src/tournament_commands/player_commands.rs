@@ -8,10 +8,11 @@ use serenity::{
 use squire_lib::{identifiers::PlayerId, operations::TournOp, round::RoundResult::*};
 
 use crate::{
+    logging::LogAction,
     model::{
         containers::{
-            CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
-            TournamentNameAndIDMapContainer,
+            CardCollectionContainer, GuildAndTournamentIDMapContainer, LogActionSenderContainer,
+            TournamentMapContainer, TournamentNameAndIDMapContainer,
         },
         guild_tournament::GuildTournamentAction::{self, *},
     },
@@ -42,6 +43,8 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     };
     let tourn_name = args.rest().to_string();
     let data = ctx.data.read().await;
+    let logger = data.get::<LogActionSenderContainer>().unwrap();
+    let _ = logger.send((msg.id, LogAction::CouldPanic("getting card collection")));
     let card_coll = data.get::<CardCollectionContainer>().unwrap().read().await;
     match card_coll.import_deck(raw_deck.clone()).await {
         Some(deck) => match msg.guild_id {
@@ -138,7 +141,6 @@ async fn drop(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     .await
 }
 
-// TODO: Panics if no tournaments
 #[command("list")]
 #[only_in(guild)]
 #[description("Lists out all tournament in the server.")]
@@ -157,10 +159,10 @@ async fn list(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         .await;
 
     let response: String = match gld_tourns.get_left_iter(&msg.guild_id.unwrap()) {
-        None => "There are no tournaments being held in this server.".into(),
-        Some(id_iter) => id_iter
+        Some(id_iter) if id_iter.len() > 0 => id_iter
             .map(|tourn| name_and_id.get_left(&tourn).unwrap().as_str())
             .join("\n"),
+        _ => "There are no tournaments being held in this server.".into(),
     };
     msg.reply(&ctx.http, response).await?;
     Ok(())

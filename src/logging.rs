@@ -139,7 +139,6 @@ impl LogTracker {
             self.successes.len() + self.delays.len() + self.failures.len() + self.panics.len();
 
         // Overview calculations
-        self.successes.clear();
         let mut overview = vec![
             format!("Total requests: {total}"),
             format!(
@@ -148,6 +147,19 @@ impl LogTracker {
             ),
         ];
         fields.push(("Overview".into(), overview, "\n", true));
+        
+        // Success calculations
+        let length = self.successes.len();
+        let p_stats = calculate_p_stats(self.successes.drain().map(|(_, dur)| dur).collect());
+        let mut successes = vec![
+            format!("Successful request: {length}"),
+            format!("P50: {} msec", p_stats.0),
+            format!("P75: {} msec", p_stats.1),
+            format!("P90: {} msec", p_stats.2),
+            format!("P99: {} msec", p_stats.3),
+            format!("P100: {} msec", p_stats.4),
+        ];
+        fields.push(("Successes:".into(), successes, "\n", true));
 
         // Delays calculations
         let length = self.delays.len();
