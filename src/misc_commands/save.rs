@@ -14,7 +14,11 @@ use std::{fs::File, io::Write};
 #[description("Force saves all data.")]
 async fn save(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let tourn_regs = data.get::<GuildTournRegistryMapContainer>().unwrap().write().await;
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
+        .unwrap()
+        .write()
+        .await;
     let content = match serde_json::to_string(&*tourn_regs) {
         Ok(data) => match File::create("tournaments.json") {
             Ok(mut file) => match write!(file, "{data}") {

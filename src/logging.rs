@@ -147,7 +147,7 @@ impl LogTracker {
             ),
         ];
         fields.push(("Overview".into(), overview, "\n", true));
-        
+
         // Success calculations
         let length = self.successes.len();
         let p_stats = calculate_p_stats(self.successes.drain().map(|(_, dur)| dur).collect());

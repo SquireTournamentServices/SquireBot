@@ -82,7 +82,15 @@ impl Confirmation for EndTournamentConfirmation {
             .read()
             .await;
         let g_id = msg.guild_id.unwrap();
+        let _ = logger.send((
+            msg.id,
+            LogAction::CouldPanic("failed to find tournament registry"),
+        ));
         let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        let _ = logger.send((
+            msg.id,
+            LogAction::CouldPanic("failed to find tournament in registry"),
+        ));
         let mut tourn = reg.remove_tourn(&self.tourn_id).await.unwrap();
         if let Err(err) = tourn.end(ctx).await {
             msg.reply(&ctx.http, error_to_content(err)).await?;
@@ -118,7 +126,15 @@ impl Confirmation for CancelTournamentConfirmation {
             .read()
             .await;
         let g_id = msg.guild_id.unwrap();
+        let _ = logger.send((
+            msg.id,
+            LogAction::CouldPanic("failed to find tournament registry"),
+        ));
         let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        let _ = logger.send((
+            msg.id,
+            LogAction::CouldPanic("failed to find tournament in registry"),
+        ));
         let mut tourn = reg.remove_tourn(&self.tourn_id).await.unwrap();
         if let Err(err) = tourn.cancel(ctx).await {
             msg.reply(&ctx.http, error_to_content(err)).await?;

@@ -14,7 +14,10 @@ use squire_lib::{round::RoundId, tournament::TournamentId};
 use crate::{
     logging::LogAction,
     match_manager::MatchUpdateMessage,
-    model::{confirmation::Confirmation, guilds::{GuildTournRegistry, GuildTournament}},
+    model::{
+        confirmation::Confirmation,
+        guilds::{GuildTournRegistry, GuildTournament},
+    },
 };
 
 pub struct GuildTournRegistryMapContainer;

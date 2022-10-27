@@ -358,7 +358,9 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 .await;
             let g_id = msg.guild_id.unwrap();
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings.tourn_settings.update_setting(MaxDeckCount(val));
+            reg.settings
+                .tourn_settings
+                .update_setting(MaxDeckCount(val));
         }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -396,7 +398,9 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
                 .await;
             let g_id = msg.guild_id.unwrap();
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings.tourn_settings.update_setting(RequireCheckIn(b));
+            reg.settings
+                .tourn_settings
+                .update_setting(RequireCheckIn(b));
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -433,7 +437,9 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                 .await;
             let g_id = msg.guild_id.unwrap();
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings.tourn_settings.update_setting(RequireDeckReg(b));
+            reg.settings
+                .tourn_settings
+                .update_setting(RequireDeckReg(b));
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -465,13 +471,13 @@ async fn algorithm(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     match args.single_quoted::<String>() {
         Ok(val) => match val.as_str() {
             "greedy" | "Greedy" => {
-            let tourn_regs = data
-                .get::<GuildTournRegistryMapContainer>()
-                .unwrap()
-                .read()
-                .await;
-            let g_id = msg.guild_id.unwrap();
-            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+                let tourn_regs = data
+                    .get::<GuildTournRegistryMapContainer>()
+                    .unwrap()
+                    .read()
+                    .await;
+                let g_id = msg.guild_id.unwrap();
+                let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
                 reg.settings
                     .tourn_settings
                     .update_setting(PairingSetting::Algorithm(PairingAlgorithm::Greedy).into());
@@ -1016,7 +1022,9 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 .await;
             let g_id = msg.guild_id.unwrap();
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings.tourn_settings.update_setting(IncludeMwp(b).into());
+            reg.settings
+                .tourn_settings
+                .update_setting(IncludeMwp(b).into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -1053,7 +1061,9 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 .await;
             let g_id = msg.guild_id.unwrap();
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings.tourn_settings.update_setting(IncludeGwp(b).into());
+            reg.settings
+                .tourn_settings
+                .update_setting(IncludeGwp(b).into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
