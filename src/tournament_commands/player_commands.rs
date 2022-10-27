@@ -152,9 +152,8 @@ async fn list(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let g_id = msg.guild_id.unwrap();
     let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
     let mut content = String::from("\u{200b}");
-    for lock in reg.tourns.values() {
-        let t = lock.read().await;
-        writeln!(content, "{}", t.tourn.name);
+    for tourn in reg.tourns.values() {
+        writeln!(content, "{}", tourn.tourn.name);
     }
     msg.reply(&ctx.http, content).await?;
     Ok(())
@@ -277,8 +276,8 @@ async fn register(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .read()
         .await;
     let g_id = msg.guild_id.unwrap();
-    let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-    let tourn = match reg.get_tourn(&tourn_name).await {
+    let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+    let tourn = match reg.get_tourn_mut(&tourn_name) {
         Some(t) => t,
         None => {
             msg.reply(&ctx.http, "That tournament could not be found.")
@@ -287,8 +286,6 @@ async fn register(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
     let content = tourn
-        .write()
-        .await
         .take_action(ctx, GuildTournamentAction::RegisterPlayer(msg.author.id))
         .await?;
     content.message_reply(ctx, msg).await
@@ -323,8 +320,8 @@ where
         .read()
         .await;
     let g_id = msg.guild_id.unwrap();
-    let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-    let tourn = match reg.get_tourn(&tourn_name).await {
+    let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+    let tourn = match reg.get_tourn_mut(&tourn_name) {
         Some(t) => t,
         None => {
             msg.reply(&ctx.http, "That tournament could not be found.")
@@ -332,11 +329,10 @@ where
             return Ok(());
         }
     };
-    let mut tourn_lock = tourn.write().await;
-    match tourn_lock.players.get_right(&msg.author.id) {
+    match tourn.players.get_right(&msg.author.id) {
         Some(id) => {
             let id = *id;
-            let content = tourn_lock.take_action(ctx, f(id)).await?;
+            let content = tourn.take_action(ctx, f(id)).await?;
             content.message_reply(ctx, msg).await?;
         }
         None => {
@@ -363,12 +359,11 @@ where
         .unwrap()
         .write()
         .await;
-    for reg in tourn_regs.iter() {
-        if let Some(tourn) = reg.get_tourn(&tourn_name).await {
-            let mut tourn_lock = tourn.write().await;
-            if let Some(id) = tourn_lock.players.get_right(&msg.author.id) {
+    for mut reg in tourn_regs.iter_mut() {
+        if let Some(tourn) = reg.get_tourn_mut(&tourn_name) {
+            if let Some(id) = tourn.players.get_right(&msg.author.id) {
                 let id = *id;
-                let content = tourn_lock.take_action(ctx, f(id)).await?;
+                let content = tourn.take_action(ctx, f(id)).await?;
                 content.message_reply(ctx, msg).await?;
                 return Ok(());
             }

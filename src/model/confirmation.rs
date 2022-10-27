@@ -46,9 +46,8 @@ impl Confirmation for CutToTopConfirmation {
             .read()
             .await;
         let g_id = msg.guild_id.unwrap();
-        let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-        let lock = reg.tourns.get(&self.tourn_id).unwrap();
-        let mut tourn = lock.write().await;
+        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
         if let Err(err) = tourn
             .tourn
             .apply_op(TournOp::Cut(*SQUIRE_ACCOUNT_ID, self.len))
@@ -150,9 +149,8 @@ impl Confirmation for PrunePlayersConfirmation {
             .read()
             .await;
         let g_id = msg.guild_id.unwrap();
-        let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-        let tourn = reg.tourns.get(&self.tourn_id).unwrap();
-        let mut tourn = tourn.write().await;
+        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
         if let Err(err) = tourn
             .tourn
             .apply_op(TournOp::PrunePlayers(*SQUIRE_ACCOUNT_ID))
@@ -187,9 +185,8 @@ impl Confirmation for PruneDecksConfirmation {
             .read()
             .await;
         let g_id = msg.guild_id.unwrap();
-        let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-        let tourn = reg.tourns.get(&self.tourn_id).unwrap();
-        let mut tourn = tourn.write().await;
+        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
         if let Err(err) = tourn
             .tourn
             .apply_op(TournOp::PruneDecks(*SQUIRE_ACCOUNT_ID))
@@ -226,9 +223,8 @@ impl Confirmation for PairRoundConfirmation {
             .read()
             .await;
         let g_id = msg.guild_id.unwrap();
-        let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-        let tourn = reg.tourns.get(&self.tourn_id).unwrap();
-        let mut tourn = tourn.write().await;
+        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
         match tourn.tourn.apply_op(TournOp::PairRound(*SQUIRE_ACCOUNT_ID)) {
             Err(err) => {
                 msg.reply(&ctx.http, error_to_content(err)).await?;

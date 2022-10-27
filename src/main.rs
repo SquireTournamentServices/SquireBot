@@ -95,6 +95,7 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, _ready: Ready) {
+        println!("SquireBot is ready!!");
         Command::create_global_application_command(&ctx.http, |command| {
             register_base_command(command)
         })
@@ -318,9 +319,8 @@ impl EventHandler for Handler {
             .unwrap()
             .read()
             .await;
-        let reg = spin_mut(&tourn_regs, &guild_id).await.unwrap();
-        for lock in reg.tourns.values().cloned() {
-            let mut tourn = lock.write().await;
+        let mut reg = spin_mut(&tourn_regs, &guild_id).await.unwrap();
+        for tourn in reg.tourns.values_mut() {
             if let Some(plyr_id) = tourn.get_player_id(&user.id) {
                 let _ = tourn.tourn.apply_op(TournOp::DropPlayer(plyr_id.into()));
             }
@@ -466,8 +466,7 @@ async fn main() {
         data.insert::<MatchUpdateSenderContainer>(Arc::new(match_send));
         let mut match_manager = MatchManager::new(match_rec);
         for reg in tourn_regs.iter() {
-            for lock in reg.tourns.values() {
-                let tourn = lock.read().await;
+            for tourn in reg.tourns.values() {
                 for tr in tourn
                     .guild_rounds
                     .keys()

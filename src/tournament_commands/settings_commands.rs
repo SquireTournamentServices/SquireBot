@@ -769,8 +769,8 @@ async fn settings_command(
         .read()
         .await;
     let g_id = msg.guild_id.unwrap();
-    let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-    let tourn = match reg.get_tourn(&tourn_name).await {
+    let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+    let tourn = match reg.get_tourn_mut(&tourn_name) {
         Some(t) => t,
         None => {
             msg.reply(&ctx.http, "That tournament could not be found.")
@@ -778,8 +778,7 @@ async fn settings_command(
             return Ok(());
         }
     };
-    let mut tourn_lock = tourn.write().await;
-    let content = match tourn_lock.update_setting(setting) {
+    let content = match tourn.update_setting(setting) {
         Ok(_) => "Setting successfully updated!",
         Err(err) => error_to_content(err),
     };

@@ -116,9 +116,11 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
 
-    reg.create_tourn(tourn_role, preset, name);
-    msg.reply(&ctx.http, "Tournament successfully created!")
-        .await?;
+    let content = match reg.create_tourn(tourn_role, preset, name).await {
+        true => "Tournament successfully created!!",
+        false => "Could not create tournament!!",
+    };
+    msg.reply(&ctx.http, content).await?;
     Ok(())
 }
 

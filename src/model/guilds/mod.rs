@@ -1,19 +1,9 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt,
-    sync::Arc,
-};
+use std::collections::{HashMap, HashSet};
 
-use serde::{
-    de::{self, MapAccess, SeqAccess, Visitor},
-    ser::{SerializeMap, SerializeStruct},
-    Deserialize, Deserializer, Serialize,
-};
+use serde::{Deserialize, Serialize};
 
-use serenity::{
-    model::{guild::Role, id::GuildId},
-    prelude::RwLock,
-};
+use serenity::model::{guild::Role, id::GuildId};
+
 use squire_lib::{identifiers::TournamentId, tournament::TournamentPreset};
 
 mod guild_settings;
@@ -28,11 +18,11 @@ pub use guild_rounds::{GuildRound, GuildRoundData, TimerWarnings, TrackingRound}
 mod guild_tournament;
 pub use guild_tournament::{GuildTournament, GuildTournamentAction, SquireTournamentSetting};
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GuildTournRegistry {
     guild_id: GuildId,
     pub settings: GuildSettings,
-    pub tourns: HashMap<TournamentId, Arc<RwLock<GuildTournament>>>,
+    pub tourns: HashMap<TournamentId, GuildTournament>,
     pub past_tourns: HashSet<TournamentId>,
 }
 
@@ -46,19 +36,19 @@ impl GuildTournRegistry {
         }
     }
 
-    pub async fn get_tourn(&self, name: &str) -> Option<Arc<RwLock<GuildTournament>>> {
+    pub fn get_tourn(&self, name: &str) -> Option<&GuildTournament> {
         match self.tourns.len() {
             0 => None,
-            1 => self.tourns.values().next().cloned(),
-            _ => {
-                for t in self.tourns.values() {
-                    let lock = t.read().await;
-                    if lock.tourn.name == name {
-                        return Some(t.clone());
-                    }
-                }
-                None
-            }
+            1 => self.tourns.values().next(),
+            _ => self.tourns.values().find(|t| t.tourn.name == name),
+        }
+    }
+
+    pub fn get_tourn_mut(&mut self, name: &str) -> Option<&mut GuildTournament> {
+        match self.tourns.len() {
+            0 => None,
+            1 => self.tourns.values_mut().next(),
+            _ => self.tourns.values_mut().find(|t| t.tourn.name == name),
         }
     }
 
@@ -68,26 +58,26 @@ impl GuildTournRegistry {
         preset: TournamentPreset,
         name: String,
     ) -> bool {
-        match self.get_tourn(&name).await {
+        match self.get_tourn(&name) {
             Some(_) => false,
             None => match self.settings.create_tournament(tourn_role, preset, name) {
                 Some(tourn) => {
-                    self.tourns.insert(tourn.tourn.id, Arc::new(RwLock::new(tourn)));
+                    self.tourns.insert(tourn.tourn.id, tourn);
                     true
                 }
                 None => false,
             },
         }
     }
-    
+
     pub async fn remove_tourn(&mut self, id: &TournamentId) -> Option<GuildTournament> {
         let tourn = self.tourns.remove(id)?;
-        let lock = tourn.read().await;
-        self.past_tourns.insert(lock.tourn.id);
-        Some(lock.clone())
+        self.past_tourns.insert(tourn.tourn.id);
+        Some(tourn)
     }
 }
 
+/*
 impl Serialize for GuildTournRegistry {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -97,7 +87,7 @@ impl Serialize for GuildTournRegistry {
         state.serialize_field("guild_id", &self.guild_id)?;
         state.serialize_field("settings", &self.settings)?;
         let tourns: Vec<_> = self.tourns.values().map(|t| t.blocking_read()).collect();
-        let tourns: Vec<_> = tourns.iter().map(|t| &**t).collect();
+        let tourns: HashMap<_, _> = tourns.iter().map(|t| (t.tourn.id, &**t)).collect();
         state.serialize_field("tourns", &tourns)?;
         state.serialize_field("past_tourns", &self.past_tourns)?;
         state.end()
@@ -243,3 +233,4 @@ impl<'de> Deserialize<'de> for GuildTournRegistry {
         deserializer.deserialize_struct("GuildTournRegistry", FIELDS, GuildTournRegistryVisitor)
     }
 }
+*/
