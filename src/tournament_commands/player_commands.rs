@@ -1,4 +1,5 @@
-use itertools::Itertools;
+use std::fmt::Write;
+
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::prelude::Message,
@@ -11,15 +12,11 @@ use crate::{
     logging::LogAction,
     model::{
         containers::{
-            CardCollectionContainer, GuildAndTournamentIDMapContainer, LogActionSenderContainer,
-            TournamentMapContainer, TournamentNameAndIDMapContainer,
+            CardCollectionContainer, GuildTournRegistryMapContainer, LogActionSenderContainer,
         },
-        guild_tournament::GuildTournamentAction::{self, *},
+        guilds::GuildTournamentAction::{self, *},
     },
-    utils::{
-        id_resolver::{player_tourn_resolver, tourn_id_resolver},
-        spin_lock::spin_mut,
-    },
+    utils::spin_lock::spin_mut,
 };
 
 #[command("add-deck")]
@@ -147,24 +144,19 @@ async fn drop(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn list(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     /* Get references to needed data from context */
     let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
         .unwrap()
         .read()
         .await;
-    let gld_tourns = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-
-    let response: String = match gld_tourns.get_left_iter(&msg.guild_id.unwrap()) {
-        Some(id_iter) if id_iter.len() > 0 => id_iter
-            .map(|tourn| name_and_id.get_left(&tourn).unwrap().as_str())
-            .join("\n"),
-        _ => "There are no tournaments being held in this server.".into(),
-    };
-    msg.reply(&ctx.http, response).await?;
+    let g_id = msg.guild_id.unwrap();
+    let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+    let mut content = String::from("\u{200b}");
+    for lock in reg.tourns.values() {
+        let t = lock.read().await;
+        writeln!(content, "{}", t.tourn.name);
+    }
+    msg.reply(&ctx.http, content).await?;
     Ok(())
 }
 
@@ -279,35 +271,24 @@ async fn unready(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn register(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
     let data = ctx.data.read().await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
         .unwrap()
         .read()
         .await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    // Resolve the tournament id
-    let tourn_id = match tourn_id_resolver(
-        ctx,
-        msg,
-        &tourn_name,
-        &name_and_id,
-        ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned(),
-    )
-    .await
-    {
-        Some(id) => id,
+    let g_id = msg.guild_id.unwrap();
+    let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+    let tourn = match reg.get_tourn(&tourn_name).await {
+        Some(t) => t,
         None => {
+            msg.reply(&ctx.http, "That tournament could not be found.")
+                .await?;
             return Ok(());
         }
     };
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let content = spin_mut(&all_tourns, &tourn_id)
+    let content = tourn
+        .write()
         .await
-        .unwrap()
         .take_action(ctx, GuildTournamentAction::RegisterPlayer(msg.author.id))
         .await?;
     content.message_reply(ctx, msg).await
@@ -336,32 +317,26 @@ where
     F: FnOnce(PlayerId) -> GuildTournamentAction,
 {
     let data = ctx.data.read().await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
         .unwrap()
         .read()
         .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    // Resolve the tournament id
-    let tourn_id = match player_tourn_resolver(
-        ctx,
-        msg,
-        tourn_name,
-        &all_tourns,
-        ids.get_left_iter(&msg.guild_id.unwrap()).unwrap(),
-    )
-    .await?
-    {
-        Some(id) => id,
+    let g_id = msg.guild_id.unwrap();
+    let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+    let tourn = match reg.get_tourn(&tourn_name).await {
+        Some(t) => t,
         None => {
+            msg.reply(&ctx.http, "That tournament could not be found.")
+                .await?;
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    match tourn.players.get_right(&msg.author.id) {
+    let mut tourn_lock = tourn.write().await;
+    match tourn_lock.players.get_right(&msg.author.id) {
         Some(id) => {
             let id = *id;
-            let content = tourn.take_action(ctx, f(id)).await?;
+            let content = tourn_lock.take_action(ctx, f(id)).await?;
             content.message_reply(ctx, msg).await?;
         }
         None => {
@@ -383,35 +358,23 @@ where
     F: FnOnce(PlayerId) -> GuildTournamentAction,
 {
     let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
         .unwrap()
-        .read()
+        .write()
         .await;
-    // Resolve the tournament id
-    let tourn_id = match name_and_id.get_right(&tourn_name) {
-        Some(id) => id,
-        None => {
-            msg.reply(
-                &ctx.http,
-                "There is no tournament with that name. Double check your spelling.",
-            )
-            .await?;
-            return Ok(());
-        }
-    };
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    match tourn.players.get_right(&msg.author.id) {
-        Some(id) => {
-            let id = *id;
-            let content = tourn.take_action(ctx, f(id)).await?;
-            content.message_reply(ctx, msg).await?;
-        }
-        None => {
-            msg.reply(&ctx.http, "You are not registered for that tournament.")
-                .await?;
+    for reg in tourn_regs.iter() {
+        if let Some(tourn) = reg.get_tourn(&tourn_name).await {
+            let mut tourn_lock = tourn.write().await;
+            if let Some(id) = tourn_lock.players.get_right(&msg.author.id) {
+                let id = *id;
+                let content = tourn_lock.take_action(ctx, f(id)).await?;
+                content.message_reply(ctx, msg).await?;
+                return Ok(());
+            }
         }
     }
+    msg.reply(&ctx.http, "You are not registered in any tournaments.")
+        .await?;
     Ok(())
 }

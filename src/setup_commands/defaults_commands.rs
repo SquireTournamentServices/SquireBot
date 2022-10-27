@@ -12,7 +12,7 @@ use squire_lib::{
 };
 
 use crate::{
-    model::containers::GuildSettingsMapContainer,
+    model::containers::GuildTournRegistryMapContainer,
     utils::{
         default_response::subcommand_default, spin_lock::spin_mut, stringify::bool_from_string,
     },
@@ -50,13 +50,13 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         }
         Ok(s) => s,
     };
-    let all_settings = data
-        .get::<GuildSettingsMapContainer>()
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
         .unwrap()
         .read()
         .await;
-    let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let mut settings = spin_mut(&all_settings, &guild.id).await.unwrap();
+    let guild = msg.guild(&ctx.cache).unwrap();
+    let mut reg = spin_mut(&tourn_regs, &guild.id).await.unwrap();
     let channel_id = match Mention::from_str(&arg).ok() {
         Some(Mention::Channel(id)) => id,
         Some(_) => {
@@ -82,7 +82,7 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     if let Some(channel) = guild.channels.get(&channel_id) {
         match channel {
             Channel::Guild(c) => {
-                settings.pairings_channel = Some(c.clone());
+                reg.settings.pairings_channel = Some(c.clone());
                 msg.reply(&ctx.http, "Default pairings channel updated.")
                     .await?;
             }
@@ -122,13 +122,13 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         }
         Ok(s) => s,
     };
-    let all_settings = data
-        .get::<GuildSettingsMapContainer>()
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
         .unwrap()
         .read()
         .await;
-    let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let mut settings = spin_mut(&all_settings, &guild.id).await.unwrap();
+    let guild = msg.guild(&ctx.cache).unwrap();
+    let mut reg = spin_mut(&tourn_regs, &guild.id).await.unwrap();
     let channel_id = match Mention::from_str(&arg).ok() {
         Some(Mention::Channel(id)) => id,
         Some(_) => {
@@ -154,7 +154,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     if let Some(channel) = guild.channels.get(&channel_id) {
         match channel {
             Channel::Category(c) => {
-                settings.matches_category = Some(c.clone());
+                reg.settings.matches_category = Some(c.clone());
                 msg.reply(&ctx.http, "Default matches category updated.")
                     .await?;
             }
@@ -194,14 +194,14 @@ async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     };
     match bool_from_string(&arg) {
         Some(b) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings.make_vc = b;
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings.make_vc = b;
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -233,14 +233,14 @@ async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     };
     match bool_from_string(&arg) {
         Some(b) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings.make_tc = b;
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings.make_tc = b;
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -280,14 +280,14 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
     match args.single_quoted::<String>() {
         Ok(val) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(TournamentSetting::Format(val));
         }
@@ -321,14 +321,14 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
     match args.single_quoted::<u8>() {
         Ok(val) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(TournamentSetting::MinDeckCount(val));
         }
@@ -351,14 +351,14 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
     match args.single_quoted::<u8>() {
         Ok(val) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings.tourn_settings.update_setting(MaxDeckCount(val));
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings.tourn_settings.update_setting(MaxDeckCount(val));
         }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -389,14 +389,14 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     };
     match bool_from_string(&arg) {
         Some(b) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings.tourn_settings.update_setting(RequireCheckIn(b));
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings.tourn_settings.update_setting(RequireCheckIn(b));
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -426,14 +426,14 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     };
     match bool_from_string(&arg) {
         Some(b) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings.tourn_settings.update_setting(RequireDeckReg(b));
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings.tourn_settings.update_setting(RequireDeckReg(b));
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -465,14 +465,14 @@ async fn algorithm(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     match args.single_quoted::<String>() {
         Ok(val) => match val.as_str() {
             "greedy" | "Greedy" => {
-                let all_settings = data
-                    .get::<GuildSettingsMapContainer>()
-                    .unwrap()
-                    .read()
-                    .await;
-                let id = msg.guild_id.unwrap();
-                let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-                settings
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
+                .unwrap()
+                .read()
+                .await;
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+                reg.settings
                     .tourn_settings
                     .update_setting(PairingSetting::Algorithm(PairingAlgorithm::Greedy).into());
             }
@@ -507,14 +507,14 @@ async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     let data = ctx.data.read().await;
     match args.single_quoted::<u8>() {
         Ok(val) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(PairingSetting::MatchSize(val).into());
         }
@@ -539,14 +539,14 @@ async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     let data = ctx.data.read().await;
     match args.single_quoted::<u64>() {
         Ok(val) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(PairingSetting::RepairTolerance(val).into());
         }
@@ -589,15 +589,15 @@ async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     };
     match bool_from_string(&arg) {
         Some(b) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
             let setting: PairingSetting = DoCheckIns(b).into();
-            settings.tourn_settings.update_setting(setting.into());
+            reg.settings.tourn_settings.update_setting(setting.into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -666,14 +666,14 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(MatchWinPoints(val).into());
         }
@@ -697,14 +697,14 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(MatchDrawPoints(val).into());
         }
@@ -728,14 +728,14 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(MatchLossPoints(val).into());
         }
@@ -759,14 +759,14 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(GameWinPoints(val).into());
         }
@@ -790,14 +790,14 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(GameDrawPoints(val).into());
         }
@@ -821,14 +821,14 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(GameLossPoints(val).into());
         }
@@ -854,14 +854,14 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     let data = ctx.data.read().await;
     match args.single_quoted::<f64>() {
         Ok(val) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(ByePoints(val).into());
         }
@@ -892,14 +892,14 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     };
     match bool_from_string(&arg) {
         Some(b) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(IncludeByes(b).into());
         }
@@ -931,14 +931,14 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
     };
     match bool_from_string(&arg) {
         Some(b) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(IncludeMatchPoints(b).into());
         }
@@ -970,14 +970,14 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
     };
     match bool_from_string(&arg) {
         Some(b) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(IncludeGamePoints(b).into());
         }
@@ -1009,14 +1009,14 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     };
     match bool_from_string(&arg) {
         Some(b) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings.tourn_settings.update_setting(IncludeMwp(b).into());
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings.tourn_settings.update_setting(IncludeMwp(b).into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -1046,14 +1046,14 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     };
     match bool_from_string(&arg) {
         Some(b) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings.tourn_settings.update_setting(IncludeGwp(b).into());
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings.tourn_settings.update_setting(IncludeGwp(b).into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -1083,14 +1083,14 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     };
     match bool_from_string(&arg) {
         Some(b) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(IncludeOppMwp(b).into());
         }
@@ -1122,14 +1122,14 @@ async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     };
     match bool_from_string(&arg) {
         Some(b) => {
-            let all_settings = data
-                .get::<GuildSettingsMapContainer>()
+            let tourn_regs = data
+                .get::<GuildTournRegistryMapContainer>()
                 .unwrap()
                 .read()
                 .await;
-            let id = msg.guild_id.unwrap();
-            let mut settings = spin_mut(&all_settings, &id).await.unwrap();
-            settings
+            let g_id = msg.guild_id.unwrap();
+            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+            reg.settings
                 .tourn_settings
                 .update_setting(IncludeOppGwp(b).into());
         }

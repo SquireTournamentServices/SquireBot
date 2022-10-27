@@ -3,23 +3,23 @@ use serenity::{
 };
 
 use squire_lib::{
-    error::TournamentError,
     identifiers::TournamentId,
     operations::{OpData, TournOp},
 };
 
 use crate::{
+    logging::LogAction,
     match_manager::{MatchUpdate, MatchUpdateMessage},
     model::{
         consts::SQUIRE_ACCOUNT_ID,
-        containers::{DeadTournamentMapContainer, TournamentMapContainer},
+        containers::{
+            DeadTournamentMapContainer, LogActionSenderContainer, MatchUpdateSenderContainer,
+        },
     },
-    utils::{default_response::error_to_content, spin_lock::spin_mut}, logging::LogAction,
+    utils::{default_response::error_to_content, spin_lock::spin_mut},
 };
 
-use super::containers::{
-    GuildAndTournamentIDMapContainer, MatchUpdateSenderContainer, TournamentNameAndIDMapContainer, LogActionSenderContainer,
-};
+use super::containers::GuildTournRegistryMapContainer;
 
 #[async_trait]
 pub trait Confirmation
@@ -40,8 +40,15 @@ impl Confirmation for CutToTopConfirmation {
         let data = ctx.data.read().await;
         let logger = data.get::<LogActionSenderContainer>().unwrap();
         let _ = logger.send((msg.id, LogAction::Info("Cutting to top N")));
-        let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-        let mut tourn = spin_mut(&all_tourns, &self.tourn_id).await.unwrap();
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
+            .unwrap()
+            .read()
+            .await;
+        let g_id = msg.guild_id.unwrap();
+        let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        let lock = reg.tourns.get(&self.tourn_id).unwrap();
+        let mut tourn = lock.write().await;
         if let Err(err) = tourn
             .tourn
             .apply_op(TournOp::Cut(*SQUIRE_ACCOUNT_ID, self.len))
@@ -70,25 +77,19 @@ impl Confirmation for EndTournamentConfirmation {
         let data = ctx.data.read().await;
         let logger = data.get::<LogActionSenderContainer>().unwrap();
         let _ = logger.send((msg.id, LogAction::Info("Ending tournament")));
-        let all_tourns = data.get::<TournamentMapContainer>().unwrap().write().await;
-        let (_, mut tourn) = all_tourns
-            .remove(&self.tourn_id)
-            .ok_or_else(|| Box::new(TournamentError::PlayerLookup))?;
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
+            .unwrap()
+            .read()
+            .await;
+        let g_id = msg.guild_id.unwrap();
+        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        let mut tourn = reg.remove_tourn(&self.tourn_id).await.unwrap();
         if let Err(err) = tourn.end(ctx).await {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
             tourn.update_status(ctx).await;
             tourn.update_standings(ctx).await;
-            data.get::<GuildAndTournamentIDMapContainer>()
-                .unwrap()
-                .write()
-                .await
-                .remove_left(&tourn.tourn.id);
-            data.get::<TournamentNameAndIDMapContainer>()
-                .unwrap()
-                .write()
-                .await
-                .remove_via_left(&tourn.tourn.name);
             let mut dead_tourns = data
                 .get::<DeadTournamentMapContainer>()
                 .unwrap()
@@ -112,31 +113,20 @@ impl Confirmation for CancelTournamentConfirmation {
         let data = ctx.data.read().await;
         let logger = data.get::<LogActionSenderContainer>().unwrap();
         let _ = logger.send((msg.id, LogAction::Info("Cancelling tournament")));
-        let all_tourns = data.get::<TournamentMapContainer>().unwrap().write().await;
-        let (_, mut tourn) = all_tourns
-            .remove(&self.tourn_id)
-            .ok_or_else(|| Box::new(TournamentError::PlayerLookup))?;
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
+            .unwrap()
+            .read()
+            .await;
+        let g_id = msg.guild_id.unwrap();
+        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        let mut tourn = reg.remove_tourn(&self.tourn_id).await.unwrap();
         if let Err(err) = tourn.cancel(ctx).await {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
             tourn.update_status(ctx).await;
             tourn.update_standings(ctx).await;
-            data.get::<GuildAndTournamentIDMapContainer>()
-                .unwrap()
-                .write()
-                .await
-                .remove_left(&tourn.tourn.id);
-            data.get::<TournamentNameAndIDMapContainer>()
-                .unwrap()
-                .write()
-                .await
-                .remove_via_left(&tourn.tourn.name);
-            let mut dead_tourns = data
-                .get::<DeadTournamentMapContainer>()
-                .unwrap()
-                .write()
-                .await;
-            dead_tourns.insert(self.tourn_id, tourn);
+            reg.past_tourns.remove(&self.tourn_id);
             msg.reply(&ctx.http, "Tournament successfully cancelled!")
                 .await?;
         }
@@ -154,8 +144,15 @@ impl Confirmation for PrunePlayersConfirmation {
         let data = ctx.data.read().await;
         let logger = data.get::<LogActionSenderContainer>().unwrap();
         let _ = logger.send((msg.id, LogAction::Info("Pruning players")));
-        let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-        let mut tourn = spin_mut(&all_tourns, &self.tourn_id).await.unwrap();
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
+            .unwrap()
+            .read()
+            .await;
+        let g_id = msg.guild_id.unwrap();
+        let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        let tourn = reg.tourns.get(&self.tourn_id).unwrap();
+        let mut tourn = tourn.write().await;
         if let Err(err) = tourn
             .tourn
             .apply_op(TournOp::PrunePlayers(*SQUIRE_ACCOUNT_ID))
@@ -184,8 +181,15 @@ impl Confirmation for PruneDecksConfirmation {
         let data = ctx.data.read().await;
         let logger = data.get::<LogActionSenderContainer>().unwrap();
         let _ = logger.send((msg.id, LogAction::Info("Pruning decks")));
-        let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-        let mut tourn = spin_mut(&all_tourns, &self.tourn_id).await.unwrap();
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
+            .unwrap()
+            .read()
+            .await;
+        let g_id = msg.guild_id.unwrap();
+        let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        let tourn = reg.tourns.get(&self.tourn_id).unwrap();
+        let mut tourn = tourn.write().await;
         if let Err(err) = tourn
             .tourn
             .apply_op(TournOp::PruneDecks(*SQUIRE_ACCOUNT_ID))
@@ -216,8 +220,15 @@ impl Confirmation for PairRoundConfirmation {
         let data = ctx.data.read().await;
         let logger = data.get::<LogActionSenderContainer>().unwrap();
         let _ = logger.send((msg.id, LogAction::Info("Pairing next round")));
-        let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-        let mut tourn = spin_mut(&all_tourns, &self.tourn_id).await.unwrap();
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
+            .unwrap()
+            .read()
+            .await;
+        let g_id = msg.guild_id.unwrap();
+        let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        let tourn = reg.tourns.get(&self.tourn_id).unwrap();
+        let mut tourn = tourn.write().await;
         match tourn.tourn.apply_op(TournOp::PairRound(*SQUIRE_ACCOUNT_ID)) {
             Err(err) => {
                 msg.reply(&ctx.http, error_to_content(err)).await?;
@@ -243,8 +254,18 @@ impl Confirmation for PairRoundConfirmation {
                 )
                 .await?;
             }
+            Ok(OpData::Nothing) => {
+                msg.reply(
+                    &ctx.http,
+                    "Pairings could not be created. Make sure that all the matches are certified.",
+                )
+                .await?;
+            }
             _ => {
-                let _ = logger.send((msg.id, LogAction::CouldPanic("Reached unreachable branch!!")));
+                let _ = logger.send((
+                    msg.id,
+                    LogAction::CouldPanic("Reached unreachable branch!!"),
+                ));
                 unreachable!("Pairing a new round returns and `Err` or `Ok(OpData::Pair)`)");
             }
         }

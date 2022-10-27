@@ -4,7 +4,7 @@ use serenity::{
     prelude::*,
 };
 
-use crate::model::containers::{GuildSettingsMapContainer, TournamentMapContainer};
+use crate::model::containers::GuildTournRegistryMapContainer;
 
 use std::{fs::File, io::Write};
 
@@ -14,13 +14,8 @@ use std::{fs::File, io::Write};
 #[description("Force saves all data.")]
 async fn save(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let tourns = data.get::<TournamentMapContainer>().unwrap().write().await;
-    let settings = data
-        .get::<GuildSettingsMapContainer>()
-        .unwrap()
-        .write()
-        .await;
-    let content = match serde_json::to_string(&*tourns) {
+    let tourn_regs = data.get::<GuildTournRegistryMapContainer>().unwrap().write().await;
+    let content = match serde_json::to_string(&*tourn_regs) {
         Ok(data) => match File::create("tournaments.json") {
             Ok(mut file) => match write!(file, "{data}") {
                 Ok(_) => "Tournament data saved.",
@@ -29,17 +24,6 @@ async fn save(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             Err(_) => "Failed to create tournament file. **DATA NOT SAVED**.",
         },
         Err(_) => "Failed to serialize tournament. **DATA NOT SAVED**.",
-    };
-    msg.reply(&ctx.http, content).await?;
-    let content = match serde_json::to_string(&*settings) {
-        Ok(data) => match File::create("guild_settings.json") {
-            Ok(mut file) => match write!(file, "{data}") {
-                Ok(_) => "Guild settings data saved.",
-                Err(_) => "Failed to write guild settings data to file. **DATA NOT SAVED**.",
-            },
-            Err(_) => "Failed to create guild settings file. **DATA NOT SAVED**.",
-        },
-        Err(_) => "Failed to serialize guild settings. **DATA NOT SAVED**.",
     };
     msg.reply(&ctx.http, content).await?;
     Ok(())

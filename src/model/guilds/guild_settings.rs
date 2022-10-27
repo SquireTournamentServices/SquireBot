@@ -16,7 +16,7 @@ use squire_lib::{
 };
 
 use crate::{
-    model::{consts::*, guild_tournament::GuildTournament, tourn_settings_tree},
+    model::{consts::*, guilds::GuildTournament, tourn_settings_tree},
     utils::stringify::stringify_option,
 };
 

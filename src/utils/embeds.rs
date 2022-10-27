@@ -9,7 +9,7 @@ use squire_lib::{
     standard_scoring::StandardScore, tournament::ScoringSystem,
 };
 
-use crate::model::guild_tournament::GuildTournament;
+use crate::model::guilds::GuildTournament;
 
 const FIELD_CAPACITY: usize = 1024;
 const EMBED_CAPACITY: usize = 2048;

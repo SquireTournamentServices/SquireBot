@@ -5,38 +5,21 @@ use serenity::{
     model::id::{GuildId, MessageId, UserId},
     prelude::*,
 };
-
-//use mongodb::Collection;
-
-use cycle_map::{CycleMap, GroupMap};
-use mtgjson::model::atomics_collection::AtomicCardCollection;
-use squire_lib::{round::RoundId, tournament::TournamentId};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::{logging::LogAction, match_manager::MatchUpdateMessage};
+use cycle_map::GroupMap;
+use mtgjson::model::atomics_collection::AtomicCardCollection;
+use squire_lib::{round::RoundId, tournament::TournamentId};
 
-use super::{
-    confirmation::Confirmation, guild_settings::GuildSettings, guild_tournament::GuildTournament,
+use crate::{
+    logging::LogAction,
+    match_manager::MatchUpdateMessage,
+    model::{confirmation::Confirmation, guilds::{GuildTournRegistry, GuildTournament}},
 };
 
-pub struct TournamentMapContainer;
-impl TypeMapKey for TournamentMapContainer {
-    type Value = Arc<RwLock<DashMap<TournamentId, GuildTournament>>>;
-}
-
-pub struct GuildSettingsMapContainer;
-impl TypeMapKey for GuildSettingsMapContainer {
-    type Value = Arc<RwLock<DashMap<GuildId, GuildSettings>>>;
-}
-
-pub struct TournamentNameAndIDMapContainer;
-impl TypeMapKey for TournamentNameAndIDMapContainer {
-    type Value = Arc<RwLock<CycleMap<String, TournamentId>>>;
-}
-
-pub struct GuildAndTournamentIDMapContainer;
-impl TypeMapKey for GuildAndTournamentIDMapContainer {
-    type Value = Arc<RwLock<GroupMap<TournamentId, GuildId>>>;
+pub struct GuildTournRegistryMapContainer;
+impl TypeMapKey for GuildTournRegistryMapContainer {
+    type Value = Arc<RwLock<DashMap<GuildId, GuildTournRegistry>>>;
 }
 
 pub struct ConfirmationsContainer;

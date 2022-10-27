@@ -14,6 +14,7 @@ use chrono::{Duration, NaiveTime, Utc};
 use logging::LogAction;
 use serenity::{
     async_trait,
+    builder::CreateApplicationCommand,
     framework::standard::{
         help_commands,
         macros::{help, hook},
@@ -26,15 +27,18 @@ use serenity::{
         gateway::Ready,
         guild::{Guild, Member, Role},
         id::{GuildId, RoleId, UserId},
-        user::User, prelude::{command::{CommandOptionType, Command}, interaction::{Interaction, InteractionResponseType}},
+        prelude::{
+            command::{Command, CommandOptionType},
+            interaction::{Interaction, InteractionResponseType},
+        },
+        user::User,
     },
-    prelude::*, builder::CreateApplicationCommand,
+    prelude::*,
 };
 
-use dashmap::{try_result::TryResult, DashMap};
+use dashmap::DashMap;
 use tokio::{sync::mpsc::unbounded_channel, time::Instant};
 
-use cycle_map::{CycleMap, GroupMap};
 use mtgjson::mtgjson::meta::Meta;
 use squire_lib::{self, operations::TournOp, tournament::TournamentId};
 
@@ -53,44 +57,51 @@ use crate::{
     match_manager::MatchManager,
     misc_commands::group::MISCCOMMANDS_GROUP,
     model::{
-        confirmation::Confirmation, consts::*, containers::*, guild_settings::GuildSettings,
-        guild_tournament::GuildTournament,
+        confirmation::Confirmation,
+        consts::*,
+        containers::*,
+        guilds::{GuildTournRegistry, GuildTournament},
     },
     setup_commands::setup::SETUPCOMMANDS_GROUP,
     tournament_commands::tournament::TOURNAMENTCOMMANDS_GROUP,
     utils::{card_collection::build_collection, spin_lock::spin_mut},
 };
 
-
-pub fn register_sub_command(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-    command.name("subcommand").description("Test subcommand").create_option(
-        |option| {
-            option
-        },
-    )
+pub fn register_sub_command(
+    command: &mut CreateApplicationCommand,
+) -> &mut CreateApplicationCommand {
+    command
+        .name("subcommand")
+        .description("Test subcommand")
+        .create_option(|option| option)
 }
 
-pub fn register_base_command(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-    command.name("base-command").description("Test base command").create_option(
-        |option| {
+pub fn register_base_command(
+    command: &mut CreateApplicationCommand,
+) -> &mut CreateApplicationCommand {
+    command
+        .name("base-command")
+        .description("Test base command")
+        .create_option(|option| {
             option
                 .name("subcommand-a")
                 .description("A subcommand")
                 .kind(CommandOptionType::SubCommandGroup)
-        },
-    )
+        })
 }
 
 struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, ctx: Context, ready: Ready) {
-        println!("{} is connected!", ready.user.name);
-        
-        Command::create_global_application_command(&ctx.http, |command| register_base_command(command)).await.unwrap();
+    async fn ready(&self, ctx: Context, _ready: Ready) {
+        Command::create_global_application_command(&ctx.http, |command| {
+            register_base_command(command)
+        })
+        .await
+        .unwrap();
     }
-    
+
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(command) = interaction {
             println!("{}", command.application_id);
@@ -109,97 +120,83 @@ impl EventHandler for Handler {
     }
 
     async fn guild_create(&self, ctx: Context, guild: Guild, _: bool) {
-        println!("Look, a guild: {}", guild.name);
         let data = ctx.data.read().await;
-        let all_settings = data
-            .get::<GuildSettingsMapContainer>()
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
             .unwrap()
             .read()
             .await;
-        match spin_mut(&all_settings, &guild.id).await {
-            Some(mut settings) => {
-                settings.update(&guild);
+        match spin_mut(&tourn_regs, &guild.id).await {
+            Some(mut reg) => {
+                reg.settings.update(&guild);
             }
             None => {
-                let settings = GuildSettings::from_existing(&guild);
-                println!("{:#?}", settings);
-                all_settings.insert(guild.id, settings);
+                let reg = GuildTournRegistry::new(guild.id);
+                tourn_regs.insert(guild.id, reg);
             }
         };
     }
 
     async fn category_create(&self, ctx: Context, new: &ChannelCategory) {
         let data = ctx.data.read().await;
-        let all_settings = data
-            .get::<GuildSettingsMapContainer>()
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
             .unwrap()
             .read()
             .await;
-        if let Some(mut settings) = spin_mut(&all_settings, &new.guild_id).await {
-            match settings.matches_category {
-                None => {
-                    if new.name == DEFAULT_MATCHES_CATEGORY_NAME {
-                        settings.matches_category = Some(new.clone());
-                    }
-                }
-                Some(_) => {}
+        if let Some(mut reg) = spin_mut(&tourn_regs, &new.guild_id).await {
+            if reg.settings.matches_category.is_none() && new.name == DEFAULT_MATCHES_CATEGORY_NAME
+            {
+                reg.settings.matches_category = Some(new.clone());
             }
         };
     }
 
     async fn category_delete(&self, ctx: Context, category: &ChannelCategory) {
         let data = ctx.data.read().await;
-        let all_settings = data
-            .get::<GuildSettingsMapContainer>()
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
             .unwrap()
             .read()
             .await;
-        if let Some(mut settings) = spin_mut(&all_settings, &category.guild_id).await {
-            match &settings.matches_category {
-                Some(c) => {
-                    if c.id == category.id {
-                        settings.matches_category = None;
-                    }
+        if let Some(mut reg) = spin_mut(&tourn_regs, &category.guild_id).await {
+            match &reg.settings.matches_category {
+                Some(c) if c.id == category.id => {
+                    reg.settings.matches_category = None;
                 }
-                None => {}
+                _ => {}
             }
         };
     }
 
     async fn channel_create(&self, ctx: Context, new: &GuildChannel) {
         let data = ctx.data.read().await;
-        let all_settings = data
-            .get::<GuildSettingsMapContainer>()
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
             .unwrap()
             .read()
             .await;
-        if let Some(mut settings) = spin_mut(&all_settings, &new.guild_id).await {
-            match &settings.pairings_channel {
-                None => {
-                    if new.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
-                        settings.pairings_channel = Some(new.clone());
-                    }
-                }
-                Some(_) => {}
+        if let Some(mut reg) = spin_mut(&tourn_regs, &new.guild_id).await {
+            if reg.settings.pairings_channel.is_none() && new.name == DEFAULT_PAIRINGS_CHANNEL_NAME
+            {
+                reg.settings.pairings_channel = Some(new.clone());
             }
         };
     }
 
     async fn channel_delete(&self, ctx: Context, channel: &GuildChannel) {
         let data = ctx.data.read().await;
-        let all_settings = data
-            .get::<GuildSettingsMapContainer>()
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
             .unwrap()
             .read()
             .await;
-        if let Some(mut settings) = spin_mut(&all_settings, &channel.guild_id).await {
-            match &settings.pairings_channel {
-                Some(c) => {
-                    if c.id == channel.id {
-                        settings.pairings_channel = None;
-                    }
+        if let Some(mut reg) = spin_mut(&tourn_regs, &channel.guild_id).await {
+            match &reg.settings.pairings_channel {
+                Some(c) if c.id == channel.id => {
+                    reg.settings.pairings_channel = None;
                 }
-                None => {}
+                _ => {}
             }
         };
     }
@@ -207,34 +204,26 @@ impl EventHandler for Handler {
     // NOTE: This covers both categories and guild channels
     async fn channel_update(&self, ctx: Context, _: Option<Channel>, new: Channel) {
         let data = ctx.data.read().await;
-        let all_settings = data
-            .get::<GuildSettingsMapContainer>()
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
             .unwrap()
             .read()
             .await;
         match new {
-            Channel::Guild(c) => {
-                if c.kind == ChannelType::Text && c.name == DEFAULT_PAIRINGS_CHANNEL_NAME {
-                    if let Some(mut settings) = spin_mut(&all_settings, &c.guild_id).await {
-                        match &settings.pairings_channel {
-                            None => {
-                                settings.pairings_channel = Some(c.clone());
-                            }
-                            Some(_) => {}
-                        }
-                    };
+            Channel::Guild(c)
+                if c.kind == ChannelType::Text && c.name == DEFAULT_PAIRINGS_CHANNEL_NAME =>
+            {
+                if let Some(mut reg) = spin_mut(&tourn_regs, &c.guild_id).await {
+                    if reg.settings.pairings_channel.is_none() {
+                        reg.settings.pairings_channel = Some(c.clone());
+                    }
                 }
             }
-            Channel::Category(c) => {
-                if c.name == DEFAULT_MATCHES_CATEGORY_NAME {
-                    if let Some(mut settings) = spin_mut(&all_settings, &c.guild_id).await {
-                        match settings.matches_category {
-                            None => {
-                                settings.matches_category = Some(c.clone());
-                            }
-                            Some(_) => {}
-                        }
-                    };
+            Channel::Category(c) if c.name == DEFAULT_MATCHES_CATEGORY_NAME => {
+                if let Some(mut reg) = spin_mut(&tourn_regs, &c.guild_id).await {
+                    if reg.settings.matches_category.is_none() {
+                        reg.settings.matches_category = Some(c.clone());
+                    }
                 }
             }
             _ => {}
@@ -242,80 +231,53 @@ impl EventHandler for Handler {
     }
 
     async fn guild_role_create(&self, ctx: Context, new: Role) {
-        println!("Handling new role");
         let data = ctx.data.read().await;
-        let all_settings = data
-            .get::<GuildSettingsMapContainer>()
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
             .unwrap()
             .read()
             .await;
-        loop {
-            match all_settings.try_get_mut(&new.guild_id) {
-                TryResult::Present(mut settings) => {
-                    match new.name.as_str() {
-                        DEFAULT_JUDGE_ROLE_NAME => {
-                            if settings.judge_role.is_none() {
-                                settings.judge_role = Some(new.id);
-                            }
-                        }
-                        DEFAULT_TOURN_ADMIN_ROLE_NAME => {
-                            if settings.tourn_admin_role.is_none() {
-                                settings.tourn_admin_role = Some(new.id);
-                            }
-                        }
-                        _ => {}
-                    };
-                    break;
-                }
-                TryResult::Locked => {
-                    let mut sleep = tokio::time::interval(time::Duration::from_millis(10));
-                    sleep.tick().await;
-                    sleep.tick().await;
-                }
-                TryResult::Absent => {
-                    all_settings.insert(new.guild_id, GuildSettings::new(new.guild_id));
-                }
+        let mut reg = spin_mut(&tourn_regs, &new.guild_id).await.unwrap();
+        match new.name.as_str() {
+            DEFAULT_JUDGE_ROLE_NAME if reg.settings.judge_role.is_none() => {
+                reg.settings.judge_role = Some(new.id);
             }
-        }
-        println!("Handled new role");
+            DEFAULT_TOURN_ADMIN_ROLE_NAME if reg.settings.tourn_admin_role.is_none() => {
+                reg.settings.tourn_admin_role = Some(new.id);
+            }
+            _ => {}
+        };
     }
 
     async fn guild_role_update(&self, ctx: Context, _: Option<Role>, new: Role) {
-        println!("Handling role update");
         let data = ctx.data.read().await;
-        let all_settings = data
-            .get::<GuildSettingsMapContainer>()
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
             .unwrap()
             .read()
             .await;
-        if let Some(mut settings) = spin_mut(&all_settings, &new.guild_id).await {
-            match new.name.as_str() {
-                DEFAULT_JUDGE_ROLE_NAME => {
-                    if settings.judge_role.is_none() {
-                        settings.judge_role = Some(new.id);
+        let mut reg = spin_mut(&tourn_regs, &new.guild_id).await.unwrap();
+        match new.name.as_str() {
+            DEFAULT_JUDGE_ROLE_NAME if reg.settings.judge_role.is_none() => {
+                reg.settings.judge_role = Some(new.id);
+            }
+            DEFAULT_TOURN_ADMIN_ROLE_NAME if reg.settings.tourn_admin_role.is_none() => {
+                reg.settings.tourn_admin_role = Some(new.id);
+            }
+            _ => {
+                // Makes sure that the tournament admin and judge roles aren't renamed.
+                if let Some(id) = reg.settings.judge_role {
+                    if new.id == id {
+                        reg.settings.judge_role = None;
                     }
                 }
-                DEFAULT_TOURN_ADMIN_ROLE_NAME => {
-                    if settings.tourn_admin_role.is_none() {
-                        settings.tourn_admin_role = Some(new.id);
-                    }
-                }
-                _ => {
-                    // Makes sure that the tournament admin and judge roles aren't renamed.
-                    if let Some(id) = settings.judge_role {
-                        if new.id == id {
-                            settings.judge_role = None;
-                        }
-                    }
-                    if let Some(id) = settings.tourn_admin_role {
-                        if new.id == id {
-                            settings.tourn_admin_role = None;
-                        }
+                if let Some(id) = reg.settings.tourn_admin_role {
+                    if new.id == id {
+                        reg.settings.tourn_admin_role = None;
                     }
                 }
             }
-        };
-        println!("Handled role update");
+        }
     }
 
     async fn guild_role_delete(
@@ -325,26 +287,22 @@ impl EventHandler for Handler {
         removed_role: RoleId,
         _: Option<Role>,
     ) {
-        println!("Handling role delete");
         let data = ctx.data.read().await;
-        let all_settings = data
-            .get::<GuildSettingsMapContainer>()
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
             .unwrap()
             .read()
             .await;
-        if let Some(mut settings) = spin_mut(&all_settings, &guild_id).await {
-            if let Some(id) = settings.judge_role {
-                if id == removed_role {
-                    settings.judge_role = Some(id);
-                }
+        let mut reg = spin_mut(&tourn_regs, &guild_id).await.unwrap();
+        if let Some(id) = reg.settings.judge_role {
+            if id == removed_role {
+                reg.settings.judge_role = Some(id);
             }
-            if let Some(id) = settings.tourn_admin_role {
-                if id == removed_role {
-                    settings.tourn_admin_role = Some(id);
-                }
+        } else if let Some(id) = reg.settings.tourn_admin_role {
+            if id == removed_role {
+                reg.settings.tourn_admin_role = Some(id);
             }
-        };
-        println!("Handled role delete");
+        }
     }
 
     async fn guild_member_removal(
@@ -354,23 +312,19 @@ impl EventHandler for Handler {
         user: User,
         _: Option<Member>,
     ) {
-        println!("Handling member leaving");
         let data = ctx.data.read().await;
-        let ids = data
-            .get::<GuildAndTournamentIDMapContainer>()
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
             .unwrap()
             .read()
             .await;
-        let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-        if let Some(iter) = ids.get_left_iter(&guild_id) {
-            for t_id in iter {
-                let mut tourn = spin_mut(&all_tourns, t_id).await.unwrap();
-                if let Some(plyr_id) = tourn.get_player_id(&user.id) {
-                    let _ = tourn.tourn.apply_op(TournOp::DropPlayer(plyr_id.into()));
-                }
+        let reg = spin_mut(&tourn_regs, &guild_id).await.unwrap();
+        for lock in reg.tourns.values().cloned() {
+            let mut tourn = lock.write().await;
+            if let Some(plyr_id) = tourn.get_player_id(&user.id) {
+                let _ = tourn.tourn.apply_op(TournOp::DropPlayer(plyr_id.into()));
             }
         }
-        println!("Handled member leaving");
     }
 }
 
@@ -502,18 +456,8 @@ async fn main() {
         data.insert::<SettingsCollectionContainer>(Arc::new(guild_settings_coll.clone()));
         */
 
-        // Construct the default settings for a guild, stored in the json file.
-        let all_guild_settings: DashMap<GuildId, GuildSettings> = serde_json::from_str(
-            &read_to_string("./guild_settings.json").expect("Guilds settings file not found."),
-        )
-        .expect("The guild settings data is malformed.");
-        let all_guild_settings = RwLock::new(all_guild_settings);
-        let ref_main = Arc::new(all_guild_settings);
-        let settings_ref = ref_main.clone();
-        data.insert::<GuildSettingsMapContainer>(ref_main);
-
         // Construct the main TournamentID -> Tournament map
-        let all_tournaments: DashMap<TournamentId, GuildTournament> = serde_json::from_str(
+        let tourn_regs: DashMap<GuildId, GuildTournRegistry> = serde_json::from_str(
             &read_to_string("./tournaments.json").expect("Tournament file could not be found."),
         )
         .expect("The tournament data is malformed.");
@@ -521,33 +465,26 @@ async fn main() {
         let (match_send, match_rec) = unbounded_channel();
         data.insert::<MatchUpdateSenderContainer>(Arc::new(match_send));
         let mut match_manager = MatchManager::new(match_rec);
-        match_manager.populate(all_tournaments.iter().flat_map(|t| {
-            t.guild_rounds
-                .keys()
-                .filter_map(|r| t.get_tracking_round(r))
-                .collect::<Vec<_>>()
-        }));
+        for reg in tourn_regs.iter() {
+            for lock in reg.tourns.values() {
+                let tourn = lock.read().await;
+                for tr in tourn
+                    .guild_rounds
+                    .keys()
+                    .filter_map(|r| tourn.get_tracking_round(r))
+                {
+                    match_manager.add_match(tr);
+                }
+            }
+        }
 
-        let all_tournaments = RwLock::new(all_tournaments);
-
-        let tourn_name_and_id_map: CycleMap<String, TournamentId> = all_tournaments
-            .read()
-            .await
-            .iter()
-            .map(|t| (t.tourn.name.clone(), t.tourn.id))
-            .collect();
-        let guild_and_tourn_id_map: GroupMap<TournamentId, GuildId> = all_tournaments
-            .read()
-            .await
-            .iter()
-            .map(|t| (t.tourn.id, t.guild_id))
-            .collect();
+        let tourn_regs = RwLock::new(tourn_regs);
 
         // Insert the main TournamentID -> Tournament map
-        let ref_main = Arc::new(all_tournaments);
+        let ref_main = Arc::new(tourn_regs);
         let tourns_ref = ref_main.clone();
         let cache_ref = client.cache_and_http.clone();
-        data.insert::<TournamentMapContainer>(ref_main);
+        data.insert::<GuildTournRegistryMapContainer>(ref_main);
 
         // Match embed and timer notification updater
         tokio::spawn(async move {
@@ -563,16 +500,6 @@ async fn main() {
                 }
             }
         });
-
-        // Construct the Tournament Name <-> TournamentID cycle map
-        data.insert::<TournamentNameAndIDMapContainer>(Arc::new(RwLock::new(
-            tourn_name_and_id_map,
-        )));
-
-        // Construct the GuildID <-> TournamentID group map
-        data.insert::<GuildAndTournamentIDMapContainer>(Arc::new(RwLock::new(
-            guild_and_tourn_id_map,
-        )));
 
         // Construct the confirmations map, used in the !yes/!no commands.
         let confs: DashMap<UserId, Box<dyn Confirmation>> = DashMap::new();
@@ -621,7 +548,6 @@ async fn main() {
         tokio::spawn(async move {
             let tourns = tourns_ref;
             let dead_tourns = dead_tourns_ref;
-            let settings = settings_ref;
             let mut interval = tokio::time::interval(time::Duration::from_secs(900));
             loop {
                 interval.tick().await;
@@ -634,12 +560,6 @@ async fn main() {
                 let dead_tourns_lock = dead_tourns.write().await;
                 if let Ok(data) = serde_json::to_string(&*dead_tourns_lock) {
                     if let Ok(mut file) = File::create("dead_tournaments.json") {
-                        let _ = write!(file, "{data}");
-                    }
-                }
-                let settings_lock = settings.write().await;
-                if let Ok(data) = serde_json::to_string(&*settings_lock) {
-                    if let Ok(mut file) = File::create("guild_settings.json") {
                         let _ = write!(file, "{data}");
                     }
                 }
@@ -705,7 +625,7 @@ async fn main() {
         println!("Failed to start client. Reason: {:?}", why);
         retry_count += 1;
         if retry_count == max_retries {
-            println!("Client started failed {max_retries} times. Aborting");
+            println!("Client start failed {max_retries} times. Aborting");
             return;
         }
         // Sleep for 16 milliseconds, then 32, then 64, and so on

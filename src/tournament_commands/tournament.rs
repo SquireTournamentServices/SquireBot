@@ -9,13 +9,7 @@ use serenity::{
 
 use squire_lib::tournament::TournamentPreset;
 
-use crate::{
-    model::containers::{
-        GuildAndTournamentIDMapContainer, GuildSettingsMapContainer, TournamentMapContainer,
-        TournamentNameAndIDMapContainer,
-    },
-    utils::spin_lock::spin_mut,
-};
+use crate::{model::containers::GuildTournRegistryMapContainer, utils::spin_lock::spin_mut};
 
 use super::{admin::*, player_commands::*, settings_commands::*};
 
@@ -91,35 +85,22 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         return Ok(());
     }
     let data = ctx.data.read().await;
-    let mut name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
-        .unwrap()
-        .write()
-        .await;
-    if name_and_id.contains_left(&name) {
-        msg.reply(
-            &ctx.http,
-            "There is already a tournament with that name. Please pick a different name.",
-        )
-        .await?;
-        return Ok(());
-    }
-    // Get the settings data
-    let all_settings = data
-        .get::<GuildSettingsMapContainer>()
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
         .unwrap()
         .read()
         .await;
-    let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let settings = spin_mut(&all_settings, &guild.id).await.unwrap();
+    let g_id = msg.guild_id.unwrap();
+    let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
     // Ensure that tournaments can be ran
-    if !settings.is_configured() {
+    if !reg.settings.is_configured() {
         msg.reply(
             &ctx.http, "This server isn't configured to run tournaments. Use the `!setup` command to help you with this.",
         )
             .await?;
         return Ok(());
     }
+    let guild = msg.guild(&ctx.cache).unwrap();
     // Create the role that the tournament will be using
     let tourn_role = match guild
         .create_role(&ctx.http, |r| {
@@ -134,25 +115,8 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    // Create the tournament and store its data in the required places.
-    // NOTE: `create_tournament` will only return an error if the server is not configured. We
-    // already checked this, so we're safe to unwrap it.
-    let tourn = settings
-        .create_tournament(tourn_role.clone(), preset, name.clone())
-        .unwrap();
-    let tourn_id = tourn.tourn.id;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    all_tourns.insert(tourn_id, tourn);
-    name_and_id.insert(name, tourn_id);
-    let mut id_map = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .write()
-        .await;
-    if !id_map.contains_right(&guild.id) {
-        id_map.insert_right(guild.id);
-    }
-    id_map.insert_left(tourn_id, &guild.id);
+
+    reg.create_tourn(tourn_role, preset, name);
     msg.reply(&ctx.http, "Tournament successfully created!")
         .await?;
     Ok(())

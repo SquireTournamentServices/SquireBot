@@ -16,18 +16,16 @@ use squire_lib::{
 };
 
 use crate::{
+    logging::LogAction,
     model::{
         consts::SQUIRE_ACCOUNT_ID,
         containers::{
-            CardCollectionContainer, GuildAndTournamentIDMapContainer, TournamentMapContainer,
-            TournamentNameAndIDMapContainer,
+            CardCollectionContainer, GuildTournRegistryMapContainer, LogActionSenderContainer,
         },
-        guild_tournament::GuildTournamentAction::{self, *},
+        guilds::GuildTournamentAction::{self, *},
     },
     utils::{
-        default_response::subcommand_default,
-        id_resolver::{admin_tourn_id_resolver, user_id_resolver},
-        spin_lock::spin_mut,
+        default_response::subcommand_default, id_resolver::user_id_resolver, spin_lock::spin_mut,
     },
 };
 
@@ -63,6 +61,7 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     let tourn_name = args.rest().trim().to_string();
     let data = ctx.data.read().await;
     let card_coll = data.get::<CardCollectionContainer>().unwrap().read().await;
+    let logger = data.get::<LogActionSenderContainer>().unwrap();
     let _ = logger.send((msg.id, LogAction::CouldPanic("getting card collection")));
     match card_coll.import_deck(raw_deck.clone()).await {
         Some(deck) => {
@@ -819,29 +818,23 @@ where
     F: FnOnce(AdminId, PlayerId) -> GuildTournamentAction,
 {
     let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
         .unwrap()
         .read()
         .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
+    let gld = msg.guild(&ctx.cache).unwrap();
+    let reg = spin_mut(&tourn_regs, &gld.id).await.unwrap();
+    let tourn = match reg.get_tourn(&tourn_name).await {
+        Some(t) => t,
         None => {
+            msg.reply(&ctx.http, "That tournament could not be found.")
+                .await?;
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    let gld = msg.guild(&ctx.cache).unwrap();
     let plyr_id = match user_id_resolver(&raw_user_id, &gld).await {
-        Some(user_id) => match tourn.players.get_right(&user_id) {
+        Some(user_id) => match tourn.read().await.players.get_right(&user_id) {
             Some(id) => *id,
             None => {
                 msg.reply(
@@ -852,7 +845,7 @@ where
                 return Ok(());
             }
         },
-        None => match tourn.guests.get_right(&raw_user_id) {
+        None => match tourn.read().await.guests.get_right(&raw_user_id) {
             Some(id) => *id,
             None => {
                 msg.reply(
@@ -865,6 +858,8 @@ where
         },
     };
     let content = tourn
+        .write()
+        .await
         .take_action(ctx, f(*SQUIRE_ACCOUNT_ID, plyr_id))
         .await?;
     content.message_reply(ctx, msg).await
@@ -879,26 +874,22 @@ where
     F: FnOnce(AdminId) -> GuildTournamentAction,
 {
     let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
         .unwrap()
         .read()
         .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
+    let g_id = msg.guild_id.unwrap();
+    let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+    let tourn = match reg.get_tourn(&tourn_name).await {
+        Some(t) => t,
         None => {
+            msg.reply(&ctx.http, "That tournament could not be found.")
+                .await?;
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    let content = tourn.take_action(ctx, f(*SQUIRE_ACCOUNT_ID)).await?;
+    let mut tourn_lock = tourn.write().await;
+    let content = tourn_lock.take_action(ctx, f(*SQUIRE_ACCOUNT_ID)).await?;
     content.message_reply(ctx, msg).await
 }

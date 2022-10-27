@@ -9,17 +9,8 @@ use serenity::{
 use squire_lib::{pairings::PairingAlgorithm, settings::TournamentSetting};
 
 use crate::{
-    model::{
-        containers::{
-            GuildAndTournamentIDMapContainer, TournamentMapContainer,
-            TournamentNameAndIDMapContainer,
-        },
-        guild_tournament::SquireTournamentSetting,
-    },
-    utils::{
-        default_response::error_to_content, id_resolver::admin_tourn_id_resolver,
-        spin_lock::spin_mut, stringify::bool_from_string,
-    },
+    model::{containers::GuildTournRegistryMapContainer, guilds::SquireTournamentSetting},
+    utils::{default_response::error_to_content, spin_lock::spin_mut, stringify::bool_from_string},
 };
 
 #[command]
@@ -647,7 +638,7 @@ async fn discord(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[min_args(1)]
 #[description("Sets the default channel where future tournament will post pairings in.")]
 async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use crate::model::guild_tournament::SquireTournamentSetting::*;
+    use crate::model::guilds::SquireTournamentSetting::*;
     let guild = msg.guild(&ctx.cache).unwrap();
     let result = args
         .single_quoted::<String>()
@@ -695,7 +686,7 @@ async fn pairings_channel(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     "Sets the default category where future tournament will create channels for matches."
 )]
 async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use crate::model::guild_tournament::SquireTournamentSetting::*;
+    use crate::model::guilds::SquireTournamentSetting::*;
     let guild = msg.guild(&ctx.cache).unwrap();
     let result = args
         .single_quoted::<String>()
@@ -741,7 +732,7 @@ async fn matches_category(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     "Toggles whether or not voice channels will be created for each match of future tournaments."
 )]
 async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use crate::model::guild_tournament::SquireTournamentSetting::*;
+    use crate::model::guilds::SquireTournamentSetting::*;
     if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
         settings_command(ctx, msg, CreateVC(b), args.rest().trim().to_string()).await?;
     }
@@ -758,7 +749,7 @@ async fn create_vc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     "Toggles whether or not text channels will be created for each match of future tournaments."
 )]
 async fn create_tc(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use crate::model::guild_tournament::SquireTournamentSetting::*;
+    use crate::model::guilds::SquireTournamentSetting::*;
     if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
         settings_command(ctx, msg, CreateTC(b), args.rest().trim().to_string()).await?;
     }
@@ -772,32 +763,27 @@ async fn settings_command(
     tourn_name: String,
 ) -> CommandResult {
     let data = ctx.data.read().await;
-    let name_and_id = data
-        .get::<TournamentNameAndIDMapContainer>()
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
         .unwrap()
         .read()
         .await;
-    let ids = data
-        .get::<GuildAndTournamentIDMapContainer>()
-        .unwrap()
-        .read()
-        .await;
-    let all_tourns = data.get::<TournamentMapContainer>().unwrap().read().await;
-    let id_iter = ids.get_left_iter(&msg.guild_id.unwrap()).unwrap().cloned();
-    let tourn_id = match admin_tourn_id_resolver(ctx, msg, &tourn_name, &name_and_id, id_iter).await
-    {
-        Some(id) => id,
+    let g_id = msg.guild_id.unwrap();
+    let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+    let tourn = match reg.get_tourn(&tourn_name).await {
+        Some(t) => t,
         None => {
+            msg.reply(&ctx.http, "That tournament could not be found.")
+                .await?;
             return Ok(());
         }
     };
-    let mut tourn = spin_mut(&all_tourns, &tourn_id).await.unwrap();
-    if let Err(err) = tourn.update_setting(setting) {
-        msg.reply(&ctx.http, error_to_content(err)).await?;
-    } else {
-        msg.reply(&ctx.http, "Setting successfully updated!")
-            .await?;
-    }
+    let mut tourn_lock = tourn.write().await;
+    let content = match tourn_lock.update_setting(setting) {
+        Ok(_) => "Setting successfully updated!",
+        Err(err) => error_to_content(err),
+    };
+    msg.reply(&ctx.http, content).await?;
     Ok(())
 }
 

@@ -11,7 +11,7 @@ use cycle_map::CycleMap;
 
 use squire_lib::tournament::TournamentId;
 
-use crate::{model::guild_tournament::GuildTournament, utils::spin_lock::spin};
+use crate::{model::guilds::GuildTournament, utils::spin_lock::spin};
 
 #[hook]
 /// Given a command context, the inciting message, and an identifier for a user, this method

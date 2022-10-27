@@ -40,7 +40,7 @@ use crate::{
         },
         consts::SQUIRE_ACCOUNT_ID,
         containers::{ConfirmationsContainer, MatchUpdateSenderContainer},
-        guild_rounds::{GuildRound, GuildRoundData, TimerWarnings, TrackingRound},
+        guilds::{GuildRound, GuildRoundData, TimerWarnings, TrackingRound},
         MessageContent,
     },
     utils::{
@@ -61,7 +61,6 @@ pub enum SquireTournamentSetting {
     TournamentSetting(TournamentSetting),
 }
 
-#[allow(clippy::large_enum_variant)]
 pub enum GuildTournamentAction {
     // Actions to query information
     GetRawStandings(usize),
@@ -550,7 +549,7 @@ impl GuildTournament {
         let mut embed = CreateEmbed(HashMap::new());
         embed.fields(players.iter_right().map(|s| {
             let mut iter = players.get_left_iter(s).unwrap();
-            (format!("{s}: {}", iter.len()), iter.join(" "), true)
+            (format!("{s}: {}", iter.len()), iter.join("\n"), true)
         }));
         digest.with_embeds(vec![embed]);
         Ok(digest)

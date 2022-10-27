@@ -8,7 +8,7 @@ use squire_lib::{
 };
 use tokio::sync::mpsc::UnboundedReceiver;
 
-use crate::model::guild_rounds::TrackingRound;
+use crate::model::guilds::TrackingRound;
 
 /// The update, round pair to be sent to the match manager
 pub struct MatchUpdateMessage {
@@ -41,11 +41,8 @@ impl MatchManager {
         }
     }
 
-    pub fn populate<I>(&mut self, rnds: I)
-    where
-        I: Iterator<Item = TrackingRound>,
-    {
-        self.matches = rnds.map(|t_rnd| (t_rnd.round.round.id, t_rnd)).collect();
+    pub fn add_match(&mut self, rnd: TrackingRound) {
+        self.matches.insert(rnd.round.round.id, rnd);
     }
 
     /// Updates match statuses for all stored matches

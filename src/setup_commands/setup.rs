@@ -8,11 +8,12 @@ use serenity::{
 };
 
 use crate::{
-    model::{consts::*, containers::GuildSettingsMapContainer, guild_settings::GuildSettings},
-    utils::{
-        default_response::subcommand_default,
-        spin_lock::{spin, spin_mut},
+    model::{
+        consts::*,
+        containers::GuildTournRegistryMapContainer,
+        guilds::{GuildSettings, GuildTournRegistry},
     },
+    utils::{default_response::subcommand_default, spin_lock::spin_mut},
 };
 
 use super::defaults_commands::*;
@@ -29,34 +30,36 @@ pub struct SetupCommands;
 #[description("Sets up the server to be able to run tournaments.")]
 async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let all_settings = data
-        .get::<GuildSettingsMapContainer>()
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
         .unwrap()
         .read()
         .await;
     let guild: Guild = msg.guild(&ctx.cache).unwrap();
     // Gets a copy of the setting. We don't want to a reference to the copy since creating what
     // needs to be created will trigger the hooks and update the shared settings object.
-    let settings: GuildSettings = match spin(&all_settings, &guild.id).await {
-        Some(s) => s.clone(),
+    let reg = match spin_mut(&tourn_regs, &guild.id).await {
+        Some(s) => s,
         None => {
             // This case should never happen... but just in case
-            all_settings.insert(guild.id, GuildSettings::from_existing(&guild));
-            spin_mut(&all_settings, &guild.id).await.unwrap().clone()
+            let mut reg = GuildTournRegistry::new(guild.id);
+            reg.settings = GuildSettings::from_existing(&guild);
+            tourn_regs.insert(guild.id, reg);
+            spin_mut(&tourn_regs, &guild.id).await.unwrap()
         }
     };
 
-    if settings.judge_role.is_none() {
+    if reg.settings.judge_role.is_none() {
         let _ = guild
             .create_role(&ctx.http, |r| r.name(DEFAULT_JUDGE_ROLE_NAME))
             .await?;
     };
-    if settings.tourn_admin_role.is_none() {
+    if reg.settings.tourn_admin_role.is_none() {
         guild
             .create_role(&ctx.http, |r| r.name(DEFAULT_TOURN_ADMIN_ROLE_NAME))
             .await?;
     };
-    if settings.pairings_channel.is_none() {
+    if reg.settings.pairings_channel.is_none() {
         guild
             .create_channel(&ctx.http, |r| {
                 r.name(DEFAULT_PAIRINGS_CHANNEL_NAME)
@@ -64,7 +67,7 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             })
             .await?;
     };
-    if settings.matches_category.is_none() {
+    if reg.settings.matches_category.is_none() {
         guild
             .create_channel(&ctx.http, |r| {
                 r.name(DEFAULT_MATCHES_CATEGORY_NAME)
@@ -87,26 +90,29 @@ async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[description("Prints out the current tournament-related settings.")]
 async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let all_settings = data
-        .get::<GuildSettingsMapContainer>()
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
         .unwrap()
         .read()
         .await;
     // Gets a copy of the setting. We don't want to a reference to the copy since creating what
     // needs to be created will trigger the hooks and update the shared settings object.
-    let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let settings: GuildSettings = match spin_mut(&all_settings, &guild.id).await {
-        Some(s) => s.clone(),
+    let g_id = msg.guild_id.unwrap();
+    let reg = match spin_mut(&tourn_regs, &g_id).await {
+        Some(s) => s,
         None => {
             // This case should never happen... but just in case
-            all_settings.insert(guild.id, GuildSettings::from_existing(&guild));
-            spin_mut(&all_settings, &guild.id).await.unwrap().clone()
+            let guild = msg.guild(&ctx.cache).unwrap();
+            let mut reg = GuildTournRegistry::new(guild.id);
+            reg.settings = GuildSettings::from_existing(&guild);
+            tourn_regs.insert(guild.id, reg);
+            spin_mut(&tourn_regs, &g_id).await.unwrap()
         }
     };
     if let Channel::Guild(c) = msg.channel(&ctx.http).await? {
         c.send_message(&ctx.http, |m| {
             m.embed(|e| {
-                settings.populate_embed(e);
+                reg.settings.populate_embed(e);
                 e
             })
         })
@@ -123,25 +129,27 @@ async fn view(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[description("Tests the setup of the server.")]
 async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let data = ctx.data.read().await;
-    let all_settings = data
-        .get::<GuildSettingsMapContainer>()
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
         .unwrap()
         .read()
         .await;
     // Gets a copy of the setting. We don't want to a reference to the copy since creating what
     // needs to be created will trigger the hooks and update the shared settings object.
-    let guild: Guild = msg.guild(&ctx.cache).unwrap();
-    let settings: GuildSettings = match spin_mut(&all_settings, &guild.id).await {
-        Some(s) => s.clone(),
+    let guild = msg.guild(&ctx.cache).unwrap();
+    let reg = match spin_mut(&tourn_regs, &guild.id).await {
+        Some(s) => s,
         None => {
             // This case should never happen... but just in case
-            all_settings.insert(guild.id, GuildSettings::from_existing(&guild));
-            spin_mut(&all_settings, &guild.id).await.unwrap().clone()
+            let mut reg = GuildTournRegistry::new(guild.id);
+            reg.settings = GuildSettings::from_existing(&guild);
+            tourn_regs.insert(guild.id, reg);
+            spin_mut(&tourn_regs, &guild.id).await.unwrap()
         }
     };
     let tests = String::from("Judge Role Exists:\nAdmin Role Exists:\nPairings Channel Exists:\nSend Pairings:\nEdit Pairings:\nSend Embed:\nEdit Embed:\nMatches Category Exists:\nCreate VC:\nDelete VC:\nCreate TC:\nDelete TC:\nRole Created:\nRole Deleted:");
     let mut test_results = String::new();
-    match settings.judge_role {
+    match reg.settings.judge_role {
         None => {
             test_results += "Failed - No judge role found.\n";
         }
@@ -149,7 +157,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             test_results += "Passed\n";
         }
     }
-    match settings.tourn_admin_role {
+    match reg.settings.tourn_admin_role {
         None => {
             test_results += "Failed - No tournament admin role found.\n";
         }
@@ -157,7 +165,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             test_results += "Passed\n";
         }
     }
-    match settings.pairings_channel {
+    match &reg.settings.pairings_channel {
         None => {
             test_results += &"Failed - No pairings channel found.\n".repeat(5);
         }
@@ -215,15 +223,15 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             }
         }
     }
-    if settings.make_tc || settings.make_vc {
-        match settings.matches_category {
+    if reg.settings.make_tc || reg.settings.make_vc {
+        match &reg.settings.matches_category {
             None => {
                 test_results += &"Failed - No matches category found.\n".repeat(5);
             }
             Some(channel) => {
                 if let Channel::Category(_) = guild.channels.get(&channel.id).unwrap() {
                     test_results += "Passed\n";
-                    if settings.make_vc {
+                    if reg.settings.make_vc {
                         match guild
                             .create_channel(&ctx.http, |c| {
                                 c.name("Test VC")
@@ -250,7 +258,7 @@ async fn test(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                     } else {
                         test_results += &"Omitted - Not making VCs.\n".repeat(2);
                     }
-                    if settings.make_tc {
+                    if reg.settings.make_tc {
                         match guild
                             .create_channel(&ctx.http, |c| {
                                 c.name("Test TC")
