@@ -6,8 +6,9 @@ use std::{
 use serenity::{builder::CreateEmbed, prelude::Mentionable};
 
 use squire_lib::{
-    identifiers::PlayerId, pairings::PairingStyle, 
-    scoring::{Standings, ScoringSystem, StandardScore}
+    identifiers::PlayerId,
+    pairings::PairingStyle,
+    scoring::{ScoringSystem, StandardScore, Standings},
 };
 
 use crate::model::guilds::GuildTournament;

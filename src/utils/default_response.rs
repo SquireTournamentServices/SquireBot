@@ -45,7 +45,9 @@ pub fn op_to_content(op: &TournOp) -> &'static str {
             AdminAddDeck(..) => "You have successfully added a deck for that player!!",
             AdminRemoveDeck(..) => "You have successfully removed that deck from that player!!",
             AdminReadyPlayer(..) => "You have successfully marked that player as ready to play!!",
-            AdminUnReadyPlayer(..) => "You have successfully marked that player as not ready to play!!",
+            AdminUnReadyPlayer(..) => {
+                "You have successfully marked that player as not ready to play!!"
+            }
             TimeExtension(..) => "You have successfully given that match a time extension!!",
         },
         TournOp::AdminOp(_, op) => match op {
@@ -55,7 +57,9 @@ pub fn op_to_content(op: &TournOp) -> &'static str {
             Thaw => "You have successfully thawed the tournament!!",
             End => "You have successfully ended the tournament!!",
             Cancel => "You have successfully cancelled the tournament!!",
-            AdminOverwriteResult(..) => "You have successfully overwriten the result of that match!!",
+            AdminOverwriteResult(..) => {
+                "You have successfully overwriten the result of that match!!"
+            }
             RegisterJudge(..) => "You have successfully registered that person as a judge!!",
             RegisterAdmin(..) => "You have successfully registered that person as an admin!!",
             AdminDropPlayer(..) => "You have successfully dropped that player!!",
@@ -67,7 +71,7 @@ pub fn op_to_content(op: &TournOp) -> &'static str {
             Cut(..) => "You have successfully such to the top of the tournament!!",
             PruneDecks => "You have successfully pruned excess decks from players!!",
             PrunePlayers => "You have successfully pruned excess players!!",
-        }
+        },
     }
 }
 

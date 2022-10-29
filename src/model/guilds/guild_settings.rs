@@ -12,7 +12,9 @@ use serenity::{
 };
 
 use squire_lib::{
-    operations::{AdminOp::*, TournOp}, settings::TournamentSettingsTree, tournament::TournamentPreset,
+    operations::{AdminOp::*, TournOp},
+    settings::TournamentSettingsTree,
+    tournament::TournamentPreset,
 };
 
 use crate::{

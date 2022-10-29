@@ -6,7 +6,11 @@ use serenity::{
     prelude::Context,
 };
 
-use squire_lib::{identifiers::PlayerId, operations::{PlayerOp, TournOp}, rounds::RoundResult::*};
+use squire_lib::{
+    identifiers::PlayerId,
+    operations::{PlayerOp, TournOp},
+    rounds::RoundResult::*,
+};
 
 use crate::{
     logging::LogAction,
