@@ -4,7 +4,7 @@ use serenity::{
 
 use squire_lib::{
     identifiers::TournamentId,
-    operations::{OpData, TournOp},
+    operations::{OpData, TournOp, AdminOp::*},
 };
 
 use crate::{
@@ -50,7 +50,7 @@ impl Confirmation for CutToTopConfirmation {
         let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
         if let Err(err) = tourn
             .tourn
-            .apply_op(TournOp::Cut(*SQUIRE_ACCOUNT_ID, self.len))
+            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, Cut(self.len)))
         {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
@@ -169,7 +169,7 @@ impl Confirmation for PrunePlayersConfirmation {
         let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
         if let Err(err) = tourn
             .tourn
-            .apply_op(TournOp::PrunePlayers(*SQUIRE_ACCOUNT_ID))
+            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PrunePlayers))
         {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
@@ -205,7 +205,7 @@ impl Confirmation for PruneDecksConfirmation {
         let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
         if let Err(err) = tourn
             .tourn
-            .apply_op(TournOp::PruneDecks(*SQUIRE_ACCOUNT_ID))
+            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PruneDecks))
         {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
@@ -241,14 +241,14 @@ impl Confirmation for PairRoundConfirmation {
         let g_id = msg.guild_id.unwrap();
         let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
         let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
-        match tourn.tourn.apply_op(TournOp::PairRound(*SQUIRE_ACCOUNT_ID)) {
+        match tourn.tourn.apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PairRound)) {
             Err(err) => {
                 msg.reply(&ctx.http, error_to_content(err)).await?;
             }
             Ok(OpData::Pair(rnds)) => {
                 let sender = data.get::<MatchUpdateSenderContainer>().unwrap();
-                for ident in rnds {
-                    let rnd = tourn.tourn.get_round(&ident).unwrap();
+                for id in rnds {
+                    let rnd = tourn.tourn.get_round(&(id.into())).unwrap().clone();
                     tourn
                         .create_round_data(ctx, &msg.guild(ctx).unwrap(), &rnd.id, rnd.match_number)
                         .await;

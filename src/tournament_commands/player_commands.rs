@@ -6,7 +6,7 @@ use serenity::{
     prelude::Context,
 };
 
-use squire_lib::{identifiers::PlayerId, operations::TournOp, round::RoundResult::*};
+use squire_lib::{identifiers::PlayerId, operations::{PlayerOp, TournOp}, rounds::RoundResult::*};
 
 use crate::{
     logging::LogAction,
@@ -47,13 +47,13 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         Some(deck) => match msg.guild_id {
             Some(_) => {
                 player_command(ctx, msg, tourn_name, move |p| {
-                    Operation(TournOp::AddDeck(p.into(), deck_name, deck))
+                    Operation(TournOp::PlayerOp(p, PlayerOp::AddDeck(deck_name, deck)))
                 })
                 .await
             }
             None => {
                 dm_command(ctx, msg, tourn_name, move |p| {
-                    Operation(TournOp::AddDeck(p.into(), deck_name, deck))
+                    Operation(TournOp::PlayerOp(p, PlayerOp::AddDeck(deck_name, deck)))
                 })
                 .await
             }
@@ -133,7 +133,7 @@ async fn profile(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn drop(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
     player_command(ctx, msg, tourn_name, |p| {
-        Operation(TournOp::DropPlayer(p.into()))
+        Operation(TournOp::PlayerOp(p, PlayerOp::DropPlayer))
     })
     .await
 }
@@ -166,7 +166,7 @@ async fn list(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[example("2")]
 #[description("Submit the result of a match.")]
 async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    match args.single::<u8>() {
+    match args.single::<u32>() {
         Ok(wins) => {
             let tourn_name = args.rest().trim().to_string();
             player_command(ctx, msg, tourn_name, move |p| {
@@ -188,7 +188,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[example("2")]
 #[description("Submit the number of draws of a match.")]
 async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    match args.single::<u8>() {
+    match args.single::<u32>() {
         Ok(draws) => {
             let tourn_name = args.rest().trim().to_string();
             player_command(ctx, msg, tourn_name, move |p| {
@@ -217,13 +217,13 @@ async fn name(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             match msg.guild_id {
                 Some(_) => {
                     player_command(ctx, msg, tourn_name, move |p| {
-                        Operation(TournOp::SetGamerTag(p.into(), gamer_tag))
+                        Operation(TournOp::PlayerOp(p, PlayerOp::SetGamerTag(gamer_tag)))
                     })
                     .await
                 }
                 None => {
                     dm_command(ctx, msg, tourn_name, move |p| {
-                        Operation(TournOp::SetGamerTag(p.into(), gamer_tag))
+                        Operation(TournOp::PlayerOp(p, PlayerOp::SetGamerTag(gamer_tag)))
                     })
                     .await
                 }
@@ -245,7 +245,7 @@ async fn name(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 async fn ready(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
     player_command(ctx, msg, tourn_name, |p| {
-        Operation(TournOp::ReadyPlayer(p.into()))
+        Operation(TournOp::PlayerOp(p, PlayerOp::ReadyPlayer))
     })
     .await
 }
@@ -258,7 +258,7 @@ async fn ready(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn unready(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().to_string();
     player_command(ctx, msg, tourn_name, |p| {
-        Operation(TournOp::UnReadyPlayer(p.into()))
+        Operation(TournOp::PlayerOp(p, PlayerOp::UnReadyPlayer))
     })
     .await
 }

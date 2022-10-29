@@ -40,7 +40,7 @@ use dashmap::DashMap;
 use tokio::{sync::mpsc::unbounded_channel, time::Instant};
 
 use mtgjson::mtgjson::meta::Meta;
-use squire_lib::{self, operations::TournOp, tournament::TournamentId};
+use squire_lib::{self, operations::{PlayerOp, TournOp}, tournament::TournamentId};
 
 mod env;
 mod logging;
@@ -322,7 +322,7 @@ impl EventHandler for Handler {
         let mut reg = spin_mut(&tourn_regs, &guild_id).await.unwrap();
         for tourn in reg.tourns.values_mut() {
             if let Some(plyr_id) = tourn.get_player_id(&user.id) {
-                let _ = tourn.tourn.apply_op(TournOp::DropPlayer(plyr_id.into()));
+                let _ = tourn.tourn.apply_op(TournOp::PlayerOp(plyr_id, PlayerOp::DropPlayer));
             }
         }
     }

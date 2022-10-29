@@ -4,9 +4,10 @@ use std::{
 };
 
 use serenity::{builder::CreateEmbed, prelude::Mentionable};
+
 use squire_lib::{
-    identifiers::PlayerId, pairings::PairingStyle, scoring::Standings,
-    standard_scoring::StandardScore, tournament::ScoringSystem,
+    identifiers::PlayerId, pairings::PairingStyle, 
+    scoring::{Standings, ScoringSystem, StandardScore}
 };
 
 use crate::model::guilds::GuildTournament;
@@ -88,7 +89,7 @@ pub fn player_embed_info(
     digest.push(("Bio Info:".into(), bio, "\n", true));
     let status = vec![format!("Status: {}", plyr.status)];
     digest.push(("Status Info:".into(), status, "\n", true));
-    let decks = plyr.deck_ordering;
+    let decks = plyr.deck_ordering.clone();
     digest.push(("Deck Names:".into(), decks, "\n", true));
     let rnds = g_tourn
         .tourn

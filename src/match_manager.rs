@@ -4,7 +4,7 @@ use serenity::http::CacheHttp;
 
 use squire_lib::{
     identifiers::PlayerId,
-    round::{RoundId, RoundResult},
+    rounds::{RoundId, RoundResult},
 };
 use tokio::sync::mpsc::UnboundedReceiver;
 

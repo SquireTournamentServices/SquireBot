@@ -9,7 +9,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use cycle_map::GroupMap;
 use mtgjson::model::atomics_collection::AtomicCardCollection;
-use squire_lib::{round::RoundId, tournament::TournamentId};
+use squire_lib::{rounds::RoundId, tournament::TournamentId};
 
 use crate::{
     logging::LogAction,

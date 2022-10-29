@@ -10,7 +10,7 @@ use serenity::{
 
 use serde::{Deserialize, Serialize};
 
-use squire_lib::{identifiers::PlayerId, round::Round};
+use squire_lib::{identifiers::PlayerId, rounds::Round};
 
 use crate::utils::{
     embeds::{safe_embeds, StringFields},

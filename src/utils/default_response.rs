@@ -2,8 +2,8 @@ use serenity::{framework::standard::CommandResult, model::prelude::Message, prel
 
 use squire_lib::{
     error::TournamentError::{self, *},
-    operations::TournOp::{self, *},
-    round::RoundStatus::*,
+    operations::{AdminOp::*, JudgeOp::*, PlayerOp::*, TournOp},
+    rounds::RoundStatus::*,
     tournament::TournamentStatus::*,
 };
 
@@ -18,50 +18,56 @@ pub async fn subcommand_default(ctx: &Context, msg: &Message, cmd: &str) -> Comm
 
 pub fn op_to_content(op: &TournOp) -> &'static str {
     match op {
-        Create(..) => {
+        TournOp::Create(..) => {
             unreachable!("You shouldn't be creating a tournament this way");
         }
-        CheckIn(..) => "You successfully checked in!!",
-        RegisterPlayer(..) => "You have been successfully registered!!",
-        DropPlayer(..) => "You have been successfully dropped!!",
-        RecordResult(..) => "Your result was successfully recorded!!",
-        ConfirmResult(..) => "You have successfully confirmed the result of your match!!",
-        AddDeck(..) => "You have successfully registered a deck!!",
-        RemoveDeck(..) => "You have successfully removed a deck!!",
-        SetGamerTag(..) => "You have successfully set your gamer tag!!",
-        ReadyPlayer(..) => "You have successfully marked yourself as ready to play!!",
-        UnReadyPlayer(..) => "You have successfully marked yourself as unready to play!!",
-        RegisterGuest(..) => "You have successfully registered a player!!",
-        AdminRegisterPlayer(..) => "You have successfully registed a player!!",
-        AdminRecordResult(..) => {
-            "You have successfully recorded that player's result of that match!!"
+        TournOp::RegisterPlayer(..) => "You have been successfully registered!!",
+        TournOp::PlayerOp(_, op) => match op {
+            CheckIn => "You successfully checked in!!",
+            DropPlayer => "You have been successfully dropped!!",
+            RecordResult(..) => "Your result was successfully recorded!!",
+            ConfirmResult => "You have successfully confirmed the result of your match!!",
+            AddDeck(..) => "You have successfully registered a deck!!",
+            RemoveDeck(..) => "You have successfully removed a deck!!",
+            SetGamerTag(..) => "You have successfully set your gamer tag!!",
+            ReadyPlayer => "You have successfully marked yourself as ready to play!!",
+            UnReadyPlayer => "You have successfully marked yourself as unready to play!!",
+        },
+        TournOp::JudgeOp(_, op) => match op {
+            RegisterGuest(..) => "You have successfully registered a player!!",
+            AdminRegisterPlayer(..) => "You have successfully registed a player!!",
+            AdminRecordResult(..) => {
+                "You have successfully recorded that player's result of that match!!"
+            }
+            AdminConfirmResult(..) => {
+                "You have successfully recorded that match's result for that player!!"
+            }
+            AdminAddDeck(..) => "You have successfully added a deck for that player!!",
+            AdminRemoveDeck(..) => "You have successfully removed that deck from that player!!",
+            AdminReadyPlayer(..) => "You have successfully marked that player as ready to play!!",
+            AdminUnReadyPlayer(..) => "You have successfully marked that player as not ready to play!!",
+            TimeExtension(..) => "You have successfully given that match a time extension!!",
+        },
+        TournOp::AdminOp(_, op) => match op {
+            UpdateReg(..) => "You have successfully updated the registration status!!",
+            Start => "You have successfully started the tournament!!",
+            Freeze => "You have successfully frozen the tournament!!",
+            Thaw => "You have successfully thawed the tournament!!",
+            End => "You have successfully ended the tournament!!",
+            Cancel => "You have successfully cancelled the tournament!!",
+            AdminOverwriteResult(..) => "You have successfully overwriten the result of that match!!",
+            RegisterJudge(..) => "You have successfully registered that person as a judge!!",
+            RegisterAdmin(..) => "You have successfully registered that person as an admin!!",
+            AdminDropPlayer(..) => "You have successfully dropped that player!!",
+            RemoveRound(..) => "You have successfully removed that round!!",
+            UpdateTournSetting(..) => "You have successfully updated that tournament setting!!",
+            GiveBye(..) => "You have successfully given a bye to that player!!",
+            CreateRound(..) => "You have successfully created a match for those players!!",
+            PairRound => "You have successfully paired the next round!!",
+            Cut(..) => "You have successfully such to the top of the tournament!!",
+            PruneDecks => "You have successfully pruned excess decks from players!!",
+            PrunePlayers => "You have successfully pruned excess players!!",
         }
-        AdminConfirmResult(..) => {
-            "You have successfully recorded that match's result for that player!!"
-        }
-        AdminAddDeck(..) => "You have successfully added a deck for that player!!",
-        AdminRemoveDeck(..) => "You have successfully removed that deck from that player!!",
-        AdminReadyPlayer(..) => "You have successfully marked that player as ready to play!!",
-        AdminUnReadyPlayer(..) => "You have successfully marked that player as not ready to play!!",
-        TimeExtension(..) => "You have successfully given that match a time extension!!",
-        UpdateReg(..) => "You have successfully updated the registration status!!",
-        Start(..) => "You have successfully started the tournament!!",
-        Freeze(..) => "You have successfully frozen the tournament!!",
-        Thaw(..) => "You have successfully thawed the tournament!!",
-        End(..) => "You have successfully ended the tournament!!",
-        Cancel(..) => "You have successfully cancelled the tournament!!",
-        AdminOverwriteResult(..) => "You have successfully overwriten the result of that match!!",
-        RegisterJudge(..) => "You have successfully registered that person as a judge!!",
-        RegisterAdmin(..) => "You have successfully registered that person as an admin!!",
-        AdminDropPlayer(..) => "You have successfully dropped that player!!",
-        RemoveRound(..) => "You have successfully removed that round!!",
-        UpdateTournSetting(..) => "You have successfully updated that tournament setting!!",
-        GiveBye(..) => "You have successfully given a bye to that player!!",
-        CreateRound(..) => "You have successfully created a match for those players!!",
-        PairRound(..) => "You have successfully paired the next round!!",
-        Cut(..) => "You have successfully such to the top of the tournament!!",
-        PruneDecks(..) => "You have successfully pruned excess decks from players!!",
-        PrunePlayers(..) => "You have successfully pruned excess players!!",
     }
 }
 

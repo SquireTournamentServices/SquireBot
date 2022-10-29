@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use squire_lib::player::Deck;
+use squire_lib::players::Deck;
 
 static CREATURE: &str = "Creature";
 static LAND: &str = "Land";

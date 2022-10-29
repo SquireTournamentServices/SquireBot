@@ -12,7 +12,7 @@ use serenity::{
 };
 
 use squire_lib::{
-    operations::TournOp, settings::TournamentSettingsTree, tournament::TournamentPreset,
+    operations::{AdminOp::*, TournOp}, settings::TournamentSettingsTree, tournament::TournamentPreset,
 };
 
 use crate::{
@@ -71,7 +71,7 @@ impl GuildSettings {
             for op in self.tourn_settings.as_settings(preset) {
                 let _ = tourn
                     .tourn
-                    .apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, op));
+                    .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, UpdateTournSetting(op)));
             }
             Some(tourn)
         } else {

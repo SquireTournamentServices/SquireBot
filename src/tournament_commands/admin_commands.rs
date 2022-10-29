@@ -12,7 +12,7 @@ use serenity::{
 
 use squire_lib::{
     identifiers::{AdminId, PlayerId, RoundIdentifier},
-    operations::TournOp,
+    operations::{AdminOp, JudgeOp, TournOp},
 };
 
 use crate::{
@@ -66,11 +66,9 @@ async fn add_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     match card_coll.import_deck(raw_deck.clone()).await {
         Some(deck) => {
             admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, p| {
-                Operation(TournOp::AdminAddDeck(
+                Operation(TournOp::JudgeOp(
                     admin.into(),
-                    p.into(),
-                    deck_name,
-                    deck,
+                    JudgeOp::AdminAddDeck(p.into(), deck_name, deck),
                 ))
             })
             .await
@@ -248,7 +246,7 @@ async fn guest(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[example("@SomePlayer, 10")]
 #[description("Records the result of a match.")]
 async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::round::RoundResult::Wins;
+    use squire_lib::rounds::RoundResult::Wins;
     let raw_user_id = match get_raw_user_id(msg, ctx, &mut args).await? {
         Some(s) => s,
         None => {
@@ -266,7 +264,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     };
-    let wins = match args.single::<u8>() {
+    let wins = match args.single::<u32>() {
         Err(_) => {
             msg.reply(
                 &ctx.http,
@@ -292,7 +290,7 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[example("@SomePlayer, 10")]
 #[description("Records the result of a match.")]
 async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::round::RoundResult::Draw;
+    use squire_lib::rounds::RoundResult::Draw;
     let raw_user_id = match get_raw_user_id(msg, ctx, &mut args).await? {
         Some(s) => s,
         None => {
@@ -310,7 +308,7 @@ async fn draws(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let draws = match args.single::<u8>() {
+    let draws = match args.single::<u32>() {
         Err(_) => {
             msg.reply(
                 &ctx.http,
@@ -372,10 +370,9 @@ async fn remove_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     };
     let tourn_name = args.rest().trim().to_string();
     admin_command(ctx, msg, raw_user_id, tourn_name, move |admin, p_id| {
-        Operation(TournOp::AdminRemoveDeck(
+        Operation(TournOp::JudgeOp(
             admin.into(),
-            p_id.into(),
-            deck_name,
+            JudgeOp::AdminRemoveDeck(p_id.into(), deck_name),
         ))
     })
     .await
@@ -432,7 +429,7 @@ async fn cancel(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn freeze(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        Operation(TournOp::Freeze(admin))
+        Operation(TournOp::AdminOp(admin, AdminOp::Freeze))
     })
     .await
 }
@@ -446,7 +443,7 @@ async fn freeze(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn thaw(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        Operation(TournOp::Thaw(admin))
+        Operation(TournOp::AdminOp(admin, AdminOp::Thaw))
     })
     .await
 }
@@ -566,7 +563,7 @@ async fn registration(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     };
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        Operation(TournOp::UpdateReg(admin, reg_status))
+        Operation(TournOp::AdminOp(admin, AdminOp::UpdateReg(reg_status)))
     })
     .await
 }
@@ -644,7 +641,7 @@ async fn standings(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 async fn start(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |admin| {
-        Operation(TournOp::Start(admin))
+        Operation(TournOp::AdminOp(admin, AdminOp::Start))
     })
     .await
 }

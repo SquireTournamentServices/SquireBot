@@ -24,9 +24,9 @@ use cycle_map::{CycleMap, GroupMap};
 use squire_lib::{
     admin::Admin,
     identifiers::{PlayerId, PlayerIdentifier, RoundIdentifier},
-    operations::{OpData, OpResult, TournOp},
-    player::PlayerStatus,
-    round::{RoundId, RoundResult, RoundStatus},
+    operations::{AdminOp::*, JudgeOp::*, OpData, OpResult, PlayerOp::*, TournOp},
+    players::PlayerStatus,
+    rounds::{RoundId, RoundResult, RoundStatus},
     settings::TournamentSetting,
     tournament::{Tournament, TournamentPreset},
 };
@@ -169,8 +169,10 @@ impl GuildTournament {
                 self.make_tc = b;
             }
             TournamentSetting(setting) => {
-                self.tourn
-                    .apply_op(TournOp::UpdateTournSetting(*SQUIRE_ACCOUNT_ID, setting))?;
+                self.tourn.apply_op(TournOp::AdminOp(
+                    *SQUIRE_ACCOUNT_ID,
+                    UpdateTournSetting(setting),
+                ))?;
             }
         };
         Ok(OpData::Nothing)
@@ -181,7 +183,7 @@ impl GuildTournament {
     }
 
     pub fn get_guild_round(&self, r_id: &RoundId) -> Option<GuildRound> {
-        let round = self.tourn.get_round(&(*r_id).into()).ok()?;
+        let round = self.tourn.get_round(&(*r_id).into()).ok()?.clone();
         let g_rnd = self.guild_rounds.get(r_id).cloned();
         let players = round
             .players
@@ -257,7 +259,7 @@ impl GuildTournament {
             })
             .await
         {
-            for p_id in round.players {
+            for p_id in &round.players {
                 if let Some(u_id) = self.players.get_left(&p_id) {
                     if let Ok(mut member) = gld.member(cache, u_id).await {
                         let _ = member.add_role(cache, role.id).await;
@@ -359,7 +361,9 @@ impl GuildTournament {
 
     /// Remove all tournament data from the guild and end the tournament
     pub async fn end(&mut self, ctx: &Context) -> OpResult {
-        let result = self.tourn.apply_op(TournOp::End(*SQUIRE_ACCOUNT_ID));
+        let result = self
+            .tourn
+            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, End));
         if result.is_ok() {
             self.purge(ctx).await;
         }
@@ -368,7 +372,9 @@ impl GuildTournament {
 
     /// Remove all tournament data from the guild and cancel the tournament
     pub async fn cancel(&mut self, ctx: &Context) -> OpResult {
-        let result = self.tourn.apply_op(TournOp::Cancel(*SQUIRE_ACCOUNT_ID));
+        let result = self
+            .tourn
+            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, Cancel));
         if result.is_ok() {
             self.purge(ctx).await;
         }
@@ -468,7 +474,7 @@ impl GuildTournament {
         deck_name: String,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let plyr_id = match self.tourn.player_reg.get_player_id(&p_ident) {
+        let plyr_id = match self.tourn.get_player_id(&p_ident) {
             Ok(id) => id,
             Err(err) => {
                 digest.with_str(error_to_content(err));
@@ -483,7 +489,7 @@ impl GuildTournament {
             }
         };
         let title = format!("{}'s deck", self.get_player_mention(&plyr_id).unwrap());
-        let sorted_deck = TypeSortedDeck::from(deck);
+        let sorted_deck = TypeSortedDeck::from(deck.clone());
         let fields = sorted_deck.embed_fields();
         digest.with_str("Here you go!");
         digest.with_embeds(safe_embeds(title, fields));
@@ -507,10 +513,10 @@ impl GuildTournament {
             return Ok(digest);
         }
         let mut embeds = Vec::with_capacity(plyr.decks.len());
-        for (name, deck) in plyr.decks {
-            let sorted_deck = TypeSortedDeck::from(deck);
+        for (name, deck) in &plyr.decks {
+            let sorted_deck = TypeSortedDeck::from(deck.clone());
             let fields = sorted_deck.embed_fields();
-            embeds.extend(safe_embeds(name, fields));
+            embeds.extend(safe_embeds(name.clone(), fields));
         }
         digest.with_str("Here you go!!");
         digest.with_embeds(embeds);
@@ -522,7 +528,7 @@ impl GuildTournament {
         p_ident: PlayerIdentifier,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let plyr_id = match self.tourn.player_reg.get_player_id(&p_ident) {
+        let plyr_id = match self.tourn.get_player_id(&p_ident) {
             Ok(id) => id,
             Err(err) => {
                 digest.with_str(error_to_content(err));
@@ -590,7 +596,7 @@ impl GuildTournament {
         r_ident: RoundIdentifier,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let r_id = match self.tourn.round_reg.get_round_id(&r_ident) {
+        let r_id = match self.tourn.get_round_id(&r_ident) {
             Ok(id) => id,
             Err(err) => {
                 digest.with_str(error_to_content(err));
@@ -658,7 +664,7 @@ impl GuildTournament {
         ctx: &Context,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let r_id = match self.tourn.round_reg.get_round_id(&r_ident) {
+        let r_id = match self.tourn.get_round_id(&r_ident) {
             Ok(id) => id,
             Err(err) => {
                 digest.with_str(error_to_content(err));
@@ -679,7 +685,7 @@ impl GuildTournament {
         self.clear_round_data(&r_id, &ctx.http).await;
         let content = match self
             .tourn
-            .apply_op(TournOp::RemoveRound(*SQUIRE_ACCOUNT_ID, r_id.into()))
+            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, RemoveRound(r_id)))
         {
             Ok(_) => "Match successfully removed.",
             Err(err) => error_to_content(err),
@@ -821,14 +827,19 @@ impl GuildTournament {
         result: RoundResult,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
-        let op = TournOp::RecordResult(p_ident, result.clone());
+        let p_id = match self.tourn.get_player_id(&p_ident) {
+            Ok(id) => id,
+            Err(err) => {
+                digest.with_str(error_to_content(err));
+                return Ok(digest);
+            }
+        };
+        let op = TournOp::PlayerOp(p_id, RecordResult(result.clone()));
         match self.tourn.apply_op(op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
             Ok(_) => {
-                let p_id = opt_p_id.unwrap();
                 let r_id = self
                     .tourn
                     .round_reg
@@ -862,14 +873,19 @@ impl GuildTournament {
         p_ident: PlayerIdentifier,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
-        let op = TournOp::ConfirmResult(p_ident);
+        let p_id = match self.tourn.get_player_id(&p_ident) {
+            Ok(id) => id,
+            Err(err) => {
+                digest.with_str(error_to_content(err));
+                return Ok(digest);
+            }
+        };
+        let op = TournOp::PlayerOp(p_id, ConfirmResult);
         match self.tourn.apply_op(op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
             Ok(OpData::ConfirmResult(_, status)) => {
-                let p_id = opt_p_id.unwrap();
                 let r_id = self
                     .tourn
                     .round_reg
@@ -913,14 +929,22 @@ impl GuildTournament {
         result: RoundResult,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let opt_r_id = self.tourn.round_reg.get_round_id(&r_ident);
-        let op = TournOp::AdminRecordResult((*SQUIRE_ACCOUNT_ID).into(), r_ident, result.clone());
+        let r_id = match self.tourn.get_round_id(&r_ident) {
+            Ok(id) => id,
+            Err(err) => {
+                digest.with_str(error_to_content(err));
+                return Ok(digest);
+            }
+        };
+        let op = TournOp::JudgeOp(
+            (*SQUIRE_ACCOUNT_ID).into(),
+            AdminRecordResult(r_id, result.clone()),
+        );
         match self.tourn.apply_op(op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
             Ok(_) => {
-                let r_id = opt_r_id.unwrap();
                 let update = MatchUpdateMessage {
                     id: r_id,
                     update: MatchUpdate::RecordResult(result),
@@ -949,16 +973,26 @@ impl GuildTournament {
         p_ident: PlayerIdentifier,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let opt_r_id = self.tourn.round_reg.get_round_id(&r_ident);
-        let opt_p_id = self.tourn.player_reg.get_player_id(&p_ident);
-        let op = TournOp::AdminConfirmResult((*SQUIRE_ACCOUNT_ID).into(), r_ident, p_ident);
+        let r_id = match self.tourn.get_round_id(&r_ident) {
+            Ok(id) => id,
+            Err(err) => {
+                digest.with_str(error_to_content(err));
+                return Ok(digest);
+            }
+        };
+        let p_id = match self.tourn.get_player_id(&p_ident) {
+            Ok(id) => id,
+            Err(err) => {
+                digest.with_str(error_to_content(err));
+                return Ok(digest);
+            }
+        };
+        let op = TournOp::JudgeOp((*SQUIRE_ACCOUNT_ID).into(), AdminConfirmResult(r_id, p_id));
         match self.tourn.apply_op(op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
             Ok(OpData::ConfirmResult(_, status)) => {
-                let p_id = opt_p_id.unwrap();
-                let r_id = opt_r_id.unwrap();
                 let update = MatchUpdateMessage {
                     id: r_id,
                     update: MatchUpdate::RecordConfirmation(p_id),
@@ -995,8 +1029,14 @@ impl GuildTournament {
         p_ident: PlayerIdentifier,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let opt_id = self.tourn.player_reg.get_player_id(&p_ident);
-        let op = TournOp::GiveBye(*SQUIRE_ACCOUNT_ID, p_ident);
+        let p_id = match self.tourn.get_player_id(&p_ident) {
+            Ok(id) => id,
+            Err(err) => {
+                digest.with_str(error_to_content(err));
+                return Ok(digest);
+            }
+        };
+        let op = TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, GiveBye(p_id));
         match self.tourn.apply_op(op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
@@ -1004,13 +1044,12 @@ impl GuildTournament {
             Ok(_) => {
                 self.update_status(ctx).await;
                 self.update_standings(ctx).await;
-                let id = opt_id.unwrap();
                 digest.with_str("Bye successfully given!!");
                 let mention = self
                     .players
-                    .get_left(&id)
+                    .get_left(&p_id)
                     .map(|id| id.mention().to_string())
-                    .unwrap_or_else(|| self.guests.get_left(&id).unwrap().clone());
+                    .unwrap_or_else(|| self.guests.get_left(&p_id).unwrap().clone());
                 self.pairings_channel
                     .send_message(&ctx.http, |m| {
                         m.content(format!("{mention}, you have been given a bye!"))
@@ -1027,13 +1066,12 @@ impl GuildTournament {
         user_id: UserId,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let content = match self.tourn.apply_op(TournOp::RegisterGuest(
+        let content = match self.tourn.apply_op(TournOp::JudgeOp(
             (*SQUIRE_ACCOUNT_ID).into(),
-            user_id.to_string(),
+            RegisterGuest(user_id.to_string()),
         )) {
-            Ok(id) => {
-                if let OpData::RegisterPlayer(ident) = id {
-                    let id = self.tourn.player_reg.get_player_id(&ident).unwrap();
+            Ok(data) => {
+                if let OpData::RegisterPlayer(id) = data {
                     self.players.insert(user_id, id);
                 }
                 self.update_status(ctx).await;
@@ -1059,13 +1097,12 @@ impl GuildTournament {
         user_id: UserId,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let content = match self.tourn.apply_op(TournOp::RegisterGuest(
+        let content = match self.tourn.apply_op(TournOp::JudgeOp(
             (*SQUIRE_ACCOUNT_ID).into(),
-            user_id.to_string(),
+            RegisterGuest(user_id.to_string()),
         )) {
-            Ok(id) => {
-                if let OpData::RegisterPlayer(ident) = id {
-                    let id = self.tourn.player_reg.get_player_id(&ident).unwrap();
+            Ok(data) => {
+                if let OpData::RegisterPlayer(id) = data {
                     self.players.insert(user_id, id);
                 }
                 self.update_status(ctx).await;
@@ -1091,13 +1128,12 @@ impl GuildTournament {
         name: String,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let content = match self.tourn.apply_op(TournOp::RegisterGuest(
+        let content = match self.tourn.apply_op(TournOp::JudgeOp(
             (*SQUIRE_ACCOUNT_ID).into(),
-            name.clone(),
+            RegisterGuest(name.clone()),
         )) {
-            Ok(id) => {
-                if let OpData::RegisterPlayer(ident) = id {
-                    let id = self.tourn.player_reg.get_player_id(&ident).unwrap();
+            Ok(data) => {
+                if let OpData::RegisterPlayer(id) = data {
                     self.guests.insert(name, id);
                 }
                 self.update_status(ctx).await;
@@ -1115,26 +1151,31 @@ impl GuildTournament {
         p_ident: PlayerIdentifier,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let opt_id = self.tourn.player_reg.get_player_id(&p_ident);
-        let op = TournOp::AdminDropPlayer(*SQUIRE_ACCOUNT_ID, p_ident.clone());
+        let p_id = match self.tourn.get_player_id(&p_ident) {
+            Ok(id) => id,
+            Err(err) => {
+                digest.with_str(error_to_content(err));
+                return Ok(digest);
+            }
+        };
+        let op = TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, AdminDropPlayer(p_id));
         match self.tourn.apply_op(op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
             Ok(_) => {
-                let id = self.tourn.player_reg.get_player_id(&p_ident).unwrap();
                 let data = ctx.data.read().await;
                 let sender = data.get::<MatchUpdateSenderContainer>().unwrap();
                 for rnd in self.tourn.get_player_rounds(&p_ident).unwrap() {
                     let _ = sender.send(MatchUpdateMessage {
                         id: rnd.id,
-                        update: MatchUpdate::DropPlayer(id),
+                        update: MatchUpdate::DropPlayer(p_id),
                     });
                 }
                 digest.with_str("Player successfully dropped.");
                 self.update_status(ctx).await;
                 self.update_standings(ctx).await;
-                if let Some(u_id) = self.get_user_id(&opt_id.unwrap()) {
+                if let Some(u_id) = self.get_user_id(&p_id) {
                     ctx.cache
                         .guild(&self.guild_id)
                         .unwrap()
@@ -1182,10 +1223,10 @@ impl GuildTournament {
         }
         match self
             .tourn
-            .apply_op(TournOp::CreateRound(*SQUIRE_ACCOUNT_ID, plyr_ids))
+            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, CreateRound(plyr_ids)))
         {
-            Ok(OpData::CreateRound(rnd_ident)) => {
-                let rnd = self.tourn.get_round(&rnd_ident).unwrap();
+            Ok(OpData::CreateRound(r_id)) => {
+                let rnd = self.tourn.get_round(&(r_id.into())).unwrap().clone();
                 self.create_round_data(
                     &ctx,
                     &ctx.cache.guild(self.guild_id).unwrap(),
@@ -1246,15 +1287,20 @@ impl GuildTournament {
     async fn time_extension(
         &mut self,
         ctx: &Context,
-        rnd: RoundIdentifier,
+        r_ident: RoundIdentifier,
         dur: Duration,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let opt_id = self.tourn.round_reg.get_round_id(&rnd);
-        let content = match self.tourn.apply_op(TournOp::TimeExtension(
+        let r_id = match self.tourn.get_round_id(&r_ident) {
+            Ok(id) => id,
+            Err(err) => {
+                digest.with_str(error_to_content(err));
+                return Ok(digest);
+            }
+        };
+        let content = match self.tourn.apply_op(TournOp::JudgeOp(
             (*SQUIRE_ACCOUNT_ID).into(),
-            rnd,
-            dur,
+            TimeExtension(r_id, dur),
         )) {
             Err(err) => error_to_content(err),
             Ok(_) => {
@@ -1265,7 +1311,7 @@ impl GuildTournament {
                     .get::<MatchUpdateSenderContainer>()
                     .unwrap()
                     .send(MatchUpdateMessage {
-                        id: opt_id.unwrap(),
+                        id: r_id,
                         update: MatchUpdate::TimeExtention(dur),
                     });
                 "Match successfully removed."
