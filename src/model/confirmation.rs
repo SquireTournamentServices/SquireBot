@@ -1,3 +1,4 @@
+use chrono::Utc;
 use serenity::{
     async_trait, framework::standard::CommandResult, model::channel::Message, prelude::Context,
 };
@@ -50,7 +51,7 @@ impl Confirmation for CutToTopConfirmation {
         let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
         if let Err(err) = tourn
             .tourn
-            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, Cut(self.len)))
+            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, Cut(self.len)))
         {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
@@ -169,7 +170,7 @@ impl Confirmation for PrunePlayersConfirmation {
         let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
         if let Err(err) = tourn
             .tourn
-            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PrunePlayers))
+            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PrunePlayers))
         {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
@@ -205,7 +206,7 @@ impl Confirmation for PruneDecksConfirmation {
         let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
         if let Err(err) = tourn
             .tourn
-            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PruneDecks))
+            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PruneDecks))
         {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
@@ -243,7 +244,7 @@ impl Confirmation for PairRoundConfirmation {
         let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
         match tourn
             .tourn
-            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PairRound))
+            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PairRound))
         {
             Err(err) => {
                 msg.reply(&ctx.http, error_to_content(err)).await?;

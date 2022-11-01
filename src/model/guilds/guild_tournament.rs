@@ -1,5 +1,6 @@
 use std::{collections::HashMap, error::Error, io::Write, sync::Arc, time::Duration};
 
+use chrono::Utc;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use tempfile::tempfile;
@@ -169,7 +170,7 @@ impl GuildTournament {
                 self.make_tc = b;
             }
             TournamentSetting(setting) => {
-                self.tourn.apply_op(TournOp::AdminOp(
+                self.tourn.apply_op(Utc::now(), TournOp::AdminOp(
                     *SQUIRE_ACCOUNT_ID,
                     UpdateTournSetting(setting),
                 ))?;
@@ -363,7 +364,7 @@ impl GuildTournament {
     pub async fn end(&mut self, ctx: &Context) -> OpResult {
         let result = self
             .tourn
-            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, End));
+            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, End));
         if result.is_ok() {
             self.purge(ctx).await;
         }
@@ -374,7 +375,7 @@ impl GuildTournament {
     pub async fn cancel(&mut self, ctx: &Context) -> OpResult {
         let result = self
             .tourn
-            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, Cancel));
+            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, Cancel));
         if result.is_ok() {
             self.purge(ctx).await;
         }
@@ -685,7 +686,7 @@ impl GuildTournament {
         self.clear_round_data(&r_id, &ctx.http).await;
         let content = match self
             .tourn
-            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, RemoveRound(r_id)))
+            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, RemoveRound(r_id)))
         {
             Ok(_) => "Match successfully removed.",
             Err(err) => error_to_content(err),
@@ -835,7 +836,7 @@ impl GuildTournament {
             }
         };
         let op = TournOp::PlayerOp(p_id, RecordResult(result.clone()));
-        match self.tourn.apply_op(op) {
+        match self.tourn.apply_op(Utc::now(), op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
@@ -881,7 +882,7 @@ impl GuildTournament {
             }
         };
         let op = TournOp::PlayerOp(p_id, ConfirmResult);
-        match self.tourn.apply_op(op) {
+        match self.tourn.apply_op(Utc::now(), op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
@@ -940,7 +941,7 @@ impl GuildTournament {
             (*SQUIRE_ACCOUNT_ID).into(),
             AdminRecordResult(r_id, result.clone()),
         );
-        match self.tourn.apply_op(op) {
+        match self.tourn.apply_op(Utc::now(), op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
@@ -988,7 +989,7 @@ impl GuildTournament {
             }
         };
         let op = TournOp::JudgeOp((*SQUIRE_ACCOUNT_ID).into(), AdminConfirmResult(r_id, p_id));
-        match self.tourn.apply_op(op) {
+        match self.tourn.apply_op(Utc::now(), op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
@@ -1037,7 +1038,7 @@ impl GuildTournament {
             }
         };
         let op = TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, GiveBye(p_id));
-        match self.tourn.apply_op(op) {
+        match self.tourn.apply_op(Utc::now(), op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
@@ -1066,7 +1067,7 @@ impl GuildTournament {
         user_id: UserId,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let content = match self.tourn.apply_op(TournOp::JudgeOp(
+        let content = match self.tourn.apply_op(Utc::now(), TournOp::JudgeOp(
             (*SQUIRE_ACCOUNT_ID).into(),
             RegisterGuest(user_id.to_string()),
         )) {
@@ -1097,7 +1098,7 @@ impl GuildTournament {
         user_id: UserId,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let content = match self.tourn.apply_op(TournOp::JudgeOp(
+        let content = match self.tourn.apply_op(Utc::now(), TournOp::JudgeOp(
             (*SQUIRE_ACCOUNT_ID).into(),
             RegisterGuest(user_id.to_string()),
         )) {
@@ -1128,7 +1129,7 @@ impl GuildTournament {
         name: String,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let content = match self.tourn.apply_op(TournOp::JudgeOp(
+        let content = match self.tourn.apply_op(Utc::now(), TournOp::JudgeOp(
             (*SQUIRE_ACCOUNT_ID).into(),
             RegisterGuest(name.clone()),
         )) {
@@ -1159,7 +1160,7 @@ impl GuildTournament {
             }
         };
         let op = TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, AdminDropPlayer(p_id));
-        match self.tourn.apply_op(op) {
+        match self.tourn.apply_op(Utc::now(), op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
@@ -1223,7 +1224,7 @@ impl GuildTournament {
         }
         match self
             .tourn
-            .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, CreateRound(plyr_ids)))
+            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, CreateRound(plyr_ids)))
         {
             Ok(OpData::CreateRound(r_id)) => {
                 let rnd = self.tourn.get_round(&(r_id.into())).unwrap().clone();
@@ -1298,7 +1299,7 @@ impl GuildTournament {
                 return Ok(digest);
             }
         };
-        let content = match self.tourn.apply_op(TournOp::JudgeOp(
+        let content = match self.tourn.apply_op(Utc::now(), TournOp::JudgeOp(
             (*SQUIRE_ACCOUNT_ID).into(),
             TimeExtension(r_id, dur),
         )) {
@@ -1327,7 +1328,7 @@ impl GuildTournament {
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
         digest.with_str(op_to_content(&op));
-        if let Err(err) = self.tourn.apply_op(op) {
+        if let Err(err) = self.tourn.apply_op(Utc::now(), op) {
             digest.with_str(error_to_content(err));
         };
         Ok(digest)

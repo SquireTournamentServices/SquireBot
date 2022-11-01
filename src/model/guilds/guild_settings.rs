@@ -1,5 +1,6 @@
 use std::fmt::Write;
 
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serenity::{
     builder::CreateEmbed,
@@ -73,7 +74,7 @@ impl GuildSettings {
             for op in self.tourn_settings.as_settings(preset) {
                 let _ = tourn
                     .tourn
-                    .apply_op(TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, UpdateTournSetting(op)));
+                    .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, UpdateTournSetting(op)));
             }
             Some(tourn)
         } else {

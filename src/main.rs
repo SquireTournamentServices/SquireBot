@@ -328,7 +328,7 @@ impl EventHandler for Handler {
             if let Some(plyr_id) = tourn.get_player_id(&user.id) {
                 let _ = tourn
                     .tourn
-                    .apply_op(TournOp::PlayerOp(plyr_id, PlayerOp::DropPlayer));
+                    .apply_op(Utc::now(), TournOp::PlayerOp(plyr_id, PlayerOp::DropPlayer));
             }
         }
     }
