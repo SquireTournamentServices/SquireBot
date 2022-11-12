@@ -327,11 +327,26 @@ async fn register(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[usage("<deck name>, [tournament name]")]
 #[example("'SomeDeck'")]
 #[description("Removes one of your decks.")]
-async fn remove_deck(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+async fn remove_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let deck_name = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(&ctx.http, "Please include a deck name.").await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
     let tourn_name = args.rest().to_string();
     match msg.guild_id {
         Some(_) => player_command(ctx, msg, tourn_name, |p| DropPlayer(p.into())).await,
-        None => dm_command(ctx, msg, tourn_name, |p| DropPlayer(p.into())).await,
+        None => {
+            dm_command(ctx, msg, tourn_name, |p| {
+                GuildTournamentAction::Operation(TournOp::PlayerOp(
+                    p,
+                    PlayerOp::RemoveDeck(deck_name),
+                ))
+            })
+            .await
+        }
     }
 }
 
