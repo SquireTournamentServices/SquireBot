@@ -267,6 +267,34 @@ async fn unready(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     .await
 }
 
+#[command("re-register")]
+#[only_in(guild)]
+#[usage("[tournament name]")]
+#[description("Register for a tournament.")]
+async fn re_register(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let tourn_name = args.rest().to_string();
+    let data = ctx.data.read().await;
+    let tourn_regs = data
+        .get::<GuildTournRegistryMapContainer>()
+        .unwrap()
+        .read()
+        .await;
+    let g_id = msg.guild_id.unwrap();
+    let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+    let tourn = match reg.get_tourn_mut(&tourn_name) {
+        Some(t) => t,
+        None => {
+            msg.reply(&ctx.http, "That tournament could not be found.")
+                .await?;
+            return Ok(());
+        }
+    };
+    let content = tourn
+        .take_action(ctx, GuildTournamentAction::ReRegisterPlayer(msg.author.id))
+        .await?;
+    content.message_reply(ctx, msg).await
+}
+
 #[command("register")]
 #[only_in(guild)]
 #[usage("[tournament name]")]

@@ -87,7 +87,9 @@ pub enum GuildTournamentAction {
     AdminConfirmResult(RoundIdentifier, PlayerIdentifier),
     GiveBye(PlayerIdentifier),
     RegisterPlayer(UserId),
+    ReRegisterPlayer(UserId),
     AdminRegisterPlayer(UserId),
+    AdminReRegisterPlayer(UserId),
     RegisterGuest(String),
     DropPlayer(PlayerIdentifier),
     CreateMatch(Vec<String>),
@@ -448,6 +450,8 @@ impl GuildTournament {
             ViewMatchStatus(r_ident) => self.view_match_status(r_ident).await,
             RegisterPlayer(user_id) => self.register_player(ctx, user_id).await,
             AdminRegisterPlayer(user_id) => self.admin_register_player(ctx, user_id).await,
+            ReRegisterPlayer(user_id) => self.reregister_player(ctx, user_id).await,
+            AdminReRegisterPlayer(user_id) => self.admin_reregister_player(ctx, user_id).await,
             RegisterGuest(name) => self.register_guest(ctx, name).await,
             CreateMatch(raw_plyrs) => self.create_match(ctx, raw_plyrs).await,
             Operation(op) => self.general_operation(op).await,
@@ -1087,7 +1091,69 @@ impl GuildTournament {
             .member(ctx, user_id)
             .await
             .unwrap()
-            .remove_role(ctx, self.tourn_role.id)
+            .add_role(ctx, self.tourn_role.id)
+            .await?;
+        Ok(digest)
+    }
+
+    async fn reregister_player(
+        &mut self,
+        ctx: &Context,
+        user_id: UserId,
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
+        let content = match self.tourn.apply_op(Utc::now(), TournOp::JudgeOp(
+            (*SQUIRE_ACCOUNT_ID).into(),
+            ReRegisterGuest(user_id.to_string()),
+        )) {
+            Ok(data) => {
+                if let OpData::RegisterPlayer(id) = data {
+                    self.players.insert(user_id, id);
+                }
+                self.update_status(ctx).await;
+                "You have been successfully re-registered!!"
+            }
+            Err(err) => error_to_content(err),
+        };
+        digest.with_str(content);
+        ctx.cache
+            .guild(&self.guild_id)
+            .unwrap()
+            .member(ctx, user_id)
+            .await
+            .unwrap()
+            .add_role(ctx, self.tourn_role.id)
+            .await?;
+        Ok(digest)
+    }
+
+    async fn admin_reregister_player(
+        &mut self,
+        ctx: &Context,
+        user_id: UserId,
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
+        let content = match self.tourn.apply_op(Utc::now(), TournOp::JudgeOp(
+            (*SQUIRE_ACCOUNT_ID).into(),
+            ReRegisterGuest(user_id.to_string()),
+        )) {
+            Ok(data) => {
+                if let OpData::RegisterPlayer(id) = data {
+                    self.players.insert(user_id, id);
+                }
+                self.update_status(ctx).await;
+                "Player successfully registered!!"
+            }
+            Err(err) => error_to_content(err),
+        };
+        digest.with_str(content);
+        ctx.cache
+            .guild(&self.guild_id)
+            .unwrap()
+            .member(ctx, user_id)
+            .await
+            .unwrap()
+            .add_role(ctx, self.tourn_role.id)
             .await?;
         Ok(digest)
     }
@@ -1118,7 +1184,7 @@ impl GuildTournament {
             .member(ctx, user_id)
             .await
             .unwrap()
-            .remove_role(ctx, self.tourn_role.id)
+            .add_role(ctx, self.tourn_role.id)
             .await?;
         Ok(digest)
     }

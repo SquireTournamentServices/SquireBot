@@ -185,6 +185,39 @@ async fn give_bye(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     .await
 }
 
+#[command("re-register")]
+#[only_in(guild)]
+#[sub_commands("guest")]
+#[allowed_roles("Tournament Admin", "Judge")]
+#[usage("<player name/mention>, [tournament name]")]
+#[example("'SomePlayer'")]
+#[example("@SomePlayer")]
+#[description("Re-registers a player on their behalf.")]
+async fn re_register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let raw_user_id = match args.single_quoted::<String>() {
+        Err(_) => {
+            msg.reply(
+                &ctx.http,
+                "Please include a player, either by name or mention.",
+            )
+            .await?;
+            return Ok(());
+        }
+        Ok(s) => s,
+    };
+    let gld = msg.guild(&ctx.cache).unwrap();
+    let user_id = match user_id_resolver(&raw_user_id, &gld).await {
+        Some(id) => id,
+        None => {
+            msg.reply(&ctx.http, "That person could not be found.")
+                .await?;
+            return Ok(());
+        }
+    };
+    let tourn_name = args.rest().trim().to_string();
+    admin_command_without_player(ctx, msg, tourn_name, move |_| AdminReRegisterPlayer(user_id)).await
+}
+
 #[command("register")]
 #[only_in(guild)]
 #[sub_commands("guest")]

@@ -29,6 +29,7 @@ use super::admin_commands::*;
     prune,
     raw_standings,
     register,
+    re_register,
     registration,
     remove_deck,
     remove_match,

@@ -33,6 +33,7 @@ pub struct TournamentCommands;
     name,
     ready,
     register,
+    re_register,
     remove_deck,
     profile
 )]

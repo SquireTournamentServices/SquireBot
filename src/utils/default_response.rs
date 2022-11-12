@@ -36,6 +36,7 @@ pub fn op_to_content(op: &TournOp) -> &'static str {
         TournOp::JudgeOp(_, op) => match op {
             RegisterGuest(..) => "You have successfully registered a player!!",
             AdminRegisterPlayer(..) => "You have successfully registed a player!!",
+            ReRegisterGuest(..) => "You have successfully re-registered a guest!!",
             AdminRecordResult(..) => {
                 "You have successfully recorded that player's result of that match!!"
             }
