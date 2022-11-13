@@ -61,7 +61,7 @@ impl TrackingRound {
 
     pub async fn send_warning(&mut self, cache: impl CacheHttp) {
         match self.round.round.time_left().as_secs() {
-            0 => {
+            0 if !self.round.warnings.time_up => {
                 self.round.warnings.sent_last();
                 let _ = self
                     .message
