@@ -74,6 +74,7 @@ pub enum GuildTournamentAction {
     ViewMatchStatus(RoundIdentifier),
     DeckCheck(RoundIdentifier),
     DeckDump(usize),
+    ExportTournament,
     // Wrappers for tournament operations
     RemoveMatch(RoundIdentifier),
     PrunePlayers(UserId),
@@ -457,7 +458,19 @@ impl GuildTournament {
             RegisterGuest(name) => self.register_guest(ctx, name).await,
             CreateMatch(raw_plyrs) => self.create_match(ctx, raw_plyrs).await,
             Operation(op) => self.general_operation(ctx, op).await,
+            ExportTournament => self.export_tournament().await,
         }
+    }
+
+    async fn export_tournament(
+        &self,
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut output = tempfile().unwrap();
+        let _ = write!(output, "{}", serde_json::to_string(&self.tourn).unwrap());
+        let mut digest = MessageContent::empty();
+        digest.with_str("Here you go!!");
+        digest.with_attachment(format!("{}.json", self.tourn.name), tokio::fs::File::from_std(output));
+        Ok(digest)
     }
 
     async fn get_raw_standings(

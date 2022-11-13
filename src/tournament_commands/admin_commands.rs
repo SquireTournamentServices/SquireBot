@@ -570,6 +570,7 @@ async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |_| PruneDecks(msg.author.id)).await
 }
+
 #[command("raw-standings")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin", "Judge")]
@@ -591,6 +592,16 @@ async fn raw_standings(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |_| GetRawStandings(count)).await
 }
+
+#[command("export-tournament")]
+#[only_in(guild)]
+#[allowed_roles("Tournament Admin", "Judge")]
+#[description("Exports a tournament as a JSON file to be used in desktop app.")]
+async fn export_tournament(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let tourn_name = args.rest().trim().to_string();
+    admin_command_without_player(ctx, msg, tourn_name, move |_| ExportTournament).await
+}
+
 #[command("registration")]
 #[only_in(guild)]
 #[aliases("reg")]
