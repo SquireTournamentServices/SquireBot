@@ -110,6 +110,16 @@ async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> Command
     .await
 }
 
+#[command("confirm-all")]
+#[only_in(guild)]
+#[allowed_roles("Tournament Admin")]
+#[usage("[tournament name]")]
+#[description("Confirms all active matches.")]
+async fn confirm_all(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let tourn_name = args.rest().trim().to_string();
+    admin_command_without_player(ctx, msg, tourn_name, move |_| ConfirmAll).await
+}
+
 #[command("decklist")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin", "Judge")]
@@ -215,7 +225,10 @@ async fn re_register(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         }
     };
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| AdminReRegisterPlayer(user_id)).await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| {
+        AdminReRegisterPlayer(user_id)
+    })
+    .await
 }
 
 #[command("register")]

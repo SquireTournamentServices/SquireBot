@@ -4,7 +4,7 @@ use serenity::http::CacheHttp;
 
 use squire_lib::{
     identifiers::PlayerId,
-    rounds::{RoundId, RoundResult},
+    rounds::{RoundId, RoundResult, RoundStatus},
 };
 use tokio::sync::mpsc::UnboundedReceiver;
 
@@ -22,6 +22,7 @@ pub enum MatchUpdate {
     TimeExtention(Duration),
     RecordResult(RoundResult),
     RecordConfirmation(PlayerId),
+    ForceConfirmed,
     DropPlayer(PlayerId),
     MatchCancelled,
 }
@@ -82,6 +83,11 @@ impl MatchManager {
                 RecordConfirmation(p_id) => {
                     if let Some(m) = self.matches.get_mut(&update.id) {
                         let _ = m.round.round.confirm_round(p_id);
+                    }
+                }
+                ForceConfirmed => {
+                    if let Some(m) = self.matches.get_mut(&update.id) {
+                        m.round.round.status = RoundStatus::Certified;
                     }
                 }
                 DropPlayer(p_id) => {

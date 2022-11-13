@@ -83,6 +83,7 @@ pub enum GuildTournamentAction {
     Cut(UserId, usize),
     RecordResult(PlayerIdentifier, RoundResult),
     ConfirmResult(PlayerIdentifier),
+    ConfirmAll,
     AdminRecordResult(RoundIdentifier, RoundResult),
     AdminConfirmResult(RoundIdentifier, PlayerIdentifier),
     GiveBye(PlayerIdentifier),
@@ -422,6 +423,7 @@ impl GuildTournament {
             RemoveMatch(r_ident) => self.remove_match(r_ident, ctx).await,
             RecordResult(p_ident, result) => self.record_result(ctx, p_ident, result).await,
             ConfirmResult(p_ident) => self.confirm_result(ctx, p_ident).await,
+            ConfirmAll => self.confirm_all(ctx).await,
             AdminRecordResult(r_ident, result) => {
                 self.admin_record_result(ctx, r_ident, result).await
             }
@@ -871,7 +873,7 @@ impl GuildTournament {
         }
         Ok(digest)
     }
-
+    
     async fn confirm_result(
         &mut self,
         ctx: &Context,
@@ -917,6 +919,46 @@ impl GuildTournament {
                     self.update_status(ctx).await;
                     self.update_standings(ctx).await;
                 }
+            }
+            _ => {
+                unreachable!(
+                    "Recording the result of a round returns and `Err` or `Ok(OpData::ConfirmResult)`)"
+                );
+            }
+        }
+        Ok(digest)
+    }
+
+    async fn confirm_all(
+        &mut self,
+        ctx: &Context,
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
+        let op = TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, ConfirmAllRounds);
+        let rnd_ids: Vec<_> = self.tourn.round_reg.rounds.values().filter_map(|r| r.is_active().then(|| r.id)).collect();
+        match self.tourn.apply_op(Utc::now(), op) {
+            Err(err) => {
+                digest.with_str(error_to_content(err));
+            }
+            Ok(OpData::Nothing) => {
+                let data = ctx
+                    .data
+                    .read()
+                    .await;
+                let update_sender = data
+                    .get::<MatchUpdateSenderContainer>()
+                    .unwrap();
+                for id in rnd_ids {
+                    self.clear_round_data(&id, &ctx.http).await;
+                    let update = MatchUpdateMessage {
+                        id,
+                        update: MatchUpdate::ForceConfirmed,
+                    };
+                    let _ = update_sender.send(update);
+                }
+                digest.with_str("Confirmation recorded!! The current status of our round is:");
+                self.update_status(ctx).await;
+                self.update_standings(ctx).await;
             }
             _ => {
                 unreachable!(

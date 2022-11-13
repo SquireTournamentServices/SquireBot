@@ -72,6 +72,7 @@ pub fn op_to_content(op: &TournOp) -> &'static str {
             Cut(..) => "You have successfully such to the top of the tournament!!",
             PruneDecks => "You have successfully pruned excess decks from players!!",
             PrunePlayers => "You have successfully pruned excess players!!",
+            ConfirmAllRounds => "You have successfully confirmed all the active rounds!!",
         },
     }
 }
@@ -109,5 +110,6 @@ pub fn error_to_content(err: TournamentError) -> &'static str {
         IncompatibleScoringSystem => {
             "That tournament has an incompatible scoring system for that to work."
         }
+        NoMatchResult => "At least one match still has no match results, so the confirmation could not occur.",
     }
 }
