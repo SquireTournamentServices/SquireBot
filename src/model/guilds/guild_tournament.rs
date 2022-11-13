@@ -174,10 +174,10 @@ impl GuildTournament {
                 self.make_tc = b;
             }
             TournamentSetting(setting) => {
-                self.tourn.apply_op(Utc::now(), TournOp::AdminOp(
-                    *SQUIRE_ACCOUNT_ID,
-                    UpdateTournSetting(setting),
-                ))?;
+                self.tourn.apply_op(
+                    Utc::now(),
+                    TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, UpdateTournSetting(setting)),
+                )?;
             }
         };
         Ok(OpData::Nothing)
@@ -462,14 +462,16 @@ impl GuildTournament {
         }
     }
 
-    async fn export_tournament(
-        &self,
-    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+    async fn export_tournament(&self) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut output = tempfile().unwrap();
-        let _ = write!(output, "{}", serde_json::to_string(&self.tourn).unwrap());
+        let json = serde_json::to_string(&self.tourn).unwrap();
+        let _ = writeln!(output, "{json}");
         let mut digest = MessageContent::empty();
         digest.with_str("Here you go!!");
-        digest.with_attachment(format!("{}.json", self.tourn.name), tokio::fs::File::from_std(output));
+        digest.with_attachment(
+            format!("{}.json", self.tourn.name),
+            tokio::fs::File::from_std(output),
+        );
         Ok(digest)
     }
 
@@ -703,10 +705,10 @@ impl GuildTournament {
             .unwrap()
             .send(update);
         self.clear_round_data(&r_id, &ctx.http).await;
-        let content = match self
-            .tourn
-            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, RemoveRound(r_id)))
-        {
+        let content = match self.tourn.apply_op(
+            Utc::now(),
+            TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, RemoveRound(r_id)),
+        ) {
             Ok(_) => "Match successfully removed.",
             Err(err) => error_to_content(err),
         };
@@ -886,7 +888,7 @@ impl GuildTournament {
         }
         Ok(digest)
     }
-    
+
     async fn confirm_result(
         &mut self,
         ctx: &Context,
@@ -948,19 +950,20 @@ impl GuildTournament {
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
         let op = TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, ConfirmAllRounds);
-        let rnd_ids: Vec<_> = self.tourn.round_reg.rounds.values().filter_map(|r| r.is_active().then(|| r.id)).collect();
+        let rnd_ids: Vec<_> = self
+            .tourn
+            .round_reg
+            .rounds
+            .values()
+            .filter_map(|r| r.is_active().then(|| r.id))
+            .collect();
         match self.tourn.apply_op(Utc::now(), op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
             Ok(OpData::Nothing) => {
-                let data = ctx
-                    .data
-                    .read()
-                    .await;
-                let update_sender = data
-                    .get::<MatchUpdateSenderContainer>()
-                    .unwrap();
+                let data = ctx.data.read().await;
+                let update_sender = data.get::<MatchUpdateSenderContainer>().unwrap();
                 for id in rnd_ids {
                     self.clear_round_data(&id, &ctx.http).await;
                     let update = MatchUpdateMessage {
@@ -1126,10 +1129,13 @@ impl GuildTournament {
         user_id: UserId,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let content = match self.tourn.apply_op(Utc::now(), TournOp::JudgeOp(
-            (*SQUIRE_ACCOUNT_ID).into(),
-            RegisterGuest(user_id.to_string()),
-        )) {
+        let content = match self.tourn.apply_op(
+            Utc::now(),
+            TournOp::JudgeOp(
+                (*SQUIRE_ACCOUNT_ID).into(),
+                RegisterGuest(user_id.to_string()),
+            ),
+        ) {
             Ok(data) => {
                 if let OpData::RegisterPlayer(id) = data {
                     self.players.insert(user_id, id);
@@ -1157,10 +1163,13 @@ impl GuildTournament {
         user_id: UserId,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let content = match self.tourn.apply_op(Utc::now(), TournOp::JudgeOp(
-            (*SQUIRE_ACCOUNT_ID).into(),
-            ReRegisterGuest(user_id.to_string()),
-        )) {
+        let content = match self.tourn.apply_op(
+            Utc::now(),
+            TournOp::JudgeOp(
+                (*SQUIRE_ACCOUNT_ID).into(),
+                ReRegisterGuest(user_id.to_string()),
+            ),
+        ) {
             Ok(data) => {
                 if let OpData::RegisterPlayer(id) = data {
                     self.players.insert(user_id, id);
@@ -1188,10 +1197,13 @@ impl GuildTournament {
         user_id: UserId,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let content = match self.tourn.apply_op(Utc::now(), TournOp::JudgeOp(
-            (*SQUIRE_ACCOUNT_ID).into(),
-            ReRegisterGuest(user_id.to_string()),
-        )) {
+        let content = match self.tourn.apply_op(
+            Utc::now(),
+            TournOp::JudgeOp(
+                (*SQUIRE_ACCOUNT_ID).into(),
+                ReRegisterGuest(user_id.to_string()),
+            ),
+        ) {
             Ok(data) => {
                 if let OpData::RegisterPlayer(id) = data {
                     self.players.insert(user_id, id);
@@ -1219,10 +1231,13 @@ impl GuildTournament {
         user_id: UserId,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let content = match self.tourn.apply_op(Utc::now(), TournOp::JudgeOp(
-            (*SQUIRE_ACCOUNT_ID).into(),
-            RegisterGuest(user_id.to_string()),
-        )) {
+        let content = match self.tourn.apply_op(
+            Utc::now(),
+            TournOp::JudgeOp(
+                (*SQUIRE_ACCOUNT_ID).into(),
+                RegisterGuest(user_id.to_string()),
+            ),
+        ) {
             Ok(data) => {
                 if let OpData::RegisterPlayer(id) = data {
                     self.players.insert(user_id, id);
@@ -1250,10 +1265,10 @@ impl GuildTournament {
         name: String,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let content = match self.tourn.apply_op(Utc::now(), TournOp::JudgeOp(
-            (*SQUIRE_ACCOUNT_ID).into(),
-            RegisterGuest(name.clone()),
-        )) {
+        let content = match self.tourn.apply_op(
+            Utc::now(),
+            TournOp::JudgeOp((*SQUIRE_ACCOUNT_ID).into(), RegisterGuest(name.clone())),
+        ) {
             Ok(data) => {
                 if let OpData::RegisterPlayer(id) = data {
                     self.guests.insert(name, id);
@@ -1343,10 +1358,10 @@ impl GuildTournament {
                 }
             }
         }
-        match self
-            .tourn
-            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, CreateRound(plyr_ids)))
-        {
+        match self.tourn.apply_op(
+            Utc::now(),
+            TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, CreateRound(plyr_ids)),
+        ) {
             Ok(OpData::CreateRound(r_id)) => {
                 let rnd = self.tourn.get_round(&(r_id.into())).unwrap().clone();
                 self.create_round_data(
@@ -1420,10 +1435,10 @@ impl GuildTournament {
                 return Ok(digest);
             }
         };
-        let content = match self.tourn.apply_op(Utc::now(), TournOp::JudgeOp(
-            (*SQUIRE_ACCOUNT_ID).into(),
-            TimeExtension(r_id, dur),
-        )) {
+        let content = match self.tourn.apply_op(
+            Utc::now(),
+            TournOp::JudgeOp((*SQUIRE_ACCOUNT_ID).into(), TimeExtension(r_id, dur)),
+        ) {
             Err(err) => error_to_content(err),
             Ok(_) => {
                 let _ = ctx

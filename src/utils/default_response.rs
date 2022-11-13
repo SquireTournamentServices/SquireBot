@@ -110,6 +110,8 @@ pub fn error_to_content(err: TournamentError) -> &'static str {
         IncompatibleScoringSystem => {
             "That tournament has an incompatible scoring system for that to work."
         }
-        NoMatchResult => "At least one match still has no match results, so the confirmation could not occur.",
+        NoMatchResult => {
+            "At least one match still has no match results, so the confirmation could not occur."
+        }
     }
 }

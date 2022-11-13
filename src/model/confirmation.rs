@@ -49,10 +49,10 @@ impl Confirmation for CutToTopConfirmation {
         let g_id = msg.guild_id.unwrap();
         let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
         let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
-        if let Err(err) = tourn
-            .tourn
-            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, Cut(self.len)))
-        {
+        if let Err(err) = tourn.tourn.apply_op(
+            Utc::now(),
+            TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, Cut(self.len)),
+        ) {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
             tourn.update_status(ctx).await;
@@ -168,10 +168,10 @@ impl Confirmation for PrunePlayersConfirmation {
         let g_id = msg.guild_id.unwrap();
         let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
         let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
-        if let Err(err) = tourn
-            .tourn
-            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PrunePlayers))
-        {
+        if let Err(err) = tourn.tourn.apply_op(
+            Utc::now(),
+            TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PrunePlayers),
+        ) {
             msg.reply(&ctx.http, error_to_content(err)).await?;
         } else {
             tourn.update_status(ctx).await;

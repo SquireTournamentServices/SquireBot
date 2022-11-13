@@ -39,7 +39,9 @@ use super::admin_commands::*;
     time_extension,
     view_players,
     deck_check,
-    deck_dump
+    deck_dump,
+    confirm_all,
+    export_tournament
 )]
 #[usage("<option>")]
 #[allowed_roles("Tournament Admin")]
