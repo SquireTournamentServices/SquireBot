@@ -28,6 +28,7 @@ pub enum LogAction {
 
 pub struct CommandLog {
     pub start: DateTime<Utc>,
+    pub content: String,
     pub log: Vec<LogAction>,
 }
 
@@ -70,8 +71,8 @@ impl LogTracker {
     pub fn process(&mut self) -> Vec<MessageId> {
         while let Ok((msg, action)) = self.incoming.try_recv() {
             match &action {
-                LogAction::Start(..) => {
-                    let mut log = CommandLog::new();
+                LogAction::Start(content, now) => {
+                    let mut log = CommandLog::new(*now, content.clone());
                     log.add_action(action);
                     self.active.insert(msg, log);
                 }
@@ -249,21 +250,16 @@ fn calculate_p_stats(mut vals: Vec<Duration>) -> (i64, i64, i64, i64, i64) {
 }
 
 impl CommandLog {
-    fn new() -> Self {
+    fn new(start: DateTime<Utc>, content: String) -> Self {
         Self {
-            start: Utc::now(),
+            start,
+            content,
             log: Vec::with_capacity(MAX_LOG_ACTION),
         }
     }
 
     fn add_action(&mut self, action: LogAction) {
         self.log.push(action);
-    }
-}
-
-impl Default for CommandLog {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

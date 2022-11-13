@@ -353,13 +353,14 @@ async fn my_help(
 
 #[hook]
 async fn before_command(ctx: &Context, msg: &Message, command_name: &str) -> bool {
+    let now = Utc::now();
     let _ = ctx
         .data
         .read()
         .await
         .get::<LogActionSenderContainer>()
         .unwrap()
-        .send((msg.id, LogAction::Start(msg.content.clone(), Utc::now())));
+        .send((msg.id, LogAction::Start(msg.content.clone(), now)));
     println!("Processing command: {command_name}");
     true
 }
@@ -373,13 +374,14 @@ async fn after_command(
 ) {
     let data = ctx.data.read().await;
     let sender = data.get::<LogActionSenderContainer>().unwrap();
+    let now = Utc::now();
     match command_result {
         Ok(()) => {
-            let _ = sender.send((msg.id, LogAction::End(true, Utc::now())));
+            let _ = sender.send((msg.id, LogAction::End(true, now)));
             println!("Success on command: {command_name}");
         }
         Err(why) => {
-            let _ = sender.send((msg.id, LogAction::End(false, Utc::now())));
+            let _ = sender.send((msg.id, LogAction::End(false, now)));
             println!("Error on command: {command_name} with error {:?}", why);
         }
     }
