@@ -454,7 +454,7 @@ impl GuildTournament {
             AdminReRegisterPlayer(user_id) => self.admin_reregister_player(ctx, user_id).await,
             RegisterGuest(name) => self.register_guest(ctx, name).await,
             CreateMatch(raw_plyrs) => self.create_match(ctx, raw_plyrs).await,
-            Operation(op) => self.general_operation(op).await,
+            Operation(op) => self.general_operation(ctx, op).await,
         }
     }
 
@@ -1390,12 +1390,15 @@ impl GuildTournament {
 
     async fn general_operation(
         &mut self,
+        ctx: &Context,
         op: TournOp,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
         digest.with_str(op_to_content(&op));
         if let Err(err) = self.tourn.apply_op(Utc::now(), op) {
             digest.with_str(error_to_content(err));
+        } else {
+            self.update_status(ctx).await;
         };
         Ok(digest)
     }
