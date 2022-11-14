@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, io::SeekFrom};
 
 use serenity::{
     builder::CreateEmbed,
@@ -6,6 +6,7 @@ use serenity::{
     framework::standard::CommandResult,
     model::{channel::AttachmentType, prelude::Message},
 };
+use tokio::io::AsyncSeekExt;
 
 pub mod confirmation;
 pub mod consts;
@@ -51,7 +52,8 @@ impl MessageContent {
         if let Some(embeds) = self.embeds {
             resp.edit(&ctx.http, |m| m.set_embeds(embeds)).await?;
         }
-        if let Some((filename, file)) = self.attachment {
+        if let Some((filename, mut file)) = self.attachment {
+            file.seek(SeekFrom::Start(0)).await.unwrap();
             resp.edit(&ctx.http, |m| {
                 m.attachment(AttachmentType::File {
                     file: &file,
