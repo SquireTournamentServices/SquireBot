@@ -337,7 +337,15 @@ async fn remove_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     };
     let tourn_name = args.rest().to_string();
     match msg.guild_id {
-        Some(_) => player_command(ctx, msg, tourn_name, |p| DropPlayer(p.into())).await,
+        Some(_) => {
+            player_command(ctx, msg, tourn_name, |p| {
+                GuildTournamentAction::Operation(TournOp::PlayerOp(
+                    p,
+                    PlayerOp::RemoveDeck(deck_name),
+                ))
+            })
+            .await
+        }
         None => {
             dm_command(ctx, msg, tourn_name, |p| {
                 GuildTournamentAction::Operation(TournOp::PlayerOp(
