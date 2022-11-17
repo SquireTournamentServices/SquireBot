@@ -1,12 +1,10 @@
 use std::{collections::HashMap, error::Error, io::Write, sync::Arc, time::Duration};
 
 use chrono::Utc;
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use tempfile::tempfile;
 
 use serenity::{
-    builder::CreateEmbed,
     http::{CacheHttp, Http},
     model::channel::ChannelCategory,
     model::{
@@ -574,12 +572,12 @@ impl GuildTournament {
             .iter()
             .map(|(id, plyr)| (self.resolve_player_name(id).unwrap(), plyr.status))
             .collect();
-        let mut embed = CreateEmbed(HashMap::new());
-        embed.fields(players.iter_right().map(|s| {
-            let mut iter = players.get_left_iter(s).unwrap();
-            (format!("{s}: {}", iter.len()), iter.join("\n"), true)
-        }));
-        digest.with_embeds(vec![embed]);
+        let mut fields = Vec::new();
+        for s in players.iter_right() {
+            let iter = players.get_left_iter(s).unwrap();
+            fields.push((format!("{s}: {}", iter.len()), iter, "\n", true))
+        }
+        digest.with_embeds(safe_embeds("All Players".into(), fields));
         Ok(digest)
     }
 
@@ -972,7 +970,7 @@ impl GuildTournament {
                     };
                     let _ = update_sender.send(update);
                 }
-                digest.with_str("Confirmation recorded!! The current status of our round is:");
+                digest.with_str("Successfully confirmed all active matches!!");
                 self.update_status(ctx).await;
                 self.update_standings(ctx).await;
             }
