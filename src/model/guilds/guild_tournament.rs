@@ -315,6 +315,10 @@ impl GuildTournament {
             .await
             .ok();
         self.guild_rounds.insert(*rnd, g_rnd);
+        if let Some(mut t_rnd) = self.get_tracking_round(rnd) {
+            let (title, fields) = t_rnd.embed_info();
+            let _ = t_rnd.message.edit(&cache, |m| m.set_embeds(safe_embeds(title, fields))).await;
+        }
     }
 
     pub async fn clear_round_data(&mut self, rnd: &RoundId, http: &Http) {
