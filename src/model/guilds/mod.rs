@@ -36,6 +36,7 @@ impl GuildTournRegistry {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_tourn(&self, name: &str) -> Option<&GuildTournament> {
         match self.tourns.len() {
             0 => None,
@@ -58,7 +59,7 @@ impl GuildTournRegistry {
         preset: TournamentPreset,
         name: String,
     ) -> bool {
-        match self.get_tourn(&name) {
+        match self.tourns.values().find(|t| t.tourn.name == name ) {
             Some(_) => false,
             None => match self.settings.create_tournament(tourn_role, preset, name) {
                 Some(tourn) => {
