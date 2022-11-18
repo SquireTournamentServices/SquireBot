@@ -1,5 +1,6 @@
 use std::{borrow::Cow, io::SeekFrom};
 
+use itertools::Itertools;
 use serenity::{
     builder::CreateEmbed,
     client::Context,
@@ -50,7 +51,19 @@ impl MessageContent {
             None => msg.reply(&ctx.http, "\u{200b}").await?,
         };
         if let Some(embeds) = self.embeds {
-            resp.edit(&ctx.http, |m| m.set_embeds(embeds)).await?;
+            let len = embeds.len();
+            let chunks = embeds.into_iter().chunks(10).into_iter().map(|c| c.into_iter().collect_vec()).collect_vec();
+            match len {
+                1 => {
+                    resp.edit(&ctx.http, |m| m.set_embeds(chunks.into_iter().next().unwrap())).await?;
+                }
+                _ => {
+                    for chunk in chunks.into_iter() {
+                        let mut resp = msg.reply(&ctx.http, "\u{200b}").await?;
+                        resp.edit(&ctx.http, |m| m.set_embeds(chunk)).await?;
+                    }
+                }
+            }
         }
         if let Some((filename, mut file)) = self.attachment {
             file.seek(SeekFrom::Start(0)).await.unwrap();
