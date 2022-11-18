@@ -52,10 +52,18 @@ impl MessageContent {
         };
         if let Some(embeds) = self.embeds {
             let len = embeds.len();
-            let chunks = embeds.into_iter().chunks(10).into_iter().map(|c| c.into_iter().collect_vec()).collect_vec();
+            let chunks = embeds
+                .into_iter()
+                .chunks(10)
+                .into_iter()
+                .map(|c| c.into_iter().collect_vec())
+                .collect_vec();
             match len {
                 1 => {
-                    resp.edit(&ctx.http, |m| m.set_embeds(chunks.into_iter().next().unwrap())).await?;
+                    resp.edit(&ctx.http, |m| {
+                        m.set_embeds(chunks.into_iter().next().unwrap())
+                    })
+                    .await?;
                 }
                 _ => {
                     for chunk in chunks.into_iter() {

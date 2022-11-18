@@ -157,7 +157,7 @@ async fn list(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
     let mut content = String::from("\u{200b}");
     for tourn in reg.tourns.values() {
-        writeln!(content, "{}", tourn.tourn.name);
+        writeln!(content, "{}", tourn.tourn.name)?;
     }
     msg.reply(&ctx.http, content).await?;
     Ok(())

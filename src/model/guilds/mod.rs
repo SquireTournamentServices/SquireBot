@@ -59,7 +59,7 @@ impl GuildTournRegistry {
         preset: TournamentPreset,
         name: String,
     ) -> bool {
-        match self.tourns.values().find(|t| t.tourn.name == name ) {
+        match self.tourns.values().find(|t| t.tourn.name == name) {
             Some(_) => false,
             None => match self.settings.create_tournament(tourn_role, preset, name) {
                 Some(tourn) => {

@@ -6,6 +6,7 @@ use dashmap::{
     DashMap,
 };
 
+#[allow(dead_code)]
 pub async fn spin<'a, A: Eq + Hash, B>(
     map: &'a DashMap<A, B>,
     key: &'a A,
@@ -20,6 +21,7 @@ pub async fn spin_mut<'a, A: Eq + Hash, B>(
     dur_spin_mut(map, key, Duration::from_millis(1)).await
 }
 
+#[allow(dead_code)]
 pub async fn dur_spin<'a, A: Eq + Hash, B>(
     map: &'a DashMap<A, B>,
     key: &'a A,
