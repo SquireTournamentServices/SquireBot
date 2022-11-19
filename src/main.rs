@@ -382,7 +382,7 @@ async fn after_command(
         }
         Err(why) => {
             let _ = sender.send((msg.id, LogAction::End(false, now)));
-            println!("Error on command: {command_name} with error {:?}", why);
+            eprintln!("Error on command: {command_name} with error {:?}", why);
         }
     }
 }

@@ -242,8 +242,8 @@ pub fn standings_embeds(
 ) -> Vec<CreateEmbed> {
     let mut embeds = Vec::with_capacity(10);
     let mut e = CreateEmbed(HashMap::new());
-    let mut name_buffer = String::with_capacity(1024);
-    let mut score_buffer = String::with_capacity(1024);
+    let mut name_buffer = String::with_capacity(FIELD_CAPACITY);
+    let mut score_buffer = String::with_capacity(FIELD_CAPACITY);
     for (i, (id, score)) in standings.scores.drain(0..).rev().enumerate() {
         let name = format!("{}) {}", i + 1, g_tourn.get_player_mention(&id).unwrap());
         let mut score_s = if score.include_match_points {
@@ -267,12 +267,12 @@ pub fn standings_embeds(
         } else {
             "".to_string()
         };
-        if name.len() + name_buffer.len() > 1024 || score_s.len() + score_buffer.len() > 1024 {
+        if name.len() + name_buffer.len() > FIELD_CAPACITY || score_s.len() + score_buffer.len() > FIELD_CAPACITY {
             e.field("Name:", name_buffer.clone(), true);
             e.field("Points | Win % | Opp. W. %", score_buffer.clone(), true);
             embeds.push(e);
             e = CreateEmbed(HashMap::new());
-            if embeds.len() == 10 {
+            if embeds.len() == 9 {
                 break;
             }
             name_buffer.clear();
@@ -283,7 +283,7 @@ pub fn standings_embeds(
         score_buffer += &score_s;
         score_buffer += "\n";
     }
-    if embeds.len() < 10 {
+    if embeds.len() < 9 {
         e.field("Name:", name_buffer.clone(), true);
         e.field("Points | Win % | Opp. W. %", score_buffer.clone(), true);
         embeds.push(e);
