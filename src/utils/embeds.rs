@@ -187,8 +187,9 @@ pub fn tournament_embed_info(
             .tourn
             .player_reg
             .players
-            .iter()
-            .filter(|(_, p)| p.decks.len() > g_tourn.tourn.min_deck_count as usize)
+            .values()
+            .filter(|p| p.can_play())
+            .filter(|p| p.decks.len() > g_tourn.tourn.min_deck_count as usize)
             .count();
         player_info.push(format!(
             "{} of them have registered at least the minimum number of decks.",
@@ -198,8 +199,9 @@ pub fn tournament_embed_info(
             .tourn
             .player_reg
             .players
-            .iter()
-            .filter(|(_, p)| p.decks.len() > g_tourn.tourn.max_deck_count as usize)
+            .values()
+            .filter(|p| p.can_play())
+            .filter(|p| p.decks.len() > g_tourn.tourn.max_deck_count as usize)
             .count();
         player_info.push(format!(
             "{} of them have registered more than the maximum number of decks.",
