@@ -50,6 +50,7 @@ pub fn op_to_content(op: &TournOp) -> &'static str {
                 "You have successfully marked that player as not ready to play!!"
             }
             TimeExtension(..) => "You have successfully given that match a time extension!!",
+            ConfirmRound(..) => "You have successfully confirm the results of that round!!",
         },
         TournOp::AdminOp(_, op) => match op {
             UpdateReg(..) => "You have successfully updated the registration status!!",
@@ -68,7 +69,7 @@ pub fn op_to_content(op: &TournOp) -> &'static str {
             UpdateTournSetting(..) => "You have successfully updated that tournament setting!!",
             GiveBye(..) => "You have successfully given a bye to that player!!",
             CreateRound(..) => "You have successfully created a match for those players!!",
-            PairRound => "You have successfully paired the next round!!",
+            PairRound(_) => "You have successfully paired the next round!!",
             Cut(..) => "You have successfully such to the top of the tournament!!",
             PruneDecks => "You have successfully pruned excess decks from players!!",
             PrunePlayers => "You have successfully pruned excess players!!",
@@ -89,7 +90,6 @@ pub fn error_to_content(err: TournamentError) -> &'static str {
         IncorrectRoundStatus(s) => match s {
             Open => "That round is active.",
             Certified => "That round is certified.",
-            Uncertified => "That round is partial certified.",
             Dead => "That round has been removed.",
         },
         RoundConfirmed => "That round has already been certified.",

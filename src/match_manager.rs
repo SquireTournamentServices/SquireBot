@@ -92,7 +92,7 @@ impl MatchManager {
                 }
                 DropPlayer(p_id) => {
                     if let Some(m) = self.matches.get_mut(&update.id) {
-                        m.round.round.remove_player(p_id);
+                        m.round.round.drop_player(&p_id);
                     }
                 }
                 MatchCancelled => {

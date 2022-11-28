@@ -1,6 +1,7 @@
 use std::{collections::HashMap, error::Error, io::Write, sync::Arc, time::Duration};
 
 use chrono::Utc;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use tempfile::tempfile;
 
@@ -1412,17 +1413,40 @@ impl GuildTournament {
         caller_id: UserId,
     ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
-        let confirm = PairRoundConfirmation {
-            tourn_id: self.tourn.id,
-        };
-        ctx.data
-            .read()
-            .await
-            .get::<ConfirmationsContainer>()
-            .unwrap()
-            .insert(caller_id, Box::new(confirm));
-        digest.with_str("You are about to pair the next round of the tournament. Are you sure you want to? (!yes or !no)");
-        self.update_status(ctx).await;
+        if let Some(pairings) = self.tourn.create_pairings() {
+            let fields = pairings
+                .paired
+                .iter()
+                .enumerate()
+                .map(|(i, plyrs)| {
+                    (
+                        format!("Pairing #{}", i + 1),
+                        plyrs.iter().map(|p| self.get_player_mention(p).unwrap()).collect_vec(),
+                        "\n",
+                        false,
+                    )
+                })
+                .chain([(
+                    "Byes:".to_owned(),
+                    pairings.rejected.iter().map(|p| self.get_player_mention(p).unwrap()).collect_vec(),
+                    "\n",
+                    false,
+                )]);
+            digest.with_embeds(safe_embeds("Next Round Pairings:".into(), fields));
+            let confirm = PairRoundConfirmation {
+                tourn_id: self.tourn.id,
+                pairings,
+            };
+            ctx.data
+                .read()
+                .await
+                .get::<ConfirmationsContainer>()
+                .unwrap()
+                .insert(caller_id, Box::new(confirm));
+            digest.with_str("You are about to pair the next round of the tournament. Here are the pairings. Are you sure you want to pair? (!yes or !no)");
+        } else {
+            digest.with_str("No new pairings could be created!!");
+        }
         Ok(digest)
     }
 

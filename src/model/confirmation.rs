@@ -5,7 +5,7 @@ use serenity::{
 
 use squire_lib::{
     identifiers::TournamentId,
-    operations::{AdminOp::*, OpData, TournOp},
+    operations::{AdminOp::*, OpData, TournOp}, pairings::Pairings,
 };
 
 use crate::{
@@ -226,6 +226,7 @@ impl Confirmation for PruneDecksConfirmation {
 
 pub struct PairRoundConfirmation {
     pub tourn_id: TournamentId,
+    pub pairings: Pairings,
 }
 
 #[async_trait]
@@ -244,7 +245,7 @@ impl Confirmation for PairRoundConfirmation {
         let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
         match tourn
             .tourn
-            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PairRound))
+            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PairRound(self.pairings.clone())))
         {
             Err(err) => {
                 msg.reply(&ctx.http, error_to_content(err)).await?;
