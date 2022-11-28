@@ -240,11 +240,18 @@ impl GuildTournament {
         number: u64,
     ) {
         let mut g_rnd = GuildRoundData::default();
-        let mut mention = format!("Match #{number}");
         let round = self.tourn.get_round(&(*rnd).into()).unwrap();
         if round.is_bye() {
+            let mention = self.get_player_mention(&round.players[0]).unwrap();
+            let message = self
+                .pairings_channel
+                .send_message(&cache, |m| {
+                    m.content(format!("{mention} you have been given a bye!!"))
+                })
+                .await
+                .ok();
             let gr = GuildRoundData {
-                message: None,
+                message,
                 vc: None,
                 tc: None,
                 role: None,
@@ -257,6 +264,7 @@ impl GuildTournament {
             self.guild_rounds.insert(*rnd, gr);
             return ();
         }
+        let mut mention = format!("Match #{number}");
         if let Ok(role) = gld
             .create_role(cache, |r| {
                 r.mentionable(true).name(format!("Match {}", number))
