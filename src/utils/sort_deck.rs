@@ -100,6 +100,15 @@ impl TypeSortedDeck {
         bool,
     )> {
         let mut digest = Vec::with_capacity(10);
+        if !self.commanders.is_empty() {
+            digest.push((
+                format!("Commander ({}):", self.count_lands()),
+                Box::new(self.commanders.iter().cloned())
+                    as Box<dyn Iterator<Item = String> + Send + 'a>,
+                "\n",
+                true,
+            ));
+        }
         if !self.lands.is_empty() {
             digest.push((
                 format!("Land ({}):", self.count_lands()),
