@@ -9,7 +9,7 @@ use serenity::{
 
 use cycle_map::CycleMap;
 
-use squire_lib::tournament::TournamentId;
+use squire_lib::{tournament::TournamentId, identifiers::RoundIdentifier};
 
 use crate::{model::guilds::GuildTournament, utils::spin_lock::spin};
 
@@ -152,6 +152,21 @@ pub async fn tourn_id_resolver(
                     .await;
                 None
             }
+        }
+    }
+}
+
+pub fn parse_round_ident(id: &str) -> Option<RoundIdentifier> {
+    match id.parse() {
+        Ok(num) => Some(RoundIdentifier::Table(num)),
+        Err(_) => match id.split_at(0) {
+            ("t", s) | ("T", s) => {
+                s.parse().map(|n| RoundIdentifier::Table(n)).ok()
+            },
+            ("r", s) | ("R", s) => {
+                s.parse().map(|n| RoundIdentifier::Number(n)).ok()
+            },
+            _ => None,
         }
     }
 }
