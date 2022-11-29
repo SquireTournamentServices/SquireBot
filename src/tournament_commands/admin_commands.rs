@@ -110,6 +110,16 @@ async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> Command
     .await
 }
 
+#[command("open-matches")]
+#[only_in(guild)]
+#[allowed_roles("Judge", "Tournament Admin")]
+#[usage("[tournament name]")]
+#[description("Pulls up a list of open matches")]
+async fn open_matches(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let tourn_name = args.rest().trim().to_string();
+    admin_command_without_player(ctx, msg, tourn_name, move |_| OpenMatches).await
+}
+
 #[command("confirm-all")]
 #[only_in(guild)]
 #[allowed_roles("Tournament Admin")]

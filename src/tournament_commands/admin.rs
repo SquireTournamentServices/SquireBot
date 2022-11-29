@@ -41,6 +41,7 @@ use super::admin_commands::*;
     deck_check,
     deck_dump,
     confirm_all,
+    open_matches,
     export_tournament
 )]
 #[usage("<option>")]

@@ -68,6 +68,7 @@ pub enum GuildTournamentAction {
     ViewPlayerDecks(PlayerIdentifier),
     ViewPlayerProfile(PlayerIdentifier),
     ViewAllPlayers,
+    OpenMatches,
     CreateStandings(Arc<GuildChannel>),
     CreateTournamentStatus(Arc<GuildChannel>),
     ViewMatchStatus(RoundIdentifier),
@@ -439,6 +440,7 @@ impl GuildTournament {
             RecordResult(p_ident, result) => self.record_result(ctx, p_ident, result).await,
             ConfirmResult(p_ident) => self.confirm_result(ctx, p_ident).await,
             ConfirmAll => self.confirm_all(ctx).await,
+            OpenMatches => self.open_matches().await,
             AdminRecordResult(r_ident, result) => {
                 self.admin_record_result(ctx, r_ident, result).await
             }
@@ -955,6 +957,16 @@ impl GuildTournament {
                 );
             }
         }
+        Ok(digest)
+    }
+    
+    async fn open_matches(
+        &mut self,
+    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+        let mut digest = MessageContent::empty();
+        digest.with_str("Here you go!!");
+        let rnds = self.tourn.round_reg.rounds.values().filter_map(|r| r.is_active().then_some(r.match_number));
+        digest.with_embeds(safe_embeds("Open Matches".to_owned(), [("Rounds:".to_owned(), rnds, "\n", false)]));
         Ok(digest)
     }
 
