@@ -269,7 +269,9 @@ pub fn standings_embeds(
         } else {
             "".to_string()
         };
-        if name.len() + name_buffer.len() > FIELD_CAPACITY || score_s.len() + score_buffer.len() > FIELD_CAPACITY {
+        if name.len() + name_buffer.len() > FIELD_CAPACITY
+            || score_s.len() + score_buffer.len() > FIELD_CAPACITY
+        {
             e.field("Name:", name_buffer.clone(), true);
             e.field("Points | Win % | Opp. W. %", score_buffer.clone(), true);
             embeds.push(e);

@@ -5,7 +5,8 @@ use serenity::{
 
 use squire_lib::{
     identifiers::TournamentId,
-    operations::{AdminOp::*, OpData, TournOp}, pairings::Pairings,
+    operations::{AdminOp::*, OpData, TournOp},
+    pairings::Pairings,
 };
 
 use crate::{
@@ -243,10 +244,10 @@ impl Confirmation for PairRoundConfirmation {
         let g_id = msg.guild_id.unwrap();
         let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
         let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
-        match tourn
-            .tourn
-            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PairRound(self.pairings.clone())))
-        {
+        match tourn.tourn.apply_op(
+            Utc::now(),
+            TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PairRound(self.pairings.clone())),
+        ) {
             Err(err) => {
                 msg.reply(&ctx.http, error_to_content(err)).await?;
             }

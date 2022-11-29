@@ -25,7 +25,9 @@ use crate::{
         guilds::GuildTournamentAction::{self, *},
     },
     utils::{
-        default_response::subcommand_default, id_resolver::{user_id_resolver, parse_round_ident}, spin_lock::spin_mut,
+        default_response::subcommand_default,
+        id_resolver::{parse_round_ident, user_id_resolver},
+        spin_lock::spin_mut,
     },
 };
 
@@ -95,7 +97,12 @@ async fn confirm_result(ctx: &Context, msg: &Message, mut args: Args) -> Command
             return Ok(());
         }
     };
-    let r_ident = match args.single::<String>().ok().map(|s| parse_round_ident(s.as_str())).flatten() {
+    let r_ident = match args
+        .single::<String>()
+        .ok()
+        .map(|s| parse_round_ident(s.as_str()))
+        .flatten()
+    {
         Some(id) => id,
         None => {
             msg.reply(&ctx.http, "Please include the match number.")
@@ -309,7 +316,12 @@ async fn match_result(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             return Ok(());
         }
     };
-    let r_ident = match args.single::<String>().ok().map(|s| parse_round_ident(s.as_str())).flatten() {
+    let r_ident = match args
+        .single::<String>()
+        .ok()
+        .map(|s| parse_round_ident(s.as_str()))
+        .flatten()
+    {
         Some(id) => id,
         None => {
             msg.reply(
@@ -511,7 +523,12 @@ async fn thaw(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[example("10")]
 #[description("Prints an embed of the status of a match.")]
 async fn match_status(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let r_ident = match args.single::<String>().ok().map(|s| parse_round_ident(s.as_str())).flatten() {
+    let r_ident = match args
+        .single::<String>()
+        .ok()
+        .map(|s| parse_round_ident(s.as_str()))
+        .flatten()
+    {
         Some(id) => id,
         None => {
             msg.reply(
@@ -641,7 +658,12 @@ async fn registration(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[example("10")]
 #[description("Adds a match from the tournament.")]
 async fn remove_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let r_ident = match args.single::<String>().ok().map(|s| parse_round_ident(s.as_str())).flatten() {
+    let r_ident = match args
+        .single::<String>()
+        .ok()
+        .map(|s| parse_round_ident(s.as_str()))
+        .flatten()
+    {
         Some(id) => id,
         None => {
             msg.reply(
@@ -763,7 +785,12 @@ async fn status(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[example("10, 5")]
 #[description("Give a match a time extenstion.")]
 async fn time_extension(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let r_ident = match args.single::<String>().ok().map(|s| parse_round_ident(s.as_str())).flatten() {
+    let r_ident = match args
+        .single::<String>()
+        .ok()
+        .map(|s| parse_round_ident(s.as_str()))
+        .flatten()
+    {
         Some(id) => id,
         None => {
             msg.reply(
@@ -786,10 +813,7 @@ async fn time_extension(ctx: &Context, msg: &Message, mut args: Args) -> Command
         }
     };
     let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| {
-        TimeExtension(r_ident, ext)
-    })
-    .await
+    admin_command_without_player(ctx, msg, tourn_name, move |_| TimeExtension(r_ident, ext)).await
 }
 
 #[command("create-match")]
@@ -816,7 +840,12 @@ async fn create_match(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[example("10")]
 #[description("Prints out all decks from all players in a match.")]
 async fn deck_check(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let r_ident = match args.single::<String>().ok().map(|s| parse_round_ident(s.as_str())).flatten() {
+    let r_ident = match args
+        .single::<String>()
+        .ok()
+        .map(|s| parse_round_ident(s.as_str()))
+        .flatten()
+    {
         Some(id) => id,
         None => {
             msg.reply(

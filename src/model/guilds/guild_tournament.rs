@@ -959,14 +959,20 @@ impl GuildTournament {
         }
         Ok(digest)
     }
-    
-    async fn open_matches(
-        &mut self,
-    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
+
+    async fn open_matches(&mut self) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
         let mut digest = MessageContent::empty();
         digest.with_str("Here you go!!");
-        let rnds = self.tourn.round_reg.rounds.values().filter_map(|r| r.is_active().then_some(r.match_number));
-        digest.with_embeds(safe_embeds("Open Matches".to_owned(), [("Rounds:".to_owned(), rnds, "\n", false)]));
+        let rnds = self
+            .tourn
+            .round_reg
+            .rounds
+            .values()
+            .filter_map(|r| r.is_active().then_some(r.match_number));
+        digest.with_embeds(safe_embeds(
+            "Open Matches".to_owned(),
+            [("Rounds:".to_owned(), rnds, "\n", false)],
+        ));
         Ok(digest)
     }
 
@@ -1441,14 +1447,21 @@ impl GuildTournament {
                 .map(|(i, plyrs)| {
                     (
                         format!("Pairing #{}", i + 1),
-                        plyrs.iter().map(|p| self.get_player_mention(p).unwrap()).collect_vec(),
+                        plyrs
+                            .iter()
+                            .map(|p| self.get_player_mention(p).unwrap())
+                            .collect_vec(),
                         "\n",
                         false,
                     )
                 })
                 .chain([(
                     "Byes:".to_owned(),
-                    pairings.rejected.iter().map(|p| self.get_player_mention(p).unwrap()).collect_vec(),
+                    pairings
+                        .rejected
+                        .iter()
+                        .map(|p| self.get_player_mention(p).unwrap())
+                        .collect_vec(),
                     "\n",
                     false,
                 )]);
