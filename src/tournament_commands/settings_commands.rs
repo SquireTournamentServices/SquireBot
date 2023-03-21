@@ -6,7 +6,7 @@ use serenity::{
     prelude::*,
 };
 
-use squire_lib::{pairings::PairingAlgorithm, settings::TournamentSetting};
+use squire_lib::{pairings::PairingAlgorithm, settings::TournamentSetting, r64};
 
 use crate::{
     model::{containers::GuildTournRegistryMapContainer, guilds::SquireTournamentSetting},
@@ -478,7 +478,7 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(n) => {
             let setting = ScoringSetting(Standard(ByePoints(n))).into();
             settings_command(ctx, msg, setting, args.rest().trim().to_string()).await

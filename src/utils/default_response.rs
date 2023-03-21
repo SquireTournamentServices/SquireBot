@@ -18,9 +18,6 @@ pub async fn subcommand_default(ctx: &Context, msg: &Message, cmd: &str) -> Comm
 
 pub fn op_to_content(op: &TournOp) -> &'static str {
     match op {
-        TournOp::Create(..) => {
-            unreachable!("You shouldn't be creating a tournament this way");
-        }
         TournOp::RegisterPlayer(..) => "You have been successfully registered!!",
         TournOp::PlayerOp(_, op) => match op {
             CheckIn => "You successfully checked in!!",
