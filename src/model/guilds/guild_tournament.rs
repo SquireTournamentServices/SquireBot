@@ -872,7 +872,7 @@ impl GuildTournament {
                 return Ok(digest);
             }
         };
-        let op = TournOp::PlayerOp(p_id, RecordResult(result.clone()));
+        let op = TournOp::PlayerOp(p_id, RecordResult(self.tourn.round_reg.get_player_active_round(&p_id).unwrap().id, result.clone()));
         match self.tourn.apply_op(Utc::now(), op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
