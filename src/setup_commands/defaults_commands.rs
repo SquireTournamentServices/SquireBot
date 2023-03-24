@@ -9,6 +9,7 @@ use serenity::{
 use squire_lib::{
     pairings::PairingAlgorithm,
     settings::{PairingSetting, TournamentSetting},
+    r64
 };
 
 use crate::{
@@ -670,7 +671,7 @@ async fn standard(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(val) => {
             let tourn_regs = data
                 .get::<GuildTournRegistryMapContainer>()
@@ -701,7 +702,7 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(val) => {
             let tourn_regs = data
                 .get::<GuildTournRegistryMapContainer>()
@@ -732,7 +733,7 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(val) => {
             let tourn_regs = data
                 .get::<GuildTournRegistryMapContainer>()
@@ -763,7 +764,7 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(val) => {
             let tourn_regs = data
                 .get::<GuildTournRegistryMapContainer>()
@@ -794,7 +795,7 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(val) => {
             let tourn_regs = data
                 .get::<GuildTournRegistryMapContainer>()
@@ -825,7 +826,7 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(val) => {
             let tourn_regs = data
                 .get::<GuildTournRegistryMapContainer>()
@@ -858,7 +859,7 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
     let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(val) => {
             let tourn_regs = data
                 .get::<GuildTournRegistryMapContainer>()

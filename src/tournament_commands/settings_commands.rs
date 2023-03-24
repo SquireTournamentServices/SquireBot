@@ -328,7 +328,7 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(n) => {
             let setting = ScoringSetting(Standard(MatchWinPoints(n))).into();
             settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
@@ -353,7 +353,7 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(n) => {
             let setting = ScoringSetting(Standard(MatchDrawPoints(n))).into();
             settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
@@ -378,7 +378,7 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(n) => {
             let setting = ScoringSetting(Standard(MatchLossPoints(n))).into();
             settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
@@ -403,7 +403,7 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(n) => {
             let setting = ScoringSetting(Standard(GameWinPoints(n))).into();
             settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
@@ -428,7 +428,7 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(n) => {
             let setting = ScoringSetting(Standard(GameDrawPoints(n))).into();
             settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
@@ -453,7 +453,7 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
+    match args.single_quoted::<r64>() {
         Ok(n) => {
             let setting = ScoringSetting(Standard(GameLossPoints(n))).into();
             settings_command(ctx, msg, setting, args.rest().trim().to_string()).await

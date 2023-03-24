@@ -23,7 +23,7 @@ pub fn op_to_content(op: &TournOp) -> &'static str {
             CheckIn => "You successfully checked in!!",
             DropPlayer => "You have been successfully dropped!!",
             RecordResult(..) => "Your result was successfully recorded!!",
-            ConfirmResult => "You have successfully confirmed the result of your match!!",
+            ConfirmResult(..) => "You have successfully confirmed the result of your match!!",
             AddDeck(..) => "You have successfully registered a deck!!",
             RemoveDeck(..) => "You have successfully removed a deck!!",
             SetGamerTag(..) => "You have successfully set your gamer tag!!",
@@ -92,7 +92,7 @@ pub fn error_to_content(err: TournamentError) -> &'static str {
         RoundConfirmed => "That round has already been certified.",
         InvalidDeckCount => "The minimum deck count must be less than the maximum count.",
         OfficalLookup => "That person could not be found as an official.",
-        RegClosed => "Registertion is closed for that tournament.",
+        RegClosed => "Registration is closed for that tournament.",
         PlayerNotFound => "That person is not a player in that tournament.",
         PlayerAlreadyRegistered => "That person is already registered for that tournament.",
         RoundLookup => "That round could not be found.",
@@ -111,5 +111,6 @@ pub fn error_to_content(err: TournamentError) -> &'static str {
         NoMatchResult => {
             "At least one match still has no match results, so the confirmation could not occur."
         }
+        MaxDecksReached => "Reached the maximum amount of decks.",
     }
 }
