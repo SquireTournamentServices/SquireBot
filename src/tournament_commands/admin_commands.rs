@@ -568,7 +568,7 @@ async fn view_players(ctx: &Context, msg: &Message, args: Args) -> CommandResult
 
 #[command("prune")]
 #[only_in(guild)]
-#[sub_commands(players, decks)]
+#[sub_commands(players)]
 #[allowed_roles("Tournament Admin")]
 #[usage("<option>")]
 #[description(
@@ -586,16 +586,6 @@ async fn prune(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 async fn players(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let tourn_name = args.rest().trim().to_string();
     admin_command_without_player(ctx, msg, tourn_name, move |_| PrunePlayers(msg.author.id)).await
-}
-
-#[command("decks")]
-#[only_in(guild)]
-#[allowed_roles("Tournament Admin")]
-#[usage("[tournament name]")]
-#[description("Removes decks from players that have them in excess.")]
-async fn decks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let tourn_name = args.rest().trim().to_string();
-    admin_command_without_player(ctx, msg, tourn_name, move |_| PruneDecks(msg.author.id)).await
 }
 
 #[command("raw-standings")]

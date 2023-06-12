@@ -187,44 +187,6 @@ impl Confirmation for PrunePlayersConfirmation {
     }
 }
 
-pub struct PruneDecksConfirmation {
-    pub tourn_id: TournamentId,
-}
-
-#[async_trait]
-impl Confirmation for PruneDecksConfirmation {
-    async fn execute(&mut self, ctx: &Context, msg: &Message) -> CommandResult {
-        let data = ctx.data.read().await;
-        let logger = data.get::<LogActionSenderContainer>().unwrap();
-        let _ = logger.send((msg.id, LogAction::Info("Pruning decks")));
-        let tourn_regs = data
-            .get::<GuildTournRegistryMapContainer>()
-            .unwrap()
-            .read()
-            .await;
-        let g_id = msg.guild_id.unwrap();
-        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-        let tourn = reg.tourns.get_mut(&self.tourn_id).unwrap();
-        if let Err(err) = tourn
-            .tourn
-            .apply_op(Utc::now(), TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, PruneDecks))
-        {
-            msg.reply(&ctx.http, error_to_content(err)).await?;
-        } else {
-            tourn.update_status(ctx).await;
-            msg.reply(
-                &ctx.http,
-                format!(
-                    "Players that registered too many decks now have at most {}!",
-                    tourn.tourn.max_deck_count
-                ),
-            )
-            .await?;
-        }
-        Ok(())
-    }
-}
-
 pub struct PairRoundConfirmation {
     pub tourn_id: TournamentId,
     pub pairings: Pairings,

@@ -18,15 +18,12 @@ pub async fn subcommand_default(ctx: &Context, msg: &Message, cmd: &str) -> Comm
 
 pub fn op_to_content(op: &TournOp) -> &'static str {
     match op {
-        TournOp::Create(..) => {
-            unreachable!("You shouldn't be creating a tournament this way");
-        }
         TournOp::RegisterPlayer(..) => "You have been successfully registered!!",
         TournOp::PlayerOp(_, op) => match op {
             CheckIn => "You successfully checked in!!",
             DropPlayer => "You have been successfully dropped!!",
             RecordResult(..) => "Your result was successfully recorded!!",
-            ConfirmResult => "You have successfully confirmed the result of your match!!",
+            ConfirmResult(..) => "You have successfully confirmed the result of your match!!",
             AddDeck(..) => "You have successfully registered a deck!!",
             RemoveDeck(..) => "You have successfully removed a deck!!",
             SetGamerTag(..) => "You have successfully set your gamer tag!!",
@@ -71,7 +68,6 @@ pub fn op_to_content(op: &TournOp) -> &'static str {
             CreateRound(..) => "You have successfully created a match for those players!!",
             PairRound(_) => "You have successfully paired the next round!!",
             Cut(..) => "You have successfully such to the top of the tournament!!",
-            PruneDecks => "You have successfully pruned excess decks from players!!",
             PrunePlayers => "You have successfully pruned excess players!!",
             ConfirmAllRounds => "You have successfully confirmed all the active rounds!!",
         },
@@ -114,5 +110,6 @@ pub fn error_to_content(err: TournamentError) -> &'static str {
         NoMatchResult => {
             "At least one match still has no match results, so the confirmation could not occur."
         }
+        MaxDecksReached => "This player has already reached maximum number of decks.",
     }
 }

@@ -608,7 +608,7 @@ async fn main() {
     tokio::spawn(async move {
         let loop_length = time::Duration::from_secs(5);
         let tomorrow = Utc::now().date_naive() + Duration::hours(24);
-        let midnight = NaiveTime::from_hms(0, 0, 0);
+        let midnight = NaiveTime::from_hms_opt(0, 0, 0).unwrap();
         let mut report_time = tomorrow.and_time(midnight).and_local_timezone(Utc).unwrap();
         loop {
             let timer = Instant::now();
