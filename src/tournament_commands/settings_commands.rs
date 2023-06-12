@@ -1,5 +1,6 @@
 use std::{str::FromStr, time::Duration};
 
+use num_rational::Rational32;
 use serenity::{
     framework::standard::{macros::command, Args, CommandError, CommandResult},
     model::{mention::Mention, prelude::*},
@@ -328,17 +329,17 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
-        Ok(n) => {
-            let setting = ScoringSetting(Standard(MatchWinPoints(n))).into();
-            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
-                .await?;
-            Ok(())
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let setting = ScoringSetting(Standard(MatchWinPoints(val))).into();
+        return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
+    msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
+        .await?;
+    Ok(())
 }
 
 #[command]
@@ -353,17 +354,17 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
-        Ok(n) => {
-            let setting = ScoringSetting(Standard(MatchDrawPoints(n))).into();
-            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
-                .await?;
-            Ok(())
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let setting = ScoringSetting(Standard(MatchDrawPoints(val))).into();
+        return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
+    msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
+        .await?;
+    Ok(())
 }
 
 #[command]
@@ -378,17 +379,17 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
-        Ok(n) => {
-            let setting = ScoringSetting(Standard(MatchLossPoints(n))).into();
-            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
-                .await?;
-            Ok(())
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let setting = ScoringSetting(Standard(MatchLossPoints(val))).into();
+        return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
+    msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
+        .await?;
+    Ok(())
 }
 
 #[command]
@@ -403,17 +404,17 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
-        Ok(n) => {
-            let setting = ScoringSetting(Standard(GameWinPoints(n))).into();
-            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
-                .await?;
-            return Ok(());
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let setting = ScoringSetting(Standard(GameWinPoints(val))).into();
+        return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
+    msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
+        .await?;
+    Ok(())
 }
 
 #[command]
@@ -428,17 +429,17 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
-        Ok(n) => {
-            let setting = ScoringSetting(Standard(GameDrawPoints(n))).into();
-            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
-                .await?;
-            Ok(())
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let setting = ScoringSetting(Standard(GameDrawPoints(val))).into();
+        return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
+    msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
+        .await?;
+    Ok(())
 }
 
 #[command]
@@ -453,17 +454,17 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
-        Ok(n) => {
-            let setting = ScoringSetting(Standard(GameLossPoints(n))).into();
-            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
-                .await?;
-            Ok(())
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let setting = ScoringSetting(Standard(GameLossPoints(val))).into();
+        return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
+    msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
+        .await?;
+    Ok(())
 }
 
 #[command]
@@ -478,17 +479,17 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     use squire_lib::settings::{
         ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
     };
-    match args.single_quoted::<f64>() {
-        Ok(n) => {
-            let setting = ScoringSetting(Standard(ByePoints(n))).into();
-            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
-                .await?;
-            Ok(())
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let setting = ScoringSetting(Standard(ByePoints(val))).into();
+        return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
+    msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
+        .await?;
+    Ok(())
 }
 
 #[command]

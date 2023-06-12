@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use num_rational::Rational32;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::{mention::Mention, prelude::*},
@@ -669,24 +670,25 @@ async fn standard(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[description("Adjusts the default number of points that winning a match is worth (can be any decimal number).")]
 async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
-    let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
-        Ok(val) => {
-            let tourn_regs = data
-                .get::<GuildTournRegistryMapContainer>()
-                .unwrap()
-                .read()
-                .await;
-            let g_id = msg.guild_id.unwrap();
-            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings
-                .tourn_settings
-                .update_setting(MatchWinPoints(val).into());
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number.").await?;
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let data = ctx.data.read().await;
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
+            .unwrap()
+            .read()
+            .await;
+        let g_id = msg.guild_id.unwrap();
+        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        reg.settings
+            .tourn_settings
+            .update_setting(MatchWinPoints(val).into());
+        return Ok(());
     }
+    msg.reply(&ctx.http, "Please specify a number.").await?;
     Ok(())
 }
 
@@ -700,24 +702,25 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[description("Adjusts the default number of points that drawing a match is worth (can be any decimal number).")]
 async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
-    let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
-        Ok(val) => {
-            let tourn_regs = data
-                .get::<GuildTournRegistryMapContainer>()
-                .unwrap()
-                .read()
-                .await;
-            let g_id = msg.guild_id.unwrap();
-            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings
-                .tourn_settings
-                .update_setting(MatchDrawPoints(val).into());
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number.").await?;
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let data = ctx.data.read().await;
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
+            .unwrap()
+            .read()
+            .await;
+        let g_id = msg.guild_id.unwrap();
+        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        reg.settings
+            .tourn_settings
+            .update_setting(MatchDrawPoints(val).into());
+        return Ok(());
     }
+    msg.reply(&ctx.http, "Please specify a number.").await?;
     Ok(())
 }
 
@@ -731,24 +734,25 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 #[description("Adjusts the default number of points that lossing a match is worth (can be any decimal number).")]
 async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
-    let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
-        Ok(val) => {
-            let tourn_regs = data
-                .get::<GuildTournRegistryMapContainer>()
-                .unwrap()
-                .read()
-                .await;
-            let g_id = msg.guild_id.unwrap();
-            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings
-                .tourn_settings
-                .update_setting(MatchLossPoints(val).into());
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number.").await?;
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let data = ctx.data.read().await;
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
+            .unwrap()
+            .read()
+            .await;
+        let g_id = msg.guild_id.unwrap();
+        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        reg.settings
+            .tourn_settings
+            .update_setting(MatchLossPoints(val).into());
+        return Ok(());
     }
+    msg.reply(&ctx.http, "Please specify a number.").await?;
     Ok(())
 }
 
@@ -762,24 +766,25 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 #[description("Adjusts the default number of points that drawing a game is worth (can be any decimal number).")]
 async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
-    let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
-        Ok(val) => {
-            let tourn_regs = data
-                .get::<GuildTournRegistryMapContainer>()
-                .unwrap()
-                .read()
-                .await;
-            let g_id = msg.guild_id.unwrap();
-            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings
-                .tourn_settings
-                .update_setting(GameWinPoints(val).into());
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number.").await?;
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let data = ctx.data.read().await;
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
+            .unwrap()
+            .read()
+            .await;
+        let g_id = msg.guild_id.unwrap();
+        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        reg.settings
+            .tourn_settings
+            .update_setting(GameWinPoints(val).into());
+        return Ok(());
     }
+    msg.reply(&ctx.http, "Please specify a number.").await?;
     Ok(())
 }
 
@@ -793,24 +798,25 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[description("Adjusts the default number of points that drawing a game is worth (can be any decimal number).")]
 async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
-    let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
-        Ok(val) => {
-            let tourn_regs = data
-                .get::<GuildTournRegistryMapContainer>()
-                .unwrap()
-                .read()
-                .await;
-            let g_id = msg.guild_id.unwrap();
-            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings
-                .tourn_settings
-                .update_setting(GameDrawPoints(val).into());
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number.").await?;
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let data = ctx.data.read().await;
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
+            .unwrap()
+            .read()
+            .await;
+        let g_id = msg.guild_id.unwrap();
+        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        reg.settings
+            .tourn_settings
+            .update_setting(GameDrawPoints(val).into());
+        return Ok(());
     }
+    msg.reply(&ctx.http, "Please specify a number.").await?;
     Ok(())
 }
 
@@ -824,24 +830,25 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[description("Adjusts the default number of points that lossing a game is worth (can be any decimal number).")]
 async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
-    let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
-        Ok(val) => {
-            let tourn_regs = data
-                .get::<GuildTournRegistryMapContainer>()
-                .unwrap()
-                .read()
-                .await;
-            let g_id = msg.guild_id.unwrap();
-            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings
-                .tourn_settings
-                .update_setting(GameLossPoints(val).into());
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number.").await?;
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let data = ctx.data.read().await;
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
+            .unwrap()
+            .read()
+            .await;
+        let g_id = msg.guild_id.unwrap();
+        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        reg.settings
+            .tourn_settings
+            .update_setting(GameLossPoints(val).into());
+        return Ok(());
     }
+    msg.reply(&ctx.http, "Please specify a number.").await?;
     Ok(())
 }
 
@@ -857,24 +864,25 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 )]
 async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     use squire_lib::settings::StandardScoringSetting::*;
-    let data = ctx.data.read().await;
-    match args.single_quoted::<f64>() {
-        Ok(val) => {
-            let tourn_regs = data
-                .get::<GuildTournRegistryMapContainer>()
-                .unwrap()
-                .read()
-                .await;
-            let g_id = msg.guild_id.unwrap();
-            let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings
-                .tourn_settings
-                .update_setting(ByePoints(val).into());
-        }
-        Err(_) => {
-            msg.reply(&ctx.http, "Please specify a number.").await?;
-        }
+    if let Some(val) = args
+        .single_quoted::<f64>()
+        .ok()
+        .and_then(Rational32::approximate_float)
+    {
+        let data = ctx.data.read().await;
+        let tourn_regs = data
+            .get::<GuildTournRegistryMapContainer>()
+            .unwrap()
+            .read()
+            .await;
+        let g_id = msg.guild_id.unwrap();
+        let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
+        reg.settings
+            .tourn_settings
+            .update_setting(ByePoints(val).into());
+        return Ok(());
     }
+    msg.reply(&ctx.http, "Please specify a number.").await?;
     Ok(())
 }
 

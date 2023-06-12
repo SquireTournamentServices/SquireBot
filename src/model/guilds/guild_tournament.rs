@@ -36,7 +36,7 @@ use crate::{
     model::{
         confirmation::{
             CancelTournamentConfirmation, CutToTopConfirmation, EndTournamentConfirmation,
-            PairRoundConfirmation, PruneDecksConfirmation, PrunePlayersConfirmation,
+            PairRoundConfirmation, PrunePlayersConfirmation,
         },
         consts::SQUIRE_ACCOUNT_ID,
         containers::{ConfirmationsContainer, MatchUpdateSenderContainer},
@@ -78,7 +78,6 @@ pub enum GuildTournamentAction {
     // Wrappers for tournament operations
     RemoveMatch(RoundIdentifier),
     PrunePlayers(UserId),
-    PruneDecks(UserId),
     End(UserId),
     Cancel(UserId),
     Cut(UserId, usize),
@@ -448,7 +447,6 @@ impl GuildTournament {
                 self.admin_confirm_result(ctx, r_ident, p_ident).await
             }
             DropPlayer(p_ident) => self.drop_player(ctx, p_ident).await,
-            PruneDecks(caller_id) => self.prune_decks(ctx, caller_id).await,
             PrunePlayers(caller_id) => self.prune_players(ctx, caller_id).await,
             End(caller_id) => self.action_end(ctx, caller_id).await,
             Cancel(caller_id) => self.action_cancel(ctx, caller_id).await,
@@ -769,32 +767,6 @@ impl GuildTournament {
         Ok(digest)
     }
 
-    async fn prune_decks(
-        &mut self,
-        ctx: &Context,
-        caller_id: UserId,
-    ) -> Result<MessageContent, Box<dyn Error + Send + Sync>> {
-        let mut digest = MessageContent::empty();
-        let confirm = PruneDecksConfirmation {
-            tourn_id: self.tourn.id,
-        };
-        ctx.data
-            .read()
-            .await
-            .get::<ConfirmationsContainer>()
-            .unwrap()
-            .insert(caller_id, Box::new(confirm));
-        let content = if self.tourn.require_deck_reg {
-            let max = self.tourn.max_deck_count;
-            format!("Prune players' decks. After this, every player will have at most {max} decks. Are you sure you want to? (!yes or !no)")
-        } else {
-            "That tournament doesn't require deck registration. Pruning will do nothing."
-                .to_string()
-        };
-        digest.with_text(content);
-        Ok(digest)
-    }
-
     async fn action_end(
         &mut self,
         ctx: &Context,
@@ -872,18 +844,20 @@ impl GuildTournament {
                 return Ok(digest);
             }
         };
-        let op = TournOp::PlayerOp(p_id, RecordResult(result.clone()));
+        let r_id = match self.tourn.round_reg.get_player_active_round(&p_id) {
+            Ok(round) => round.id,
+            Err(err) => {
+                digest.with_str(error_to_content(err));
+                return Ok(digest);
+            }
+        };
+
+        let op = TournOp::PlayerOp(p_id, RecordResult(r_id, result.clone()));
         match self.tourn.apply_op(Utc::now(), op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
             Ok(_) => {
-                let r_id = self
-                    .tourn
-                    .round_reg
-                    .get_player_active_round(&p_id)
-                    .unwrap()
-                    .id;
                 let update = MatchUpdateMessage {
                     id: r_id,
                     update: MatchUpdate::RecordResult(result),
@@ -918,18 +892,19 @@ impl GuildTournament {
                 return Ok(digest);
             }
         };
-        let op = TournOp::PlayerOp(p_id, ConfirmResult);
+        let r_id = match self.tourn.round_reg.get_player_active_round(&p_id) {
+            Ok(round) => round.id,
+            Err(err) => {
+                digest.with_str(error_to_content(err));
+                return Ok(digest);
+            }
+        };
+        let op = TournOp::PlayerOp(p_id, ConfirmResult(r_id));
         match self.tourn.apply_op(Utc::now(), op) {
             Err(err) => {
                 digest.with_str(error_to_content(err));
             }
             Ok(OpData::ConfirmResult(_, status)) => {
-                let r_id = self
-                    .tourn
-                    .round_reg
-                    .get_player_active_round(&p_id)
-                    .unwrap()
-                    .id;
                 let update = MatchUpdateMessage {
                     id: r_id,
                     update: MatchUpdate::RecordConfirmation(p_id),

@@ -38,7 +38,6 @@ fn check_tourn_ops(op: TournOp) -> bool {
         Freeze(..) => true,
         Thaw(..) => true,
         PairRound(..) => true,
-        PruneDecks(..) => true,
         PrunePlayers(..) => true,
         Start(..) => true,
         TimeExtension(..) => true,
