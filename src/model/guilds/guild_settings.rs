@@ -45,7 +45,7 @@ impl GuildSettings {
             matches_category: None,
             make_vc: true,
             make_tc: false,
-            tourn_settings: TournamentSettingsTree::new(),
+            tourn_settings: TournamentSettingsTree::new(TournamentPreset::Swiss),
         }
     }
 
@@ -97,7 +97,7 @@ impl GuildSettings {
             matches_category,
             make_vc: true,
             make_tc: false,
-            tourn_settings: TournamentSettingsTree::new(),
+            tourn_settings: TournamentSettingsTree::new(TournamentPreset::Swiss),
         }
     }
 
