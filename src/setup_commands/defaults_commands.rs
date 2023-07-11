@@ -9,7 +9,7 @@ use serenity::{
 
 use squire_lib::{
     pairings::PairingAlgorithm,
-    settings::{PairingSetting, TournamentSetting},
+    settings::{CommonPairingSetting, GeneralSetting, PairingSetting, SwissPairingSetting},
 };
 
 use crate::{
@@ -290,7 +290,7 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
             reg.settings
                 .tourn_settings
-                .update_setting(TournamentSetting::Format(val));
+                .update(GeneralSetting::Format(val).into());
         }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a your default format.")
@@ -331,7 +331,7 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
             reg.settings
                 .tourn_settings
-                .update_setting(TournamentSetting::MinDeckCount(val));
+                .update(GeneralSetting::MinDeckCount(val).into());
         }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -348,7 +348,6 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[min_args(1)]
 #[description("Adjusts the required deck count for future tournaments.")]
 async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
     match args.single_quoted::<u8>() {
         Ok(val) => {
@@ -361,7 +360,7 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
             reg.settings
                 .tourn_settings
-                .update_setting(MaxDeckCount(val));
+                .update(GeneralSetting::MaxDeckCount(val).into());
         }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -380,7 +379,6 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     "Toggles whether or not players must sign in before a tournament for future tournaments."
 )]
 async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
     let arg = match args.single_quoted::<String>() {
         Err(_) => {
@@ -401,7 +399,7 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
             reg.settings
                 .tourn_settings
-                .update_setting(RequireCheckIn(b));
+                .update(GeneralSetting::RequireCheckIn(b).into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -419,7 +417,6 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[min_args(1)]
 #[description("Toggles whether or not decks must be registered for future tournaments.")]
 async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::TournamentSetting::*;
     let data = ctx.data.read().await;
     let arg = match args.single_quoted::<String>() {
         Err(_) => {
@@ -440,7 +437,7 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
             reg.settings
                 .tourn_settings
-                .update_setting(RequireDeckReg(b));
+                .update(GeneralSetting::RequireDeckReg(b).into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -481,7 +478,7 @@ async fn algorithm(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
                 let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
                 reg.settings
                     .tourn_settings
-                    .update_setting(PairingSetting::Algorithm(PairingAlgorithm::Greedy).into());
+                    .update(CommonPairingSetting::Algorithm(PairingAlgorithm::Greedy).into());
             }
             _ => {
                 msg.reply(
@@ -523,7 +520,7 @@ async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
             reg.settings
                 .tourn_settings
-                .update_setting(PairingSetting::MatchSize(val).into());
+                .update(CommonPairingSetting::MatchSize(val).into());
         }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -555,7 +552,7 @@ async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> Comma
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
             reg.settings
                 .tourn_settings
-                .update_setting(PairingSetting::RepairTolerance(val).into());
+                .update(CommonPairingSetting::RepairTolerance(val).into());
         }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -584,7 +581,6 @@ async fn swiss(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     "Toggles the default for whether or not players must sign in before each match in future swiss tournaments."
 )]
 async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::SwissPairingsSetting::*;
     let data = ctx.data.read().await;
     let arg = match args.single_quoted::<String>() {
         Err(_) => {
@@ -603,8 +599,8 @@ async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 .await;
             let g_id = msg.guild_id.unwrap();
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            let setting: PairingSetting = DoCheckIns(b).into();
-            reg.settings.tourn_settings.update_setting(setting.into());
+            let setting: PairingSetting = SwissPairingSetting::DoCheckIns(b).into();
+            reg.settings.tourn_settings.update(setting.into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -685,7 +681,7 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
         reg.settings
             .tourn_settings
-            .update_setting(MatchWinPoints(val).into());
+            .update(MatchWinPoints(val).into());
         return Ok(());
     }
     msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -717,7 +713,7 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
         let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
         reg.settings
             .tourn_settings
-            .update_setting(MatchDrawPoints(val).into());
+            .update(MatchDrawPoints(val).into());
         return Ok(());
     }
     msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -749,7 +745,7 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
         let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
         reg.settings
             .tourn_settings
-            .update_setting(MatchLossPoints(val).into());
+            .update(MatchLossPoints(val).into());
         return Ok(());
     }
     msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -781,7 +777,7 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
         let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
         reg.settings
             .tourn_settings
-            .update_setting(GameWinPoints(val).into());
+            .update(GameWinPoints(val).into());
         return Ok(());
     }
     msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -813,7 +809,7 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
         reg.settings
             .tourn_settings
-            .update_setting(GameDrawPoints(val).into());
+            .update(GameDrawPoints(val).into());
         return Ok(());
     }
     msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -845,7 +841,7 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
         let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
         reg.settings
             .tourn_settings
-            .update_setting(GameLossPoints(val).into());
+            .update(GameLossPoints(val).into());
         return Ok(());
     }
     msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -877,9 +873,7 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             .await;
         let g_id = msg.guild_id.unwrap();
         let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-        reg.settings
-            .tourn_settings
-            .update_setting(ByePoints(val).into());
+        reg.settings.tourn_settings.update(ByePoints(val).into());
         return Ok(());
     }
     msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -913,9 +907,7 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                 .await;
             let g_id = msg.guild_id.unwrap();
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings
-                .tourn_settings
-                .update_setting(IncludeByes(b).into());
+            reg.settings.tourn_settings.update(IncludeByes(b).into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -954,7 +946,7 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
             reg.settings
                 .tourn_settings
-                .update_setting(IncludeMatchPoints(b).into());
+                .update(IncludeMatchPoints(b).into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -993,7 +985,7 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
             reg.settings
                 .tourn_settings
-                .update_setting(IncludeGamePoints(b).into());
+                .update(IncludeGamePoints(b).into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -1030,9 +1022,7 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 .await;
             let g_id = msg.guild_id.unwrap();
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings
-                .tourn_settings
-                .update_setting(IncludeMwp(b).into());
+            reg.settings.tourn_settings.update(IncludeMwp(b).into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -1069,9 +1059,7 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 .await;
             let g_id = msg.guild_id.unwrap();
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings
-                .tourn_settings
-                .update_setting(IncludeGwp(b).into());
+            reg.settings.tourn_settings.update(IncludeGwp(b).into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -1108,9 +1096,7 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
                 .await;
             let g_id = msg.guild_id.unwrap();
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings
-                .tourn_settings
-                .update_setting(IncludeOppMwp(b).into());
+            reg.settings.tourn_settings.update(IncludeOppMwp(b).into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
@@ -1147,9 +1133,7 @@ async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
                 .await;
             let g_id = msg.guild_id.unwrap();
             let mut reg = spin_mut(&tourn_regs, &g_id).await.unwrap();
-            reg.settings
-                .tourn_settings
-                .update_setting(IncludeOppGwp(b).into());
+            reg.settings.tourn_settings.update(IncludeOppGwp(b).into());
         }
         None => {
             msg.reply(&ctx.http, "Please specify 'true' or 'false'.")
