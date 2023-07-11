@@ -28,7 +28,7 @@ use squire_lib::{
     players::PlayerStatus,
     rounds::{RoundId, RoundResult, RoundStatus},
     settings::TournamentSetting,
-    tournament::{Tournament, TournamentPreset},
+    tournament::{Tournament, TournamentPreset, TournamentSeed},
 };
 
 use crate::{
@@ -133,7 +133,8 @@ impl GuildTournament {
         format: String,
         name: String,
     ) -> Self {
-        let mut tourn = Tournament::from_preset(name, preset, format);
+        let seed = TournamentSeed::new(name, preset, format).unwrap(); // Unwrap is ok, we have validated name upfront
+        let mut tourn = Tournament::from(seed);
         let admin = Admin {
             id: *SQUIRE_ACCOUNT_ID,
             name: "Squire Bot".into(),
@@ -219,7 +220,7 @@ impl GuildTournament {
             tc_mention,
             role_mention,
             warnings: TimerWarnings::default(),
-            use_table_number: self.tourn.use_table_number,
+            use_table_number: self.tourn.settings.use_table_number,
         })
     }
 
@@ -747,9 +748,9 @@ impl GuildTournament {
             .get::<ConfirmationsContainer>()
             .unwrap()
             .insert(caller_id, Box::new(confirm));
-        let min = self.tourn.min_deck_count;
+        let min = self.tourn.settings.min_deck_count;
         let (decks, checkin) = self.tourn.count_to_prune_players();
-        let content = match (self.tourn.require_deck_reg, self.tourn.require_check_in) {
+        let content = match (self.tourn.settings.require_deck_reg, self.tourn.settings.require_check_in) {
             (true, true) => {
                 format!("You are about to prune {decks} players because they didn't register at least {min} decks and {checkin} players because they didn't check in. Are you sure you want to? (!yes or !no)")
             },
