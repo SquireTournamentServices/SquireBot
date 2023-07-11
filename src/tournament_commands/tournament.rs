@@ -7,7 +7,7 @@ use serenity::{
     prelude::*,
 };
 
-use squire_lib::tournament::TournamentPreset;
+use squire_lib::tournament::{TournamentPreset, TournamentSeed};
 
 use crate::{model::containers::GuildTournRegistryMapContainer, utils::spin_lock::spin_mut};
 
@@ -116,7 +116,14 @@ async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-
+    if !TournamentSeed::validate_name(&name) {
+        msg.reply(
+            &ctx.http,
+            "Invalid tournament name. Tournament name must not be empty.",
+        )
+        .await?;
+        return Ok(());
+    }
     let content = match reg.create_tourn(tourn_role, preset, name).await {
         true => "Tournament successfully created!!",
         false => "Could not create tournament!!",
