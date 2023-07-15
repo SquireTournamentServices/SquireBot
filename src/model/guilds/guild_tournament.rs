@@ -1518,8 +1518,11 @@ impl GuildTournament {
     }
 }
 
-impl From<TournamentSetting> for SquireTournamentSetting {
-    fn from(setting: TournamentSetting) -> Self {
-        SquireTournamentSetting::TournamentSetting(setting)
+impl<T> From<T> for SquireTournamentSetting
+where
+    T: Into<TournamentSetting>,
+{
+    fn from(setting: T) -> Self {
+        SquireTournamentSetting::TournamentSetting(setting.into())
     }
 }
