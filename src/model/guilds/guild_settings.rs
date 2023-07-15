@@ -71,7 +71,7 @@ impl GuildSettings {
                 name,
             );
             // Basic settings
-            for op in self.tourn_settings.as_settings(preset) {
+            for op in self.tourn_settings.iter() {
                 let _ = tourn.tourn.apply_op(
                     Utc::now(),
                     TournOp::AdminOp(*SQUIRE_ACCOUNT_ID, UpdateTournSetting(op)),
