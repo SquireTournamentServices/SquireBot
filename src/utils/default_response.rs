@@ -111,5 +111,12 @@ pub fn error_to_content(err: TournamentError) -> &'static str {
             "At least one match still has no match results, so the confirmation could not occur."
         }
         MaxDecksReached => "This player has already reached maximum number of decks.",
+        NameTaken => "That name is already taken.",
+        RepeatedPlayerInMatch => "This player was already added to this match.",
+        IncorrectMatchSize => "That match size is not compatible with the pairing system.",
+        InvalidMatchSize => "That match size is not valid. Match size should be non-zero.",
+        // Time was added or subtracted such that the time could not be properly stored
+        TimeOverflow => "That time is not valid. Maybe it's too large?",
+        BadTournamentName => "This tournament name is not valid.",
     }
 }
