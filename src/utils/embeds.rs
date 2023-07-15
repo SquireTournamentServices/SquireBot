@@ -8,7 +8,7 @@ use serenity::{builder::CreateEmbed, prelude::Mentionable};
 use squire_lib::{
     identifiers::PlayerId,
     pairings::PairingStyle,
-    scoring::{ScoringSystem, StandardScore, Standings},
+    scoring::{ScoringStyle, StandardScore, Standings},
 };
 
 use crate::model::guilds::GuildTournament;
@@ -23,7 +23,7 @@ pub type StringFields = Vec<(String, Vec<String>, &'static str, bool)>;
 ///  - Each field has at most 1024 characters (including title)
 ///  - Each embed has at most 2048 characters (including title)
 ///  - No field is empty
-///  
+///
 /// NOTE: There will still be problems if single title or field item is greater than its
 /// respective limit. Under normal situations, this should not be an issue
 pub fn safe_embeds<'a, I, F, T>(title: String, fields: I) -> Vec<CreateEmbed>
@@ -125,7 +125,7 @@ pub fn tournament_embed_info(
     ];
     digest.push(("Discord Info:".into(), discord_info, "\n", true));
     let mut settings_info = vec![
-        format!("Format: {}", g_tourn.tourn.format),
+        format!("Format: {}", g_tourn.tourn.settings.format),
         format!(
             "Pairing method: {}",
             match g_tourn.tourn.pairing_sys.style {
@@ -135,8 +135,8 @@ pub fn tournament_embed_info(
         ),
         format!(
             "Scoring method: {}",
-            match g_tourn.tourn.scoring_sys {
-                ScoringSystem::Standard(_) => "Standard",
+            match g_tourn.tourn.scoring_sys.style {
+                ScoringStyle::Standard(_) => "Standard",
             }
         ),
         format!(
@@ -147,10 +147,13 @@ pub fn tournament_embed_info(
                 "Closed"
             }
         ),
-        format!("Match size: {}", g_tourn.tourn.pairing_sys.match_size),
+        format!(
+            "Match size: {}",
+            g_tourn.tourn.pairing_sys.common.match_size
+        ),
         format!(
             "Assign table number: {}",
-            if g_tourn.tourn.use_table_number {
+            if g_tourn.tourn.settings.use_table_number {
                 "True"
             } else {
                 "False"
@@ -158,7 +161,7 @@ pub fn tournament_embed_info(
         ),
         format!(
             "Require checkin: {}",
-            if g_tourn.tourn.require_check_in {
+            if g_tourn.tourn.settings.require_check_in {
                 "True"
             } else {
                 "False"
@@ -166,30 +169,36 @@ pub fn tournament_embed_info(
         ),
         format!(
             "Require deck reg: {}",
-            if g_tourn.tourn.require_deck_reg {
+            if g_tourn.tourn.settings.require_deck_reg {
                 "True"
             } else {
                 "False"
             }
         ),
     ];
-    if g_tourn.tourn.require_deck_reg {
-        settings_info.push(format!("Min deck count: {}", g_tourn.tourn.min_deck_count));
-        settings_info.push(format!("Max deck count: {}", g_tourn.tourn.max_deck_count));
+    if g_tourn.tourn.settings.require_deck_reg {
+        settings_info.push(format!(
+            "Min deck count: {}",
+            g_tourn.tourn.settings.min_deck_count
+        ));
+        settings_info.push(format!(
+            "Max deck count: {}",
+            g_tourn.tourn.settings.max_deck_count
+        ));
     }
     digest.push(("Settings Info:".into(), settings_info, "\n", true));
     let mut player_info = vec![format!(
         "{} players are registered.",
         g_tourn.tourn.player_reg.active_player_count()
     )];
-    if g_tourn.tourn.require_deck_reg {
+    if g_tourn.tourn.settings.require_deck_reg {
         let min_count = g_tourn
             .tourn
             .player_reg
             .players
             .values()
             .filter(|p| p.can_play())
-            .filter(|p| p.decks.len() > g_tourn.tourn.min_deck_count as usize)
+            .filter(|p| p.decks.len() > g_tourn.tourn.settings.min_deck_count as usize)
             .count();
         player_info.push(format!(
             "{} of them have registered at least the minimum number of decks.",
@@ -201,14 +210,14 @@ pub fn tournament_embed_info(
             .players
             .values()
             .filter(|p| p.can_play())
-            .filter(|p| p.decks.len() > g_tourn.tourn.max_deck_count as usize)
+            .filter(|p| p.decks.len() > g_tourn.tourn.settings.max_deck_count as usize)
             .count();
         player_info.push(format!(
             "{} of them have registered more than the maximum number of decks.",
             max_count
         ));
     }
-    if g_tourn.tourn.require_check_in {
+    if g_tourn.tourn.settings.require_check_in {
         player_info.push(format!(
             "{} of them have checked in.",
             g_tourn.tourn.player_reg.count_check_ins()
