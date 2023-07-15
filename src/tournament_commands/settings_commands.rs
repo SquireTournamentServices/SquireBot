@@ -7,7 +7,7 @@ use serenity::{
     prelude::*,
 };
 
-use squire_lib::{pairings::PairingAlgorithm, settings::TournamentSetting};
+use squire_lib::{pairings::PairingAlgorithm, settings::SwissPairingSetting};
 
 use crate::{
     model::{containers::GuildTournRegistryMapContainer, guilds::SquireTournamentSetting},
@@ -22,7 +22,7 @@ use crate::{
 #[min_args(1)]
 #[description("Adjusts the default format for future tournaments.")]
 async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::TournamentSetting::*;
+    use crate::squire_lib::settings::GeneralSetting::*;
     let raw_format = match args.single_quoted::<String>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please include the name of a format.")
@@ -36,6 +36,7 @@ async fn format(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             .await?;
         return Ok(());
     }
+
     let setting = Format(raw_format).into();
     settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
@@ -64,7 +65,7 @@ async fn deck_count(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[min_args(1)]
 #[description("Adjusts the required deck count for future tournaments.")]
 async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::TournamentSetting::*;
+    use crate::squire_lib::settings::GeneralSetting::*;
     let raw_setting = match args.single_quoted::<u8>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -72,6 +73,7 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
         Ok(n) => n,
     };
+
     let setting = MinDeckCount(raw_setting).into();
     settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
 }
@@ -84,7 +86,7 @@ async fn min(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[min_args(1)]
 #[description("Adjusts the required deck count for future tournaments.")]
 async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::TournamentSetting::*;
+    use crate::squire_lib::settings::GeneralSetting::*;
     let raw_setting = match args.single_quoted::<u8>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -106,9 +108,10 @@ async fn max(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     "Toggles whether or not players must sign in before a tournament for future tournaments."
 )]
 async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::TournamentSetting::*;
+    use crate::squire_lib::settings::GeneralSetting::*;
     if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
         let setting = RequireCheckIn(b).into();
+
         settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
     }
     Ok(())
@@ -122,7 +125,7 @@ async fn require_checkin(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[min_args(1)]
 #[description("Toggles whether or not decks must be registered for future tournaments.")]
 async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::TournamentSetting::*;
+    use crate::squire_lib::settings::GeneralSetting::*;
     if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
         let setting = RequireDeckReg(b).into();
         settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
@@ -138,10 +141,11 @@ async fn require_deck(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[min_args(1)]
 #[description("Adjusts the length of future rounds.")]
 async fn round_length(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::TournamentSetting::*;
+    use crate::squire_lib::settings::GeneralSetting::*;
     match args.single_quoted::<u64>() {
         Ok(dur) => {
-            let setting = RoundLength(Duration::from_secs(dur * 60)).into();
+            let dur = Duration::from_secs(dur * 60);
+            let setting = RoundLength(dur).into();
             settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
         }
         Err(_) => {
@@ -172,11 +176,11 @@ async fn pairings(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[min_args(1)]
 #[description("Sets the default match size for future tournaments.")]
 async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::PairingSetting::*;
+    use crate::squire_lib::settings::CommonPairingSetting::*;
     match args.single_quoted::<u8>() {
         Ok(n) => {
-            let setting: TournamentSetting = MatchSize(n).into();
-            settings_command(ctx, msg, setting.into(), args.rest().trim().to_string()).await
+            let setting = MatchSize(n).into();
+            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
         }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -194,11 +198,11 @@ async fn match_size(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[min_args(1)]
 #[description("Sets the default repair tolerance for matches in future tournaments.")]
 async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::PairingSetting::*;
+    use crate::squire_lib::settings::CommonPairingSetting::*;
     match args.single_quoted::<u64>() {
         Ok(n) => {
-            let setting: TournamentSetting = RepairTolerance(n).into();
-            settings_command(ctx, msg, setting.into(), args.rest().trim().to_string()).await
+            let setting = RepairTolerance(n).into();
+            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
         }
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -215,7 +219,7 @@ async fn repair_tolerance(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[min_args(1)]
 #[description("Sets the default pairings algorithm for future tournaments.")]
 async fn algorithm(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::PairingSetting::*;
+    use crate::squire_lib::settings::CommonPairingSetting::*;
     match args.single_quoted::<String>() {
         Err(_) => {
             msg.reply(&ctx.http, "Please specify a number.").await?;
@@ -233,8 +237,8 @@ async fn algorithm(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
                     return Ok(());
                 }
             };
-            let setting: TournamentSetting = Algorithm(alg).into();
-            settings_command(ctx, msg, setting.into(), args.rest().trim().to_string()).await
+            let setting = Algorithm(alg).into();
+            settings_command(ctx, msg, setting, args.rest().trim().to_string()).await
         }
     }
 }
@@ -261,9 +265,8 @@ async fn swiss(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     "Toggles the default for whether or not players must sign in before each match in future swiss tournaments."
 )]
 async fn do_checkins(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{PairingSetting::*, SwissPairingsSetting::*, TournamentSetting::*};
     if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
-        let setting = PairingSetting(Swiss(DoCheckIns(b))).into();
+        let setting = SwissPairingSetting::DoCheckIns(b).into();
         settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
     }
     Ok(())
@@ -326,15 +329,13 @@ async fn standard(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[min_args(1)]
 #[description("Adjusts how many match points a match win is worth.")]
 async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use crate::squire_lib::settings::StandardScoringSetting::*;
     if let Some(val) = args
         .single_quoted::<f64>()
         .ok()
         .and_then(Rational32::approximate_float)
     {
-        let setting = ScoringSetting(Standard(MatchWinPoints(val))).into();
+        let setting = MatchWinPoints(val).into();
         return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
     msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -351,15 +352,13 @@ async fn match_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[min_args(1)]
 #[description("Adjusts how many match points a match win is worth.")]
 async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use squire_lib::settings::StandardScoringSetting::*;
     if let Some(val) = args
         .single_quoted::<f64>()
         .ok()
         .and_then(Rational32::approximate_float)
     {
-        let setting = ScoringSetting(Standard(MatchDrawPoints(val))).into();
+        let setting = MatchDrawPoints(val).into();
         return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
     msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -376,15 +375,13 @@ async fn match_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 #[min_args(1)]
 #[description("Adjusts how many match points a match loss is worth.")]
 async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use squire_lib::settings::StandardScoringSetting::*;
     if let Some(val) = args
         .single_quoted::<f64>()
         .ok()
         .and_then(Rational32::approximate_float)
     {
-        let setting = ScoringSetting(Standard(MatchLossPoints(val))).into();
+        let setting = MatchLossPoints(val).into();
         return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
     msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -401,15 +398,13 @@ async fn match_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 #[min_args(1)]
 #[description("Adjusts how many game points a game win is worth.")]
 async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use squire_lib::settings::StandardScoringSetting::*;
     if let Some(val) = args
         .single_quoted::<f64>()
         .ok()
         .and_then(Rational32::approximate_float)
     {
-        let setting = ScoringSetting(Standard(GameWinPoints(val))).into();
+        let setting = GameWinPoints(val).into();
         return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
     msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -426,15 +421,13 @@ async fn game_win_points(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[min_args(1)]
 #[description("Adjusts how many game points a game draw is worth.")]
 async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use squire_lib::settings::StandardScoringSetting::*;
     if let Some(val) = args
         .single_quoted::<f64>()
         .ok()
         .and_then(Rational32::approximate_float)
     {
-        let setting = ScoringSetting(Standard(GameDrawPoints(val))).into();
+        let setting = GameDrawPoints(val).into();
         return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
     msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -451,15 +444,13 @@ async fn game_draw_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[min_args(1)]
 #[description("Adjusts how many game points a game loss is worth.")]
 async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use squire_lib::settings::StandardScoringSetting::*;
     if let Some(val) = args
         .single_quoted::<f64>()
         .ok()
         .and_then(Rational32::approximate_float)
     {
-        let setting = ScoringSetting(Standard(GameLossPoints(val))).into();
+        let setting = GameLossPoints(val).into();
         return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
     msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -476,15 +467,13 @@ async fn game_loss_points(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[min_args(1)]
 #[description("Adjusts how many match points a bye is worth.")]
 async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use squire_lib::settings::StandardScoringSetting::*;
     if let Some(val) = args
         .single_quoted::<f64>()
         .ok()
         .and_then(Rational32::approximate_float)
     {
-        let setting = ScoringSetting(Standard(ByePoints(val))).into();
+        let setting = ByePoints(val).into();
         return settings_command(ctx, msg, setting, args.rest().trim().to_string()).await;
     }
     msg.reply(&ctx.http, "Please specify a number (can be a decimal).")
@@ -500,11 +489,9 @@ async fn bye_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[min_args(1)]
 #[description("Toggle if byes are used in calculating scores.")]
 async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use squire_lib::settings::StandardScoringSetting::*;
     if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
-        let setting = ScoringSetting(Standard(IncludeByes(b))).into();
+        let setting = IncludeByes(b).into();
         settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
     }
     Ok(())
@@ -518,11 +505,9 @@ async fn include_byes(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[min_args(1)]
 #[description("Toggle if match points are included in scores.")]
 async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use squire_lib::settings::StandardScoringSetting::*;
     if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
-        let setting = ScoringSetting(Standard(IncludeMatchPoints(b))).into();
+        let setting = IncludeMatchPoints(b).into();
         settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
     }
     Ok(())
@@ -536,11 +521,9 @@ async fn include_match_points(ctx: &Context, msg: &Message, mut args: Args) -> C
 #[min_args(1)]
 #[description("Toggle if game points are included in scores.")]
 async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use squire_lib::settings::StandardScoringSetting::*;
     if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
-        let setting = ScoringSetting(Standard(IncludeGamePoints(b))).into();
+        let setting = IncludeGamePoints(b).into();
         settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
     }
     Ok(())
@@ -554,11 +537,9 @@ async fn include_game_points(ctx: &Context, msg: &Message, mut args: Args) -> Co
 #[min_args(1)]
 #[description("Toggle if match win percent is included in scores.")]
 async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use squire_lib::settings::StandardScoringSetting::*;
     if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
-        let setting = ScoringSetting(Standard(IncludeMwp(b))).into();
+        let setting = IncludeMwp(b).into();
         settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
     }
     Ok(())
@@ -572,11 +553,9 @@ async fn include_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 #[min_args(1)]
 #[description("Toggle if game win percent is included in scores.")]
 async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use squire_lib::settings::StandardScoringSetting::*;
     if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
-        let setting = ScoringSetting(Standard(IncludeGwp(b))).into();
+        let setting = IncludeGwp(b).into();
         settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
     }
     Ok(())
@@ -590,11 +569,9 @@ async fn include_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 #[min_args(1)]
 #[description("Toggle if opponent match win percent is included in scores.")]
 async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use squire_lib::settings::StandardScoringSetting::*;
     if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
-        let setting = ScoringSetting(Standard(IncludeOppMwp(b))).into();
+        let setting = IncludeOppMwp(b).into();
         settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
     }
     Ok(())
@@ -608,11 +585,9 @@ async fn include_opp_mwp(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[min_args(1)]
 #[description("Toggle if opponent game win percent is included in scores.")]
 async fn include_opp_gwp(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    use squire_lib::settings::{
-        ScoringSetting::*, StandardScoringSetting::*, TournamentSetting::*,
-    };
+    use squire_lib::settings::StandardScoringSetting::*;
     if let Some(b) = arg_to_bool(ctx, msg, &mut args).await? {
-        let setting = ScoringSetting(Standard(IncludeOppGwp(b))).into();
+        let setting = IncludeOppGwp(b).into();
         settings_command(ctx, msg, setting, args.rest().trim().to_string()).await?;
     }
     Ok(())
