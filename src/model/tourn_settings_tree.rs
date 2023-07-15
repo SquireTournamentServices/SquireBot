@@ -43,7 +43,7 @@ fn populate_pairing_embed<'a>(tree: &PairingSettingsTree, embed: &'a mut CreateE
         Pairing Algorithm: {}\n\n",
         tree.common.match_size, tree.common.repair_tolerance, tree.common.algorithm,
     );
-    let style_data = match tree.style {
+    let style_data = match &tree.style {
         PairingStyleSettingsTree::Swiss(tree) => {
             format!(
                 "**Swiss Settings**:\n
@@ -60,7 +60,7 @@ fn populate_pairing_embed<'a>(tree: &PairingSettingsTree, embed: &'a mut CreateE
 }
 
 fn populate_scoring_embed(tree: &ScoringSettingsTree, embed: &mut CreateEmbed) {
-    let style_data = match tree.style {
+    let style_data = match &tree.style {
         ScoringStyleSettingsTree::Standard(tree) => format!(
             "**Standard Scoring**\n\
         Match Win: {}\n\
